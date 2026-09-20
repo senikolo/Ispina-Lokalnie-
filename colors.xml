@@ -1,0 +1,7 @@
+<resources>
+    <color name="ispina_primary">#2E7D32</color>
+    <color name="ispina_primary_dark">#1B5E20</color>
+    <color name="ispina_accent">#FFB300</color>
+    <color name="white">#FFFFFF</color>
+    <color name="black">#000000</color>
+</resources>

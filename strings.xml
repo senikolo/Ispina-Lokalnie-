@@ -1,0 +1,14 @@
+<resources>
+    <string name="app_name">Ispina Lokalnie</string>
+    <string name="nav_home">Strona główna</string>
+    <string name="nav_news">Aktualności / Wiadomości</string>
+    <string name="nav_buses">Odjazdy autobusów</string>
+    <string name="nav_facebook">Komunikacja</string>
+    <string name="nav_data">Dane o Ispinie</string>
+    <string name="nav_history">Historia Ispiny</string>
+    <string name="nav_gallery">Galeria</string>
+    <string name="nav_contact">Kontakt</string>
+    <string name="nav_about">O mnie</string>
+    <string name="open_drawer">Otwórz menu</string>
+    <string name="no_internet">Brak połączenia z internetem</string>
+</resources>
