@@ -115,3 +115,30 @@ Zgłoszenie do oficjalnego repozytorium F-Droid nie zostało wysłane.
 - `planner/README.md` opisuje budowanie zmian interfejsu przez skrypt wymagający `--base` z istniejącą APK R14.3; podpisanie wymaga osobnej prywatnej konfiguracji. Taki skrypt nie jest receptą F-Droida, która kompiluje aplikację od zera.
 - Główny `AndroidManifest.xml` w tagu wymienia `INTERNET` i `ACCESS_NETWORK_STATE`, lecz README oznacza pliki XML jako historyczne zasoby, a manifest nie należy do kompletnego projektu Gradle. Nie można na tej podstawie potwierdzić uprawnień faktycznej APK 1.83.20.
 - Nie udało się więc potwierdzić natywnego manifestu scalonego, bibliotek ani usług użytych w opublikowanej APK. Do takiego audytu potrzebny jest kompletny projekt lub kontrolowane odczytanie APK; sam snapshot repozytorium nie wystarcza.
+
+
+## Dodatkowo sprawdzone archiwa źródłowe
+
+### Projekt 1.80.60 — Java, interfejs i rozkłady
+
+- Archiwum ZIP osadzone w notebooku ma poprawną sumę SHA-256 zgodną z notebookiem (81e5ea146939e74045e7ef0457d6a4b39e428ff49215889ab0383e36126e172e) i przechodzi test integralności ZIP.
+- Zawiera projekt Gradle, MainActivity.java, WebView, interfejs JavaScript, lokalne pliki danych i kod synchronizacji. Parsowanie GTFS obejmuje linie MLD A4/A7/A65. Linia gminna jest pobierana z adresu wdrożonego Google Apps Script, z lokalnym JSON jako awaryjnym źródłem. Pogoda jest pobierana z Open-Meteo.
+- applicationId i namespace to pl.ispina.lokalnie, versionCode to 18060, a versionName to 1.80.60. README określa aplikację jako uproszczoną wersję bez radia. Nie jest to bieżący projekt com.ispina.mldcheck ani pełna funkcjonalność IL.
+- Manifest tego archiwum deklaruje INTERNET i ACCESS_NETWORK_STATE. To nie potwierdza uprawnień ani ruchu sieciowego APK 1.83.20. Zewnętrzny skrypt Google wymaga osobnej oceny dostępności, warunków i przepływu danych.
+
+### Projekt 2.0.0 — odrębny prototyp Kotlin/Compose
+
+- Archiwum zawiera źródła Kotlin/Compose, skrypty Gradle, ekran portalu otwieranego w WebView, pogodę z Open-Meteo i odtwarzanie radia przez Media3. Test integralności ZIP przeszedł; archiwum nie jest związane z tagiem v1.83.20.
+- Ustawia applicationId pl.ispinalokalnie.app2026, versionCode 20000 i versionName 2.0.0. Manifest deklaruje dostęp do Internetu i sieci, usługę odtwarzania w tle, blokadę uśpienia oraz powiadomienia.
+- README wymienia aktualności i rozkłady autobusów jako funkcje do ewentualnego dodania. Projekt nie odtwarza więc Planera i funkcji transportowych opisanych dla IL. Nie może być bezpiecznym zamiennikiem obecnej aplikacji.
+- Bezpośrednie zależności obejmują m.in. AndroidX/Compose, Retrofit, OkHttp, kotlinx.serialization, DataStore, Media3, Guava i Accompanist. Wymagają one odrębnego sprawdzenia źródeł, wersji i licencji. RadioConfig.kt wskazuje zewnętrzny stream Polskiego Radia; prawo do jego redystrybucji i trwałość adresu nie zostały potwierdzone.
+- Archiwum nie zawiera pliku LICENSE; w katalogu Gradle jest plik gradle-wrapper.properties, lecz nie ma skryptów gradlew ani gradlew.bat i pliku wrapper JAR. Nie wykonano kompilacji tego prototypu.
+
+Nie dodano tych archiwów do repozytorium ani nie przypisano im licencji GPL. Wymagają potwierdzenia praw do kodu, grafik, fontów, danych, transmisji i usług przed wykorzystaniem ich fragmentów.
+
+## Wymagania F-Droid potwierdzone w aktualnej dokumentacji
+
+- Oficjalna [polityka włączenia](https://f-droid.org/docs/Inclusion_Policy/) wymaga wolnego oprogramowania i dostępnego źródła, z którego F-Droid może zbudować aplikację. Zależności binarne muszą pochodzić z kompilacji źródłowej lub z dozwolonych zaufanych repozytoriów. Wszystkie grafiki i fonty muszą mieć udokumentowane prawa do redystrybucji.
+- Polityka zabrania własnościowych bibliotek reklamowych i śledzących. Dodatkowe pliki wykonywalne, w tym mechanizmy autoaktualizacji APK, wymagają wyraźnej zgody opt-in i ostrzeżenia, że omijają kontrole F-Droida. Aplikacja opisująca funkcje musi faktycznie je implementować; opakowanie strony WWW powinno wnosić natywne funkcje.
+- [Opis Anti-Features](https://f-droid.org/docs/Anti-Features/) wymaga przejrzystego wskazania usług sieciowych i innych cech ograniczających prywatność lub swobodę wyboru. Użycie zewnętrznego API samo w sobie nie przesądza wyniku audytu, ale trzeba opisać jego rolę, dane i warunki.
+- [Dokumentacja powtarzalnych kompilacji](https://f-droid.org/docs/Reproducible_Builds/) opisuje cel F-Droid polegający na sprawdzaniu, czy kompilacja ze źródeł odtwarza opublikowany APK. Dla IL nie można jeszcze porównać artefaktów, bo brak zweryfikowanych źródeł właściwego wydania.
