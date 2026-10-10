@@ -1,0 +1,8 @@
+planner/node_modules/
+planner/output/
+planner/base-R14-3.apk
+planner/visual-*/
+**/__pycache__/
+*.p12
+*.jks
+*signing-config.json
