@@ -1,0 +1,1 @@
+Dodano Ciekawostki historyczne. Po wybraniu celu planer od razu wyszukuje polaczenia na teraz. Uporzadkowano menu, nazwy przystankow i informacje o wersji.
