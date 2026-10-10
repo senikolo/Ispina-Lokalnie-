@@ -2,66 +2,55 @@
 
 **Data audytu:** 10 października 2026 r.  
 **Status:** NIEGOTOWA DO ZGŁOSZENIA  
-**Wersja bazowa:** 1.83.20, versionCode 18320  
-**Identyfikator:** `com.ispina.mldcheck`  
-**Wybrana licencja kodu:** `GPL-3.0-only`
+**Wersja docelowa:** 1.83.20 (versionCode 18320)  
+**Identyfikator docelowy:** `com.ispina.mldcheck`  
+**Licencja wybrana dla kodu, do którego autor ma prawa:** `GPL-3.0-only`
 
 ## Wniosek
 
-W repozytorium znajduje się kod interfejsu, testy i skrypty, ale nie ma pełnego projektu aplikacji Android ani źródeł jej warstwy Java/Kotlin. Udokumentowany skrypt aktualizujący interfejs wymaga wcześniejszego APK jako pliku wejściowego. Taki proces nie jest budową aplikacji od zera, więc nie może posłużyć jako recepta F-Droida. Nie udało się potwierdzić zgodności licencyjnej wszystkich zasobów ani przeprowadzić kompilacji Androida.
+Nie znaleziono kompletnego projektu źródłowego wersji 1.83.20. Znaleziono starszy, rzeczywisty projekt Androida 1.80.66 oraz osobny prototyp aplikacji 2.0.x. Starszy projekt może pomóc jako punkt odniesienia, ale nie jest źródłem bieżącego wydania i nie wolno publikować go jako jego zamiennika. Nie przeprowadzono kompilacji aktualnej aplikacji ani pełnego audytu praw do zasobów.
 
-Wyniki oznaczone jako „niezweryfikowane” wymagają sprawdzenia na pełnym, aktualnym kodzie aplikacji. Nie są potwierdzeniem braku danej funkcji.
+## Źródła i kompilacja — BLOKER
 
-## Ustalenia
+- Repozytorium zawiera interfejs JavaScript, moduły, testy i narzędzia. `planner/build_motion_apk.py` wymaga istniejącego APK przez `--base`; nie buduje aplikacji od zera.
+- Opis archiwum źródeł wydania 1.83.19 wskazuje na interfejs, moduły, testy i bazowy APK, a nie pełny projekt natywny. Archiwum nie zostało niezależnie zweryfikowane.
+- Odnaleziono starszy projekt Androida 1.80.66 osadzony w archiwalnym notebooku budowania. Zawierał Gradle, moduł aplikacji, pliki Java `MainActivity` i synchronizacji rozkładów oraz zasoby. Jego archiwum przechodzi test ZIP i zgadza się z sumą SHA-256 wpisaną w notebooku.
+- Ten projekt ustawia `applicationId/namespace com.ispina.lokalnie`, versionCode 18066 i versionName 1.80.66. Wersja docelowa ma identyfikator `com.ispina.mldcheck`. README odzyskanego projektu opisuje uproszczoną wersję bez radia i ostrzega, że kompilacja debug może wymagać odinstalowania istniejącej aplikacji. To nie jest bezpieczna podmiana wersji 1.83.20.
+- Znaleziono też osobne notebooki z prototypami 2.0.x. Nie potwierdzono, że są źródłem aktualnego pakietu; nie zostały użyte do zastąpienia bieżącej aplikacji.
+- W tym środowisku dostępny jest JDK 17, ale nie ma Gradle ani Android SDK. Nie wykonano kompilacji źródeł 1.80.66 ani 1.83.20.
+- Nie ma jeszcze wiarygodnej recepty F-Droid dla wersji 1.83.20. Nie wolno umieszczać wcześniejszego APK w procesie kompilacji.
 
-### Źródła i kompilacja — BLOKER
+## Licencje i prawa do zasobów — NIEZWERYFIKOWANE
 
-- Najnowszym wydaniem widocznym na GitHubie jest stabilna wersja 1.83.20 z 10 października 2026 r.
-- `planner/` zawiera interfejs JavaScript, moduły, dane testowe, testy i narzędzia kontroli. README wyraźnie wskazuje, że repozytorium nie zawiera pełnych źródeł Java/Kotlin ani projektu Gradle.
-- `planner/build_motion_apk.py` przyjmuje istniejący APK przez parametr `--base`. Nie buduje kompletnej aplikacji ze źródeł. F-Droid wymaga publicznego, aktualnego kodu oraz działającego procesu budowania; nie można włączyć do kompilacji wcześniejszego APK.
-- Nie ma podstaw do utworzenia wiarygodnej recepty `fdroiddata` dla wersji 1.83.20 ani do nazwania projektu kompletnym.
+Dodano pełny tekst GPLv3. Oznaczenie `GPL-3.0-only` dotyczy wyłącznie kodu, do którego autor ma prawa i który udostępnia na tej licencji. Sam plik `LICENSE` nie nadaje praw do cudzych materiałów.
 
-### Licencje i prawa do zasobów — NIEZWERYFIKOWANE
+Przed zgłoszeniem trzeba udokumentować właściciela, licencję i prawo do redystrybucji zdjęć, ilustracji, ikon, fontów, rozkładów MLD i gminnych, transmisji radiowych i telewizyjnych, treści aktualności i historii oraz danych i usług pogodowych. Dostępność materiału w Internecie nie oznacza zgody na jego kopiowanie ani objęcia go GPL.
 
-W gałęzi dodano pełny tekst GPLv3. Oznaczenie `GPL-3.0-only` dotyczy kodu projektu, do którego autor ma prawa i który udostępnia na tej licencji. Sam plik `LICENSE` nie nadaje praw do cudzych materiałów.
+## Biblioteki, reklamy i śledzenie — NIEZWERYFIKOWANE
 
-Przed zgłoszeniem trzeba zinwentaryzować i udokumentować właściciela, licencję i zgodę na redystrybucję dla co najmniej:
+Dla wersji 1.83.20 brak projektu Gradle i natywnego kodu uniemożliwia wiarygodne zestawienie zależności. Nie można potwierdzić ani wykluczyć Google Play Services, Firebase, bibliotek reklamowych, analityki, trackerów ani komponentów niewolnych.
 
-- zdjęć, ilustracji, ikon, fontów i innych grafik;
-- rozkładów i danych przewozowych MLD oraz komunikacji gminnej;
-- adresów i warunków użycia transmisji radiowych i telewizyjnych;
-- treści wiadomości, historii i ciekawostek pobieranych z zewnętrznych stron;
-- usług pogodowych i pozostałych usług sieciowych.
+W odzyskanym projekcie 1.80.66 widoczna była zależność WorkManager 2.9.1; nie jest to dowód dotyczący wersji 1.83.20. Trzeba oddzielnie sprawdzić wszystkie zależności aktualnego wydania i ich licencje.
 
-Dostępność materiału w Internecie nie oznacza automatycznie prawa do jego kopiowania ani objęcia go GPL. Zgodnie z aktualną polityką F-Droid zasoby muszą mieć prawidłową podstawę prawną; część nieprogramowych grafik lub fontów może mieć odrębną licencję, o ile pozwala ona na redystrybucję.
+## Uprawnienia, sieć i usługi — CZĘŚCIOWO ZNANE
 
-### Biblioteki, reklamy i śledzenie — NIEZWERYFIKOWANE
+Odzyskany projekt 1.80.66 deklaruje `INTERNET` i `ACCESS_NETWORK_STATE`, pobiera pogodę z Open-Meteo, otwiera stronę Ispina Lokalnie w WebView i przewiduje synchronizację rozkładów przez usługę internetową. Jego README wyraźnie określa go jako wersję bez radia. Te informacje dotyczą tylko starszego projektu. Manifestu, domen i przesyłanych danych aplikacji 1.83.20 nie zweryfikowano.
 
-Brak plików Gradle i natywnych źródeł uniemożliwia sporządzenie listy zależności aplikacji. Nie można rzetelnie potwierdzić ani wykluczyć obecności Google Play Services, Firebase, bibliotek reklamowych, analityki, trackerów lub innych nieopen-source komponentów. Pliki związane z testami JavaScript nie zastępują audytu zależności Androida.
+## Aktualizacje — WYMAGANY OSOBNY WARIANT
 
-### Uprawnienia i połączenia sieciowe — CZĘŚCIOWO ZNANE
+Wydania opisują kanał aktualizacji. Po odzyskaniu kodu trzeba ustalić jego działanie. Wariant F-Droid powinien korzystać z aktualizacji dostarczanych przez klienta F-Droid i nie pobierać samodzielnie APK z pominięciem weryfikacji katalogu. Wariant produkcyjny należy pozostawić bez zmian do czasu zaplanowania migracji użytkowników.
 
-Widoczny w repozytorium `AndroidManifest.xml` deklaruje `INTERNET` i `ACCESS_NETWORK_STATE`. README opisuje jednak starsze XML-e w katalogu głównym jako historyczne zasoby, dlatego nie można uznać ich za manifest wydania 1.83.20. Rzeczywistych uprawnień APK i pełnej listy hostów sieciowych nie zweryfikowano.
+## Podpis i migracja — BLOKER
 
-Aplikacja korzysta z funkcji internetowych, w tym informacji transportowych, pogody, aktualności i transmisji. Po odzyskaniu źródeł trzeba ustalić, dokąd wysyłane są żądania, czy przesyłane są dane użytkownika, czy działają trackery oraz jakie warunki obowiązują dla usług zewnętrznych.
+Zachowanie identyfikatora `com.ispina.mldcheck` nie wystarczy do aktualizacji instalacji. Android wymaga zgodności certyfikatu podpisu. Dla wersji F-Droid trzeba ustalić, czy możliwy jest reprodukowalny build zgodny z dotychczasowym podpisem. Nie zmieniono ani nie ujawniono produkcyjnego klucza. Jeśli zgodności podpisu nie da się potwierdzić, potrzebny będzie jawny plan migracji i ochrony lokalnych danych.
 
-### Aktualizacje — WYMAGANY OSOBNY WARIANT
+## Testy i metadane — NIEZAKOŃCZONE
 
-Wydania opisują stabilny kanał aktualizacji. Aktualna polityka F-Droid ogranicza pobieranie plików wykonywalnych i automatycznych aktualizacji z pominięciem weryfikacji F-Droida. Zalecany wariant F-Droid powinien wyłączać pobieranie i instalowanie APK z GitHuba, a aktualizacje dostarczać przez klienta F-Droid. Produkcyjny wariant APK należy pozostawić bez zmian.
+Repozytorium opisuje 84 testy JavaScript Planera. Kontrola GitHub Actions dla roboczego PR przeszła, ale sprawdza planer i nie buduje natywnej aplikacji Android. Nie wykonano `fdroid lint`, `fdroid build`, instalacji APK ani testów uruchomienia na urządzeniu.
 
-### Podpis i migracja użytkowników — BLOKER
-
-Zachowanie `com.ispina.mldcheck` samo w sobie nie wystarcza do aktualizacji istniejącej aplikacji. Android wymaga zgodnego certyfikatu podpisu. Jeśli APK z F-Droida zostanie podpisany innym kluczem, nie zastąpi instalacji podpisanej kluczem produkcyjnym.
-
-Najpierw trzeba odzyskać pełne źródła i sprawdzić, czy da się odtworzyć wydanie w sposób reprodukowalny oraz zweryfikować zgodność z dotychczasowym certyfikatem. Nie wolno zmieniać ani ujawniać prywatnego klucza produkcyjnego. Jeżeli zgodności podpisu nie da się potwierdzić, migracja wymaga osobnego, jawnego planu; odinstalowanie może usunąć lokalne dane użytkownika.
-
-### Testy i metadane — NIEZAKOŃCZONE
-
-Repozytorium opisuje 84 testy interfejsu i logiki Planera, ale nie jest to test kompilacji Androida ani instalacji aktualnej aplikacji na urządzeniu. Nie wykonano tutaj `fdroid lint`, `fdroid build`, instalacji APK ani testu uruchomienia po czystej instalacji. Nie ma jeszcze właściwego pliku metadanych `fdroiddata` ani legalnie sprawdzonych zrzutów ekranu.
+Poniższe metadane są szkicem. Nie dodano jeszcze właściwego wpisu do `fdroiddata`, ikony ani zrzutów ekranu z potwierdzonym prawem do publikacji.
 
 ## Robocze metadane
-
-To szkic do dalszej weryfikacji, a nie gotowy plik do `fdroiddata`.
 
 | Pole | Wartość robocza |
 |---|---|
@@ -72,7 +61,7 @@ To szkic do dalszej weryfikacji, a nie gotowy plik do `fdroiddata`.
 | Strona | https://ispinalokalnie.com |
 | Kod | https://github.com/senikolo/Ispina-Lokalnie- |
 | Zgłoszenia | https://github.com/senikolo/Ispina-Lokalnie-/issues |
-| Aktualna wersja | 1.83.20 (18320) |
+| Wersja | 1.83.20 (18320) |
 
 ### Krótki opis — polski (roboczy)
 
@@ -100,13 +89,13 @@ Added a “Historical facts” section. After a destination is selected, the jou
 
 ## Co jest potrzebne przed zgłoszeniem
 
-1. Pełny, aktualny projekt Android Gradle wraz ze źródłami Java/Kotlin i potrzebnymi zasobami.
-2. Budowa od zera, bez APK jako składnika, oraz skuteczna próba budowy w środowisku zgodnym z F-Droidem.
-3. Spis zależności, uprawnień, domen, trackerów, reklam i usług zewnętrznych na podstawie faktycznych źródeł.
-4. Potwierdzenie praw do grafik, transmisji, danych i treści lub ich wymiana na legalnie redystrybuowane odpowiedniki.
-5. Wariant F-Droid bez samodzielnego pobierania APK oraz sprawdzony plan podpisu i migracji użytkowników.
-6. Test instalacji i uruchomienia oraz regresji kluczowych funkcji: Planera, rozkładów, aktualności, historii, ciekawostek, pogody i trybu Senior.
-7. Właściwe metadane, legalnie udostępnione ikona i zrzuty ekranu oraz pomyślne `fdroid lint` i `fdroid build`.
+1. Odzyskać i porównać natywny kod wersji 1.83.20 lub wykazać, że starsza baza 1.80.66 może być bezpiecznie zaktualizowana bez utraty funkcji.
+2. Ustawić docelowe ID `com.ispina.mldcheck` i zbudować aktualny wariant od zera bez APK jako składnika.
+3. Zweryfikować zależności, licencje, uprawnienia, domeny, trackery, reklamy, usługi, transmisje i źródła danych.
+4. Udokumentować prawa do materiałów lub zastąpić je legalnie redystrybuowanymi odpowiednikami.
+5. Przygotować wariant F-Droid bez własnego pobierania APK oraz sprawdzić podpis i migrację.
+6. Uruchomić testy instalacji, działania i regresji kluczowych funkcji.
+7. Dodać metadane, legalne materiały graficzne i przejść `fdroid lint` oraz `fdroid build`.
 
 Zgłoszenie do oficjalnego repozytorium F-Droid nie zostało wysłane.
 
