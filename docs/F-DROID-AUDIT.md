@@ -142,3 +142,9 @@ Nie dodano tych archiwów do repozytorium ani nie przypisano im licencji GPL. Wy
 - Polityka zabrania własnościowych bibliotek reklamowych i śledzących. Dodatkowe pliki wykonywalne, w tym mechanizmy autoaktualizacji APK, wymagają wyraźnej zgody opt-in i ostrzeżenia, że omijają kontrole F-Droida. Aplikacja opisująca funkcje musi faktycznie je implementować; opakowanie strony WWW powinno wnosić natywne funkcje.
 - [Opis Anti-Features](https://f-droid.org/docs/Anti-Features/) wymaga przejrzystego wskazania usług sieciowych i innych cech ograniczających prywatność lub swobodę wyboru. Użycie zewnętrznego API samo w sobie nie przesądza wyniku audytu, ale trzeba opisać jego rolę, dane i warunki.
 - [Dokumentacja powtarzalnych kompilacji](https://f-droid.org/docs/Reproducible_Builds/) opisuje cel F-Droid polegający na sprawdzaniu, czy kompilacja ze źródeł odtwarza opublikowany APK. Dla IL nie można jeszcze porównać artefaktów, bo brak zweryfikowanych źródeł właściwego wydania.
+
+
+## Dodatkowy projekt archiwalny 1.80.19 i kontrola APK
+
+- Archiwum projektu 1.80.19 osadzone w notebooku przechodzi test ZIP, a jego SHA-256 zgadza się z sumą podaną w notebooku. Ustawia `applicationId pl.ispina.lokalnie`, versionCode 18019 i versionName `1.80.19-clean-details`. README opisuje uproszczoną wersję bez radia: pobiera pogodę z Open-Meteo i otwiera portal w WebView. Nie zawiera źródeł wersji 1.83.20 ani docelowego identyfikatora pakietu; archiwum nie zawiera pliku licencji.
+- W wydaniu `v1.83.20` widoczny jest jeden dołączony APK oraz automatyczne snapshoty źródeł ZIP/TAR, bez osobnego natywnego archiwum projektu. Próba pobrania APK w przeglądarce Work przekroczyła limit czasu. Scalony manifest APK, biblioteki, certyfikat podpisu i uprawnienia tej wersji pozostają więc niezweryfikowane.
