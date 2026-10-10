@@ -21,6 +21,8 @@ IzzyOnDroid dystrybuuje APK podpisane przez autora i zwykle pobiera je z oznaczo
 
 Repozytorium zawiera kod JavaScript Planera i testy, ale nie ma kompletnego projektu Gradle ani oryginalnych źródeł Java/Kotlin wydania 1.83.20. APK zdekompilowano diagnostycznie: wynik to około 1 992 pliki Java, 83 błędy dekompilacji i niekompletny eksport Gradle. Wygenerowany eksport ma pusty zestaw zależności i nieprawidłowy `applicationId`; nie może być przedstawiony jako źródło autora. Zdekompilowane pliki nie zostały użyte do budowy ani do zastąpienia aplikacji.
 
+Dodatkowo sprawdzono archiwum `Ispina-Lokalnie-1.82.98-USLUGI-CZYTELNE-source.zip` dostępne w materiałach projektu. Zawiera ono bazowy APK `1.82.95`, APK wynikowy `unsigned.apk`, pliki JavaScript i skrypty. `rebuild.py` modyfikuje manifest i `assets/main_ui.js` w istniejącym APK, a pozostałe elementy kopiuje z APK bazowego. To zestaw do odtworzenia konkretnej poprawki interfejsu, nie kompletny projekt Gradle ani źródła natywnej aplikacji. Nie może zastąpić kompilacji IL od zera dla IzzyOnDroid.
+
 ### 2. Pochodzenie kodu i aktualna polityka AI IzzyOnDroid
 
 Polityka IzzyOnDroid opublikowana w dniu audytu mówi, że aplikacje tworzone w całości lub częściowo przez generatywne AI, w tym projekty „vibe-coded”, najpewniej zostaną odrzucone. Teksty dokumentacji i changelogów mogą być wspomagane przez LLM, ale sam kod ma być wolny od treści wygenerowanych przez LLM. Wcześniejsze prace nad IL obejmowały zmiany kodu przygotowywane z pomocą ChatGPT. Trzeba przejrzeć pochodzenie każdej części kodu i ustalić, czy wygenerowany kod znalazł się w aplikacji. Nie można deklarować zgodności, dopóki to nie zostanie wyjaśnione. Ten dokument i teksty Fastlane są metadanymi, nie kodem aplikacji.
