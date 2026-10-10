@@ -1,0 +1,59 @@
+{
+  "passed": 13,
+  "total": 13,
+  "failed": 0,
+  "results": [
+    {
+      "name": "Nowe Brzesko aliases resolve to one MLD market platform",
+      "status": "PASS"
+    },
+    {
+      "name": "Every shared corridor alias carries MLD and municipal IDs",
+      "status": "PASS"
+    },
+    {
+      "name": "Both directions find A50, A57 and municipal direct trips at the same stops",
+      "status": "PASS"
+    },
+    {
+      "name": "A municipal trip can transfer at Nowe Brzesko Rynek using the old alias",
+      "status": "PASS"
+    },
+    {
+      "name": "Missing market and intermediate corridor stops are available both ways",
+      "status": "PASS"
+    },
+    {
+      "name": "Corridor expansion retains every official departure and anchor offset",
+      "status": "PASS"
+    },
+    {
+      "name": "Kraków and old municipal names stay searchable with MLD labels",
+      "status": "PASS"
+    },
+    {
+      "name": "An evening search returns no journeys from tomorrow",
+      "status": "PASS"
+    },
+    {
+      "name": "Changing the selected day uses only that date and its calendar",
+      "status": "PASS"
+    },
+    {
+      "name": "GTFS after-midnight trips from the previous service day remain on the chosen date",
+      "status": "PASS"
+    },
+    {
+      "name": "A transfer cannot board its second bus on the following day",
+      "status": "PASS"
+    },
+    {
+      "name": "Direct pagination retains all 30 departures within one day",
+      "status": "PASS"
+    },
+    {
+      "name": "Transfer pagination retains correct indexes within one day",
+      "status": "PASS"
+    }
+  ]
+}

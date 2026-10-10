@@ -1,0 +1,190 @@
+{
+  "passed": 46,
+  "failed": 0,
+  "tests": [
+    {
+      "name": "R15 startup uses the current planner and stable visible marker",
+      "status": "PASS"
+    },
+    {
+      "name": "Late second bus rescues a planned negative transfer gap",
+      "status": "PASS"
+    },
+    {
+      "name": "Late first bus is available in direct and transfer searches",
+      "status": "PASS"
+    },
+    {
+      "name": "LIVE warns immediately and removes transfers below chosen minimum",
+      "status": "PASS"
+    },
+    {
+      "name": "LIVE refresh adds newly viable journeys without Search tap",
+      "status": "PASS"
+    },
+    {
+      "name": "Canceled trip is excluded from direct and transfer results",
+      "status": "PASS"
+    },
+    {
+      "name": "Skipped boarding stop is excluded",
+      "status": "PASS"
+    },
+    {
+      "name": "NO_DATA falls back to schedule rather than a fabricated delay",
+      "status": "PASS"
+    },
+    {
+      "name": "LIVE from another service date is ignored",
+      "status": "PASS"
+    },
+    {
+      "name": "Stale LIVE is removed and journeys are requalified",
+      "status": "PASS"
+    },
+    {
+      "name": "Incomplete text never gets a green confirmation",
+      "status": "PASS"
+    },
+    {
+      "name": "Nonexistent stop cannot be confirmed or searched",
+      "status": "PASS"
+    },
+    {
+      "name": "Touch selection waits for Akceptuj before confirming stable source IDs",
+      "status": "PASS"
+    },
+    {
+      "name": "Whole-town choice is explicit and distinct from a named stop",
+      "status": "PASS"
+    },
+    {
+      "name": "Keyboard selection fills the field and waits for Akceptuj",
+      "status": "PASS"
+    },
+    {
+      "name": "Escape and opposite field focus close ARIA and dropdown together",
+      "status": "PASS"
+    },
+    {
+      "name": "Normal confirmation draws ring then short then long arm",
+      "status": "PASS"
+    },
+    {
+      "name": "Akceptuj animates independently of generic app animations",
+      "status": "PASS"
+    },
+    {
+      "name": "Requested Akceptuj drawing also starts with Android reduced motion",
+      "status": "PASS"
+    },
+    {
+      "name": "Editing and clearing cancel confirmation animation",
+      "status": "PASS"
+    },
+    {
+      "name": "Senior toggle preserves version marker and selection buttons",
+      "status": "PASS"
+    },
+    {
+      "name": "Saturday shows all four municipal departures on the selected day",
+      "status": "PASS"
+    },
+    {
+      "name": "Transfers show only the selected day without following-day alternatives",
+      "status": "PASS"
+    },
+    {
+      "name": "Sunday municipal services stay excluded",
+      "status": "PASS"
+    },
+    {
+      "name": "New search wins over old async work",
+      "status": "PASS"
+    },
+    {
+      "name": "LIVE generation cannot replace a later destination search",
+      "status": "PASS"
+    },
+    {
+      "name": "Date and time survive navigation; Teraz deliberately resets them",
+      "status": "PASS"
+    },
+    {
+      "name": "Walking alternative keeps explicit stop and adds walking time",
+      "status": "PASS"
+    },
+    {
+      "name": "Sort by earliest arrival applies within results",
+      "status": "PASS"
+    },
+    {
+      "name": "Sort by least waiting applies to transfers",
+      "status": "PASS"
+    },
+    {
+      "name": "UI and updater read installed native package version",
+      "status": "PASS"
+    },
+    {
+      "name": "Same installed version is never offered as an update",
+      "status": "PASS"
+    },
+    {
+      "name": "Newer compatible stable APK is selected instead of first APK",
+      "status": "PASS"
+    },
+    {
+      "name": "Test-channel and foreign-signature updates are rejected",
+      "status": "PASS"
+    },
+    {
+      "name": "Empty release channel is explicit and disables Download",
+      "status": "PASS"
+    },
+    {
+      "name": "Stable updater rejects prereleases and a different Android package",
+      "status": "PASS"
+    },
+    {
+      "name": "Confirmation animation has a separate optional toggle",
+      "status": "PASS"
+    },
+    {
+      "name": "Turning motion off during a pulse stops it immediately",
+      "status": "PASS"
+    },
+    {
+      "name": "Enter never confirms; Akceptuj independently confirms both fields",
+      "status": "PASS"
+    },
+    {
+      "name": "Mouse selection leaves Akceptuj visible without drawing a tick",
+      "status": "PASS"
+    },
+    {
+      "name": "Small viewport caps editing panel and leaves suggestions below fields",
+      "status": "PASS"
+    },
+    {
+      "name": "Stable stop IDs survive a published stop-name change",
+      "status": "PASS"
+    },
+    {
+      "name": "Absolute LIVE event times rescue the same connection",
+      "status": "PASS"
+    },
+    {
+      "name": "Backward LIVE propagation is not invented for earlier stops",
+      "status": "PASS"
+    },
+    {
+      "name": "Validation error is visible in the compact editor",
+      "status": "PASS"
+    },
+    {
+      "name": "LIVE-rescued short transfer retains the risk warning",
+      "status": "PASS"
+    }
+  ]
+}
