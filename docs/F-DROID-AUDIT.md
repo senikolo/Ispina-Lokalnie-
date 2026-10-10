@@ -106,3 +106,12 @@ Zgłoszenie do oficjalnego repozytorium F-Droid nie zostało wysłane.
 - [Submitting to F-Droid: Quick Start Guide](https://f-droid.org/en/docs/Submitting_to_F-Droid_Quick_Start_Guide/)
 - [Build Metadata Reference](https://f-droid.org/en/docs/Build_Metadata_Reference/)
 - [Reproducible Builds](https://fdroid.gitlab.io/jekyll-fdroid/en/docs/Reproducible_Builds/)
+
+
+## Dodatkowa weryfikacja wydania 1.83.20 — 10 października 2026
+
+- Widok GitHub Releases sprawdzony 10 października 2026 r. wskazuje `v1.83.20` jako najnowsze wydanie. APK wydania ma opublikowaną sumę SHA-256 `c9c0a0107310c3229b421a87832de1f1fc738b07db7ab1dc41eea2ead417e664`.
+- Drzewo tagu `v1.83.20` zawiera katalog `planner/`, workflow oraz pliki README i XML. Nie zawiera `gradlew`, `settings.gradle`, `build.gradle`, modułu `app/` ani źródeł Java/Kotlin. To potwierdza, że automatyczny snapshot źródeł GitHuba nie jest samodzielnym projektem do zbudowania aplikacji.
+- `planner/README.md` opisuje budowanie zmian interfejsu przez skrypt wymagający `--base` z istniejącą APK R14.3; podpisanie wymaga osobnej prywatnej konfiguracji. Taki skrypt nie jest receptą F-Droida, która kompiluje aplikację od zera.
+- Główny `AndroidManifest.xml` w tagu wymienia `INTERNET` i `ACCESS_NETWORK_STATE`, lecz README oznacza pliki XML jako historyczne zasoby, a manifest nie należy do kompletnego projektu Gradle. Nie można na tej podstawie potwierdzić uprawnień faktycznej APK 1.83.20.
+- Nie udało się więc potwierdzić natywnego manifestu scalonego, bibliotek ani usług użytych w opublikowanej APK. Do takiego audytu potrzebny jest kompletny projekt lub kontrolowane odczytanie APK; sam snapshot repozytorium nie wystarcza.
