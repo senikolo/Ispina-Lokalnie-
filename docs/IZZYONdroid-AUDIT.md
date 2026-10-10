@@ -32,7 +32,7 @@ Polityka IzzyOnDroid opublikowana w dniu audytu mówi, że aplikacje tworzone w 
 
 ### 3. Prawa do kodu i zasobów
 
-Nie udokumentowano praw do wszystkich zdjęć, ikon, fontów, tekstów, rozkładów MLD i gminnych, transmisji radiowych i telewizyjnych ani danych z usług zewnętrznych. GPL dla kodu nie obejmuje automatycznie tych elementów. Nie wolno przypisywać im GPL bez potwierdzenia praw.
+Autor potwierdził, że pliki przekazane do projektu należą do niego, a odnośniki do usług i transmisji są ogólnodostępne. Odnotowujemy to jako oświadczenie autora o prawach do jego plików. Sama publiczna dostępność linku nie przesądza jednak o licencji treści, danych lub usługi ani o prawie do ich pobierania i ponownego rozpowszechniania. Przed zgłoszeniem trzeba sprawdzić warunki konkretnych źródeł zewnętrznych (m.in. rozkłady, pogoda, WordPress/REST, Apps Script oraz radio i wideo). GPL-3.0-only dotyczy wyłącznie własnego kodu objętego tym wyborem i nie zmienia warunków usług zewnętrznych.
 
 ### 4. Własny aktualizator
 
