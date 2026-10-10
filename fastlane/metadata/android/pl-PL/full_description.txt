@@ -1,0 +1,11 @@
+Ispina Lokalnie Live gromadzi lokalne informacje i narzędzia przydatne mieszkańcom oraz osobom odwiedzającym Ispinę w gminie Drwinia.
+
+Funkcje:
+* planer podróży dla połączeń MLD, komunikacji gminnej i kolei
+* lokalne rozkłady i informacje o odjazdach
+* aktualności, historia Ispiny i ciekawostki historyczne
+* prognoza pogody
+* tryb Senior z czytelniejszym układem
+* radio i materiały wideo udostępniane przez zewnętrzne serwisy
+
+Część funkcji pobiera dane z Internetu. Działanie rozkładów, aktualności, pogody i materiałów multimedialnych zależy od dostępności i zasad zewnętrznych usług.
