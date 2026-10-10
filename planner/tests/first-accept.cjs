@@ -1,0 +1,22 @@
+const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path');
+const {env}=require('./harness.cjs');
+const results=[];
+const slot=(e,id)=>e.el(id).closest('.plfield').querySelector('.il-r12-confirm-slot');
+const strokes=(e,id)=>Array.from(slot(e,id).querySelectorAll('circle,path')).map(p=>Number(p.style.strokeDashoffset));
+async function drawing(e,id){
+ e.accept(id);const initial=strokes(e,id);assert(slot(e,id).classList.contains('il-r13-animating'),'First Akceptuj must animate');assert(!slot(e,id).classList.contains('il-r13-complete'));
+ await e.advance(90);assert.notEqual(e.el(id).style.transform,'','Name pulses after first Akceptuj');
+ await e.advance(210);assert(strokes(e,id)[0]<initial[0]);assert.equal(strokes(e,id)[1],initial[1]);assert.equal(strokes(e,id)[2],initial[2]);
+ await e.advance(230);assert(strokes(e,id)[1]<initial[1]);assert.equal(strokes(e,id)[2],initial[2]);
+ await e.advance(150);assert(strokes(e,id)[2]<initial[2]);
+ await e.advance(250);assert.deepEqual(strokes(e,id),[0,0,0]);assert(slot(e,id).classList.contains('il-r13-complete'));
+}
+async function test(name,options,run){const e=env(options);try{await e.start();delete e.w.SVGElement.prototype.getTotalLength;await run(e);assert.deepEqual(e.errors,[]);results.push({name,status:'PASS'});console.log('PASS',name)}catch(error){results.push({name,status:'FAIL',error:error.stack});console.log('FAIL',name,error.message)}finally{e.close()}}
+(async()=>{
+ await test('First Akceptuj animates both fields with previously saved generic animations OFF',{initialStorage:{ianim:'0'}},async e=>{assert(e.d.body.classList.contains('noanim'));e.input('pfrom','Ispina Most');await drawing(e,'pfrom');assert.equal(e.d.activeElement,e.el('pto'));e.input('pto','Czyżyny Dworzec');await drawing(e,'pto');assert(!e.el('iaP').classList.contains('il-r10-editing'));assert.equal(e.w.localStorage.getItem('ianim'),'0')});
+ await test('First Akceptuj draws under Android reduced-motion preferences',{reduced:true},async e=>{e.input('pfrom','Ispina Most');await drawing(e,'pfrom');assert.equal(e.w.matchMedia('(prefers-reduced-motion: reduce)').matches,true)});
+ await test('Old disabled confirmation preference does not suppress the upgraded default',{initialStorage:{il_confirm_motion:'0'}},async e=>{assert.equal(e.el('ilConfirmMotion').checked,true);e.input('pfrom','Ispina Most');await drawing(e,'pfrom');assert.equal(e.w.localStorage.getItem('il_confirm_motion'),'0')});
+ await test('First acceptance and tick replay share the same stages with all old restrictions',{reduced:true,initialStorage:{ianim:'0',il_confirm_motion:'0'}},async e=>{e.input('pfrom','Ispina Most');await drawing(e,'pfrom');e.click(slot(e,'pfrom').querySelector('.il-r12-tick'));const initial=strokes(e,'pfrom');assert(slot(e,'pfrom').classList.contains('il-r13-animating'));await e.advance(300);assert(strokes(e,'pfrom')[0]<initial[0]);assert.equal(strokes(e,'pfrom')[1],initial[1]);await e.advance(230);assert(strokes(e,'pfrom')[1]<initial[1]);assert.equal(strokes(e,'pfrom')[2],initial[2]);await e.advance(150);assert(strokes(e,'pfrom')[2]<initial[2]);await e.advance(250);assert.deepEqual(strokes(e,'pfrom'),[0,0,0]);assert.equal(e.w.localStorage.getItem('ianim'),'0')});
+ await test('New optional confirmation setting controls both buttons and can enable first drawing',{initialStorage:{ianim:'0',il_confirm_motion_v2:'0'}},async e=>{assert.equal(e.el('ilConfirmMotion').checked,false);e.input('pfrom','Ispina Most');e.accept('pfrom');assert(slot(e,'pfrom').classList.contains('il-r13-complete'));e.click(slot(e,'pfrom').querySelector('.il-r12-tick'));assert(slot(e,'pfrom').classList.contains('il-r13-complete'));assert(!slot(e,'pfrom').classList.contains('il-r13-animating'));e.el('ilConfirmMotion').checked=true;e.el('ilConfirmMotion').onchange();assert.equal(e.w.localStorage.getItem('il_confirm_motion_v2'),'1');e.input('pfrom','Ispina Dom Ludowy');await drawing(e,'pfrom')});
+ const passed=results.filter(r=>r.status==='PASS').length;fs.mkdirSync(path.join(__dirname,'output'),{recursive:true});fs.writeFileSync(path.join(__dirname,'output/first-accept-results.json'),JSON.stringify({passed,total:results.length,failed:results.length-passed,results},null,2)+'\n');console.log(`${passed}/${results.length} passed`);process.exitCode=passed===results.length?0:1;
+})().catch(error=>{console.error(error);process.exitCode=1});
