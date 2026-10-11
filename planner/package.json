@@ -1,0 +1,7 @@
+{
+  "name": "ispina-lokalnie-planner",
+  "version": "1.83.19",
+  "private": true,
+  "scripts": { "test": "node tests/run.cjs" },
+  "devDependencies": { "jsdom": "26.1.0" }
+}

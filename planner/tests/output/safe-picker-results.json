@@ -1,0 +1,71 @@
+{
+  "passed": 16,
+  "total": 16,
+  "failed": 0,
+  "results": [
+    {
+      "name": "A tap highlights a provisional choice, retaining the same list and scroll position",
+      "status": "PASS"
+    },
+    {
+      "name": "An accidental provisional choice can be replaced from the still-open list",
+      "status": "PASS"
+    },
+    {
+      "name": "Finger movement cancels selection and suppresses the compatibility click",
+      "status": "PASS"
+    },
+    {
+      "name": "Scrolling the list cancels selection even when the finger ends at its start",
+      "status": "PASS"
+    },
+    {
+      "name": "Scrolling the compact card also cancels a touch on an option",
+      "status": "PASS"
+    },
+    {
+      "name": "Canceled touches and isolated touchend events cannot choose a stop",
+      "status": "PASS"
+    },
+    {
+      "name": "A touch must start and finish on the same option",
+      "status": "PASS"
+    },
+    {
+      "name": "Multitouch and a different touch identifier cannot choose a stop",
+      "status": "PASS"
+    },
+    {
+      "name": "A queued list refresh waits until the finger is lifted",
+      "status": "PASS"
+    },
+    {
+      "name": "Automatic schedule refresh preserves the open list and pending choice",
+      "status": "PASS"
+    },
+    {
+      "name": "Mouse drags cannot select an option",
+      "status": "PASS"
+    },
+    {
+      "name": "Keyboard Enter selects provisionally, leaving explicit acceptance available",
+      "status": "PASS"
+    },
+    {
+      "name": "Senior mode changes the planner locally without replacing the selected list",
+      "status": "PASS"
+    },
+    {
+      "name": "Partial text cannot enable acceptance; the complete canonical name is displayed",
+      "status": "PASS"
+    },
+    {
+      "name": "Accepted fields remain locked until their Change button is used",
+      "status": "PASS"
+    },
+    {
+      "name": "Change cancels an in-progress confirmation and removes the old stop identity",
+      "status": "PASS"
+    }
+  ]
+}

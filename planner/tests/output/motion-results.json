@@ -1,0 +1,22 @@
+{
+  "passed": 4,
+  "total": 4,
+  "results": [
+    {
+      "name": "Both fields animate without SVG measurement APIs",
+      "passed": true
+    },
+    {
+      "name": "Explicitly disabled confirmation gives a static tick without SVG APIs",
+      "passed": true
+    },
+    {
+      "name": "Explicit tick replay preserves disabled automatic animations",
+      "passed": true
+    },
+    {
+      "name": "Editing cancels an explicit replay and clears the stop identity",
+      "passed": true
+    }
+  ]
+}

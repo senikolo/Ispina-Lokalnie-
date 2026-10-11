@@ -1,9 +1,16 @@
-name: Android source build
+name: Android and planner checks
 
 on:
   push:
+    branches:
+      - main
+      - open-source-fdroid-prep
   pull_request:
+    branches: [ main ]
   workflow_dispatch:
+
+permissions:
+  contents: read
 
 jobs:
   test-and-build:
@@ -12,8 +19,8 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 22
-      - name: Test planner
+          node-version: '22'
+      - name: Test Android planner
         working-directory: tests
         run: npm test
       - uses: actions/setup-java@v4
@@ -64,3 +71,23 @@ jobs:
           path: app/build/outputs/apk/fdroid/release/app-fdroid-release-unsigned.apk
           if-no-files-found: error
           retention-days: 14
+  validate-planner:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: planner
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: planner/package-lock.json
+      - run: npm ci --ignore-scripts
+      - run: npm test
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: planner-regression-results
+          path: planner/tests/output/*.json
+          if-no-files-found: ignore

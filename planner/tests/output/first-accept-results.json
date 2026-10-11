@@ -1,0 +1,27 @@
+{
+  "passed": 5,
+  "total": 5,
+  "failed": 0,
+  "results": [
+    {
+      "name": "First Akceptuj animates both fields with previously saved generic animations OFF",
+      "status": "PASS"
+    },
+    {
+      "name": "First Akceptuj draws under Android reduced-motion preferences",
+      "status": "PASS"
+    },
+    {
+      "name": "Old disabled confirmation preference does not suppress the upgraded default",
+      "status": "PASS"
+    },
+    {
+      "name": "First acceptance and tick replay share the same stages with all old restrictions",
+      "status": "PASS"
+    },
+    {
+      "name": "New optional confirmation setting controls both buttons and can enable first drawing",
+      "status": "PASS"
+    }
+  ]
+}

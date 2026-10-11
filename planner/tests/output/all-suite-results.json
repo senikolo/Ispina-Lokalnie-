@@ -1,0 +1,31 @@
+{
+  "passed": 84,
+  "failed": 0,
+  "suites": [
+    {
+      "suite": "regression-results.json",
+      "passed": 46,
+      "failed": 0
+    },
+    {
+      "suite": "motion-results.json",
+      "passed": 4,
+      "failed": 0
+    },
+    {
+      "suite": "planner-r14-2-results.json",
+      "passed": 13,
+      "failed": 0
+    },
+    {
+      "suite": "first-accept-results.json",
+      "passed": 5,
+      "failed": 0
+    },
+    {
+      "suite": "safe-picker-results.json",
+      "passed": 16,
+      "failed": 0
+    }
+  ]
+}
