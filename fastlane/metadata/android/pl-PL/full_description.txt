@@ -1,0 +1,15 @@
+Ispina Lokalnie łączy lokalne informacje i praktyczne narzędzia dla mieszkańców Ispiny.
+
+FUNKCJE
+• Planer połączeń MLD i linii gminnej: kursy bezpośrednie i z jedną przesiadką.
+• Pobieranie publicznego rozkładu GTFS Kolei Małopolskich i zapis na telefonie.
+• Aktualności z portalu Ispina Lokalnie.
+• Prognoza pogody, wschód i zachód słońca.
+• Harmonogram odpadów dla Ispiny na 2026 r. i przypomnienia przed odbiorem.
+• Polski lektor systemowy z pauzą, wznowieniem i regulacją tempa.
+• Tryb Senior, większe przyciski, wibracja i udostępnianie trasy.
+• Radio i TV przez oficjalne odtwarzacze nadawców.
+
+Rozkład MLD pobiera się przyciskiem w planerze. Dane linii gminnej w tej wersji mają charakter roboczy, a część godzin jest szacunkowa — przed podróżą należy sprawdzić aktualny rozkład gminy. Terminy odpadów dotyczą 2026 r. i są opatrzone datą ważności.
+
+Aktualności, historia i prognoza wymagają internetu do odświeżenia. Ustawienia i pobrany rozkład są zapisywane na urządzeniu. Aplikacja nie ma reklam ani analityki.

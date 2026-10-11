@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "locality": "Ispina",
+  "municipality": "Drwinia",
+  "year": 2026,
+  "publishedAt": "2026-02-13",
+  "validThrough": "2026-12-31",
+  "sourceName": "Gmina Drwinia — harmonogram odbioru odpadów 2026",
+  "sourcePage": "https://www.drwinia.pl/aktualnosci/harmonogram-odbioru-odpadow-z-terenu-gminy-drwinia-2026-rok,news-3175",
+  "sourcePdf": "https://www.drwinia.pl/pro_drwinia/zasoby/files/harmonogram-2026.pdf",
+  "collectionArea": "Grobla, Ispina, Trawniki",
+  "putOutBy": "08:00",
+  "events": [
+    { "date": "2026-02-20", "categories": ["Zmieszane i bioodpady", "Segregowane", "Popiół"] },
+    { "date": "2026-03-20", "categories": ["Zmieszane i bioodpady", "Segregowane", "Popiół"] },
+    { "date": "2026-04-24", "categories": ["Zmieszane i bioodpady", "Segregowane"] },
+    { "date": "2026-05-15", "categories": ["Zmieszane i bioodpady"] },
+    { "date": "2026-05-29", "categories": ["Zmieszane i bioodpady", "Segregowane"] },
+    { "date": "2026-06-12", "categories": ["Zmieszane i bioodpady"] },
+    { "date": "2026-06-26", "categories": ["Zmieszane i bioodpady", "Segregowane"] },
+    { "date": "2026-07-10", "categories": ["Zmieszane i bioodpady"] },
+    { "date": "2026-07-24", "categories": ["Zmieszane i bioodpady", "Segregowane"] },
+    { "date": "2026-08-07", "categories": ["Zmieszane i bioodpady"] },
+    { "date": "2026-08-21", "categories": ["Zmieszane i bioodpady", "Segregowane"] },
+    { "date": "2026-09-04", "categories": ["Zmieszane i bioodpady"] },
+    { "date": "2026-09-18", "categories": ["Zmieszane i bioodpady", "Segregowane"] },
+    { "date": "2026-10-16", "categories": ["Zmieszane i bioodpady", "Segregowane", "Popiół", "Gabaryty i opony"] },
+    { "date": "2026-11-17", "categories": ["Zmieszane i bioodpady", "Segregowane", "Popiół"] },
+    { "date": "2026-12-17", "categories": ["Zmieszane i bioodpady", "Segregowane", "Popiół"] }
+  ]
+}
