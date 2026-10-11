@@ -11,9 +11,9 @@ import android.content.pm.PackageManager;
 import android.graphics.Insets;
 import android.net.ConnectivityManager;
 import android.net.NetworkCapabilities;
-import android.net.Uri;
-import android.os.Build;
+import android.net.Uri;import android.os.Build;
 import android.os.Bundle;
+import android.util.Log;
 import android.speech.tts.TextToSpeech;
 import android.speech.tts.UtteranceProgressListener;
 import android.view.View;
@@ -128,6 +128,15 @@ public final class MainActivity extends Activity {
     }
 
     private final class LocalOnlyWebViewClient extends WebViewClient {
+        @Override public void onPageFinished(WebView view, String url) {
+            super.onPageFinished(view, url);
+            if (BuildConfig.DEBUG && APP_URL.equals(url)) {
+                view.postDelayed(() -> view.evaluateJavascript(
+                        "(function(){var h=document.querySelector('#mainContent h1');return h?h.textContent.trim():''})()",
+                        value -> Log.i("IL_SMOKE", "home-title=" + value)), 1000L);
+            }
+        }
+
         @Override public WebResourceResponse shouldInterceptRequest(WebView view, WebResourceRequest request) {
             Uri uri = request.getUrl();
             if (!APP_HOST.equals(uri.getHost())) return blockedResponse();
