@@ -1,0 +1,11 @@
+Ispina Lokalnie Live brings together local information and tools for residents and visitors of Ispina, in Drwinia municipality, Poland.
+
+Features:
+* Trip planning for MLD, municipal transport and rail connections
+* Local timetables and departure information
+* Local news, village history and historical facts
+* Weather forecast
+* A senior-friendly display
+* Radio and video content provided by external services
+
+Some features download data from the Internet and depend on the availability and terms of external services.

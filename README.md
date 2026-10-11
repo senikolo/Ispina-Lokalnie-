@@ -33,3 +33,14 @@ Sprawdzono 84/84 testy oraz interfejs dotykowy w Chromium w trzech rozmiarach/tr
 
 
 SHA-256 APK: `c9c0a0107310c3229b421a87832de1f1fc738b07db7ab1dc41eea2ead417e664`
+
+
+## Licencja i stan przygotowań do F-Droida
+
+**SPDX-License-Identifier: GPL-3.0-only.** Pełny tekst licencji znajduje się w pliku [LICENSE](LICENSE).
+
+Licencja dotyczy kodu źródłowego stworzonego dla Ispina Lokalnie. Nie obejmuje automatycznie materiałów, do których prawa należą do innych podmiotów, w tym zdjęć, nagrań i transmisji, fontów, danych rozkładowych ani zewnętrznych usług. Ich licencje i zgody trzeba opisać osobno. Audyt tych elementów nie jest jeszcze kompletny.
+
+Autor aplikacji: Sławomir Franciszek Kozak (GitHub: senikolo).
+
+**Status F-Droid:** repozytorium nie zawiera pełnego projektu Android Gradle ani źródeł warstwy Java/Kotlin. Skrypt `planner/build_motion_apk.py` aktualizuje interfejs w istniejącej bazowej APK, ale nie buduje aplikacji od zera. W tej postaci nie da się zbudować ani zweryfikować aplikacji wyłącznie ze źródeł. Aplikacja nie została zgłoszona do F-Droida. Szczegóły: [raport audytu](docs/F-DROID-AUDIT.md).
