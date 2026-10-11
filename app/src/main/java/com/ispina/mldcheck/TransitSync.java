@@ -30,7 +30,7 @@ import java.util.zip.ZipInputStream;
 
 /** Downloads and converts public GTFS files; no feed binaries are used at build time. */
 final class TransitSync {
-    private static final String FEED_URL = "https://kolejemalopolskie.com.pl/rozklady_jazdy/ald-gtfs.zip";
+    private static final String FEED_URL = "https://gtfs.kolejemalopolskie.com.pl/?download=L2hvbWUvcmdfdXNlci9yZ191c2VyL0dURlMtU1QvR1RGUy56aXA%3D";
     private static final long MAX_ZIP_BYTES = 80L * 1024L * 1024L;
     private static final long MAX_DOWNLOAD_BYTES = 24L * 1024L * 1024L;
     private static final int MAX_OUTPUT_BYTES = 20 * 1024 * 1024;
@@ -109,7 +109,7 @@ final class TransitSync {
             if (location == null || location.isEmpty()) throw new IllegalStateException("Brak adresu przekierowania GTFS");
             current = new URL(current, location);
             String host = current.getHost();
-            if (!"https".equals(current.getProtocol()) || !("kolejemalopolskie.com.pl".equals(host) || "www.kolejemalopolskie.com.pl".equals(host))) {
+            if (!"https".equals(current.getProtocol()) || !"gtfs.kolejemalopolskie.com.pl".equals(host)) {
                 throw new IllegalStateException("Przekierowanie GTFS prowadzi poza oficjalną domenę");
             }
         }
