@@ -4,7 +4,8 @@ on:
   pull_request:
     branches: [ "main" ]
     paths:
-      - "fdroid-source/**"
+      - "fdroid-source-candidate/fdroid-source/**"
+      - "fdroid-source-candidate/.github/workflows/fdroid-source-candidate.yml"
       - ".github/workflows/fdroid-source-candidate.yml"
   workflow_dispatch:
 
@@ -27,9 +28,9 @@ jobs:
         with:
           gradle-version: "8.7"
       - name: Build debug APK from the source project
-        working-directory: fdroid-source/android
+        working-directory: fdroid-source-candidate/fdroid-source/android
         run: gradle --no-daemon assembleDebug
       - uses: actions/upload-artifact@v4
         with:
           name: ispina-lokalnie-fdroid-source-candidate
-          path: fdroid-source/android/app/build/outputs/apk/debug/app-debug.apk
+          path: fdroid-source-candidate/fdroid-source/android/app/build/outputs/apk/debug/app-debug.apk
