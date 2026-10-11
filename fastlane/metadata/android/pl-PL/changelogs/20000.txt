@@ -1,0 +1,3 @@
+Nowa, samodzielna wersja do testów.
+Planer MLD i linii gminnej, lokalne aktualności, pogoda, odpady, lektor oraz tryb Senior.
+Dane linii gminnej są robocze i zawierają czasy szacunkowe.
