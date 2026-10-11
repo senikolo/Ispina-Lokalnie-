@@ -1,0 +1,31 @@
+# Szkic do przeniesienia do fdroiddata; przed zgłoszeniem potwierdź prawa do danych gminnych.
+Categories:
+  - Navigation
+License: GPL-3.0-only
+AuthorName: Ispina Lokalnie
+Name: Ispina Lokalnie
+Summary: Lokalne informacje i narzędzia dla mieszkańców
+Description: |-
+  Lokalna aplikacja dla mieszkańców Ispiny i okolic.
+  - Wyszukiwanie połączeń MLD bezpośrednich i z jedną przesiadką; rozkład jest pobierany na żądanie i przechowywany na urządzeniu.
+  - Rozkład linii gminnej z czytelnym oznaczeniem orientacyjnych czasów pośrednich.
+  - Aktualności i historia Ispiny, prognoza pogody na trzy dni oraz harmonogram odbioru odpadów.
+  - Przypomnienia lokalne, lektor systemowy, udostępnianie trasy i tryb z większym tekstem.
+  Aplikacja nie zawiera reklam ani analityki. Do odświeżania treści potrzebne jest połączenie z internetem.
+WebSite: https://ispinalokalnie.wordpress.com/
+SourceCode: https://github.com/senikolo/Ispina-Lokalnie-
+IssueTracker: https://github.com/senikolo/Ispina-Lokalnie-/issues
+RepoType: git
+Repo: https://github.com/senikolo/Ispina-Lokalnie-.git
+CurrentVersion: 2.0.0-preview
+CurrentVersionCode: 20000
+UpdateCheckMode: None
+MaintainerNotes: |-
+  Szkic metadanych. Nie wysyłaj do głównego repozytorium F-Droid, dopóki nie zostaną potwierdzone warunki ponownego użycia danych rozkładu gminnego i harmonogramu odpadów.
+  Zbuduj ponownie przypięty commit w środowisku F-Droid i wykonaj testy na urządzeniu przed zgłoszeniem.
+Builds:
+  - versionName: 2.0.0-preview
+    versionCode: 20000
+    commit: 990c5122a6cf4bce40bb9ba0aee7908761fbca70
+    gradle: fdroid
+    output: app/build/outputs/apk/fdroid/release/app-fdroid-release-unsigned.apk
