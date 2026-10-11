@@ -1,15 +1,39 @@
-# Kandydat F-Droid — stan
+# Kandydat F-Droid
 
-Projekt ma samodzielny wariant `fdroidRelease` z unikalnym identyfikatorem `com.ispina.mldcheck.fdroid`, bez usług reklamowych ani analitycznych. Zdalne odpowiedzi są traktowane jako dane. Zawartość interfejsu, JavaScript, CSS, ikona, harmonogram i kod Androida znajdują się w źródłach.
+## Stan
 
-F-Droid wymaga wolnej licencji, kompletnego źródła i własnej kompilacji. Zgodnie z polityką repozytorium aplikacja opakowująca stronę musi też wnosić natywne funkcje. Kandydat dodaje planer, lokalne cache GTFS, natywny TTS, powiadomienia, tryb Senior i wibrację. Zasady sprawdzania: [Inclusion Policy](https://f-droid.org/docs/Inclusion_Policy/) i [Build Metadata Reference](https://f-droid.org/docs/Build_Metadata_Reference/).
+Publiczny projekt zawiera samodzielnie przygotowaną aplikację Android oraz wariant Gradle `fdroidRelease` o identyfikatorze `com.ispina.mldcheck.fdroid`. Wariant nie zawiera reklam, analityki ani zdalnego kodu interfejsu. Kod modułu aplikacji jest na licencji GPL-3.0-only (szczegóły w `app/LICENSE`).
 
-To jeszcze nie jest wydanie gotowe do zgłoszenia. Zanim pojawi się w repozytorium, trzeba:
+Repozytorium ma workflow CI, który uruchamia testy planera, testy jednostkowe Gradle, buduje APK i sprawdza start na emulatorze Android 11 (API 30). Najnowszy status trzeba sprawdzić w zakładce [Actions](https://github.com/senikolo/Ispina-Lokalnie-/actions); niepodpisany APK release jest artefaktem do weryfikacji buildu, a nie gotowym do dystrybucji plikiem.
 
-1. Umieścić ten projekt w publicznym repozytorium z historią źródeł i tagiem `2.0.0-preview`.
-2. Przejść kompilację `assembleFdroidRelease` w CI/F-Droid; obecne środowisko robocze nie zawiera Android SDK ani Gradle.
-3. Sprawdzić instalację i podstawowe funkcje na Androidzie 11, w tym pobranie GTFS, działanie offline, zgodę na powiadomienia, TTS i zachowanie ostrzeżeń o rozkładzie gminnym.
-4. Przygotować metadane `fdroiddata` z prawdziwym commitem/tagiem; przykładową receptę dodaje się dopiero po udostępnieniu kodu pod docelowym URL.
-5. Po pozytywnym teście zdecydować, czy publikować w oficjalnym repozytorium F-Droid, czy w istniejącym repozytorium IL.
+Projekt jest kandydatem do przeglądu F-Droid, nie został jeszcze przyjęty ani opublikowany. Oficjalne zasady: [Inclusion Policy](https://f-droid.org/docs/Inclusion_Policy/) i [Build Metadata Reference](https://f-droid.org/docs/Build_Metadata_Reference/).
 
-Nie załączaj podpisanego APK do zgłoszenia jako substytutu źródeł. F-Droid ma zbudować pakiet z tego projektu. Obecna aplikacja produkcyjna i jej klucz podpisu pozostają nietknięte.
+## Build F-Droid
+
+Z katalogu repozytorium, przy JDK 17, Gradle 8.9, Android SDK Platform 35 i Build Tools 35.0.0:
+
+```sh
+gradle --no-daemon clean testFdroidReleaseUnitTest assembleFdroidRelease
+```
+
+Wariant Gradle to `fdroid`; zadanie release tworzy `app/build/outputs/apk/fdroid/release/app-fdroid-release-unsigned.apk`. Źródła aplikacji są w repozytorium; nie używamy prebuilt APK ani bibliotek pobranych z prywatnego storage. Aplikacja pobiera publiczny GTFS dopiero na żądanie użytkownika.
+
+## Pakiet i wersja
+
+- ID pakietu: `com.ispina.mldcheck.fdroid`
+- Wersja kandydata: `2.0.0-preview` (`versionCode` 20000)
+- Minimalne Android API: 23
+- Docelowe Android API: 35
+- Build: Java 17 / Android Gradle Plugin 8.7.3
+
+Plik `metadata/com.ispina.mldcheck.fdroid.yml` jest szkicem wpisu do repozytorium metadanych F-Droid. Przed zgłoszeniem należy skopiować go do `metadata/` w `fdroiddata`, ustawić `Builds[].commit` na pełny hash sprawdzonego commita oraz wykonać walidację i build według aktualnej dokumentacji F-Droid. Nie przypinaj gałęzi ani taga jako commita.
+
+## Rzeczy do zamknięcia przed zgłoszeniem
+
+1. Sprawdzić, że CI przechodzi dla commita wskazanego w metadanych.
+2. Zainstalować APK testowy na fizycznym telefonie i przejść listę w [`RELEASE_CHECKLIST.md`](RELEASE_CHECKLIST.md).
+3. Uzyskać i udokumentować aktualne warunki ponownego użycia statycznego GTFS oraz danych harmonogramu gminnego/odpadów. Atrybucję i odnośniki zbiera [`SOURCES.md`](SOURCES.md); publikacja danych nie może być zakładana wyłącznie na podstawie ich publicznej dostępności.
+4. Upewnić się, że ekran „O aplikacji” pokazuje licencję i sposób dotarcia do jej pełnego tekstu.
+5. Po pozytywnym przeglądzie zgłosić metadane do `fdroiddata`; nie załączać podpisanego APK jako zamiennika buildu ze źródeł.
+
+Produkcja `com.ispina.mldcheck` pozostaje osobną aplikacją z osobnym podpisem. Żaden klucz produkcyjny nie jest przechowywany w tym repozytorium.
