@@ -1,15 +1,28 @@
 # Checklista przed zgłoszeniem do F-Droid
 
-Ta lista dotyczy kandydata `2.0.0-preview`. Nie tworzy zgody na wydanie ani na zastąpienie produkcyjnego IL.
+Ta checklista opisuje kandydata `2.0.0-preview`; nie oznacza publikacji ani zastąpienia produkcyjnej aplikacji.
 
-- [ ] GitHub Actions przechodzi testy planera i buduje warianty `fdroidDebug` oraz `fdroidRelease`.
-- [ ] Testowy APK z artefaktu CI instaluje się obok produkcyjnego IL na Androidzie 11.
-- [ ] Planer pobiera aktualny GTFS MLD, pokazuje datę danych i działa offline po synchronizacji.
-- [ ] Planer poprawnie filtruje daty kursowania, wyjątki kalendarza i minimalny czas przesiadki.
-- [ ] Linia gminna jest wyraźnie oznaczona jako robocza; szacowane czasy nie wyglądają na potwierdzone.
-- [ ] Sprawdzono aktualności, historię, lektora, tryb Senior, wibrację, pogodę i linki zewnętrzne.
-- [ ] Sprawdzono prośbę o zgodę na powiadomienia, przypomnienie o odpadach i odmowę zgody.
-- [ ] Zweryfikowano warunki licencji danych, tekstów, nazw i znaków towarowych w `SOURCES.md`.
-- [ ] Metadane F-Droid wskazują dokładny publiczny tag i budują kod ze źródeł.
-- [ ] Zachowano osobny identyfikator aplikacji i nie użyto klucza podpisującego produkcyjne IL.
-- [ ] Testy na Androidzie 11 zakończono przed utworzeniem wydania lub zgłoszeniem do oficjalnego repozytorium.
+## Źródło i build
+
+- [ ] CI przechodzi na commicie wpisanym w metadanych: testy planera, testy Gradle, `assembleFdroidRelease` i start na emulatorze API 30.
+- [ ] Wpis `metadata/com.ispina.mldcheck.fdroid.yml` ma poprawny SPDX, publiczny adres repozytorium, pełny hash commita i wariant Gradle `fdroid`.
+- [ ] Build F-Droid korzysta wyłącznie ze źródeł; nie wymaga klucza podpisującego ani prebuilt APK.
+- [ ] Wariant `com.ispina.mldcheck.fdroid` instaluje się obok produkcyjnego `com.ispina.mldcheck`.
+
+## Testy na urządzeniu
+
+- [ ] Pierwsze uruchomienie i główne ekrany działają przy włączonym oraz wyłączonym internecie.
+- [ ] Pobranie GTFS MLD działa z aktualnego feedu, zapisuje dane lokalnie, pokazuje datę pobrania i nie usuwa poprzedniego rozkładu przy błędzie sieci.
+- [ ] Planer uwzględnia daty i wyjątki kalendarza oraz minimalny czas przesiadki.
+- [ ] Linia gminna i szacowane czasy są czytelnie oznaczone jako robocze.
+- [ ] Wiadomości, historia, pogoda, odnośniki zewnętrzne i komunikaty błędów zachowują się poprawnie.
+- [ ] Powiadomienia działają po przyznaniu zgody; odmowa zgody nie blokuje aplikacji.
+- [ ] Polski lektor, tryb Senior, udostępnianie trasy, przycisk Wstecz i wibracja są sprawdzone.
+- [ ] Sprawdzono na Androidzie 11 lub nowszym; emulator CI nie zastępuje testu na fizycznym telefonie.
+
+## Licencje i dane
+
+- [ ] Ekran „O aplikacji” podaje GPL-3.0-only, brak gwarancji i sposób otwarcia pełnego tekstu licencji.
+- [ ] Warunki ponownego wykorzystania aktualnego GTFS oraz dołączonych danych gminnych i odpadowych są sprawdzone i zapisane. Sam fakt publicznego udostępnienia danych nie przesądza o prawie do ich dalszej dystrybucji.
+- [ ] Atrybucje są zgodne ze źródłami w [`SOURCES.md`](SOURCES.md); nazwy i znaki towarowe nie sugerują poparcia dla aplikacji.
+- [ ] Po zamknięciu punktów powyżej metadane są walidowane i zgłaszane do `fdroiddata`; wydanie jest tagowane dopiero po zatwierdzeniu wersji.
