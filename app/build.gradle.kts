@@ -6,6 +6,10 @@ android {
     namespace = "com.ispina.mldcheck"
     compileSdk = 35
 
+    buildFeatures {
+        buildConfig = true
+    }
+
     defaultConfig {
         applicationId = "com.ispina.mldcheck"
         minSdk = 23
