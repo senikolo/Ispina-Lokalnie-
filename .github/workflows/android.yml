@@ -51,7 +51,7 @@ jobs:
             sleep 5
             adb shell uiautomator dump /sdcard/window.xml
             adb pull /sdcard/window.xml "$RUNNER_TEMP/window.xml"
-            grep -q 'Witaj w Ispinie' "$RUNNER_TEMP/window.xml"
+            adb logcat -d -s IL_SMOKE:I | grep -q 'home-title="Witaj w Ispinie"'
             if adb logcat -d | grep 'FATAL EXCEPTION' | grep -q 'com.ispina.mldcheck.fdroid.debug'; then
               adb logcat -d
               exit 1
