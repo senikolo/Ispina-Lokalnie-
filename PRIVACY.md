@@ -4,12 +4,13 @@ Ta wersja nie ma kont użytkownika, reklam, analityki ani identyfikatora reklamo
 
 ## Zapytania internetowe
 
-- Przy odświeżeniu aktualności i historii aplikacja łączy się z publicznym WordPress REST API Ispina Lokalnie.
-- Przy odświeżeniu prognozy łączy się z API Open-Meteo dla współrzędnych Ispiny.
-- Przy ręcznym odświeżeniu MLD pobiera publiczny feed GTFS z serwera Kolei Małopolskich.
+- Po uruchomieniu aplikacji oraz przy każdym powrocie na ekran główny automatycznie pobiera aktualności z publicznego WordPress REST API Ispina Lokalnie i prognozę z Open-Meteo. Odpowiednie przyciski pozwalają odświeżyć te dane ręcznie.
+- Po wejściu na ekran historii aplikacja pobiera historię z publicznego WordPress REST API Ispina Lokalnie.
+- Prognoza Open-Meteo używa stałych współrzędnych Ispiny (50.1136, 20.3781); aplikacja nie korzysta z lokalizacji urządzenia.
+- Po ręcznym wybraniu „Pobierz MLD” aplikacja pobiera publiczny feed GTFS z serwera Kolei Małopolskich.
 - Po wybraniu playera, artykułu lub odnośnika do gminy Android otwiera stronę zewnętrzną. Jej operator może otrzymać standardowe dane połączenia.
 
-Serwery internetowe mogą rejestrować adres IP, czas zapytania i podstawowe nagłówki sieciowe. Aplikacja nie wysyła do tych usług ustawień, listy tras ani historii użycia.
+Serwery internetowe mogą rejestrować adres IP, czas zapytania i podstawowe nagłówki sieciowe. Aplikacja nie wysyła ustawień, listy tras ani historii użycia. Nie ma identyfikatora reklamowego ani własnej analityki.
 
 ## Dane na urządzeniu
 
