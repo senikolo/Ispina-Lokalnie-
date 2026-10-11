@@ -1,6 +1,6 @@
 # Audyt przygotowania Ispina Lokalnie do F-Droida
 
-**Data audytu:** 10 października 2026 r.  
+**Data audytu:** 10–11 października 2026 r.  
 **Status:** NIEGOTOWA DO ZGŁOSZENIA  
 **Wersja docelowa:** 1.83.20 (versionCode 18320)  
 **Identyfikator docelowy:** `com.ispina.mldcheck`  
