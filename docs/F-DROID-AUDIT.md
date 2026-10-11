@@ -153,3 +153,12 @@ Odzyskana lokalnie APK wydania 1.83.20 ma SHA-256 c9c0a0107310c3229b421a87832de1
 Tabela klas DEX potwierdza obecność natywnych komponentów, których źródeł nie ma w kandydacie F-Droid: HomeActivity, MainActivity, sync/MldRealtime, sync/NativeReader, sync/NotificationDiagnostics, klasy pakietów news i waste, tv/TvFullscreen oraz klasy pakietu radio. Kandydat zawiera obecnie siedem plików Java, w tym starszy MainActivity i uproszczony NativeScheduleBridge; nie zawiera wymienionych klas ani ich źródeł.
 To była kontrola tabel klas i nazw metod DEX, a nie odzyskanie oryginalnego kodu Java/Kotlin. Nie potwierdza licencji, zależności ani zachowania aplikacji. Zgodność DEX z bazową APK nie czyni z kandydata 1.80.66 źródeł wydania 1.83.20.
 **Wniosek pozostaje bez zmian: nie wysyłać zgłoszenia do fdroiddata i nie przedstawiać kandydata jako źródeł APK 1.83.20.** Potrzebny jest pełny projekt źródłowy albo nowa wersja FOSS z jasno opisanym zakresem, buildem od zera i weryfikacją praw do wszystkich materiałów.
+
+
+## Uzupełnienie po sprawdzeniu dostępnych archiwów — 11 października 2026
+
+- Archiwum IL-1.83.19-ZRODLA-I-TESTY.zip zostało rozpakowane i zinwentaryzowane. Zawiera interfejs JavaScript, moduły i testy, narzędzia pomocnicze oraz bazowy plik base-R14-3.apk. Nie zawiera projektu Gradle ani źródeł Java/Kotlin aplikacji. To materiały warstwy interfejsu i bazowy APK, nie kompletne źródła wydania 1.83.20.
+- Archiwum kandydata F-Droid zawiera siedem plików Java, pliki projektu Androida i osobny snapshot JavaScript. Weryfikacja DEX opisana wyżej wykazała, że brakuje mu natywnych klas obecnych w APK 1.83.20. Przejście assembleDebug w GitHub Actions potwierdza kompilację tego kandydata, ale nie zgodność z APK 1.83.20 ani kompletność jego źródeł.
+- Pakiet startowy własnego repozytorium F-Droid zawiera skrypty, metadane i instrukcję publikacji binarnego APK. Nie zawiera projektu źródłowego ani recepty budującej aplikację. Jego README wyraźnie rozróżnia własne repozytorium binarne od zgłoszenia do katalogu f-droid.org.
+
+Te dodatkowe kontrole nie zmieniają wniosku audytu: obecny kandydat i własne repozytorium binarne nie stanowią źródłowego zgłoszenia do oficjalnego F-Droida. Nadal potrzebny jest kompletny, licencjonowany projekt, który buduje APK 1.83.20 od zera.
