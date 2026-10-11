@@ -1,61 +1,38 @@
-# Ispina Lokalnie — nowy projekt Android
+# Ispina Lokalnie — aplikacja Android
 
-Samodzielnie napisany kandydat aplikacji Ispina Lokalnie. Interfejs HTML, CSS i JavaScript jest częścią źródeł, a natywna warstwa Androida obsługuje pobieranie rozkładu, powiadomienia, lektora, wibrację i bezpieczne otwieranie odnośników. Aplikacja nie ładuje zdalnej strony jako swojego interfejsu i nie pobiera zdalnego kodu.
+Samodzielnie napisana aplikacja dla mieszkańców Ispiny i okolic. Interfejs, style, dane przykładowe i logika JavaScript są w repozytorium; Android obsługuje pobieranie rozkładu, przypomnienia, polski lektor, wibrację i linki zewnętrzne. Interfejs działa lokalnie i nie ładuje zdalnego kodu.
 
-## Funkcje
+## Co potrafi
 
-- ekran startowy i nawigacja z dolnego paska;
-- wyszukiwanie połączeń MLD i linii gminnej, bezpośrednich oraz z jedną przesiadką;
-- pobranie aktualnego feedu GTFS MLD na żądanie i lokalne zachowanie rozkładu;
-- aktualności oraz strony historii pobierane jako dane z WordPress REST API, sanitizowane i wyświetlane lokalnie;
-- prognoza pogody na trzy dni, wschód i zachód słońca z Open-Meteo;
-- harmonogram odpadów Ispiny na 2026 r. z przypomnieniem dzień wcześniej;
-- systemowy polski lektor z pauzą, wznowieniem i regulacją tempa;
-- tryb Senior, wibracja, udostępnianie trasy i przycisk Wstecz prowadzący do ekranu startowego;
-- radio i TVP przez oficjalne odtwarzacze nadawców.
+- wyszukuje połączenia MLD oraz roboczą linię gminną — bezpośrednie i z jedną przesiadką;
+- pobiera na żądanie aktualny rozkład MLD w formacie GTFS i zapisuje go na telefonie, aby planer działał później offline;
+- pokazuje wiadomości i historię portalu Ispina Lokalnie, pobrane jako dane i oczyszczone przed wyświetleniem;
+- wyświetla trzydniową prognozę, wschód i zachód słońca dla Ispiny;
+- przypomina o odbiorze odpadów dzień wcześniej według harmonogramu na 2026 r.;
+- ma systemowego polskiego lektora z pauzą i regulacją tempa, tryb Senior, wibrację oraz udostępnianie trasy;
+- otwiera oficjalne strony nadawców radiowych i TV.
 
-Pozycja LIVE otwiera stronę z utrudnieniami Kolei Małopolskich. Kandydat nie zawiera własnego źródła danych LIVE. Odtwarzanie radia uruchamia oficjalne strony nadawców.
+Przycisk LIVE prowadzi do oficjalnych komunikatów o utrudnieniach. Ta wersja nie pobiera danych GTFS-Realtime ani nie pokazuje pozycji pojazdów.
 
-## Dane i ograniczenia
+## Dane i prywatność
 
-Rozkład MLD jest pobierany z oficjalnego publicznego feedu GTFS. Po pierwszym uruchomieniu planera trzeba wybrać „Pobierz MLD”; potem zapisany rozkład działa bez kolejnego pobrania. Aplikacja pokazuje datę jego pobrania.
+Statyczny rozkład MLD pobiera się ręcznie z oficjalnego feedu Kolei Małopolskich. Aplikacja pokazuje datę pobrania. Po zapisaniu rozkład pozostaje na urządzeniu. Tabela linii gminnej jest robocza, a część godzin pośrednich szacowana — planer wyraźnie o tym ostrzega. Terminy odpadów dotyczą 2026 r. i po upływie ważności przestaną być oznaczane jako aktualne.
 
-Dołączona tabela linii gminnej ma charakter roboczy. Część czasów przystanków pośrednich jest szacowana. Planer wyraźnie pokazuje ostrzeżenie i odsyła do aktualnych informacji gminy. Nie należy opierać podróży na szacowanych godzinach bez potwierdzenia ich w oficjalnym rozkładzie.
+Odświeżenie wiadomości, historii i pogody wymaga internetu. Aplikacja nie zawiera reklam ani analityki; nie wysyła ustawień ani zapisanej trasy. Dane i ich warunki wykorzystania opisano w [SOURCES.md](SOURCES.md), a przepływy danych w [PRIVACY.md](PRIVACY.md).
 
-Terminy odpadów dotyczą harmonogramu 2026 i przestaną być oznaczane jako aktualne po dacie ważności. Aktualności, historia i pogoda wymagają internetu do odświeżenia; ustawienia i pobrany GTFS pozostają na urządzeniu. Wiadomości z portalu są sanitizowane przed wyświetleniem. Linki zewnętrzne otwierają się poza aplikacją.
+## Budowanie i testy
 
-Źródła wymieniono w [`SOURCES.md`](SOURCES.md), a przepływy danych opisano w [`PRIVACY.md`](PRIVACY.md).
-Lista sprawdzeń przed udostępnieniem jest w [`TEST-PLAN-ANDROID11.md`](TEST-PLAN-ANDROID11.md).
-
-## Identyfikatory i podpisy
-
-Wariant F-Droid ma identyfikator `com.ispina.mldcheck.fdroid`. Wariant bez dystrybucyjnego sklepu ma identyfikator `com.ispina.mldcheck.direct`. Żaden z nich nie używa identyfikatora obecnej aplikacji produkcyjnej `com.ispina.mldcheck`. Wydania testowe dodają `.debug`.
-
-Warianty są osobnymi aplikacjami i nie zastępują produkcyjnego IL ani nie współdzielą z nim podpisu. Wydanie Androida podpisuje sklep lub operator repozytorium swoim kluczem. Nie ma tu klucza produkcyjnego ani podpisanego APK.
-
-## Budowanie
-
-Wymagane: JDK 17, Gradle 8.9, Android SDK Platform 35 oraz Build Tools 35.0.0. Z katalogu projektu:
+Wymagane: JDK 17, Gradle 8.9, Android SDK Platform 35 i Build Tools 35.0.0. Z katalogu repozytorium: 
 
 ```sh
 gradle --no-daemon clean testFdroidReleaseUnitTest assembleFdroidRelease
+(cd tests && npm test)
 ```
 
-Wynik F-Droid:
+Wariant F-Droid ma identyfikator `com.ispina.mldcheck.fdroid`. Wynikiem lokalnego buildu jest `app/build/outputs/apk/fdroid/release/app-fdroid-release-unsigned.apk`. CI buduje warianty debug i release, uruchamia testy planera oraz sprawdza uruchomienie na emulatorze Android 11. Artefakt debug służy do testów, a release pozostaje niepodpisany — nie ma w repozytorium klucza produkcyjnego. Szczegóły są w [FDROID.md](FDROID.md) i [RELEASE_CHECKLIST.md](RELEASE_CHECKLIST.md).
 
-```text
-app/build/outputs/apk/fdroid/release/app-fdroid-release-unsigned.apk
-```
+## Warianty aplikacji
 
-Testy planera, bez Android SDK:
+`com.ispina.mldcheck.fdroid` i `com.ispina.mldcheck.direct` są odrębnymi aplikacjami. Nie zastępują produkcyjnego `com.ispina.mldcheck` i nie współdzielą z nim podpisu.
 
-```sh
-cd tests
-npm test
-```
-
-GitHub Actions w tym repozytorium wykonuje testy JavaScript i buduje warianty F-Droid `debug` oraz `release`. Po udanym buildzie zapisuje na 14 dni podpisany kluczem debug APK do testu na telefonie oraz osobno niepodpisany APK release dla procesu F-Droid. Lokalny kontener tej pracy nie ma Gradle ani Android SDK, dlatego kompilacja APK nie została tu potwierdzona. Wariant testowy nie jest wydaniem produkcyjnym.
-
-## Licencja
-
-Kod nowej aplikacji jest udostępniony na licencji MIT. Licencja kodu nie zmienia warunków wykorzystania treści WordPress, danych pogody, rozkładów ani znaków towarowych wymienionych w [`SOURCES.md`](SOURCES.md). W projekcie nie ma APK ani kodu wyciągniętego z APK; testy planera używają małych, ręcznie przygotowanych przykładów.
+Kod modułu Android `app/` jest na licencji GPL-3.0-only; szczegóły i tekst licencji wskazuje [app/LICENSE](app/LICENSE). Główny plik [LICENSE](LICENSE) dotyczy wcześniejszych plików repozytorium i nie zmienia licencji danych ani treści wymienionych w SOURCES.md.
