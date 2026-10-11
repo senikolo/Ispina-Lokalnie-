@@ -13,7 +13,8 @@ Nie znaleziono kompletnego projektu źródłowego wersji 1.83.20. Znaleziono sta
 ## Źródła i kompilacja — BLOKER
 
 - Repozytorium zawiera interfejs JavaScript, moduły, testy i narzędzia. `planner/build_motion_apk.py` wymaga istniejącego APK przez `--base`; nie buduje aplikacji od zera.
-- Opis archiwum źródeł wydania 1.83.19 wskazuje na interfejs, moduły, testy i bazowy APK, a nie pełny projekt natywny. Archiwum nie zostało niezależnie zweryfikowane.
+- Archiwum źródeł 1.83.19 zostało rozpakowane i zinwentaryzowane: zawiera interfejs JavaScript, moduły i testy, narzędzia pomocnicze oraz bazowy APK R14.3. Nie zawiera projektu Gradle ani źródeł Java/Kotlin aplikacji; nie jest pełnym projektem natywnym.
+- Wcześniejsza próba dekompilacji APK narzędziem JADX wygenerowała około 1 992 pliki Java, ale zgłosiła 83 błędy, głównie przy Kotlin/coroutines i bibliotekach. Utworzony szkielet Gradle miał błędny `applicationId` (`com.ispina.lokalnie`), pustą listę zależności i brak wrappera; wygenerowane pliki były materiałem diagnostycznym, a nie kompilowalnym źródłem wydania.
 - Odnaleziono starszy projekt Androida 1.80.66 osadzony w archiwalnym notebooku budowania. Zawierał Gradle, moduł aplikacji, pliki Java `MainActivity` i synchronizacji rozkładów oraz zasoby. Jego archiwum przechodzi test ZIP i zgadza się z sumą SHA-256 wpisaną w notebooku.
 - Ten projekt ustawia `applicationId/namespace com.ispina.lokalnie`, versionCode 18066 i versionName 1.80.66. Wersja docelowa ma identyfikator `com.ispina.mldcheck`. README odzyskanego projektu opisuje uproszczoną wersję bez radia i ostrzega, że kompilacja debug może wymagać odinstalowania istniejącej aplikacji. To nie jest bezpieczna podmiana wersji 1.83.20.
 - Znaleziono też osobne notebooki z prototypami 2.0.x. Nie potwierdzono, że są źródłem aktualnego pakietu; nie zostały użyte do zastąpienia bieżącej aplikacji.
@@ -26,23 +27,25 @@ Dodano pełny tekst GPLv3. Oznaczenie `GPL-3.0-only` dotyczy wyłącznie kodu, d
 
 Przed zgłoszeniem trzeba udokumentować właściciela, licencję i prawo do redystrybucji zdjęć, ilustracji, ikon, fontów, rozkładów MLD i gminnych, transmisji radiowych i telewizyjnych, treści aktualności i historii oraz danych i usług pogodowych. Dostępność materiału w Internecie nie oznacza zgody na jego kopiowanie ani objęcia go GPL.
 
-## Biblioteki, reklamy i śledzenie — NIEZWERYFIKOWANE
+## Biblioteki, reklamy i śledzenie — WSTĘPNIE SPRAWDZONE, NIEZAMKNIĘTE
 
-Dla wersji 1.83.20 brak projektu Gradle i natywnego kodu uniemożliwia wiarygodne zestawienie zależności. Nie można potwierdzić ani wykluczyć Google Play Services, Firebase, bibliotek reklamowych, analityki, trackerów ani komponentów niewolnych.
+Statyczny przegląd APK wskazuje na AndroidX Core, WorkManager, Room, Kotlin/kotlinx.coroutines, Guava i adnotacje JetBrains. Brak projektu źródłowego nie pozwala ustalić pełnych wersji, grafu zależności i licencji. W przeglądzie nie znaleziono znanych sygnatur SDK AdMob, Firebase ani analityki; to nie wyklucza własnego śledzenia, kodu dynamicznego ani skryptów strony ładowanej z sieci. Przed zgłoszeniem potrzebny jest audyt pełnych źródeł i zachowania aplikacji.
 
-W odzyskanym projekcie 1.80.66 widoczna była zależność WorkManager 2.9.1; nie jest to dowód dotyczący wersji 1.83.20. Trzeba oddzielnie sprawdzić wszystkie zależności aktualnego wydania i ich licencje.
+## Uprawnienia, sieć i usługi — WSTĘPNIE USTALONE Z APK
 
-## Uprawnienia, sieć i usługi — CZĘŚCIOWO ZNANE
+Manifest wydania 1.83.20 deklaruje `INTERNET`, `ACCESS_NETWORK_STATE`, `WAKE_LOCK`, `RECEIVE_BOOT_COMPLETED`, `FOREGROUND_SERVICE`, `POST_NOTIFICATIONS`, `FOREGROUND_SERVICE_DATA_SYNC`, `VIBRATE` i `FOREGROUND_SERVICE_MEDIA_PLAYBACK`, a także własne uprawnienie odbiornika chronione podpisem aplikacji. Nie znaleziono uprawnień do lokalizacji, SMS-ów, telefonu ani kontaktów. Manifest ustawia `minSdk 23`, `targetSdk 34` i wyłącza cleartext HTTP. Wymaga to jeszcze kontroli po odtworzeniu manifestu źródłowego.
 
-Odzyskany projekt 1.80.66 deklaruje `INTERNET` i `ACCESS_NETWORK_STATE`, pobiera pogodę z Open-Meteo, otwiera stronę Ispina Lokalnie w WebView i przewiduje synchronizację rozkładów przez usługę internetową. Jego README wyraźnie określa go jako wersję bez radia. Te informacje dotyczą tylko starszego projektu. Manifestu, domen i przesyłanych danych aplikacji 1.83.20 nie zweryfikowano.
+W statycznie znalezionych ścieżkach i zasobach występują m.in. Open-Meteo (pogoda), portal/REST WordPress (aktualności i artykuły), `gtfs.kolejemalopolskie.com.pl` (dane GTFS), wdrożony Google Apps Script (rozkład gminny), API rozkładów Polskiego Radia i RMF oraz strumienie audio/wideo wskazane w treści portalu. Nie zweryfikowano warunków tych usług, praw do danych i transmisji, zakresu wysyłanych danych ani zachowania przy błędach sieci.
 
-## Aktualizacje — WYMAGANY OSOBNY WARIANT
+## Aktualizacje — POTWIERDZONY WŁASNY MECHANIZM
 
-Wydania opisują kanał aktualizacji. Po odzyskaniu kodu trzeba ustalić jego działanie. Wariant F-Droid powinien korzystać z aktualizacji dostarczanych przez klienta F-Droid i nie pobierać samodzielnie APK z pominięciem weryfikacji katalogu. Wariant produkcyjny należy pozostawić bez zmian do czasu zaplanowania migracji użytkowników.
+W zasobach APK znaleziono mechanizm sprawdzania wydań GitHub, który filtruje pakiet, kanał i certyfikat, a następnie oferuje użytkownikowi pobranie APK zewnętrznym kanałem. Nie znaleziono automatycznej instalacji APK. Wariant F-Droid powinien wyłączyć lub zastąpić ten przepływ, aby aktualizacje odbywały się przez klienta F-Droid; wariant produkcyjny musi pozostać osobny do czasu ustalenia bezpiecznej migracji.
 
-## Podpis i migracja — BLOKER
+## Podpis i migracja — CERTYFIKAT ZNANY, KLUCZ NIEDOSTĘPNY
 
-Zachowanie identyfikatora `com.ispina.mldcheck` nie wystarczy do aktualizacji instalacji. Android wymaga zgodności certyfikatu podpisu. Dla wersji F-Droid trzeba ustalić, czy możliwy jest reprodukowalny build zgodny z dotychczasowym podpisem. Nie zmieniono ani nie ujawniono produkcyjnego klucza. Jeśli zgodności podpisu nie da się potwierdzić, potrzebny będzie jawny plan migracji i ochrony lokalnych danych.
+Certyfikat APK ma odcisk SHA-256 `6D:75:BA:F7:F4:40:2F:F9:3C:93:50:5F:D6:D7:A5:C0:EA:B3:D1:C7:C2:AA:2A:39:EE:B5:E4:AE:16:6F:62:5F`, zgodny z odciskiem zapisanym w zasobie APK. Nie odzyskano prywatnego klucza.
+
+Zachowanie `com.ispina.mldcheck` nie wystarczy do aktualizacji instalacji — wymagany jest zgodny podpis i wyższy `versionCode`. Jeśli uda się odtworzyć źródła i uzyskać powtarzalny build, można sprawdzić zgodność z APK autora. Nie zostało to jeszcze wykazane. W przeciwnym razie potrzebny będzie jawny plan migracji, obejmujący lokalne dane użytkowników.
 
 ## Testy i metadane — NIEZAKOŃCZONE
 
@@ -114,7 +117,7 @@ Zgłoszenie do oficjalnego repozytorium F-Droid nie zostało wysłane.
 - Drzewo tagu `v1.83.20` zawiera katalog `planner/`, workflow oraz pliki README i XML. Nie zawiera `gradlew`, `settings.gradle`, `build.gradle`, modułu `app/` ani źródeł Java/Kotlin. To potwierdza, że automatyczny snapshot źródeł GitHuba nie jest samodzielnym projektem do zbudowania aplikacji.
 - `planner/README.md` opisuje budowanie zmian interfejsu przez skrypt wymagający `--base` z istniejącą APK R14.3; podpisanie wymaga osobnej prywatnej konfiguracji. Taki skrypt nie jest receptą F-Droida, która kompiluje aplikację od zera.
 - Główny `AndroidManifest.xml` w tagu wymienia `INTERNET` i `ACCESS_NETWORK_STATE`, lecz README oznacza pliki XML jako historyczne zasoby, a manifest nie należy do kompletnego projektu Gradle. Nie można na tej podstawie potwierdzić uprawnień faktycznej APK 1.83.20.
-- Nie udało się więc potwierdzić natywnego manifestu scalonego, bibliotek ani usług użytych w opublikowanej APK. Do takiego audytu potrzebny jest kompletny projekt lub kontrolowane odczytanie APK; sam snapshot repozytorium nie wystarcza.
+- Kontrolowana analiza statyczna odzyskanej APK pozwoliła wstępnie odczytać manifest, bibliotekę zależności, domeny i certyfikat; ich ograniczenia opisano w sekcjach poniżej. Nie zastępuje ona pełnej kontroli źródeł, warunków usług ani testów działania.
 
 
 ## Dodatkowo sprawdzone archiwa źródłowe
@@ -147,12 +150,24 @@ Nie dodano tych archiwów do repozytorium ani nie przypisano im licencji GPL. Wy
 ## Dodatkowy projekt archiwalny 1.80.19 i kontrola APK
 
 - Archiwum projektu 1.80.19 osadzone w notebooku przechodzi test ZIP, a jego SHA-256 zgadza się z sumą podaną w notebooku. Ustawia `applicationId pl.ispina.lokalnie`, versionCode 18019 i versionName `1.80.19-clean-details`. README opisuje uproszczoną wersję bez radia: pobiera pogodę z Open-Meteo i otwiera portal w WebView. Nie zawiera źródeł wersji 1.83.20 ani docelowego identyfikatora pakietu; archiwum nie zawiera pliku licencji.
-- W wydaniu `v1.83.20` widoczny jest jeden dołączony APK oraz automatyczne snapshoty źródeł ZIP/TAR, bez osobnego natywnego archiwum projektu. Próba pobrania APK w przeglądarce Work przekroczyła limit czasu. Scalony manifest APK, biblioteki, certyfikat podpisu i uprawnienia tej wersji pozostają więc niezweryfikowane.
+- W wydaniu `v1.83.20` widoczny jest jeden dołączony APK oraz automatyczne snapshoty źródeł ZIP/TAR, bez osobnego natywnego archiwum projektu. Próba pobrania APK w przeglądarce Work przekroczyła limit czasu; APK odzyskano później lokalnie. Jego SHA-256 i warstwę DEX zweryfikowano, a statyczną analizę manifestu, bibliotek, domen i certyfikatu opisano w dalszej części. Nie zastępuje ona kontroli źródeł ani pełnego audytu zachowania.
 ## Weryfikacja odzyskanego APK i warstwy DEX — 11 października 2026
 Odzyskana lokalnie APK wydania 1.83.20 ma SHA-256 c9c0a0107310c3229b421a87832de1f1fc738b07db7ab1dc41eea2ead417e664, zgodny z sumą opublikowaną w README repozytorium. Wszystkie sześć plików DEX z tej APK jest bajt w bajt identycznych z plikami DEX w odzyskanej bazowej APK R14.3.
 Tabela klas DEX potwierdza obecność natywnych komponentów, których źródeł nie ma w kandydacie F-Droid: HomeActivity, MainActivity, sync/MldRealtime, sync/NativeReader, sync/NotificationDiagnostics, klasy pakietów news i waste, tv/TvFullscreen oraz klasy pakietu radio. Kandydat zawiera obecnie siedem plików Java, w tym starszy MainActivity i uproszczony NativeScheduleBridge; nie zawiera wymienionych klas ani ich źródeł.
 To była kontrola tabel klas i nazw metod DEX, a nie odzyskanie oryginalnego kodu Java/Kotlin. Nie potwierdza licencji, zależności ani zachowania aplikacji. Zgodność DEX z bazową APK nie czyni z kandydata 1.80.66 źródeł wydania 1.83.20.
 **Wniosek pozostaje bez zmian: nie wysyłać zgłoszenia do fdroiddata i nie przedstawiać kandydata jako źródeł APK 1.83.20.** Potrzebny jest pełny projekt źródłowy albo nowa wersja FOSS z jasno opisanym zakresem, buildem od zera i weryfikacją praw do wszystkich materiałów.
+
+
+## Dodatkowa statyczna inspekcja APK — 11 października 2026
+
+
+- Manifest APK 1.83.20 deklaruje uprawnienia INTERNET, ACCESS_NETWORK_STATE, WAKE_LOCK, RECEIVE_BOOT_COMPLETED, FOREGROUND_SERVICE, POST_NOTIFICATIONS, FOREGROUND_SERVICE_DATA_SYNC, VIBRATE i FOREGROUND_SERVICE_MEDIA_PLAYBACK, a także własne uprawnienie odbiornika chronione podpisem. Statyczna inspekcja nie wykazała uprawnień do lokalizacji, SMS-ów, telefonu ani kontaktów; minSdk to 23, targetSdk 34, a cleartext HTTP jest wyłączony.
+- W DEX i zasobach APK rozpoznano AndroidX Core, WorkManager, Room, Kotlin/kotlinx.coroutines, Guava i adnotacje JetBrains. Nie znaleziono znanych sygnatur SDK AdMob, Firebase ani analityki; wynik nie wyklucza niestandardowego trackingu, dynamicznego kodu ani skryptów sieciowych.
+- W statycznych zasobach występują Open-Meteo, WordPress REST, gtfs.kolejemalopolskie.com.pl, wdrożony Google Apps Script, API rozkładów Polskiego Radia i RMF oraz odnośniki do strumieni audio/wideo. Prawa do transmisji i danych, warunki usług oraz zakres wysyłanych danych pozostają do sprawdzenia.
+- APK zawiera sprawdzanie wydań GitHub i oferuje ręczne pobranie APK po filtrze pakietu, kanału i certyfikatu; nie znaleziono automatycznej instalacji.
+- Odcisk SHA-256 certyfikatu podpisującego APK: `6D:75:BA:F7:F4:40:2F:F9:3C:93:50:5F:D6:D7:A5:C0:EA:B3:D1:C7:C2:AA:2A:39:EE:B5:E4:AE:16:6F:62:5F`. Prywatny klucz nie został odzyskany.
+
+Są to ustalenia ze statycznej inspekcji APK, nie pełny audyt źródeł, ruchu sieciowego ani praw do treści.
 
 
 ## Uzupełnienie po sprawdzeniu dostępnych archiwów — 11 października 2026
