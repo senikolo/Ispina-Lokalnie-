@@ -1,0 +1,7 @@
+SPDX-License-Identifier: GPL-3.0-only
+
+The original source code in this Android application module (`app/`) is licensed under the GNU General Public License, version 3 only (GPL-3.0-only).
+
+Full license text: https://www.gnu.org/licenses/gpl-3.0.txt
+
+The repository-root `LICENSE` applies to pre-existing repository files. This notice does not grant rights to third-party schedules, articles, media, names, or trademarks. Their sources and any reuse conditions are listed in `../SOURCES.md`.
