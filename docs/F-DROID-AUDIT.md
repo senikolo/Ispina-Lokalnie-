@@ -177,3 +177,13 @@ Są to ustalenia ze statycznej inspekcji APK, nie pełny audyt źródeł, ruchu 
 - Pakiet startowy własnego repozytorium F-Droid zawiera skrypty, metadane i instrukcję publikacji binarnego APK. Nie zawiera projektu źródłowego ani recepty budującej aplikację. Jego README wyraźnie rozróżnia własne repozytorium binarne od zgłoszenia do katalogu f-droid.org.
 
 Te dodatkowe kontrole nie zmieniają wniosku audytu: obecny kandydat i własne repozytorium binarne nie stanowią źródłowego zgłoszenia do oficjalnego F-Droida. Nadal potrzebny jest kompletny, licencjonowany projekt, który buduje APK 1.83.20 od zera.
+
+
+## Dodatkowy przegląd odzyskanych archiwów — 11 października 2026 r.
+
+- `Ispina-Lokalnie-open-source-prep.zip` opisuje się jako techniczną bazę z linii 1.80.x, wymagającą przeniesienia późniejszych zmian z 1.82.x i testów regresji przed wydaniem. Zawiera projekt `com.ispina.lokalnie` w wersji 1.80.66 i siedem plików Java; nie zawiera wrappera Gradle, a README mówi, że licencja wymaga jeszcze decyzji. Nie jest źródłem 1.83.20.
+- `Ispina-Lokalnie-1.81.10-projekt.zip` to dekompilacja APK przez apktool (w metadanych widnieje APK 1.81.09), z 3 765 plikami smali. Nie zawiera oryginalnego projektu Gradle ani kompletnego projektu źródłowego.
+- `Ispina-Lokalnie-1.82.03-KOD-I-TESTY.zip` zawiera punktowe poprawki, testy i elementy smali oraz opisuje się jako pakiet poprawki/testów bez przebudowy całej aplikacji; nie zawiera kompletnego projektu Androida.
+- `Ispina-Lokalnie-Live-1.82.93-TV-SAVER-patch-source.zip` opisuje poprawkę na bazie podpisanego APK 1.82.91. Zawiera bazowy APK/classes5.dex i zmiany dotyczące ekranu TV, a nie pełne źródła aplikacji.
+
+Żadne z tych archiwów nie uzupełnia brakującego, kompletnego źródła wydania 1.83.20 ani nie pozwala przygotować uczciwej recepty budowania F-Droid.
