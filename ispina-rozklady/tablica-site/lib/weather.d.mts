@@ -6,7 +6,7 @@ export interface Forecast {
 export const LOCATION: Readonly<{ latitude: number; longitude: number; timezone: string }>;
 export const REFRESH_MS: number;
 export function localDate(seconds: number): string;
-export function weatherUrl(): URL;
+export function weatherUrl(now?: number): URL;
 export function validateWeather(data: unknown, now?: number): Forecast;
 export interface WeatherResult { data: Forecast; fetchedAt: number; expires: number }
 export function createWeatherLoader(fetcher?: typeof fetch, clock?: () => number): () => Promise<WeatherResult>;

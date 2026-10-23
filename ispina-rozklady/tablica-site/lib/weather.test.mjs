@@ -12,6 +12,14 @@ test('requests Ispina coordinates, Warsaw time and explicit units', () => {
   assert.equal(url.searchParams.get('timezone'), 'Europe/Warsaw');
   assert.equal(url.searchParams.get('wind_speed_unit'), 'kmh');
 });
+test('uses explicit Warsaw dates and a new upstream URL after local midnight', () => {
+  const before = weatherUrl(Date.parse('2026-10-23T21:59:00Z'));
+  const after = weatherUrl(Date.parse('2026-10-23T22:00:00Z'));
+  assert.equal(before.searchParams.get('start_date'), '2026-10-23');
+  assert.equal(after.searchParams.get('start_date'), '2026-10-24');
+  assert.equal(after.searchParams.get('end_date'), '2026-10-26');
+  assert.notEqual(before.href, after.href);
+});
 test('rejects incomplete, null, nonfinite, stale, future and wrong-location data', () => {
   assert.doesNotThrow(() => validateWeather(fixture(baseline), baseline));
   for (const mutate of [d => d.current.temperature_2m = null, d => d.current.wind_speed_10m = NaN, d => d.current.time -= 3600, d => d.current.time += 3600, d => d.daily.time.pop(), d => d.daily.precipitation_probability_max[1] = null, d => d.daily.weather_code[0] = 999, d => d.longitude = 20.45, d => d.timezone = 'UTC', d => d.current_units.wind_speed_10m = 'm/s', d => d.daily.time[0] -= 86400]) {

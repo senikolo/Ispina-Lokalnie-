@@ -5,9 +5,13 @@ const codes = new Set([0,1,2,3,45,48,51,53,55,56,57,61,63,65,66,67,71,73,75,77,8
 const number = (v, min, max) => typeof v === 'number' && Number.isFinite(v) && v >= min && v <= max;
 export const localDate = (seconds) => new Intl.DateTimeFormat('en-CA', { timeZone: LOCATION.timezone, year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date(seconds * 1000));
 
-export function weatherUrl() {
+export function weatherUrl(now = Date.now()) {
   const url = new URL('https://api.open-meteo.com/v1/forecast');
-  const params = { ...LOCATION, forecast_days: '3', timeformat: 'unixtime', temperature_unit: 'celsius', wind_speed_unit: 'kmh', precipitation_unit: 'mm', current: 'temperature_2m,apparent_temperature,precipitation,weather_code,wind_speed_10m,is_day', daily: 'temperature_2m_max,temperature_2m_min,precipitation_probability_max,weather_code' };
+  const start = localDate(now / 1000);
+  const end = new Date(start + 'T12:00:00Z');
+  end.setUTCDate(end.getUTCDate() + 2);
+  // Explicit dates avoid an upstream response cached across Warsaw midnight.
+  const params = { ...LOCATION, start_date: start, end_date: end.toISOString().slice(0, 10), timeformat: 'unixtime', temperature_unit: 'celsius', wind_speed_unit: 'kmh', precipitation_unit: 'mm', current: 'temperature_2m,apparent_temperature,precipitation,weather_code,wind_speed_10m,is_day', daily: 'temperature_2m_max,temperature_2m_min,precipitation_probability_max,weather_code' };
   for (const [key, value] of Object.entries(params)) url.searchParams.set(key, String(value));
   return url;
 }
@@ -44,7 +48,7 @@ export function createWeatherLoader(fetcher = fetch, clock = Date.now) {
     // No Next.js stale-on-error cache: expired data is never a fallback.
     pending = (async () => {
       try {
-        const response = await fetcher(weatherUrl(), { cache: 'no-store', signal: AbortSignal.timeout(8000) });
+        const response = await fetcher(weatherUrl(clock()), { cache: 'no-store', signal: AbortSignal.timeout(8000) });
         if (!response.ok) throw new Error('Weather source unavailable');
         const data = validateWeather(await response.json(), clock());
         const fetchedAt = clock();
