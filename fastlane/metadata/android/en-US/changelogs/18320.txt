@@ -1,0 +1,1 @@
+Added Historical facts. The planner now searches for connections immediately after a destination is selected. Updated the menu, stop names, and version information.
