@@ -39,6 +39,11 @@ jobs:
         id: generate
         continue-on-error: true
         run: python ispina-rozklady/update.py
+      - name: Prepare checked schedules for the interactive board
+        id: board
+        if: always() && steps.generate.outcome != 'skipped'
+        continue-on-error: true
+        run: python ispina-rozklady/board.py
       - name: Publish verified departures or replace with a warning
         if: always() && steps.generate.outcome != 'skipped'
         run: |
@@ -59,5 +64,5 @@ jobs:
           path: ispina-rozklady/out/
           retention-days: 14
       - name: Report unavailable source
-        if: steps.generate.outcome == 'failure'
+        if: steps.generate.outcome == 'failure' || steps.board.outcome == 'failure'
         run: exit 1

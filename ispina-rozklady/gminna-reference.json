@@ -1,0 +1,75 @@
+{
+  "reviewed_at": "2026-10-23",
+  "review_valid_until": "2026-11-30",
+  "pdf": "https://www.drwinia.pl/pro_drwinia/zasoby/files/krakow-mikluszowice-robocze-scalone.pdf",
+  "sha256": "f16dda8d5001c80ccac99ed20cd46da244b255e5f3d72ae46a82e4d8b2012507",
+  "stop": "Ispina Dom Ludowy",
+  "stop_source_name": "Ispina III",
+  "source_file": "linia-gminna.json",
+  "source_version": "2026-09-22-r2",
+  "notice": "Oficjalny PDF wskazuje Ispinę III (Dom Ludowy). Nie potwierdza osobnego odjazdu z Mostu. Godzin skopiowanych z Domu Ludowego nie publikujemy jako odjazdów z Mostu.",
+  "groups": [
+    {
+      "direction": "KRAKOW",
+      "day_type": "weekday",
+      "times": [
+        "04:10",
+        "05:10",
+        "06:20",
+        "07:20",
+        "08:50",
+        "09:50",
+        "12:10",
+        "13:10",
+        "15:10",
+        "16:10",
+        "17:50",
+        "18:50",
+        "20:25",
+        "21:20"
+      ]
+    },
+    {
+      "direction": "KRAKOW",
+      "day_type": "saturday",
+      "times": [
+        "04:10",
+        "06:50",
+        "09:50",
+        "12:35",
+        "15:40"
+      ]
+    },
+    {
+      "direction": "MIKLUSZOWICE",
+      "day_type": "weekday",
+      "times": [
+        "05:33",
+        "06:33",
+        "07:43",
+        "08:43",
+        "10:23",
+        "11:23",
+        "13:33",
+        "14:53",
+        "16:48",
+        "17:48",
+        "19:23",
+        "20:23",
+        "21:48",
+        "23:08"
+      ]
+    },
+    {
+      "direction": "MIKLUSZOWICE",
+      "day_type": "saturday",
+      "times": [
+        "05:58",
+        "08:38",
+        "11:38",
+        "14:53",
+        "17:03"
+      ]
+    }
+  ]
+}

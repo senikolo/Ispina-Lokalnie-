@@ -41,3 +41,13 @@ Na grafikach widnieje duża **bezwzględna data kursowania**. Darmowy WordPress 
 ## Aktualizacja audytu
 
 Po zmianie PDF należy odczytać i wizualnie sprawdzić wszystkie wiersze, oba kierunki oraz grupy dni. Dopiero wtedy uaktualnić adres, datę, SHA-256 i referencyjne godziny w `reference.json`, sprawdzić reprezentatywne dni z obu stron zmiany i uruchomić workflow. Nie dopasowywać referencji do GTFS w celu obejścia rozbieżności.
+
+## Tablica najbliższych odjazdów
+
+`board.py` publikuje `out/tablica.json` na 7 dni. API tablicy odrzuca plik starszy niż 30 godzin. Generowanie sprawdza cały zestaw linii obsługujących Most, aby nowa linia MLD nie została pominięta bez ostrzeżenia.
+
+A4 i A65 wymagają zgodności GTFS z oficjalnym PDF. A7 ma sprawdzoną rozbieżność jednej minuty: jej rozkładowe godziny pochodzą z zatwierdzonego PDF, a tożsamość kursu z GTFS jest przypisywana tylko bijekcją w porządku godzin i przy różnicy nie większej niż 60 sekund. Zmieniony PDF blokuje ten mechanizm.
+
+**Linia gminna:** plik użytkownika `linia-gminna.json` (`2026-09-22-r2`) kopiował godziny Domu Ludowego na Most. Oficjalny PDF z bieżącego katalogu Gminy Drwinia nie potwierdza odrębnego odjazdu z Mostu. Dlatego gminne odjazdy są publikowane wyłącznie jako **Ispina Dom Ludowy / Ispina III**. Sprawdzono wszystkie 4 grupy: oba kierunki w dni robocze i soboty, po 14 i 5 kursów; brak kursów w niedziele i święta. Źródło i skrót kontrolny: `gminna-reference.json`.
+
+Audyt jest ważny do 30 listopada 2026. Nowe lub zmienione źródło wymaga ponownego porównania; do tego czasu godziny objętej nim linii są ukrywane. Nie dotyczy to Androida ani istniejącego planera.
