@@ -251,7 +251,12 @@ def draw_image(path, target, slug, day=None, error=None):
     d.rectangle((3, 125, width - 4, 151), fill=BLUE)
     d.text((20, 20), 'ISPINA LOKALNIE • ODJAZDY PLANOWE', font=font(16, True), fill=WHITE)
     d.text((20, 52), STOPS[slug]['name'], font=font(32, True), fill=WHITE)
-    d.text((20, 98), target.strftime('%d.%m.%Y'), font=font(38, True), fill=WHITE)
+    date_text = target.strftime('%d.%m.%Y')
+    weekday = ('poniedziałek', 'wtorek', 'środa', 'czwartek', 'piątek', 'sobota', 'niedziela')[target.weekday()]
+    date_font = font(30, True)
+    d.text((20, 103), date_text, font=date_font, fill=WHITE)
+    weekday_x = 20 + date_font.getlength(date_text) + 13
+    d.text((weekday_x, 109), '· ' + weekday, font=font(21, True), fill=WHITE)
     y = 180
     for lines, times in wrapped_groups:
         for line in lines:
