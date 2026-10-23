@@ -1,0 +1,63 @@
+name: Ispina Lokalnie — automatyczne rozkłady MLD
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'ispina-rozklady/**'
+      - '!ispina-rozklady/out/**'
+      - '.github/workflows/ispina-rozklady-gtfs.yml'
+  schedule:
+    # UTC, both before and after local midnight across DST; cron may be delayed.
+    - cron: '17 0,5,11,17,22,23 * * *'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: ispina-gtfs-update
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 1
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install renderer
+        run: python -m pip install -r ispina-rozklady/requirements.txt
+      - name: Safety tests
+        run: python -m unittest discover -s ispina-rozklady -p 'test_*.py' -v
+      - name: Download official sources and verify each line
+        id: generate
+        continue-on-error: true
+        run: python ispina-rozklady/update.py
+      - name: Publish verified departures or replace with a warning
+        if: always() && steps.generate.outcome != 'skipped'
+        run: |
+          test -f ispina-rozklady/out/rozklady.json
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add ispina-rozklady/out/
+          if ! git diff --cached --quiet; then
+            git commit -m "chore: refresh verified Ispina departures [skip ci]"
+            git pull --rebase origin main
+            git push origin HEAD:main
+          fi
+      - name: Preserve audit result
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ispina-rozklady-audit
+          path: ispina-rozklady/out/
+          retention-days: 14
+      - name: Report unavailable source
+        if: steps.generate.outcome == 'failure'
+        run: exit 1
