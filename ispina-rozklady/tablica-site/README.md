@@ -1,13 +1,45 @@
 # Ispina Most — tablica odjazdów
 
-Publiczna tablica Ispina Lokalnie. Oba kierunki, A4/A7/A65 z Mostu oraz gminna orientacyjnie według oficjalnych godzin Domu Ludowego (Ispina III). Użytkownik zaakceptował 23.10.2026 tolerancję około 2 minut dla tej informacji gminnej; nie potwierdza to odrębnego punktu rozkładowego Most.
+Publiczna tablica: **https://ispina-most-odjazdy.vercel.app/**. Hasło: „Łączy nas Ispina”. Migracja z Sites: 23 października 2026. Starego wdrożenia nie usunięto.
 
-Dane planowe: GitHub `senikolo/Ispina-Lokalnie-/ispina-rozklady/out/tablica.json`, generowane i weryfikowane przez GitHub Actions sześć razy na dobę. Zmiana PDF, wygasły audyt lub dane starsze niż 30 godzin blokują odpowiednie godziny.
+## Hosting i niezależność
 
-API `/api/odjazdy` pobiera oficjalny GTFS Realtime KMŁ. Tożsamość kursu wymaga zgodnego trip_id, route_id oraz dnia, przystanku i kolejności. Prognozy starsze niż 180 sekund są odrzucane, opóźnienia nie są przenoszone wstecz. NO_DATA przerywa propagację, a odwołania i pominięcia mają jawny status. Podstawą prognozy jest czas GTFS; nie dodajemy różnicy minuty PDF A7 do opóźnienia.
+Next.js 16 / React 19, Vercel Hobby, region Frankfurt, publiczny HTTPS bez logowania. Konto ma aktywny Hobby, bez triala. Bez bazy danych, płatnych API, AI i sekretów. W granicach planu koszt to 0 zł/miesiąc; przekroczenie limitów Hobby może wstrzymać usługę. Nie włączono płatności ani Pro. Domena `vercel.app` jest wystarczająca; dotychczasowa domena `.com` ma odrębne ewentualne opłaty.
 
-Przy awarii API klient pobiera ten sam zweryfikowany plik planowy bezpośrednio z GitHuba, sprawdza datę kontroli i oznacza tryb rozkładowy. Nie ma lokalnej pamięci starych prognoz ani fałszywych danych.
+Dane nie zależą od ChatGPT Plus. Wymagają utrzymania darmowych kont GitHub i Vercel oraz dostępności oficjalnych źródeł. Nie należy obiecywać niezmienności regulaminów darmowych usług.
 
-Walidacja: `node --test lib/realtime.test.mjs`, `node node_modules/typescript/bin/tsc --noEmit`, helper budowania Sites. Sprawdzono rzeczywisty widok w przeglądarce dla szerokości 320, 768, 1280; brak poziomego przepełnienia. Sprawdzono filtry Gminna (28 kursów w piątek) oraz A7 (14 w niedzielę 25.10). Fizyczne urządzenia nie były dostępne.
+Projekt Vercela: `ispina-most-odjazdy`, ID `prj_5ACAO0boV6unNVu9tU9V4BZ4QqVg`. Kod wdrożono bezpośrednio przez API. Automatyczne **dane** działają niezależnie od wdrażania **kodu**. Git integration nie została połączona: Vercel zgłosił brak GitHub Login Connection. Zmiany interfejsu wymagają osobnego wdrożenia lub późniejszego połączenia repozytorium z Vercel. Nie zakładaj, że sam push aktualizuje widok.
 
-Obsługa audytu kończy się 30.11.2026; kolejne wersje PDF wymagają świadomej ponownej kontroli. A7 ma sprawdzoną rozbieżność jednej minuty, dlatego godziny rozkładowe czytamy z oficjalnego PDF.
+Oceniono Cloudflare Workers Free (alternatywa wymagająca adaptacji Next i dostępu do konta) oraz GitHub Pages (sama platforma nie uruchamia tego API). Wybrano Hobby, ponieważ obsługuje istniejący interfejs i serwer pobierający GTFS RT bez zmiany stosu. Ten projekt społeczny jest niekomercyjny.
+
+## Źródła i zabezpieczenia
+
+- GitHub `ispina-rozklady/out/tablica.json`: zweryfikowane godziny na 7 dni, generowane sześć razy dziennie przez istniejący GitHub Actions.
+- Oficjalny operacyjny GTFS KMŁ i sprawdzone PDF. A7 zachowuje zaakceptowaną różnicę minuty między PDF a GTFS; danych nie zmieniano na potrzeby wyglądu.
+- Oficjalny GTFS Realtime: zgodność kursu, route_id, dnia, przystanku i kolejności. NO_DATA zatrzymuje propagację. Odwołania i pominięcia mają jawne oznaczenia. Prognozy starsze niż 180 sekund są odrzucane.
+- Gminna: wyłącznie orientacyjne godziny Mostu według Domu Ludowego, oznaczone „ok.”; tolerancja około 2 minut. Brak LIVE i kursów w niedziele/święta.
+- Awaria LIVE: godziny planowe. Awaria API: niezależny plik GitHub, po kontroli świeżości. Awaria obu: usunięcie danych i czytelny komunikat; żadne wcześniejsze LIVE nie pozostaje na ekranie.
+- Dane starsze niż 30 godzin oraz zmieniony PDF lub wygasły audyt blokują odpowiednie godziny. **Audyt kończy się 30 listopada 2026**; wymaga ponownej kontroli źródeł. Automatyczne pobieranie nie zastępuje audytu.
+
+## Ograniczanie zapytań
+
+Klient odświeża co 30 sekund i wstrzymuje odpytywanie w ukrytej karcie. API buforowane w CDN 20 sekund bez `stale-while-revalidate`; pamięć procesu: rozkład 60 sekund, RT 20 sekund, błędy 10 sekund. Współbieżne żądania korzystają z jednego pobrania. Klient uwzględnia HTTP Age/Date, więc cache nie przedłuża ważności LIVE. Odpowiedź zawiera tylko potrzebne pola, pobrania mają limity czasu/rozmiaru. Nie wdrożono płatnego magazynu ani rozproszonego licznika. CDN nie zwalnia z limitu żądań całego konta.
+
+## Uruchomienie i testy
+
+```sh
+npm ci --ignore-scripts
+npm test
+npm run build
+npm start
+```
+
+20 testów Node obejmuje RT, cache, łączenie równoczesnych pobrań oraz rzeczywisty komponent React w jsdom: obie awarie, fallback, wygasłe prognozy i rozkład oraz wiek CDN. Osobno uruchomiono 19 testów Python generatora. Przeglądarka: filtry A4/A7/A65/gminna w piątek/sobotę/niedzielę, oba kierunki, zakres dnia, właściwe logo i 5 szerokości w ramkach testowych. To nie jest test fizycznego Androida.
+
+WordPress: wymieniono tylko adres przycisku w sekcji `automatyczne-rozklady` strony 385, z kontrolą wersji treści. Brak JavaScript/iframe/wtyczek. Zachowano grafiki, KiedyPrzyjedzie i pełny rozkład gminny.
+
+## Android
+
+Obie oryginalne APK pobrano z Releases i sprawdzono ich SHA-256. Zbadano JS i adresy w DEX; brak ChatGPT Sites/OpenAI. Pomocnik UltraSmart interpretuje pytania lokalnie. Usługi online (rozkłady, pogoda, WordPress, media, rozpoznawanie mowy) mają odrębne zależności internetowe. Nie potwierdzono pełnego działania natywnego na urządzeniach, wszystkich streamów ani lektora online. Live 1.83.20 zawiera dodatkowy serwer TTS `ahm7xmakki.com`, którego dostępność i koszty po stronie operatora nie są gwarantowane; obecność alternatywnego TTS nie dowodzi działania każdego głosu.
+
+Nie zmieniono APK ani podpisów. Brakuje pełnego projektu Java/Kotlin i właściwych prywatnych kluczy. Bezpieczny dostęp do nowej tablicy: przeglądarka lub przycisk na stronie WordPress; nie twierdzimy, że zmieniło to wbudowany moduł odjazdów/planera. Stary WebView może wymagać aktualizacji lub otwarcia w aktualnej przeglądarce.

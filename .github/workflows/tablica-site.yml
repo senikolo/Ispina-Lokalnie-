@@ -1,0 +1,26 @@
+name: Validate independent departure board
+on:
+  push:
+    branches: [main]
+    paths: ['ispina-rozklady/tablica-site/**', '.github/workflows/tablica-site.yml']
+  pull_request:
+    branches: [main]
+    paths: ['ispina-rozklady/tablica-site/**', '.github/workflows/tablica-site.yml']
+permissions:
+  contents: read
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ispina-rozklady/tablica-site
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: ispina-rozklady/tablica-site/package-lock.json
+      - run: npm ci --ignore-scripts
+      - run: npm test
+      - run: npm run build
