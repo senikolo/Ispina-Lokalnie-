@@ -12,6 +12,14 @@ test('requests Ispina coordinates, Warsaw time and explicit units', () => {
   assert.equal(url.searchParams.get('timezone'), 'Europe/Warsaw');
   assert.equal(url.searchParams.get('wind_speed_unit'), 'kmh');
 });
+test('uses explicit Warsaw dates and a new upstream URL after local midnight', () => {
+  const before = weatherUrl(Date.parse('2026-10-23T21:59:00Z'));
+  const after = weatherUrl(Date.parse('2026-10-23T22:00:00Z'));
+  assert.equal(before.searchParams.get('start_date'), '2026-10-23');
+  assert.equal(after.searchParams.get('start_date'), '2026-10-24');
+  assert.equal(after.searchParams.get('end_date'), '2026-10-26');
+  assert.notEqual(before.href, after.href);
+});
 test('rejects incomplete, null, nonfinite, stale, future and wrong-location data', () => {
   assert.doesNotThrow(() => validateWeather(fixture(baseline), baseline));
   for (const mutate of [d => d.current.temperature_2m = null, d => d.current.wind_speed_10m = NaN, d => d.current.time -= 3600, d => d.current.time += 3600, d => d.daily.time.pop(), d => d.daily.precipitation_probability_max[1] = null, d => d.daily.weather_code[0] = 999, d => d.longitude = 20.45, d => d.timezone = 'UTC', d => d.current_units.wind_speed_10m = 'm/s', d => d.daily.time[0] -= 86400]) {
@@ -48,4 +56,12 @@ test('changes Dziś at local midnight and accepts the DST transition calendar', 
   const load = createWeatherLoader(async () => {calls++; return {ok:true, json:async()=>fixture(now)};}, () => now);
   await load(); now += 10 * 60000; await load(); assert.equal(calls,2);
   assert.doesNotThrow(() => validateWeather(fixture(Date.parse('2026-10-25T01:15:00Z')), Date.parse('2026-10-25T01:15:00Z')));
+});
+test('accepts real API fixed-offset daily boundaries across the autumn DST change', () => {
+  const now = Date.parse('2026-10-23T22:05:00Z');
+  const data = fixture(now);
+  data.daily.time = [1792792800,1792879200,1792965600];
+  assert.doesNotThrow(() => validateWeather(data, now));
+  data.daily.time[2] -= 86400;
+  assert.throws(() => validateWeather(data, now));
 });

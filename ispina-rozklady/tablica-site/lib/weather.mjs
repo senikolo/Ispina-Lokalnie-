@@ -5,16 +5,20 @@ const codes = new Set([0,1,2,3,45,48,51,53,55,56,57,61,63,65,66,67,71,73,75,77,8
 const number = (v, min, max) => typeof v === 'number' && Number.isFinite(v) && v >= min && v <= max;
 export const localDate = (seconds) => new Intl.DateTimeFormat('en-CA', { timeZone: LOCATION.timezone, year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date(seconds * 1000));
 
-export function weatherUrl() {
+export function weatherUrl(now = Date.now()) {
   const url = new URL('https://api.open-meteo.com/v1/forecast');
-  const params = { ...LOCATION, forecast_days: '3', timeformat: 'unixtime', temperature_unit: 'celsius', wind_speed_unit: 'kmh', precipitation_unit: 'mm', current: 'temperature_2m,apparent_temperature,precipitation,weather_code,wind_speed_10m,is_day', daily: 'temperature_2m_max,temperature_2m_min,precipitation_probability_max,weather_code' };
+  const start = localDate(now / 1000);
+  const end = new Date(start + 'T12:00:00Z');
+  end.setUTCDate(end.getUTCDate() + 2);
+  // Explicit dates avoid an upstream response cached across Warsaw midnight.
+  const params = { ...LOCATION, start_date: start, end_date: end.toISOString().slice(0, 10), timeformat: 'unixtime', temperature_unit: 'celsius', wind_speed_unit: 'kmh', precipitation_unit: 'mm', current: 'temperature_2m,apparent_temperature,precipitation,weather_code,wind_speed_10m,is_day', daily: 'temperature_2m_max,temperature_2m_min,precipitation_probability_max,weather_code' };
   for (const [key, value] of Object.entries(params)) url.searchParams.set(key, String(value));
   return url;
 }
 
 export function validateWeather(data, now = Date.now()) {
   const c = data?.current, d = data?.daily, u = data?.current_units, du = data?.daily_units;
-  if (data?.timezone !== LOCATION.timezone || !number(data.latitude, LOCATION.latitude - 0.018, LOCATION.latitude + 0.018) || !number(data.longitude, LOCATION.longitude - 0.025, LOCATION.longitude + 0.025)) throw new Error('Wrong weather location');
+  if (data?.timezone !== LOCATION.timezone || ![3600,7200].includes(data.utc_offset_seconds) || !number(data.latitude, LOCATION.latitude - 0.018, LOCATION.latitude + 0.018) || !number(data.longitude, LOCATION.longitude - 0.025, LOCATION.longitude + 0.025)) throw new Error('Wrong weather location');
   // The API returns the nearest weather model grid cell, not a municipality name.
   if (u?.time !== 'unixtime' || u?.temperature_2m !== '°C' || u?.apparent_temperature !== '°C' || u?.wind_speed_10m !== 'km/h' || u?.precipitation !== 'mm' || du?.time !== 'unixtime' || du?.precipitation_probability_max !== '%' || du?.temperature_2m_max !== '°C' || du?.temperature_2m_min !== '°C') throw new Error('Wrong weather units');
   if (!number(c?.time, now / 1000 - MAX_CURRENT_AGE, now / 1000 + 300) || c.interval !== 900 || !number(c.temperature_2m, -70, 60) || !number(c.apparent_temperature, -100, 80) || !number(c.wind_speed_10m, 0, 350) || !number(c.precipitation, 0, 1000) || !codes.has(c.weather_code) || ![0,1].includes(c.is_day)) throw new Error('Invalid current weather');
@@ -27,7 +31,10 @@ export function validateWeather(data, now = Date.now()) {
     // Calendar dates, rather than 24-hour increments, handle DST changes.
     const date = new Date(today + 'T12:00:00Z');
     date.setUTCDate(date.getUTCDate() + i);
-    if (localDate(d.time[i]) !== date.toISOString().slice(0, 10)) throw new Error('Wrong forecast dates');
+    // Open-Meteo daily boundaries use the response's fixed UTC offset even
+    // across DST; converting each boundary with Intl would shift a day.
+    const apiDate = new Date((d.time[i] + data.utc_offset_seconds) * 1000).toISOString().slice(0, 10);
+    if (apiDate !== date.toISOString().slice(0, 10)) throw new Error('Wrong forecast dates');
   }
   return data;
 }
@@ -44,7 +51,7 @@ export function createWeatherLoader(fetcher = fetch, clock = Date.now) {
     // No Next.js stale-on-error cache: expired data is never a fallback.
     pending = (async () => {
       try {
-        const response = await fetcher(weatherUrl(), { cache: 'no-store', signal: AbortSignal.timeout(8000) });
+        const response = await fetcher(weatherUrl(clock()), { cache: 'no-store', signal: AbortSignal.timeout(8000) });
         if (!response.ok) throw new Error('Weather source unavailable');
         const data = validateWeather(await response.json(), clock());
         const fetchedAt = clock();
