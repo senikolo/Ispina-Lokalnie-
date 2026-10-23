@@ -51,3 +51,9 @@ A4 i A65 wymagają zgodności GTFS z oficjalnym PDF. A7 ma sprawdzoną rozbieżn
 **Linia gminna:** plik użytkownika `linia-gminna.json` (`2026-09-22-r2`) kopiował godziny Domu Ludowego na Most. Oficjalny PDF z bieżącego katalogu Gminy Drwinia nie potwierdza odrębnego odjazdu z Mostu. Dlatego gminne odjazdy są publikowane wyłącznie jako **Ispina Dom Ludowy / Ispina III**. Sprawdzono wszystkie 4 grupy: oba kierunki w dni robocze i soboty, po 14 i 5 kursów; brak kursów w niedziele i święta. Źródło i skrót kontrolny: `gminna-reference.json`.
 
 Audyt jest ważny do 30 listopada 2026. Nowe lub zmienione źródło wymaga ponownego porównania; do tego czasu godziny objętej nim linii są ukrywane. Nie dotyczy to Androida ani istniejącego planera.
+
+Tablica publiczna: https://ispina-most-odjazdy.senikolo.chatgpt.site
+
+Kod widoku i API znajduje się do wglądu w `tablica-site/`. To kopia plików aplikacji wdrożonej w Sites, poza projektem Android. Dane odjazdów aktualizują się z Actions bez ponownego wdrażania widoku. Zmiany kodu widoku wymagają osobnego wdrożenia istniejącego projektu Sites; workflow GTFS nie publikuje kodu aplikacji.
+
+23.10.2026 użytkownik dopuścił tolerancję około 2 minut dla gminnej. Tablica prezentuje zatem te godziny jako **orientacyjne dla Mostu, według Domu Ludowego**, z oznaczeniem „ok.” przy każdej godzinie i jawnym opisem pochodzenia. Nie zmienia to identyfikacji w danych: źródłowym przystankiem pozostaje Dom Ludowy. Starsza sekcja gminna WordPressa zachowuje swoją treść.
