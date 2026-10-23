@@ -2,7 +2,7 @@ import {localDate} from '../../lib/weather.mjs';
 export function fixture(now) {
   const today = localDate(now / 1000);
   return {
-    latitude: 50.113632, longitude: 20.381836, timezone: 'Europe/Warsaw',
+    latitude: 50.113632, longitude: 20.381836, timezone: 'Europe/Warsaw', utc_offset_seconds: 7200,
     current_units: {time: 'unixtime', temperature_2m: '°C', apparent_temperature: '°C', wind_speed_10m: 'km/h', precipitation: 'mm'},
     daily_units: {time: 'unixtime', temperature_2m_max: '°C', temperature_2m_min: '°C', precipitation_probability_max: '%'},
     current: {time: Math.floor(now / 900000) * 900, interval: 900, temperature_2m: 6.5, apparent_temperature: 4.7, precipitation: 0, wind_speed_10m: 4.3, weather_code: 2, is_day: 0},

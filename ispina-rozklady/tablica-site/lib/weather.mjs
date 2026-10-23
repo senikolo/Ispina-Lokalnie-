@@ -18,7 +18,7 @@ export function weatherUrl(now = Date.now()) {
 
 export function validateWeather(data, now = Date.now()) {
   const c = data?.current, d = data?.daily, u = data?.current_units, du = data?.daily_units;
-  if (data?.timezone !== LOCATION.timezone || !number(data.latitude, LOCATION.latitude - 0.018, LOCATION.latitude + 0.018) || !number(data.longitude, LOCATION.longitude - 0.025, LOCATION.longitude + 0.025)) throw new Error('Wrong weather location');
+  if (data?.timezone !== LOCATION.timezone || ![3600,7200].includes(data.utc_offset_seconds) || !number(data.latitude, LOCATION.latitude - 0.018, LOCATION.latitude + 0.018) || !number(data.longitude, LOCATION.longitude - 0.025, LOCATION.longitude + 0.025)) throw new Error('Wrong weather location');
   // The API returns the nearest weather model grid cell, not a municipality name.
   if (u?.time !== 'unixtime' || u?.temperature_2m !== '°C' || u?.apparent_temperature !== '°C' || u?.wind_speed_10m !== 'km/h' || u?.precipitation !== 'mm' || du?.time !== 'unixtime' || du?.precipitation_probability_max !== '%' || du?.temperature_2m_max !== '°C' || du?.temperature_2m_min !== '°C') throw new Error('Wrong weather units');
   if (!number(c?.time, now / 1000 - MAX_CURRENT_AGE, now / 1000 + 300) || c.interval !== 900 || !number(c.temperature_2m, -70, 60) || !number(c.apparent_temperature, -100, 80) || !number(c.wind_speed_10m, 0, 350) || !number(c.precipitation, 0, 1000) || !codes.has(c.weather_code) || ![0,1].includes(c.is_day)) throw new Error('Invalid current weather');
@@ -31,7 +31,10 @@ export function validateWeather(data, now = Date.now()) {
     // Calendar dates, rather than 24-hour increments, handle DST changes.
     const date = new Date(today + 'T12:00:00Z');
     date.setUTCDate(date.getUTCDate() + i);
-    if (localDate(d.time[i]) !== date.toISOString().slice(0, 10)) throw new Error('Wrong forecast dates');
+    // Open-Meteo daily boundaries use the response's fixed UTC offset even
+    // across DST; converting each boundary with Intl would shift a day.
+    const apiDate = new Date((d.time[i] + data.utc_offset_seconds) * 1000).toISOString().slice(0, 10);
+    if (apiDate !== date.toISOString().slice(0, 10)) throw new Error('Wrong forecast dates');
   }
   return data;
 }

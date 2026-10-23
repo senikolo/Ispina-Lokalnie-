@@ -1,5 +1,5 @@
 export interface Forecast {
-  latitude: number; longitude: number; timezone: string;
+  latitude: number; longitude: number; timezone: string; utc_offset_seconds: number;
   current: { time: number; temperature_2m: number; apparent_temperature: number; precipitation: number; wind_speed_10m: number; weather_code: number; is_day: number };
   daily: { time: number[]; temperature_2m_max: number[]; temperature_2m_min: number[]; precipitation_probability_max: number[]; weather_code: number[] };
 }

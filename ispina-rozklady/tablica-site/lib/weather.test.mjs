@@ -57,3 +57,11 @@ test('changes Dziś at local midnight and accepts the DST transition calendar', 
   await load(); now += 10 * 60000; await load(); assert.equal(calls,2);
   assert.doesNotThrow(() => validateWeather(fixture(Date.parse('2026-10-25T01:15:00Z')), Date.parse('2026-10-25T01:15:00Z')));
 });
+test('accepts real API fixed-offset daily boundaries across the autumn DST change', () => {
+  const now = Date.parse('2026-10-23T22:05:00Z');
+  const data = fixture(now);
+  data.daily.time = [1792792800,1792879200,1792965600];
+  assert.doesNotThrow(() => validateWeather(data, now));
+  data.daily.time[2] -= 86400;
+  assert.throws(() => validateWeather(data, now));
+});
