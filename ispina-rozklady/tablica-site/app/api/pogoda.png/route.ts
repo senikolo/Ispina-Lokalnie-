@@ -23,7 +23,7 @@ function n(value: number, suffix = ""): string {
   return `${Math.round(value)}${suffix}`;
 }
 function label(t: string, size: number, color = C.navy, weight = 400) {
-  return h("div", { style: { display: "flex", fontSize: size, color, fontWeight: weight, lineHeight: 1.25 } }, t);
+  return h("div", { style: { display: "flex", fontSize: size, color, fontWeight: weight, lineHeight: 1.25, flexShrink: 0 } }, t);
 }
 const col = (gap: number): CSSProperties => ({ display: "flex", flexDirection: "column", gap });
 function icon(code: number, size = 60, isDay = true) {
@@ -44,19 +44,20 @@ function dayCard(d: Forecast, i: number, compact: boolean) {
   const title = ["Dziś", "Jutro", "Pojutrze"][i];
   const daily = d.daily;
   const temps = `${n(daily.temperature_2m_max[i], "°")} / ${n(daily.temperature_2m_min[i], "°")}`;
-  if (compact) return h("div", { style: { ...col(5), padding: "14px 18px", borderRadius: 18, background: "#FFFFFF", border: `1px solid ${C.border}` } },
+  if (compact) return h("div", { style: { ...col(5), flexShrink: 0, padding: "14px 18px", borderRadius: 18, background: "#FFFFFF", border: `1px solid ${C.border}` } },
     h("div", {style: {display: "flex", alignItems: "center", justifyContent: "space-between"}},
       label(title, 34, C.navy, 700), icon(daily.weather_code[i], 50), label(temps, 38, C.navy, 700)),
-    h("div", {style: {display: "flex", justifyContent: "space-between"}}, label(describe(daily.weather_code[i]), 28, C.ink), label(`${daily.precipitation_probability_max[i]}% opadów`, 28, C.muted))
+    h("div", {style: {display: "flex", justifyContent: "space-between"}}, label(describe(daily.weather_code[i]), 28, C.ink), label(`Opady: ${daily.precipitation_probability_max[i]}%`, 28, C.muted))
   );
-  return h("div", { style: { ...col(12), width: 210, padding: "22px 18px", borderRadius: 18, border: `1px solid ${C.border}`, background: "#FFFFFF" } },
+  return h("div", { style: { ...col(12), flexShrink: 0, width: 210, padding: "22px 18px", borderRadius: 18, border: `1px solid ${C.border}`, background: "#FFFFFF" } },
     label(title, 27, C.blue, 700), icon(daily.weather_code[i], 58), label(temps, 35, C.navy, 700),
     label(describe(daily.weather_code[i]), 25, C.ink), label(`Opady: ${daily.precipitation_probability_max[i]}%`, 24, C.muted)
   );
 }
-function makeCard(result: WeatherResult | undefined, compact: boolean) {
+function makeCard(result: WeatherResult | undefined, compact: boolean, part: string | null) {
   const d = result?.data, c = d?.current;
-  const size = compact ? {width: 600, height: 1040} : {width: 1200, height: 500};
+  const height = part === "now" ? 550 : part === "daily" ? 610 : compact ? 1080 : 500;
+  const size = {width: compact ? 600 : 1200, height};
   const root: CSSProperties = { ...size, ...col(18), padding: compact ? "24px" : "26px 30px", background: C.pale, borderRadius: 28, border: `2px solid ${C.border}`, fontFamily: "sans-serif", color: C.navy };
   if (!result || !d || !c) return h("div", {style: {...root, justifyContent: "center", gap: 24}},
     label("POGODA W ISPINIE", compact ? 34 : 30, C.blue, 700),
@@ -74,26 +75,32 @@ function makeCard(result: WeatherResult | undefined, compact: boolean) {
     label(`Wiatr ${n(c.wind_speed_10m, " km/h")}`, compact ? 34 : 28, C.ink),
     label(`Opady ${c.precipitation.toFixed(1).replace(".", ",")} mm / 15 min`, compact ? 32 : 26, C.ink)
   );
-  const forecast = h("div", {style: {...col(compact ? 10 : 12), flex: 1}},
+  const forecast = h("div", {style: {...col(compact ? 10 : 12), ...(compact ? {} : {flex: 1}), flexShrink: 0}},
     label("PROGNOZA · MAKS. / MIN.", compact ? 30 : 24, C.blue, 700),
     h("div", {style: compact ? col(10) : {display: "flex", gap: 12}}, ...[0,1,2].map(i => dayCard(d, i, compact)))
   );
+  if (part === "now") return h("div", {style: {...root, justifyContent: "space-between"}}, current,
+    h("div", {style: col(3)}, label(`Dane modelowe na ${currentTime}`, 29, C.muted), label(`Sprawdzono ${checked}`, 29, C.muted)));
+  if (part === "daily") return h("div", {style: {...root, justifyContent: "space-between"}}, forecast,
+    h("div", {style: col(3)}, label(`Sprawdzono ${checked}`, 29, C.muted), label("Open-Meteo · odświeżanie ok. 30 min", 28, C.muted)));
   return h("div", {style: root},
     compact ? current : h("div", {style: {display: "flex", gap: 24, flex: 1}}, current, forecast),
     compact && forecast,
     h("div", {style: {...col(3), borderTop: `1px solid ${C.border}`, paddingTop: 12}},
       label(`Sprawdzono ${checked}`, compact ? 30 : 24, C.muted),
       label(`Dane na ${currentTime} · Open-Meteo.com`, compact ? 30 : 24, C.muted),
-      label("Prognoza modelowa · odświeżanie ok. 30 min", compact ? 27 : 22, C.muted))
+      label("Odświeżanie ok. 30 min", compact ? 28 : 22, C.muted))
   );
 }
 
 export async function GET(request: Request): Promise<Response> {
-  const compact = new URL(request.url).searchParams.get("layout") === "compact";
+  const params = new URL(request.url).searchParams;
+  const part = ["now", "daily"].includes(params.get("part") || "") ? params.get("part") : null;
+  const compact = !!part || params.get("layout") === "compact";
   let result: WeatherResult | undefined;
   try { result = await load(); } catch { /* A quiet error card, never stale weather. */ }
   const ttl = result ? Math.max(0, Math.floor((result.expires - Date.now()) / 1000)) : 0;
-  const response = new ImageResponse(makeCard(result, compact), { width: compact ? 600 : 1200, height: compact ? 1040 : 500 });
+  const response = new ImageResponse(makeCard(result, compact, part), { width: compact ? 600 : 1200, height: part === "now" ? 550 : part === "daily" ? 610 : compact ? 1080 : 500 });
   // Buffer rendering here so image generation errors are observed before sending headers.
   const png = await response.arrayBuffer();
   return new Response(png, {headers: {
