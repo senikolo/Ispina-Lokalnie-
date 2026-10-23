@@ -339,7 +339,7 @@ def main():
     for i, label in enumerate(('dzis', 'jutro')):
         target = today + timedelta(days=i)
         day = metadata['days'][i] if len(metadata['days']) > i else None
-        for slug in STOPS: draw_image(folder / f'{label}-{slug}.png', target, slug, day, metadata.get('error'))
+        for slug in STOPS: draw_image(folder / f'{label}-{slug}-czytelne.png', target, slug, day, metadata.get('error'))
     (folder / 'rozklady.json').write_text(json.dumps(metadata, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
     write_details(folder, metadata)
     print(json.dumps({k: metadata.get(k) for k in ('status', 'valid', 'date', 'error')}, ensure_ascii=False))
