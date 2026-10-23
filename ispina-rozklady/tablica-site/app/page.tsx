@@ -24,7 +24,13 @@ export default function Page(){
     if(s.schema!==1||s.error||!Array.isArray(s.days)||!Number.isFinite(timestamp)||current-timestamp>30*3600||timestamp>current+300)throw new Error('Rozkład wymaga aktualizacji.');
     setData({...s,server_now:current,schedule_valid_until:timestamp+30*3600,live_available:false,days:s.days.map(d=>({...d,departures:d.departures.map(x=>({...x,kind:'scheduled',expected:null,live_until:null}))}))});
     setOffset(0);setScheduleOnly(true);setError('');
-   }catch{setError(e instanceof Error?e.message:'Brak połączenia. Spróbuj odświeżyć.');}
+   }catch{
+    // Both sources failed: do not leave previously cached live predictions on screen.
+    setData(null);
+    setOffset(0);
+    setScheduleOnly(false);
+    setError('Odjazdy są chwilowo niedostępne. Sprawdź rozkład przewoźnika lub spróbuj ponownie.');
+   }
   }finally{setBusy(false);active.current=false;}
  }
  useEffect(()=>{refresh();const interval=setInterval(()=>{if(!document.hidden)refresh();},30000);const wake=()=>{if(!document.hidden)refresh();};document.addEventListener('visibilitychange',wake);return()=>{clearInterval(interval);document.removeEventListener('visibilitychange',wake);};},[]);
