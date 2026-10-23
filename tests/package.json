@@ -1,0 +1,6 @@
+{
+  "name": "ispina-lokalnie-rewrite-tests",
+  "private": true,
+  "type": "module",
+  "scripts": { "test": "node planner.test.mjs" }
+}

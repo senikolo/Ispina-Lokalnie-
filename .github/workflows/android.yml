@@ -1,16 +1,77 @@
-name: Validate planner release
+name: Android and planner checks
 
 on:
   push:
-    branches: [ "main" ]
+    branches:
+      - main
+      - open-source-fdroid-prep
   pull_request:
-    branches: [ "main" ]
+    branches: [ main ]
+  workflow_dispatch:
 
 permissions:
   contents: read
 
 jobs:
-  validate:
+  test-and-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Test Android planner
+        working-directory: tests
+        run: npm test
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: android-actions/setup-android@v4
+        with:
+          cmdline-tools-version: 11076708
+          packages: platform-tools
+      - name: Install Android SDK 35
+        run: sdkmanager "platforms;android-35" "build-tools;35.0.0"
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+      - name: Build test and F-Droid variants
+        run: gradle --no-daemon clean testFdroidReleaseUnitTest assembleFdroidDebug assembleFdroidRelease
+      - name: Enable KVM for Android emulator
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - name: Smoke test on Android 11 emulator
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 30
+          target: default
+          arch: x86_64
+          profile: pixel_2
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          disable-animations: true
+          script: |
+            adb logcat -c
+            adb install app/build/outputs/apk/fdroid/debug/app-fdroid-debug.apk
+            adb shell am start -W -n com.ispina.mldcheck.fdroid.debug/com.ispina.mldcheck.MainActivity
+            sleep 5
+            adb logcat -d -s IL_SMOKE:I | grep -q 'home-title="Witaj w Ispinie"'
+            adb shell pidof com.ispina.mldcheck.fdroid.debug >/dev/null
+      - uses: actions/upload-artifact@v4
+        with:
+          name: IL-2.0.0-preview-Android-11-test
+          path: app/build/outputs/apk/fdroid/debug/app-fdroid-debug.apk
+          if-no-files-found: error
+          retention-days: 14
+      - uses: actions/upload-artifact@v4
+        with:
+          name: IL-2.0.0-preview-F-Droid-unsigned
+          path: app/build/outputs/apk/fdroid/release/app-fdroid-release-unsigned.apk
+          if-no-files-found: error
+          retention-days: 14
+  validate-planner:
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -29,3 +90,4 @@ jobs:
         with:
           name: planner-regression-results
           path: planner/tests/output/*.json
+          if-no-files-found: ignore
