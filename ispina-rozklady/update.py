@@ -222,7 +222,8 @@ def font(size, bold=False):
 
 
 def draw_image(path, target, slug, day=None, error=None):
-    width = 720
+    # Two generous columns remain readable inside a narrow WordPress phone card.
+    width = 480
     groups = []
     if day:
         for line in ROUTES:
@@ -233,30 +234,42 @@ def draw_image(path, target, slug, day=None, error=None):
                     dest = 'Nowe Brzesko / Proszowice' if direction == 'north' and line == 'A7' else 'Nowe Brzesko' if direction == 'north' else 'Podłęże' if line == 'A7' else 'Bochnia'
                     groups.append((line + ' → ' + dest, [r['time'] for r in selected]))
     blocked = [line for line in ROUTES if (line != 'A7' or slug == 'most') and (not day or not day['validation'][line]['valid'])]
-    height = 260 + sum(65 + ((len(times) + 3) // 4) * 48 for _, times in groups) + (130 if blocked else 0) + (70 if error else 0)
+    wrapped_groups = []
+    for heading, times in groups:
+        lines, current = [], ''
+        for word in heading.split():
+            candidate = (current + ' ' + word).strip()
+            if font(29, True).getlength(candidate) > width - 40 and current:
+                lines.append(current); current = word
+            else: current = candidate
+        if current: lines.append(current)
+        wrapped_groups.append((lines, times))
+    height = 180 + sum(len(lines) * 40 + 10 + ((len(times) + 1) // 2) * 56 + 20 for lines, times in wrapped_groups) + (135 if blocked else 0) + 95
     img = Image.new('RGB', (width, height), WHITE); d = ImageDraw.Draw(img)
     d.rounded_rectangle((2, 2, width - 3, height - 3), radius=20, outline='#dbe5ef', width=2)
     d.rounded_rectangle((3, 3, width - 4, 151), radius=20, fill=BLUE)
     d.rectangle((3, 125, width - 4, 151), fill=BLUE)
-    d.text((26, 20), 'ISPINA LOKALNIE • ODJAZDY PLANOWE', font=font(18, True), fill=WHITE)
-    d.text((26, 52), STOPS[slug]['name'], font=font(33, True), fill=WHITE)
-    d.text((26, 103), target.strftime('%d.%m.%Y'), font=font(29, True), fill=WHITE)
-    y = 170
-    for heading, times in groups:
-        d.text((28, y), heading, font=font(23, True), fill=BLUE); y += 43
+    d.text((20, 20), 'ISPINA LOKALNIE • ODJAZDY PLANOWE', font=font(16, True), fill=WHITE)
+    d.text((20, 52), STOPS[slug]['name'], font=font(32, True), fill=WHITE)
+    d.text((20, 98), target.strftime('%d.%m.%Y'), font=font(38, True), fill=WHITE)
+    y = 180
+    for lines, times in wrapped_groups:
+        for line in lines:
+            d.text((20, y), line, font=font(29, True), fill=BLUE); y += 40
+        y += 10
         for i, value in enumerate(times):
-            x = 28 + (i % 4) * 172
-            if i and i % 4 == 0: y += 48
-            d.rounded_rectangle((x, y, x + 152, y + 41), radius=8, fill=LIGHT)
-            d.text((x + 23, y + 3), value, font=font(29, True), fill=INK)
-        y += 70
+            x = 20 + (i % 2) * 228
+            if i and i % 2 == 0: y += 56
+            d.rounded_rectangle((x, y, x + 212, y + 49), radius=8, fill=LIGHT)
+            d.text((x + 41, y), value, font=font(40, True), fill=INK)
+        y += 76
     if blocked:
-        d.rounded_rectangle((20, y, width - 20, y + 108), radius=12, fill=LIGHT)
-        d.text((34, y + 12), ', '.join(blocked) + ' — sprawdź u przewoźnika', font=font(23, True), fill=BLUE)
-        d.text((34, y + 49), 'Godziny ukryte: wymagają potwierdzenia.', font=font(21), fill=INK)
-        d.text((34, y + 78), 'Odnośniki i pełna tabela pod obrazem.', font=font(20), fill=INK)
-    d.text((27, height - 61), 'Sprawdź datę. Inna data niż dzień podróży?', font=font(20, True), fill=BLUE)
-    d.text((27, height - 33), 'Otwórz szczegóły. Źródło: KMŁ. Bez opóźnień LIVE.', font=font(19), fill=INK)
+        d.rounded_rectangle((12, y, width - 12, y + 118), radius=12, fill=LIGHT)
+        d.text((22, y + 10), ', '.join(blocked) + ' — sprawdź rozkład KMŁ', font=font(22, True), fill=BLUE)
+        d.text((22, y + 45), 'Godziny wymagają potwierdzenia.', font=font(21), fill=INK)
+        d.text((22, y + 78), 'Odnośniki i tabela pod obrazem.', font=font(21), fill=INK)
+    d.text((20, height - 68), 'Sprawdź datę przed podróżą.', font=font(24, True), fill=BLUE)
+    d.text((20, height - 35), 'Źródło: KMŁ • Rozkład planowy.', font=font(21), fill=INK)
     img.save(path, 'PNG', optimize=True)
 
 
