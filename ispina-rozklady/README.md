@@ -1,6 +1,6 @@
 # Automatyczne rozkłady Ispina Lokalnie
 
-Niezależny od Androida generator planowych odjazdów A4, A7 i A65. Nie wymaga haseł do WordPressa ani płatnych wtyczek. Wyniki: `out/README.md` (dostępne tekstowe tabele), `out/rozklady.json` i sześć obrazów dla trzech przystanków, na dwa dni.
+Niezależny od Androida generator planowych odjazdów A4, A7 i A65. Nie wymaga haseł do WordPressa ani płatnych wtyczek. Wyniki: `out/README.md` (dostępne tekstowe tabele), `out/rozklady.json` i dziesięć obrazów dla pięciu przystanków, na dwa dni.
 
 ## Zasada publikacji
 
@@ -18,11 +18,11 @@ Przed kontrolą godzin sprawdzany jest aktualny katalog PDF przewoźnika oraz su
 | Ispina Dom Ludowy | Ispina Dom Ludowy | 4533 | 4352 | 12516000000 |
 | Ispina Most | Ispina | 119 | 67 | 10216000000 |
 
-Mapowanie Most ↔ Ispina sprawdzono na podstawie współrzędnych, kodów 4372/4373, kolejności przystanków i godzin A4/A65 w oficjalnych PDF. Identyfikatorów ze starego handlowego feedu nie wolno stosować do feedu operacyjnego. A7 nie obsługuje Wiśliska i Domu Ludowego; ma również przystanki Przedszkole i Leśniczówka, poza zakresem tych trzech tablic.
+Mapowanie Most ↔ Ispina sprawdzono na podstawie współrzędnych, kodów 4372/4373, kolejności przystanków i godzin A4/A65 w oficjalnych PDF. Identyfikatorów ze starego handlowego feedu nie wolno stosować do feedu operacyjnego. A7 nie obsługuje Wiśliska i Domu Ludowego. Dodatkowo obsługuje przystanki Ispina Przedszkole i Ispina Leśniczówka, udostępnione teraz jako osobne tablice A7 na dwa dni. Na tych przystankach zweryfikowane PDF przewoźnika pokazują odjazdy odpowiednio 1 i 2 minuty po Moście w kierunku Podłęża oraz 1 i 2 minuty przed Mostem w kierunku Proszowic, zarówno przed zmianą, jak i od 25 października 2026 r. Generator wylicza godziny tylko przy uprzedniej pozytywnej weryfikacji obowiązującego PDF i kursów A7 na Moście; w przeciwnym wypadku ukrywa te odjazdy.
 
 ## Audyt 23 października 2026 r.
 
-Sprawdzono 23, 24, 25, 26 i 31 października oraz 1, 11 i 30 listopada. A4 i A65 są w pełni zgodne na wszystkich stanowiskach. A7 ma rozbieżności do jednej minuty w kierunku Nowego Brzeska/Proszowic. Zatwierdzone godziny PDF są odtąd publikowane także na grafikach dla Mostu, po sprawdzeniu jednoznacznego dopasowania wszystkich kursów. A7 nie obsługuje Domu Ludowego i Wiśliska. Sam pomyślny odczyt GTFS nie potwierdza poprawności rozkładu.
+Sprawdzono 23, 24, 25, 26 i 31 października oraz 1, 11 i 30 listopada. A4 i A65 są w pełni zgodne na wszystkich stanowiskach. A7 ma rozbieżności do jednej minuty w kierunku Nowego Brzeska/Proszowic. Zatwierdzone godziny PDF są odtąd publikowane na grafikach dla Mostu, Przedszkola i Leśniczówki, po sprawdzeniu jednoznacznego dopasowania wszystkich kursów na Moście. A7 nie obsługuje Domu Ludowego i Wiśliska. Sam pomyślny odczyt GTFS nie potwierdza poprawności rozkładu.
 
 Dodatkowe testy zgodności A7 oraz testy zabezpieczeń obejmują kalendarze, usunięcia/dodania kursów, zmianę czasu, święto 11 listopada, przejazd po północy, brak możliwości wsiadania, zmianę identyfikatora, błędne czasy, zmianę PDF i wygaśnięcie kontroli.
 
