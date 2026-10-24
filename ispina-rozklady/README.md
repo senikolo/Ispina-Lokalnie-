@@ -6,7 +6,7 @@ Niezależny od Androida generator planowych odjazdów A4, A7 i A65. Nie wymaga h
 
 Pobierany jest **operacyjny MLD GTFS.zip** z oficjalnego indeksu <https://gtfs.kolejemalopolskie.com.pl/>. Stary handlowy `ald-gtfs.zip` z głównej witryny KMŁ ma nieaktualne godziny i nie jest używany jako źródło zapasowe.
 
-Dla każdego dnia i każdej linii osobno generator porównuje wszystkie odjazdy na sześciu stanowiskach z ręcznie sprawdzonymi tabelami PDF. Wymagana jest pełna zgodność godzin oraz liczby kursów w obu kierunkach. Błąd jednej linii ukrywa jej wszystkie godziny. Pozostałe zgodne linie mogą być opublikowane. `status=partial` oznacza częściową tablicę, a nie pełny wynik pozytywny. `valid=true` wymaga zgodności wszystkich trzech linii na oba dni.
+Dla każdego dnia i każdej linii osobno generator porównuje wszystkie odjazdy na sześciu stanowiskach z ręcznie sprawdzonymi tabelami PDF. A4 i A65 wymagają pełnej zgodności godzin oraz liczby kursów w obu kierunkach. Dla A7 dopuszczone jest wyłącznie wcześniej zweryfikowane przesunięcie GTFS do jednej minuty względem PDF: wszystkie kursy w obu kierunkach muszą dać się jednoznacznie dopasować w tej samej kolejności, a publikowane godziny pochodzą z PDF. Błąd którejkolwiek kontroli ukrywa wszystkie godziny danej linii. Pozostałe zgodne linie mogą być opublikowane. `status=partial` oznacza częściową tablicę, a nie pełny wynik pozytywny. `valid=true` wymaga zgodności wszystkich trzech linii na oba dni.
 
 Przed kontrolą godzin sprawdzany jest aktualny katalog PDF przewoźnika oraz suma SHA-256 odpowiedniego dokumentu. Nowy PDF, zmienione bajty, nieznane identyfikatory, nieważny kalendarz, błąd pobierania lub koniec okresu kontroli blokują dane. Referencje w `reference.json` są sprawdzone do 30 listopada 2026 r.; potem wymagają ponownego audytu. Nie należy przedłużać tego terminu bez sprawdzenia nowych PDF i kalendarzy świątecznych.
 
@@ -22,9 +22,9 @@ Mapowanie Most ↔ Ispina sprawdzono na podstawie współrzędnych, kodów 4372/
 
 ## Audyt 23 października 2026 r.
 
-Sprawdzono 23, 24, 25, 26 i 31 października oraz 1, 11 i 30 listopada. A4 i A65 są w pełni zgodne na wszystkich stanowiskach. A7 ma rozbieżności w kierunku Nowego Brzeska/Proszowic, dlatego jej godziny są ukryte. Sam pomyślny odczyt GTFS nie potwierdza poprawności rozkładu.
+Sprawdzono 23, 24, 25, 26 i 31 października oraz 1, 11 i 30 listopada. A4 i A65 są w pełni zgodne na wszystkich stanowiskach. A7 ma rozbieżności do jednej minuty w kierunku Nowego Brzeska/Proszowic. Zatwierdzone godziny PDF są odtąd publikowane także na grafikach dla Mostu, po sprawdzeniu jednoznacznego dopasowania wszystkich kursów. A7 nie obsługuje Domu Ludowego i Wiśliska. Sam pomyślny odczyt GTFS nie potwierdza poprawności rozkładu.
 
-14 testów zabezpieczeń obejmuje kalendarze, usunięcia/dodania kursów, zmianę czasu, święto 11 listopada, przejazd po północy, brak możliwości wsiadania, zmianę identyfikatora, błędne czasy, zmianę PDF i wygaśnięcie kontroli.
+Dodatkowe testy zgodności A7 oraz testy zabezpieczeń obejmują kalendarze, usunięcia/dodania kursów, zmianę czasu, święto 11 listopada, przejazd po północy, brak możliwości wsiadania, zmianę identyfikatora, błędne czasy, zmianę PDF i wygaśnięcie kontroli.
 
 ## Uruchomienie
 
