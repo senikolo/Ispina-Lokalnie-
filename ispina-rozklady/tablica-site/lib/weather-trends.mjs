@@ -59,10 +59,14 @@ export function summarizeWeatherChanges(data, nowMs=Date.now()) {
     }
   } else {
     const maxProb=Math.max(...rows.map(r=>r.precipitation_probability));
-    if(maxProb < 35 && rows.every(r=>r.precipitation < 0.2)) {
-      messages.push('Do końca dnia bez większych opadów.');
-    } else if (maxProb < 55) {
-      messages.push('Na razie brak wyraźnego sygnału opadów.');
+    const noPrecipitationSignal=rows.every(r=>r.precipitation < 0.2 &&
+      !rainy.has(r.weather_code) && !snowy.has(r.weather_code));
+    if(maxProb < 20 && noPrecipitationSignal) {
+      messages.push('Do końca dnia prognoza nie wskazuje opadów.');
+    } else if(maxProb < 35 && noPrecipitationSignal) {
+      messages.push('Do końca dnia opady są mało prawdopodobne.');
+    } else {
+      messages.push('Do końca dnia możliwe opady. Dokładna pora jest niepewna.');
     }
   }
   const early=rows.slice(0,Math.min(3,rows.length));
@@ -87,7 +91,6 @@ export function summarizeWeatherChanges(data, nowMs=Date.now()) {
     if(left-right>=45) messages.push('W dalszej części dnia możliwe przejaśnienia.');
   }
   if(!messages.length)messages.push('Pogoda powinna pozostać dość stabilna.');
-  if(messages.length===1 && !runs.length && !messages[0].includes('opadów') && rows.every(dry))messages.push('Opady pozostaną mało prawdopodobne.');
   return messages.slice(0,3);
 }
 
@@ -133,11 +136,18 @@ export function summarizeWeatherBrief(data, nowMs=Date.now()) {
     const morning=all.filter(r=>r.date===nextMorningDay && r.hour>=7 && r.hour<12);
     const notes=[];
     const overnight=pickWeather(night,'W nocy');
-    notes.push(overnight||entry('🌙','Spokojna noc, bez większych opadów.','calm'));
+    notes.push(overnight || (() => {
+      const maxChance=night.length ? Math.max(...night.map(r=>r.precipitation_probability)) : 100;
+      const noSignal=night.length>=2 && night.every(r=>r.precipitation<0.2 &&
+        !rainy.has(r.weather_code) && !snowy.has(r.weather_code));
+      if(maxChance<20 && noSignal)return entry('🌙','Spokojna noc. Prognoza nie wskazuje opadów.','calm');
+      if(maxChance<35 && noSignal)return entry('🌙','W nocy opady są mało prawdopodobne.','stable');
+      return entry('🌧️','W nocy możliwe opady. Dokładna pora jest niepewna.','rain');
+    })());
     const morningWeather=pickWeather(morning,currentHour<5?'Dziś rano':'Jutro rano');
     if(morningWeather)notes.push(morningWeather);
     else if(morning.length>=3 && morning.every(dry))
-      notes.push(entry('🌤️',(currentHour<5?'Rano':'Jutro rano')+' bez większych opadów.','stable'));
+      notes.push(entry('🌤️',(currentHour<5?'Rano':'Jutro rano')+' opady są mało prawdopodobne.','stable'));
     return {period:currentHour<5?'NOC I PORANEK':'NOC I JUTRO',entries:notes.slice(0,2)};
   }
   const daytime = summarizeWeatherChanges(data,nowMs).slice(0,2);
