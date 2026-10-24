@@ -37,3 +37,12 @@ Sprawdzono 84/84 testy oraz interfejs dotykowy w Chromium w trzech rozmiarach/tr
 
 
 SHA-256 APK: `c9c0a0107310c3229b421a87832de1f1fc738b07db7ab1dc41eea2ead417e664`
+
+## Poznaj Ispinę
+
+Projekt Ispina Lokalnie to nie tylko aplikacja. Na portalu można odkrywać dzieje miejscowości, oglądać archiwalne fotografie i śledzić lokalne wiadomości:
+
+- [Historia Ispiny](https://ispinalokalnie.wordpress.com/historia-ispiny/) – opowieści o wsi, mieszkańcach i dawnych wydarzeniach.
+- [Ispina na zdjęciach](https://ispinalokalnie.wordpress.com/galeria/) – galeria fotografii archiwalnych i współczesnych.
+- [Aktualności z Ispiny](https://ispinalokalnie.wordpress.com/aktualnosci/) – wiadomości oraz lokalne inicjatywy.
+
