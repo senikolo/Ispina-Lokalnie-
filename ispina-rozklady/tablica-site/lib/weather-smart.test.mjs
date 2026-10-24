@@ -51,3 +51,32 @@ test('verified IMGW warning overrides a dry forecast',()=>{
  assert.equal(o.entries[0].kind,'warning');
  assert.equal(o.entries[0].source,'imgw');
 });
+
+test('dry forecast says explicitly that precipitation is not expected',()=>{
+ const o=summarizeWeatherSmart(fixture(now),now);
+ assert.equal(o.entries[0].kind,'stable');
+ assert.match(o.entries[0].text,/prognoza nie wskazuje opadów/);
+ assert.doesNotMatch(o.entries[0].text,/większych|znacznych/);
+});
+test('low but nonzero rain probability is not described as certainly dry',()=>{
+ const d=fixture(now);
+ set(d,'2026-10-24',[11,12,13],{precipitation_probability:28});
+ const o=summarizeWeatherSmart(d,now);
+ assert.match(o.entries[0].text,/opady są mało prawdopodobne/);
+ assert.doesNotMatch(o.entries[0].text,/bez opadów/);
+});
+test('a moderate hourly rain risk without a confirmed event is still disclosed',()=>{
+ const d=fixture(now);
+ set(d,'2026-10-24',[15],{precipitation_probability:58});
+ const o=summarizeWeatherSmart(d,now);
+ assert.equal(o.entries[0].kind,'rain');
+ assert.match(o.entries[0].text,/możliwe opady.*pora jest niepewna/);
+});
+test('night risk is never labelled as calm only because rainfall is weak',()=>{
+ const at=Date.parse('2026-10-24T19:00:00Z');
+ const d=fixture(at);
+ set(d,'2026-10-24',[23],{precipitation_probability:60});
+ const o=summarizeWeatherSmart(d,at);
+ assert.equal(o.entries[0].kind,'rain');
+ assert.match(o.entries[0].text,/W nocy możliwe opady/);
+});
