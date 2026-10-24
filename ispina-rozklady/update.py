@@ -189,7 +189,35 @@ def day_type(target):
     return 'saturday' if target.weekday() == 5 else 'weekday'
 
 
-def verify_day(files, target, references, versions, pdf_bytes):
+def a7_checked_pdf_departures(raw, ref, target):
+    """Match every A7 departure 1:1 with independently reviewed PDF minutes.
+
+    A PDF minute wins only if every platform/direction has the same trip count,
+    unique planned times and an order-preserving match within one minute.
+    Any mismatch hides A7 rather than guessing or changing A4/A65.
+    """
+    result = []
+    for slug, stop in STOPS.items():
+        for direction in ('north', 'south'):
+            row = next((r for r in ref['rows']
+                        if r['stop'] == stop['name'] and r['direction'] == direction), None)
+            expected = sorted(row[day_type(target)] if row else [])
+            actual = sorted((r for r in raw
+                             if r['line'] == 'A7' and r['stop'] == slug and r['direction'] == direction),
+                            key=lambda r: r['time'])
+            if len(expected) != len(actual) or len(set(expected)) != len(expected):
+                return None
+            for planned, trip in zip(expected, actual):
+                hh, mm = (int(v) for v in planned.split(':'))
+                ah, am = (int(v) for v in trip['time'].split(':'))
+                if not (0 <= hh < 24 and 0 <= mm < 60) or abs(hh * 60 + mm - (ah * 60 + am)) > 1:
+                    return None
+                result.append(dict(trip, time=planned, gtfs_time=trip['time'],
+                                   source='PDF przewoźnika'))
+    return result
+
+
+def verify_day(files, target, references, versions, pdf_bytes, allow_a7_pdf_fallback=False):
     if target.isoformat() > references['review_valid_until'] or target.isoformat() < references['reviewed_at']:
         raise ValueError('Wymagana ponowna kontrola rozkładów przez redakcję')
     raw = raw_departures(files, target)
@@ -210,9 +238,16 @@ def verify_day(files, target, references, versions, pdf_bytes):
                 actual = Counter(r['time'] for r in raw if r['stop'] == slug and r['line'] == line and r['direction'] == direction)
                 if actual != expected:
                     differences.append({'stop': slug, 'direction': direction, 'only_gtfs': list((actual - expected).elements()), 'only_pdf': list((expected - actual).elements())})
-        valid = not differences
-        validation[line] = {'valid': valid, 'pdf': url, 'pdf_sha256': ref['sha256'], 'differences': differences}
-        if valid: published.extend(r for r in raw if r['line'] == line)
+        verified_pdf_rows = None
+        if differences and line == 'A7' and allow_a7_pdf_fallback:
+            verified_pdf_rows = a7_checked_pdf_departures(raw, ref, target)
+        valid = not differences or verified_pdf_rows is not None
+        validation[line] = {'valid': valid, 'pdf': url, 'pdf_sha256': ref['sha256'],
+                            'differences': differences,
+                            'source': 'PDF przewoźnika' if verified_pdf_rows is not None else 'GTFS + PDF'}
+        if valid:
+            published.extend(verified_pdf_rows if verified_pdf_rows is not None
+                             else (r for r in raw if r['line'] == line))
     return {'date': target.isoformat(), 'departures': sorted(published, key=lambda r: (r['time'], r['line'], r['destination'])), 'validation': validation}
 
 
@@ -288,7 +323,9 @@ def write_details(folder, metadata):
     for day in metadata.get('days', []):
         lines += ['## ' + day['date'], '']
         for line, v in day['validation'].items():
-            label = 'potwierdzona zgodność GTFS z PDF' if v['valid'] else 'godziny ukryte — sprawdź oficjalny rozkład'
+            label = ('potwierdzone godziny z PDF (GTFS: różnica do 1 min)' if v['valid'] and v.get('source') == 'PDF przewoźnika'
+                     else 'potwierdzona zgodność GTFS z PDF' if v['valid']
+                     else 'godziny ukryte — sprawdź oficjalny rozkład')
             lines += [f'**{line}: {label}.** [PDF przewoźnika]({v.get("pdf", PDF_INDEX)})', '']
         for slug, spec in STOPS.items():
             lines += ['### ' + spec['name'], '', '| Godzina | Linia | Kierunek / przystanek końcowy |', '| --- | --- | --- |']
@@ -334,7 +371,8 @@ def main():
                 return url, (args.offline_directory / (s['line'] + '-' + period + '.pdf')).read_bytes()
             return url, download(url, 5_000_000)
         with ThreadPoolExecutor(max_workers=4) as pool: pdfs = dict(pool.map(get_pdf, sorted(needed)))
-        days = [verify_day(files, today + timedelta(days=i), ref, versions, pdfs) for i in range(2)]
+        days = [verify_day(files, today + timedelta(days=i), ref, versions, pdfs,
+                           allow_a7_pdf_fallback=True) for i in range(2)]
         metadata['days'] = days
         metadata['valid'] = all(v['valid'] for day in days for v in day['validation'].values())
         metadata['status'] = 'verified' if metadata['valid'] else 'partial' if any(day['departures'] for day in days) else 'unavailable'
