@@ -1,6 +1,7 @@
 import { ImageResponse } from "next/og";
 import { createElement as h, type CSSProperties } from "react";
 import { createWeatherLoader, type Forecast, type WeatherResult } from "../../../lib/weather.mjs";
+import { summarizeWeatherChanges } from "../../../lib/weather-trends.mjs";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -56,7 +57,7 @@ function dayCard(d: Forecast, i: number, compact: boolean) {
 }
 function makeCard(result: WeatherResult | undefined, compact: boolean, part: string | null) {
   const d = result?.data, c = d?.current;
-  const height = part === "now" ? 550 : part === "daily" ? 610 : compact ? 1080 : 500;
+  const height = part === "now" ? 550 : part === "daily" ? 610 : part === "trend" ? 510 : compact ? 1080 : 500;
   const size = {width: compact ? 600 : 1200, height};
   const root: CSSProperties = { ...size, ...col(18), padding: compact ? "24px" : "26px 30px", background: C.pale, borderRadius: 28, border: `2px solid ${C.border}`, fontFamily: "sans-serif", color: C.navy };
   if (!result || !d || !c) return h("div", {style: {...root, justifyContent: "center", gap: 24}},
@@ -79,6 +80,23 @@ function makeCard(result: WeatherResult | undefined, compact: boolean, part: str
     label("PROGNOZA · MAKS. / MIN.", compact ? 30 : 24, C.blue, 700),
     h("div", {style: compact ? col(10) : {display: "flex", gap: 12}}, ...[0,1,2].map(i => dayCard(d, i, compact)))
   );
+  if (part === "trend") {
+    const messages = summarizeWeatherChanges(d, result.fetchedAt);
+    return h("div", {style: {...root, gap: 16, justifyContent: "space-between"}},
+      h("div", {style: col(6)},
+        label("CO ZMIENI SIĘ DZIŚ?", 33, C.navy, 700),
+        label("Ispina · najbliższe godziny", 26, C.blue, 500)),
+      h("div", {style: {...col(13), background: "#FFFFFF", border: `1px solid ${C.border}`,
+        borderRadius: 18, padding: "18px 17px", flex: 1, justifyContent: "center"}},
+        ...messages.map(message => h("div", {style: {display: "flex", alignItems: "flex-start", gap: 12}},
+          h("div", {style: {fontSize: 29, fontWeight: 700, color: C.blue, flexShrink: 0}}, "•"),
+          h("div", {style: {display: "flex", flexWrap: "wrap", fontSize: 27, lineHeight: 1.3,
+            color: C.ink, fontWeight: 500}}, message)))),
+      h("div", {style: col(4)},
+        label(`Sprawdzono ${checked} · prognoza modelowa`, 22, C.muted),
+        label("Godziny zmian są orientacyjne · Open-Meteo", 21, C.muted))
+    );
+  }
   if (part === "now") return h("div", {style: {...root, justifyContent: "space-between"}}, current,
     h("div", {style: col(3)}, label(`Dane modelowe na ${currentTime}`, 29, C.muted), label(`Sprawdzono ${checked}`, 29, C.muted)));
   if (part === "daily") return h("div", {style: {...root, justifyContent: "space-between"}}, forecast,
@@ -95,12 +113,12 @@ function makeCard(result: WeatherResult | undefined, compact: boolean, part: str
 
 export async function GET(request: Request): Promise<Response> {
   const params = new URL(request.url).searchParams;
-  const part = ["now", "daily"].includes(params.get("part") || "") ? params.get("part") : null;
+  const part = ["now", "daily", "trend"].includes(params.get("part") || "") ? params.get("part") : null;
   const compact = !!part || params.get("layout") === "compact";
   let result: WeatherResult | undefined;
   try { result = await load(); } catch { /* A quiet error card, never stale weather. */ }
   const ttl = result ? Math.max(0, Math.floor((result.expires - Date.now()) / 1000)) : 0;
-  const response = new ImageResponse(makeCard(result, compact, part), { width: compact ? 600 : 1200, height: part === "now" ? 550 : part === "daily" ? 610 : compact ? 1080 : 500 });
+  const response = new ImageResponse(makeCard(result, compact, part), { width: compact ? 600 : 1200, height: part === "now" ? 550 : part === "daily" ? 610 : part === "trend" ? 510 : compact ? 1080 : 500 });
   // Buffer rendering here so image generation errors are observed before sending headers.
   const png = await response.arrayBuffer();
   return new Response(png, {headers: {
