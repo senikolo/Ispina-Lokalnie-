@@ -66,11 +66,19 @@ function dayCard(d: Forecast, i: number, compact: boolean) {
   const title = ["Dziś", "Jutro", "Pojutrze"][i];
   const daily = d.daily;
   const temps = `${n(daily.temperature_2m_max[i], "°")} / ${n(daily.temperature_2m_min[i], "°")}`;
-  if (compact) return h("div", { style: { ...col(5), flexShrink: 0, padding: "14px 18px", borderRadius: 18, background: "#FFFFFF", border: `1px solid ${C.border}` } },
-    h("div", {style: {display: "flex", alignItems: "center", justifyContent: "space-between"}},
-      label(title, 34, C.navy, 700), icon(daily.weather_code[i], 50), label(temps, 38, C.navy, 700)),
-    h("div", {style: {display: "flex", justifyContent: "space-between"}}, label(describe(daily.weather_code[i]), 28, C.ink), label(`Opady: ${daily.precipitation_probability_max[i]}%`, 28, C.muted))
-  );
+  if (compact) {
+    const code=daily.weather_code[i];
+    const tone=[95,96,99].includes(code)?"#F6EDF9":
+      [51,53,55,56,57,61,63,65,66,67,80,81,82].includes(code)?"#EAF5FE":
+      [71,73,75,77,85,86].includes(code)?"#EFF7FC":
+      code<=1?"#FFF8E7":"#F2F7FC";
+    return h("div",{style:{...col(3),flexShrink:0,padding:"9px 13px",
+      borderRadius:14,background:tone,border:`1px solid ${C.border}`}},
+      h("div",{style:{display:"flex",alignItems:"center",justifyContent:"space-between"}},
+        label(title,29,C.navy,700),icon(code,42),label(temps,33,C.navy,700)),
+      h("div",{style:{display:"flex",justifyContent:"space-between"}},
+        label(describe(code),23,C.ink),label(`Opady: ${daily.precipitation_probability_max[i]}%`,23,C.muted)));
+  }
   return h("div", { style: { ...col(12), flexShrink: 0, width: 210, padding: "22px 18px", borderRadius: 18, border: `1px solid ${C.border}`, background: "#FFFFFF" } },
     label(title, 27, C.blue, 700), icon(daily.weather_code[i], 58), label(temps, 35, C.navy, 700),
     label(describe(daily.weather_code[i]), 25, C.ink), label(`Opady: ${daily.precipitation_probability_max[i]}%`, 24, C.muted)
@@ -78,7 +86,7 @@ function dayCard(d: Forecast, i: number, compact: boolean) {
 }
 function makeCard(result: WeatherResult | undefined, compact: boolean, part: string | null) {
   const d = result?.data, c = d?.current;
-  const height = part === "brief" ? 374 : part === "now" ? 550 : part === "daily" ? 610 : part === "trend" ? 330 : compact ? 1080 : 500;
+  const height = part === "brief" ? 374 : part === "now" ? 550 : part === "daily" ? 510 : part === "trend" ? 330 : compact ? 1080 : 500;
   const size = {width: part === "brief" ? 720 : compact ? 600 : 1200, height};
   const root: CSSProperties = { ...size, ...col(18), padding: compact ? "24px" : "26px 30px", background: C.pale, borderRadius: 28, border: `2px solid ${C.border}`, fontFamily: "sans-serif", color: C.navy };
   if ((part === "trend" || part === "brief") && (!result || !d || !c)) return h("div", {style:{...root,
@@ -201,7 +209,7 @@ export async function GET(request: Request): Promise<Response> {
   let result: WeatherResult | undefined;
   try { result = await load(); } catch { /* A quiet error card, never stale weather. */ }
   const ttl = result ? Math.max(0, Math.floor((result.expires - Date.now()) / 1000)) : 0;
-  const response = new ImageResponse(makeCard(result, compact, part), { width: part === "brief" ? 720 : compact ? 600 : 1200, height: part === "brief" ? 374 : part === "now" ? 550 : part === "daily" ? 610 : part === "trend" ? 330 : compact ? 1080 : 500 });
+  const response = new ImageResponse(makeCard(result, compact, part), { width: part === "brief" ? 720 : compact ? 600 : 1200, height: part === "brief" ? 374 : part === "now" ? 550 : part === "daily" ? 510 : part === "trend" ? 330 : compact ? 1080 : 500 });
   // Buffer rendering here so image generation errors are observed before sending headers.
   const png = await response.arrayBuffer();
   return new Response(png, {headers: {
