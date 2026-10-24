@@ -120,6 +120,24 @@ class SafetyTests(unittest.TestCase):
         rejected = u.verify_day(f, day, references, versions, pdfs, allow_a7_pdf_fallback=True)
         self.assertFalse(rejected['validation']['A7']['valid'])
 
+    def test_a7_request_stop_offsets_and_no_other_lines(self):
+        day = {'departures': [
+            {'stop':'most', 'line':'A7', 'direction':'south', 'time':'06:08', 'trip_id':'s'},
+            {'stop':'most', 'line':'A7', 'direction':'north', 'time':'07:52', 'trip_id':'n'},
+            {'stop':'most', 'line':'A4', 'direction':'north', 'time':'09:00', 'trip_id':'other'}],
+            'validation': {'A7': {'valid': True}}}
+        extra = u.a7_extra_departures(day)
+        self.assertEqual(len(extra), 4)
+        self.assertEqual(
+            {(x['stop'], x['direction']): x['time'] for x in extra},
+            {('przedszkole','south'): '06:09',
+             ('lesniczowka','south'): '06:10',
+             ('przedszkole','north'): '07:51',
+             ('lesniczowka','north'): '07:50'})
+        self.assertTrue(all(x['source']=='PDF przewoźnika' for x in extra))
+        day['validation']['A7']['valid'] = False
+        self.assertEqual(u.a7_extra_departures(day), [])
+
     def test_changed_pdf_hash_hides_hours(self):
         import hashlib
         day = date(2026,10,25)
@@ -149,7 +167,7 @@ class SafetyTests(unittest.TestCase):
             self.assertFalse(data['valid']); self.assertEqual(data['days'], [])
             self.assertNotIn('old hours', (out/'README.md').read_text())
             self.assertFalse((out/'old.png').exists())
-            self.assertEqual(len(list(out.glob('*.png'))), 6)
+            self.assertEqual(len(list(out.glob('*.png'))), 10)
             for path in out.glob('*.png'):
                 with Image.open(path) as image: image.verify()
 
