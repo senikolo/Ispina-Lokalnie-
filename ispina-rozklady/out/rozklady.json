@@ -1,10 +1,10 @@
 {
-  "generated_at": "2026-10-24T16:33:43.742255+02:00",
+  "generated_at": "2026-10-24T20:03:38.256717+02:00",
   "timezone": "Europe/Warsaw",
   "data_type": "scheduled_not_realtime",
   "date": "2026-10-24",
-  "valid": false,
-  "status": "partial",
+  "valid": true,
+  "status": "verified",
   "days": [
     {
       "date": "2026-10-24",
@@ -44,6 +44,17 @@
           "time": "05:04",
           "destination": "Bochnia Dworzec PKP",
           "trip_id": "1382_2053"
+        },
+        {
+          "stop": "most",
+          "stop_id": "67",
+          "line": "A7",
+          "direction": "south",
+          "time": "05:04",
+          "destination": "Podłęże P+R Północ",
+          "trip_id": "1382_1619",
+          "gtfs_time": "05:04",
+          "source": "PDF przewoźnika"
         },
         {
           "stop": "dom-ludowy",
@@ -118,6 +129,28 @@
           "trip_id": "1382_2095"
         },
         {
+          "stop": "most",
+          "stop_id": "119",
+          "line": "A7",
+          "direction": "north",
+          "time": "06:53",
+          "destination": "Proszowice P+R Kościuszki",
+          "trip_id": "1382_1620",
+          "gtfs_time": "06:53",
+          "source": "PDF przewoźnika"
+        },
+        {
+          "stop": "most",
+          "stop_id": "67",
+          "line": "A7",
+          "direction": "south",
+          "time": "07:03",
+          "destination": "Podłęże P+R Północ",
+          "trip_id": "1382_1633",
+          "gtfs_time": "07:03",
+          "source": "PDF przewoźnika"
+        },
+        {
           "stop": "wislisko",
           "stop_id": "4222",
           "line": "A65",
@@ -143,6 +176,28 @@
           "time": "08:28",
           "destination": "Nowe Brzesko Rynek",
           "trip_id": "1382_2054"
+        },
+        {
+          "stop": "most",
+          "stop_id": "119",
+          "line": "A7",
+          "direction": "north",
+          "time": "08:47",
+          "destination": "Nowe Brzesko Rynek",
+          "trip_id": "1382_1634",
+          "gtfs_time": "08:48",
+          "source": "PDF przewoźnika"
+        },
+        {
+          "stop": "most",
+          "stop_id": "67",
+          "line": "A7",
+          "direction": "south",
+          "time": "09:04",
+          "destination": "Podłęże P+R Północ",
+          "trip_id": "1382_1727",
+          "gtfs_time": "09:04",
+          "source": "PDF przewoźnika"
         },
         {
           "stop": "most",
@@ -200,6 +255,28 @@
         },
         {
           "stop": "most",
+          "stop_id": "119",
+          "line": "A7",
+          "direction": "north",
+          "time": "10:33",
+          "destination": "Proszowice P+R Kościuszki",
+          "trip_id": "1382_1728",
+          "gtfs_time": "10:33",
+          "source": "PDF przewoźnika"
+        },
+        {
+          "stop": "most",
+          "stop_id": "67",
+          "line": "A7",
+          "direction": "south",
+          "time": "11:03",
+          "destination": "Podłęże P+R Północ",
+          "trip_id": "1382_1635",
+          "gtfs_time": "11:03",
+          "source": "PDF przewoźnika"
+        },
+        {
+          "stop": "most",
           "stop_id": "67",
           "line": "A4",
           "direction": "south",
@@ -251,6 +328,28 @@
           "time": "12:28",
           "destination": "Nowe Brzesko Rynek",
           "trip_id": "1382_2056"
+        },
+        {
+          "stop": "most",
+          "stop_id": "119",
+          "line": "A7",
+          "direction": "north",
+          "time": "12:42",
+          "destination": "Nowe Brzesko Rynek",
+          "trip_id": "1382_1636",
+          "gtfs_time": "12:43",
+          "source": "PDF przewoźnika"
+        },
+        {
+          "stop": "most",
+          "stop_id": "67",
+          "line": "A7",
+          "direction": "south",
+          "time": "13:04",
+          "destination": "Podłęże P+R Północ",
+          "trip_id": "1382_1625",
+          "gtfs_time": "13:04",
+          "source": "PDF przewoźnika"
         },
         {
           "stop": "wislisko",
@@ -334,6 +433,28 @@
           "trip_id": "1382_2099"
         },
         {
+          "stop": "most",
+          "stop_id": "67",
+          "line": "A7",
+          "direction": "south",
+          "time": "14:53",
+          "destination": "Podłęże P+R Północ",
+          "trip_id": "1382_1451",
+          "gtfs_time": "14:53",
+          "source": "PDF przewoźnika"
+        },
+        {
+          "stop": "most",
+          "stop_id": "119",
+          "line": "A7",
+          "direction": "north",
+          "time": "14:53",
+          "destination": "Proszowice P+R Kościuszki",
+          "trip_id": "1382_1626",
+          "gtfs_time": "14:53",
+          "source": "PDF przewoźnika"
+        },
+        {
           "stop": "wislisko",
           "stop_id": "4222",
           "line": "A65",
@@ -359,6 +480,28 @@
           "time": "16:18",
           "destination": "Nowe Brzesko Rynek",
           "trip_id": "1382_2058"
+        },
+        {
+          "stop": "most",
+          "stop_id": "119",
+          "line": "A7",
+          "direction": "north",
+          "time": "16:37",
+          "destination": "Nowe Brzesko Rynek",
+          "trip_id": "1382_1452",
+          "gtfs_time": "16:38",
+          "source": "PDF przewoźnika"
+        },
+        {
+          "stop": "most",
+          "stop_id": "67",
+          "line": "A7",
+          "direction": "south",
+          "time": "16:54",
+          "destination": "Podłęże P+R Północ",
+          "trip_id": "1382_1627",
+          "gtfs_time": "16:54",
+          "source": "PDF przewoźnika"
         },
         {
           "stop": "wislisko",
@@ -417,6 +560,28 @@
         {
           "stop": "most",
           "stop_id": "67",
+          "line": "A7",
+          "direction": "south",
+          "time": "18:28",
+          "destination": "Podłęże P+R Północ",
+          "trip_id": "1382_1453",
+          "gtfs_time": "18:28",
+          "source": "PDF przewoźnika"
+        },
+        {
+          "stop": "most",
+          "stop_id": "119",
+          "line": "A7",
+          "direction": "north",
+          "time": "18:38",
+          "destination": "Proszowice P+R Kościuszki",
+          "trip_id": "1382_1628",
+          "gtfs_time": "18:38",
+          "source": "PDF przewoźnika"
+        },
+        {
+          "stop": "most",
+          "stop_id": "67",
           "line": "A4",
           "direction": "south",
           "time": "18:49",
@@ -470,6 +635,28 @@
         },
         {
           "stop": "most",
+          "stop_id": "119",
+          "line": "A7",
+          "direction": "north",
+          "time": "20:51",
+          "destination": "Nowe Brzesko Rynek",
+          "trip_id": "1382_1454",
+          "gtfs_time": "20:52",
+          "source": "PDF przewoźnika"
+        },
+        {
+          "stop": "most",
+          "stop_id": "67",
+          "line": "A7",
+          "direction": "south",
+          "time": "21:04",
+          "destination": "Podłęże P+R Północ",
+          "trip_id": "1382_1737",
+          "gtfs_time": "21:04",
+          "source": "PDF przewoźnika"
+        },
+        {
+          "stop": "most",
           "stop_id": "67",
           "line": "A65",
           "direction": "south",
@@ -494,6 +681,17 @@
           "time": "21:21",
           "destination": "Bochnia Dworzec PKP",
           "trip_id": "1382_2061"
+        },
+        {
+          "stop": "most",
+          "stop_id": "119",
+          "line": "A7",
+          "direction": "north",
+          "time": "22:53",
+          "destination": "Proszowice P+R Kościuszki",
+          "trip_id": "1382_1738",
+          "gtfs_time": "22:53",
+          "source": "PDF przewoźnika"
         }
       ],
       "validation": {
@@ -501,10 +699,11 @@
           "valid": true,
           "pdf": "https://kolejemalopolskie.com.pl/brepo/panel_repo/2026/09/24/dsnm4n/a4-od-01-x-2026.pdf",
           "pdf_sha256": "211c24d1d39939aeeebbef726303dc23c3454872fe24789319f4a2a4d9551ac6",
-          "differences": []
+          "differences": [],
+          "source": "GTFS + PDF"
         },
         "A7": {
-          "valid": false,
+          "valid": true,
           "pdf": "https://kolejemalopolskie.com.pl/brepo/panel_repo/2026/08/24/9jeahn/a7-od-30-viii-2026.pdf",
           "pdf_sha256": "96b9a7e55ebfc2bddfa3bfbf94234a7a47fec216be6d837399aeba9a345faa1d",
           "differences": [
@@ -524,13 +723,15 @@
                 "20:51"
               ]
             }
-          ]
+          ],
+          "source": "PDF przewoźnika"
         },
         "A65": {
           "valid": true,
           "pdf": "https://kolejemalopolskie.com.pl/brepo/panel_repo/2026/09/24/yt9yge/a65-od-01-x-2026.pdf",
           "pdf_sha256": "56d38428748abf2701f4340887d37c9d7efc17ce6fc21591749ab118cd9b4410",
-          "differences": []
+          "differences": [],
+          "source": "GTFS + PDF"
         }
       }
     },
@@ -592,6 +793,28 @@
           "trip_id": "1383_2414"
         },
         {
+          "stop": "most",
+          "stop_id": "67",
+          "line": "A7",
+          "direction": "south",
+          "time": "07:39",
+          "destination": "Podłęże P+R Północ",
+          "trip_id": "1383_2038",
+          "gtfs_time": "07:39",
+          "source": "PDF przewoźnika"
+        },
+        {
+          "stop": "most",
+          "stop_id": "67",
+          "line": "A7",
+          "direction": "south",
+          "time": "09:03",
+          "destination": "Podłęże P+R Północ",
+          "trip_id": "1383_2046",
+          "gtfs_time": "09:03",
+          "source": "PDF przewoźnika"
+        },
+        {
           "stop": "wislisko",
           "stop_id": "4222",
           "line": "A65",
@@ -617,6 +840,17 @@
           "time": "09:23",
           "destination": "Nowe Brzesko Rynek",
           "trip_id": "1383_2415"
+        },
+        {
+          "stop": "most",
+          "stop_id": "119",
+          "line": "A7",
+          "direction": "north",
+          "time": "09:33",
+          "destination": "Proszowice P+R Kościuszki",
+          "trip_id": "1383_2039",
+          "gtfs_time": "09:33",
+          "source": "PDF przewoźnika"
         },
         {
           "stop": "most",
@@ -673,6 +907,39 @@
           "trip_id": "1383_2416"
         },
         {
+          "stop": "most",
+          "stop_id": "119",
+          "line": "A7",
+          "direction": "north",
+          "time": "10:58",
+          "destination": "Nowe Brzesko Rynek",
+          "trip_id": "1383_2095",
+          "gtfs_time": "10:57",
+          "source": "PDF przewoźnika"
+        },
+        {
+          "stop": "most",
+          "stop_id": "67",
+          "line": "A7",
+          "direction": "south",
+          "time": "11:04",
+          "destination": "Podłęże P+R Północ",
+          "trip_id": "1383_2040",
+          "gtfs_time": "11:04",
+          "source": "PDF przewoźnika"
+        },
+        {
+          "stop": "most",
+          "stop_id": "67",
+          "line": "A7",
+          "direction": "south",
+          "time": "12:23",
+          "destination": "Podłęże P+R Północ",
+          "trip_id": "1383_2096",
+          "gtfs_time": "12:23",
+          "source": "PDF przewoźnika"
+        },
+        {
           "stop": "wislisko",
           "stop_id": "4222",
           "line": "A65",
@@ -698,6 +965,17 @@
           "time": "12:28",
           "destination": "Nowe Brzesko Rynek",
           "trip_id": "1383_2420"
+        },
+        {
+          "stop": "most",
+          "stop_id": "119",
+          "line": "A7",
+          "direction": "north",
+          "time": "12:43",
+          "destination": "Proszowice P+R Kościuszki",
+          "trip_id": "1383_2041",
+          "gtfs_time": "12:43",
+          "source": "PDF przewoźnika"
         },
         {
           "stop": "wislisko",
@@ -781,6 +1059,28 @@
           "trip_id": "1383_2418"
         },
         {
+          "stop": "most",
+          "stop_id": "119",
+          "line": "A7",
+          "direction": "north",
+          "time": "15:38",
+          "destination": "Nowe Brzesko Rynek",
+          "trip_id": "1383_2049",
+          "gtfs_time": "15:37",
+          "source": "PDF przewoźnika"
+        },
+        {
+          "stop": "most",
+          "stop_id": "67",
+          "line": "A7",
+          "direction": "south",
+          "time": "15:54",
+          "destination": "Podłęże P+R Północ",
+          "trip_id": "1383_2042",
+          "gtfs_time": "15:54",
+          "source": "PDF przewoźnika"
+        },
+        {
           "stop": "wislisko",
           "stop_id": "4222",
           "line": "A4",
@@ -835,6 +1135,61 @@
           "trip_id": "1383_2423"
         },
         {
+          "stop": "most",
+          "stop_id": "119",
+          "line": "A7",
+          "direction": "north",
+          "time": "17:33",
+          "destination": "Proszowice P+R Kościuszki",
+          "trip_id": "1383_2043",
+          "gtfs_time": "17:33",
+          "source": "PDF przewoźnika"
+        },
+        {
+          "stop": "most",
+          "stop_id": "67",
+          "line": "A7",
+          "direction": "south",
+          "time": "17:58",
+          "destination": "Podłęże P+R Północ",
+          "trip_id": "1383_2050",
+          "gtfs_time": "17:58",
+          "source": "PDF przewoźnika"
+        },
+        {
+          "stop": "most",
+          "stop_id": "119",
+          "line": "A7",
+          "direction": "north",
+          "time": "19:38",
+          "destination": "Nowe Brzesko Rynek",
+          "trip_id": "1383_2051",
+          "gtfs_time": "19:37",
+          "source": "PDF przewoźnika"
+        },
+        {
+          "stop": "most",
+          "stop_id": "67",
+          "line": "A7",
+          "direction": "south",
+          "time": "19:59",
+          "destination": "Podłęże P+R Północ",
+          "trip_id": "1383_2102",
+          "gtfs_time": "19:59",
+          "source": "PDF przewoźnika"
+        },
+        {
+          "stop": "most",
+          "stop_id": "119",
+          "line": "A7",
+          "direction": "north",
+          "time": "21:33",
+          "destination": "Proszowice P+R Kościuszki",
+          "trip_id": "1383_2103",
+          "gtfs_time": "21:33",
+          "source": "PDF przewoźnika"
+        },
+        {
           "stop": "wislisko",
           "stop_id": "4222",
           "line": "A65",
@@ -867,10 +1222,11 @@
           "valid": true,
           "pdf": "https://kolejemalopolskie.com.pl/brepo/panel_repo/2026/10/19/rccwk3/a4-od-25-x-2026.pdf",
           "pdf_sha256": "cbee699797228a6fe4b280ccfc2968d4c2a3299cfd3093901ad81db7f737e029",
-          "differences": []
+          "differences": [],
+          "source": "GTFS + PDF"
         },
         "A7": {
-          "valid": false,
+          "valid": true,
           "pdf": "https://kolejemalopolskie.com.pl/brepo/panel_repo/2026/10/19/m73lie/a7-od-25-x-2026.pdf",
           "pdf_sha256": "2a9eb2b5cdf4320151343d3365c813dbf644a09414c0fec4d9fdda556bc007aa",
           "differences": [
@@ -888,13 +1244,15 @@
                 "19:38"
               ]
             }
-          ]
+          ],
+          "source": "PDF przewoźnika"
         },
         "A65": {
           "valid": true,
           "pdf": "https://kolejemalopolskie.com.pl/brepo/panel_repo/2026/10/19/qcfw1q/a65-od-25-x-2026.pdf",
           "pdf_sha256": "9577451dc7f14f3478bd260aa7041f415621a90851576b5d455ff8337a3012aa",
-          "differences": []
+          "differences": [],
+          "source": "GTFS + PDF"
         }
       }
     }

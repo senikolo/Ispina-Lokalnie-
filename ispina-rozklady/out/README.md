@@ -2,7 +2,7 @@
 
 **Sprawdź datę podróży. Starszy dokument nie potwierdza dzisiejszych odjazdów.**
 
-Kontrola danych: 2026-10-24T16:33:43.742255+02:00
+Kontrola danych: 2026-10-24T20:03:38.256717+02:00
 
 [Oficjalne rozkłady i komunikaty KMŁ](https://kolejemalopolskie.com.pl/pl/rozklad-jazdy/rozklady-autobusowe)
 
@@ -14,7 +14,7 @@ Czasy są planowe, bez opóźnień na żywo. Linia gminna pozostaje na stronie I
 
 **A4: potwierdzona zgodność GTFS z PDF.** [PDF przewoźnika](https://kolejemalopolskie.com.pl/brepo/panel_repo/2026/09/24/dsnm4n/a4-od-01-x-2026.pdf)
 
-**A7: godziny ukryte — sprawdź oficjalny rozkład.** [PDF przewoźnika](https://kolejemalopolskie.com.pl/brepo/panel_repo/2026/08/24/9jeahn/a7-od-30-viii-2026.pdf)
+**A7: potwierdzone godziny z PDF (GTFS: różnica do 1 min).** [PDF przewoźnika](https://kolejemalopolskie.com.pl/brepo/panel_repo/2026/08/24/9jeahn/a7-od-30-viii-2026.pdf)
 
 **A65: potwierdzona zgodność GTFS z PDF.** [PDF przewoźnika](https://kolejemalopolskie.com.pl/brepo/panel_repo/2026/09/24/yt9yge/a65-od-01-x-2026.pdf)
 
@@ -70,28 +70,46 @@ Czasy są planowe, bez opóźnień na żywo. Linia gminna pozostaje na stronie I
 | --- | --- | --- |
 | 04:28 | A65 | Nowe Brzesko Rynek |
 | 05:04 | A65 | Bochnia Dworzec PKP |
+| 05:04 | A7 | Podłęże P+R Północ |
 | 06:10 | A4 | Nowe Brzesko Rynek |
 | 06:29 | A4 | Bochnia Dworzec PKP |
+| 06:53 | A7 | Proszowice P+R Kościuszki |
+| 07:03 | A7 | Podłęże P+R Północ |
 | 08:28 | A65 | Nowe Brzesko Rynek |
+| 08:47 | A7 | Nowe Brzesko Rynek |
+| 09:04 | A7 | Podłęże P+R Północ |
 | 09:29 | A65 | Bochnia Dworzec PKP |
 | 10:10 | A4 | Nowe Brzesko Rynek |
+| 10:33 | A7 | Proszowice P+R Kościuszki |
+| 11:03 | A7 | Podłęże P+R Północ |
 | 11:09 | A4 | Bochnia Dworzec PKP |
 | 12:28 | A65 | Nowe Brzesko Rynek |
+| 12:42 | A7 | Nowe Brzesko Rynek |
+| 13:04 | A7 | Podłęże P+R Północ |
 | 13:29 | A65 | Bochnia Dworzec PKP |
 | 13:30 | A4 | Nowe Brzesko Rynek |
 | 14:29 | A4 | Bochnia Dworzec PKP |
+| 14:53 | A7 | Podłęże P+R Północ |
+| 14:53 | A7 | Proszowice P+R Kościuszki |
 | 16:18 | A65 | Nowe Brzesko Rynek |
+| 16:37 | A7 | Nowe Brzesko Rynek |
+| 16:54 | A7 | Podłęże P+R Północ |
 | 17:20 | A4 | Nowe Brzesko Rynek |
 | 17:29 | A65 | Bochnia Dworzec PKP |
+| 18:28 | A7 | Podłęże P+R Północ |
+| 18:38 | A7 | Proszowice P+R Kościuszki |
 | 18:49 | A4 | Bochnia Dworzec PKP |
 | 20:18 | A65 | Nowe Brzesko Rynek |
+| 20:51 | A7 | Nowe Brzesko Rynek |
+| 21:04 | A7 | Podłęże P+R Północ |
 | 21:19 | A65 | Bochnia Dworzec PKP |
+| 22:53 | A7 | Proszowice P+R Kościuszki |
 
 ## 2026-10-25
 
 **A4: potwierdzona zgodność GTFS z PDF.** [PDF przewoźnika](https://kolejemalopolskie.com.pl/brepo/panel_repo/2026/10/19/rccwk3/a4-od-25-x-2026.pdf)
 
-**A7: godziny ukryte — sprawdź oficjalny rozkład.** [PDF przewoźnika](https://kolejemalopolskie.com.pl/brepo/panel_repo/2026/10/19/m73lie/a7-od-25-x-2026.pdf)
+**A7: potwierdzone godziny z PDF (GTFS: różnica do 1 min).** [PDF przewoźnika](https://kolejemalopolskie.com.pl/brepo/panel_repo/2026/10/19/m73lie/a7-od-25-x-2026.pdf)
 
 **A65: potwierdzona zgodność GTFS z PDF.** [PDF przewoźnika](https://kolejemalopolskie.com.pl/brepo/panel_repo/2026/10/19/qcfw1q/a65-od-25-x-2026.pdf)
 
@@ -135,14 +153,28 @@ Czasy są planowe, bez opóźnień na żywo. Linia gminna pozostaje na stronie I
 | --- | --- | --- |
 | 06:10 | A4 | Nowe Brzesko Rynek |
 | 06:29 | A4 | Bochnia Dworzec PKP |
+| 07:39 | A7 | Podłęże P+R Północ |
+| 09:03 | A7 | Podłęże P+R Północ |
 | 09:23 | A65 | Nowe Brzesko Rynek |
+| 09:33 | A7 | Proszowice P+R Kościuszki |
 | 10:29 | A4 | Bochnia Dworzec PKP |
 | 10:34 | A65 | Bochnia Dworzec PKP |
+| 10:58 | A7 | Nowe Brzesko Rynek |
+| 11:04 | A7 | Podłęże P+R Północ |
+| 12:23 | A7 | Podłęże P+R Północ |
 | 12:28 | A65 | Nowe Brzesko Rynek |
+| 12:43 | A7 | Proszowice P+R Kościuszki |
 | 13:30 | A4 | Nowe Brzesko Rynek |
 | 14:29 | A65 | Bochnia Dworzec PKP |
 | 15:24 | A4 | Bochnia Dworzec PKP |
+| 15:38 | A7 | Nowe Brzesko Rynek |
+| 15:54 | A7 | Podłęże P+R Północ |
 | 16:25 | A4 | Nowe Brzesko Rynek |
 | 17:29 | A65 | Bochnia Dworzec PKP |
+| 17:33 | A7 | Proszowice P+R Kościuszki |
+| 17:58 | A7 | Podłęże P+R Północ |
+| 19:38 | A7 | Nowe Brzesko Rynek |
+| 19:59 | A7 | Podłęże P+R Północ |
+| 21:33 | A7 | Proszowice P+R Kościuszki |
 | 21:38 | A65 | Nowe Brzesko Rynek |
 
