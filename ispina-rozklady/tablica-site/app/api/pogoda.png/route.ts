@@ -57,10 +57,10 @@ function dayCard(d: Forecast, i: number, compact: boolean) {
 }
 function makeCard(result: WeatherResult | undefined, compact: boolean, part: string | null) {
   const d = result?.data, c = d?.current;
-  const height = part === "now" ? 550 : part === "daily" ? 610 : part === "trend" ? 330 : compact ? 1080 : 500;
-  const size = {width: compact ? 600 : 1200, height};
+  const height = part === "brief" ? 374 : part === "now" ? 550 : part === "daily" ? 610 : part === "trend" ? 330 : compact ? 1080 : 500;
+  const size = {width: part === "brief" ? 720 : compact ? 600 : 1200, height};
   const root: CSSProperties = { ...size, ...col(18), padding: compact ? "24px" : "26px 30px", background: C.pale, borderRadius: 28, border: `2px solid ${C.border}`, fontFamily: "sans-serif", color: C.navy };
-  if (part === "trend" && (!result || !d || !c)) return h("div", {style:{...root,
+  if ((part === "trend" || part === "brief") && (!result || !d || !c)) return h("div", {style:{...root,
     padding:"21px 23px", gap:15, justifyContent:"center", background:"#FFFFFF", borderRadius:20}},
     label("CO ZMIENI SIĘ DZIŚ?", 30, C.navy, 700),
     label("Prognoza chwilowo niedostępna.", 28, C.ink, 600),
@@ -86,6 +86,46 @@ function makeCard(result: WeatherResult | undefined, compact: boolean, part: str
     label("PROGNOZA · MAKS. / MIN.", compact ? 30 : 24, C.blue, 700),
     h("div", {style: compact ? col(10) : {display: "flex", gap: 12}}, ...[0,1,2].map(i => dayCard(d, i, compact)))
   );
+  if (part === "brief") {
+    const messages = summarizeWeatherChanges(d, result.fetchedAt).slice(0, 2);
+    const colorFor = (message: string) => {
+      const txt = message.toLowerCase();
+      if (/burz|bardzo silne/.test(txt)) return {bg:"#FDEBF5", text:"#84295D", accent:"#AF2777"};
+      if (/wiatr|porywy/.test(txt)) return {bg:"#FFF1DE", text:"#8B4C13", accent:"#D58A21"};
+      if (/deszcz|śnieg|opad/.test(txt) && !/bez większych|mało prawdopodobne|brak wyraźnego/.test(txt))
+        return {bg:"#DDEFFD", text:"#14548A", accent:"#2084C8"};
+      return {bg:"#DFF8E9", text:"#176646", accent:"#2B946B"};
+    };
+    const bits = messages.map(message => {
+      const colors = colorFor(message);
+      return h("div", {style:{display:"flex", alignItems:"center", flex:1, background:colors.bg,
+          borderRadius:12, padding:"11px 14px", gap:13}},
+        h("div", {style:{width:7,height:30,background:colors.accent,borderRadius:6,flexShrink:0}}),
+        h("div", {style:{display:"flex", fontSize:26, lineHeight:1.18, color:colors.text,
+            fontWeight:650, flexWrap:"wrap"}}, message));
+    });
+    return h("div", {style:{...size,...col(0),padding:0,overflow:"hidden",
+        borderRadius:24,background:"#F8FBFF",border:"2px solid #BDD8F2",fontFamily:"sans-serif"}},
+      h("div", {style:{display:"flex",height:54,background:"#14518A",
+          alignItems:"center",justifyContent:"space-between",padding:"0 22px"}},
+        label("ISPINA  •  POGODA",27,"#FFFFFF",750),
+        label("DZISIAJ",19,"#DCEFFF",700)),
+      h("div", {style:{display:"flex",height:121,background:"#E8F3FF",
+          justifyContent:"space-between",alignItems:"center",padding:"5px 20px",gap:10}},
+        h("div", {style:{display:"flex",alignItems:"center",gap:12}},
+          icon(c.weather_code,74,c.is_day===1),
+          label(n(c.temperature_2m,"°C"),74,"#174875",750)),
+        h("div", {style:{...col(6),alignItems:"flex-end",flexShrink:0}},
+          label(describe(c.weather_code),26,"#174875",700),
+          label(`Wiatr ${n(c.wind_speed_10m)} km/h`,21,"#46647D",500))),
+      h("div", {style:{...col(9),padding:"12px 18px 7px",flex:1}},
+        ...bits),
+      h("div", {style:{display:"flex",height:35,justifyContent:"space-between",
+          alignItems:"center",padding:"0 20px",gap:8}},
+        label("Co może zmienić Twoje plany?",19,"#365A77",650),
+        label(`Aktualizacja: ${checked}`,17,"#647D93",500))
+    );
+  }
   if (part === "trend") {
     const messages = summarizeWeatherChanges(d, result.fetchedAt);
     const tone = (message: string) => {
@@ -131,12 +171,12 @@ function makeCard(result: WeatherResult | undefined, compact: boolean, part: str
 
 export async function GET(request: Request): Promise<Response> {
   const params = new URL(request.url).searchParams;
-  const part = ["now", "daily", "trend"].includes(params.get("part") || "") ? params.get("part") : null;
+  const part = ["now", "daily", "trend", "brief"].includes(params.get("part") || "") ? params.get("part") : null;
   const compact = !!part || params.get("layout") === "compact";
   let result: WeatherResult | undefined;
   try { result = await load(); } catch { /* A quiet error card, never stale weather. */ }
   const ttl = result ? Math.max(0, Math.floor((result.expires - Date.now()) / 1000)) : 0;
-  const response = new ImageResponse(makeCard(result, compact, part), { width: compact ? 600 : 1200, height: part === "now" ? 550 : part === "daily" ? 610 : part === "trend" ? 330 : compact ? 1080 : 500 });
+  const response = new ImageResponse(makeCard(result, compact, part), { width: part === "brief" ? 720 : compact ? 600 : 1200, height: part === "brief" ? 374 : part === "now" ? 550 : part === "daily" ? 610 : part === "trend" ? 330 : compact ? 1080 : 500 });
   // Buffer rendering here so image generation errors are observed before sending headers.
   const png = await response.arrayBuffer();
   return new Response(png, {headers: {
