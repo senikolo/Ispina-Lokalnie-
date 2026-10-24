@@ -1,5 +1,9 @@
 # Ispina Lokalnie — Android
 
+Ispina Lokalnie to bezpłatna, społecznościowa inicjatywa poświęcona **Ispinie**, wsi w gminie Drwinia, w powiecie bocheńskim (województwo małopolskie). Portal łączy wiadomości dla mieszkańców, historię miejscowości, archiwalne fotografie i praktyczne informacje, w tym rozkłady autobusów. Aplikacja na Androida pomaga korzystać z tych materiałów na telefonie.
+
+🌐 [Ispina Lokalnie – portal mieszkańców Ispiny](https://ispinalokalnie.com) · [Ispina – informacje o miejscowości i dane GUS](https://ispinalokalnie.wordpress.com/dane-o-ispinie/)
+
 
 Aktualne wydanie stabilne: **1.83.20** (10 października 2026).
 
