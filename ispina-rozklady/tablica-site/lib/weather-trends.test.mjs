@@ -1,6 +1,6 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {summarizeWeatherChanges} from './weather-trends.mjs';
+import {summarizeWeatherChanges, summarizeWeatherBrief} from './weather-trends.mjs';
 import {fixture} from '../tests/fixtures/weather.mjs';
 
 const now=Date.parse('2026-10-24T06:15:00Z'); // 08:15 in Ispina
@@ -39,4 +39,73 @@ test('hourly data on a DST day supports a normal short summary',()=>{
  const d=fixture(Date.parse('2026-10-25T05:00:00Z'));
  const m=summarizeWeatherChanges(d,Date.parse('2026-10-25T05:00:00Z'));
  assert.ok(m.length>0&&m.length<=3);
+});
+
+test('after 18:00: moon for dry calm night and rain warning for tomorrow morning',()=>{
+ const when=Date.parse('2026-10-24T19:05:00Z'); // 21:05 Ispina
+ const d=fixture(when);
+ const date=t=>new Intl.DateTimeFormat('en-CA',{timeZone:'Europe/Warsaw',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date(t*1000));
+ d.hourly.time.forEach((t,i)=>{
+   if(date(t)==='2026-10-25' && [7,8,9].includes(hour(t))) {
+      d.hourly.precipitation_probability[i]=90;
+      d.hourly.precipitation[i]=2;
+      d.hourly.weather_code[i]=61;
+   }
+ });
+ const o=summarizeWeatherBrief(d,when);
+ assert.equal(o.period,'NOC I JUTRO');
+ assert.equal(o.entries[0].emoji,'🌙');
+ assert.match(o.entries[0].text,/Spokojna noc/);
+ assert.equal(o.entries[1].emoji,'🌧️');
+ assert.match(o.entries[1].text,/Jutro rano możliwy deszcz/);
+});
+test('night rain and thunder must take priority over misleading calm moon',()=>{
+ const when=Date.parse('2026-10-24T19:05:00Z');
+ const d=fixture(when);
+ const date=t=>new Intl.DateTimeFormat('en-CA',{timeZone:'Europe/Warsaw',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date(t*1000));
+ d.hourly.time.forEach((t,i)=>{
+   if((date(t)==='2026-10-24' && hour(t)===23) ||
+      (date(t)==='2026-10-25' && hour(t)===1)) {
+      d.hourly.precipitation_probability[i]=80;
+      d.hourly.precipitation[i]=4;
+      d.hourly.weather_code[i]=95;
+   }
+ });
+ const o=summarizeWeatherBrief(d,when);
+ assert.equal(o.entries[0].emoji,'⛈️');
+ assert.ok(!o.entries.some(x=>x.text.includes('Spokojna noc')));
+});
+test('night gust alerts have higher priority than a moon',()=>{
+ const when=Date.parse('2026-10-24T19:05:00Z');
+ const d=fixture(when);
+ const date=t=>new Intl.DateTimeFormat('en-CA',{timeZone:'Europe/Warsaw',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date(t*1000));
+ d.hourly.time.forEach((t,i)=>{
+  if(date(t)==='2026-10-25' && hour(t)===2) d.hourly.wind_gusts_10m[i]=75;
+ });
+ const o=summarizeWeatherBrief(d,when);
+ assert.equal(o.entries[0].emoji,'💨');
+ assert.match(o.entries[0].text,/porywy wiatru/);
+});
+test('after midnight summary cannot pick unrelated rain later in the day',()=>{
+ const when=Date.parse('2026-10-26T01:15:00Z');
+ const d=fixture(when);
+ d.hourly.time.forEach((t,i)=>{
+   const dt=new Date(t*1000);
+   if(dt.toISOString().startsWith('2026-10-26T14:')) {
+      d.hourly.precipitation_probability[i]=95;
+      d.hourly.precipitation[i]=3;
+      d.hourly.weather_code[i]=61;
+   }
+ });
+ const o=summarizeWeatherBrief(d,when);
+ assert.equal(o.period,'NOC I PORANEK');
+ assert.equal(o.entries[0].emoji,'🌙');
+});
+test('daytime headline keeps rain emoji and explicit approximate time',()=>{
+ const d=fixture(now);
+ setPeriod(d,[14,15],{precipitation_probability:80,precipitation:1,weather_code:61});
+ const o=summarizeWeatherBrief(d,now);
+ assert.equal(o.period,'DZIŚ');
+ assert.equal(o.entries[0].emoji,'🌧️');
+ assert.match(o.entries[0].text,/Około 14:00/);
 });
