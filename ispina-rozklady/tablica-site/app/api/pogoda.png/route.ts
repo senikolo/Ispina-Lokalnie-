@@ -1,7 +1,7 @@
 import { ImageResponse } from "next/og";
 import { createElement as h, type CSSProperties } from "react";
 import { createWeatherLoader, type Forecast, type WeatherResult } from "../../../lib/weather.mjs";
-import { summarizeWeatherChanges } from "../../../lib/weather-trends.mjs";
+import { summarizeWeatherChanges, summarizeWeatherBrief } from "../../../lib/weather-trends.mjs";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -87,29 +87,34 @@ function makeCard(result: WeatherResult | undefined, compact: boolean, part: str
     h("div", {style: compact ? col(10) : {display: "flex", gap: 12}}, ...[0,1,2].map(i => dayCard(d, i, compact)))
   );
   if (part === "brief") {
-    const messages = summarizeWeatherChanges(d, result.fetchedAt).slice(0, 2);
-    const colorFor = (message: string) => {
-      const txt = message.toLowerCase();
-      if (/burz|bardzo silne/.test(txt)) return {bg:"#FDEBF5", text:"#84295D", accent:"#AF2777"};
-      if (/wiatr|porywy/.test(txt)) return {bg:"#FFF1DE", text:"#8B4C13", accent:"#D58A21"};
-      if (/deszcz|śnieg|opad/.test(txt) && !/bez większych|mało prawdopodobne|brak wyraźnego/.test(txt))
-        return {bg:"#DDEFFD", text:"#14548A", accent:"#2084C8"};
-      return {bg:"#DFF8E9", text:"#176646", accent:"#2B946B"};
+    const outlook = summarizeWeatherBrief(d, result.fetchedAt);
+    const messages = outlook.entries.slice(0, 2);
+    const colorFor = (kind: string) => {
+      if (kind === "storm") return {bg:"#FBE6F2",text:"#862E61",accent:"#B33A82"};
+      if (kind === "wind") return {bg:"#FFF0DC",text:"#855018",accent:"#C88727"};
+      if (kind === "rain" || kind === "snow") return {bg:"#DFEEFF",text:"#185889",accent:"#337BB5"};
+      if (kind === "calm" || kind === "stable") return {bg:"#E3F7EA",text:"#1A6549",accent:"#328D68"};
+      return {bg:"#EDF3FA",text:C.navy,accent:C.blue};
     };
     const bits = messages.map(message => {
-      const colors = colorFor(message);
+      const colors = colorFor(message.kind);
       return h("div", {style:{display:"flex", alignItems:"center", flex:1, background:colors.bg,
           borderRadius:12, padding:"11px 14px", gap:13}},
         h("div", {style:{width:7,height:30,background:colors.accent,borderRadius:6,flexShrink:0}}),
-        h("div", {style:{display:"flex", fontSize:26, lineHeight:1.18, color:colors.text,
-            fontWeight:650, flexWrap:"wrap"}}, message));
+        h("div", {style:{display:"flex", fontSize:33, width:44, flexShrink:0,
+            alignItems:"center", justifyContent:"center"}},message.emoji),
+        h("div", {style:{display:"flex", fontSize:25, lineHeight:1.2, color:colors.text,
+            fontWeight:650, flexWrap:"wrap"}}, message.text));
     });
     return h("div", {style:{...size,...col(0),padding:0,overflow:"hidden",
         borderRadius:24,background:"#F8FBFF",border:"2px solid #BDD8F2",fontFamily:"sans-serif"}},
       h("div", {style:{display:"flex",height:54,background:"#14518A",
           alignItems:"center",justifyContent:"space-between",padding:"0 22px"}},
         label("ISPINA  •  POGODA",27,"#FFFFFF",750),
-        label("DZISIAJ",19,"#DCEFFF",700)),
+        h("div",{style:{display:"flex",alignItems:"center",gap:9}},
+          outlook.period.includes("NOC") ? h("svg",{width:29,height:29,viewBox:"0 0 32 32"},
+            h("path",{d:"M19 2a13 13 0 1 0 10.5 20.8A12.5 12.5 0 0 1 19 2Z",fill:"#F5D78A"})):null,
+          label(outlook.period,18,"#DCEFFF",700))),
       h("div", {style:{display:"flex",height:121,background:"#E8F3FF",
           justifyContent:"space-between",alignItems:"center",padding:"5px 20px",gap:10}},
         h("div", {style:{display:"flex",alignItems:"center",gap:12}},
@@ -122,7 +127,7 @@ function makeCard(result: WeatherResult | undefined, compact: boolean, part: str
         ...bits),
       h("div", {style:{display:"flex",height:35,justifyContent:"space-between",
           alignItems:"center",padding:"0 20px",gap:8}},
-        label("Co może zmienić Twoje plany?",19,"#365A77",650),
+        label("Najważniejsze zmiany pogody",19,"#365A77",650),
         label(`Aktualizacja: ${checked}`,17,"#647D93",500))
     );
   }
