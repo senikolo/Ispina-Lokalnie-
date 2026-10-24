@@ -38,7 +38,17 @@ STOPS = {
     'dom-ludowy': {'name': 'Ispina Dom Ludowy', 'source_name': 'Ispina Dom Ludowy', 'north': '4533', 'south': '4352', 'parent': '12516000000'},
     'most': {'name': 'Ispina Most', 'source_name': 'Ispina', 'north': '119', 'south': '67', 'parent': '10216000000'},
 }
-BLUE, MID, INK, LIGHT, WHITE = '#174875', '#367cad', '#243f59', '#f3f7fc', '#ffffff'
+# Two additional A7-only on-request stops; other MLD routes do not serve them.
+# Independently checked on both pages of official A7 PDFs from 30 Aug / 25 Oct 2026:
+# towards Podłęże: +1 and +2 minutes from Ispina Most; towards Proszowice:
+# -1 and -2 minutes from Ispina Most, respectively, for all service-day groups.
+# The source PDF is still fingerprint-checked in verify_day before these are issued.
+A7_EXTRA_STOPS = {
+    'przedszkole': {'name': 'Ispina Przedszkole', 'north_delta': -1, 'south_delta': 1},
+    'lesniczowka': {'name': 'Ispina Leśniczówka', 'north_delta': -2, 'south_delta': 2},
+}
+DISPLAY_STOPS = {**STOPS, **A7_EXTRA_STOPS}
+BLUE, MID, INK, LIGHT, WHITE = '#174875', '#367cad', '#243f59', '#ffffff'
 
 
 class Links(HTMLParser):
@@ -251,6 +261,33 @@ def verify_day(files, target, references, versions, pdf_bytes, allow_a7_pdf_fall
     return {'date': target.isoformat(), 'departures': sorted(published, key=lambda r: (r['time'], r['line'], r['destination'])), 'validation': validation}
 
 
+def a7_extra_departures(day):
+    """Use audited A7 PDFs for two request stops; never extrapolate unverified A7.
+
+    The day validator first confirms the currently published A7 PDF fingerprint
+    and a bijective GTFS↔PDF match at Most. The printed timetable has identical
+    service groups at Przedszkole and Leśniczówka, exactly shifted by the
+    reviewed per-direction number of minutes. No LIVE data is claimed here.
+    """
+    if not day['validation']['A7']['valid']:
+        return []
+    base = [r for r in day['departures'] if r['line'] == 'A7' and r['stop'] == 'most']
+    if not base or set(r['direction'] for r in base) != {'north', 'south'}:
+        return []
+    extra = []
+    for slug, spec in A7_EXTRA_STOPS.items():
+        for r in base:
+            delta = spec[r['direction'] + '_delta']
+            hour, minute = map(int, r['time'].split(':'))
+            value = hour * 60 + minute + delta
+            if not 0 <= value < 24 * 60:
+                raise ValueError('A7: przesunięcie godzin poza dobę')
+            extra.append(dict(r, stop=slug,
+                              time=f'{value // 60:02d}:{value % 60:02d}',
+                              source='PDF przewoźnika'))
+    return extra
+
+
 def font(size, bold=False):
     path = '/usr/share/fonts/truetype/dejavu/DejaVuSans' + ('-Bold' if bold else '') + '.ttf'
     return ImageFont.truetype(path, size)
@@ -268,7 +305,10 @@ def draw_image(path, target, slug, day=None, error=None):
                 if selected:
                     dest = 'Nowe Brzesko / Proszowice' if direction == 'north' and line == 'A7' else 'Nowe Brzesko' if direction == 'north' else 'Podłęże' if line == 'A7' else 'Bochnia'
                     groups.append((line + ' → ' + dest, [r['time'] for r in selected]))
-    blocked = [line for line in ROUTES if (line != 'A7' or slug == 'most') and (not day or not day['validation'][line]['valid'])]
+    available_lines = ('A7',) if slug in A7_EXTRA_STOPS else ROUTES
+    blocked = [line for line in available_lines
+               if (line != 'A7' or slug in ('most', *A7_EXTRA_STOPS))
+               and (not day or not day['validation'][line]['valid'])]
     wrapped_groups = []
     for heading, times in groups:
         lines, current = [], ''
@@ -285,7 +325,7 @@ def draw_image(path, target, slug, day=None, error=None):
     d.rounded_rectangle((3, 3, width - 4, 151), radius=20, fill=BLUE)
     d.rectangle((3, 125, width - 4, 151), fill=BLUE)
     d.text((20, 20), 'ISPINA LOKALNIE • ODJAZDY PLANOWE', font=font(16, True), fill=WHITE)
-    d.text((20, 52), STOPS[slug]['name'], font=font(32, True), fill=WHITE)
+    d.text((20, 52), DISPLAY_STOPS[slug]['name'], font=font(32, True), fill=WHITE)
     date_text = target.strftime('%d.%m.%Y')
     weekday = ('poniedziałek', 'wtorek', 'środa', 'czwartek', 'piątek', 'sobota', 'niedziela')[target.weekday()]
     date_font = font(30, True)
@@ -327,7 +367,7 @@ def write_details(folder, metadata):
                      else 'potwierdzona zgodność GTFS z PDF' if v['valid']
                      else 'godziny ukryte — sprawdź oficjalny rozkład')
             lines += [f'**{line}: {label}.** [PDF przewoźnika]({v.get("pdf", PDF_INDEX)})', '']
-        for slug, spec in STOPS.items():
+        for slug, spec in DISPLAY_STOPS.items():
             lines += ['### ' + spec['name'], '', '| Godzina | Linia | Kierunek / przystanek końcowy |', '| --- | --- | --- |']
             for row in day['departures']:
                 if row['stop'] == slug:
@@ -373,6 +413,9 @@ def main():
         with ThreadPoolExecutor(max_workers=4) as pool: pdfs = dict(pool.map(get_pdf, sorted(needed)))
         days = [verify_day(files, today + timedelta(days=i), ref, versions, pdfs,
                            allow_a7_pdf_fallback=True) for i in range(2)]
+        for day in days:
+            day['departures'].extend(a7_extra_departures(day))
+            day['departures'].sort(key=lambda r: (r['time'], r['line'], r['destination']))
         metadata['days'] = days
         metadata['valid'] = all(v['valid'] for day in days for v in day['validation'].values())
         metadata['status'] = 'verified' if metadata['valid'] else 'partial' if any(day['departures'] for day in days) else 'unavailable'
@@ -382,7 +425,7 @@ def main():
     for i, label in enumerate(('dzis', 'jutro')):
         target = today + timedelta(days=i)
         day = metadata['days'][i] if len(metadata['days']) > i else None
-        for slug in STOPS: draw_image(folder / f'{label}-{slug}-czytelne.png', target, slug, day, metadata.get('error'))
+        for slug in DISPLAY_STOPS: draw_image(folder / f'{label}-{slug}-czytelne.png', target, slug, day, metadata.get('error'))
     (folder / 'rozklady.json').write_text(json.dumps(metadata, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
     write_details(folder, metadata)
     print(json.dumps({k: metadata.get(k) for k in ('status', 'valid', 'date', 'error')}, ensure_ascii=False))
