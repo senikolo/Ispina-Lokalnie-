@@ -57,9 +57,15 @@ function dayCard(d: Forecast, i: number, compact: boolean) {
 }
 function makeCard(result: WeatherResult | undefined, compact: boolean, part: string | null) {
   const d = result?.data, c = d?.current;
-  const height = part === "now" ? 550 : part === "daily" ? 610 : part === "trend" ? 510 : compact ? 1080 : 500;
+  const height = part === "now" ? 550 : part === "daily" ? 610 : part === "trend" ? 330 : compact ? 1080 : 500;
   const size = {width: compact ? 600 : 1200, height};
   const root: CSSProperties = { ...size, ...col(18), padding: compact ? "24px" : "26px 30px", background: C.pale, borderRadius: 28, border: `2px solid ${C.border}`, fontFamily: "sans-serif", color: C.navy };
+  if (part === "trend" && (!result || !d || !c)) return h("div", {style:{...root,
+    padding:"21px 23px", gap:15, justifyContent:"center", background:"#FFFFFF", borderRadius:20}},
+    label("CO ZMIENI SIĘ DZIŚ?", 30, C.navy, 700),
+    label("Prognoza chwilowo niedostępna.", 28, C.ink, 600),
+    label("Sprawdź ponownie za chwilę.", 23, C.muted),
+    label("Źródło: Open-Meteo", 19, C.muted));
   if (!result || !d || !c) return h("div", {style: {...root, justifyContent: "center", gap: 24}},
     label("POGODA W ISPINIE", compact ? 34 : 30, C.blue, 700),
     label("Dane chwilowo niedostępne", compact ? 46 : 52, C.navy, 700),
@@ -82,20 +88,32 @@ function makeCard(result: WeatherResult | undefined, compact: boolean, part: str
   );
   if (part === "trend") {
     const messages = summarizeWeatherChanges(d, result.fetchedAt);
-    return h("div", {style: {...root, gap: 16, justifyContent: "space-between"}},
-      h("div", {style: col(6)},
-        label("CO ZMIENI SIĘ DZIŚ?", 33, C.navy, 700),
-        label("Ispina · najbliższe godziny", 26, C.blue, 500)),
-      h("div", {style: {...col(13), background: "#FFFFFF", border: `1px solid ${C.border}`,
-        borderRadius: 18, padding: "18px 17px", flex: 1, justifyContent: "center"}},
-        ...messages.map(message => h("div", {style: {display: "flex", alignItems: "flex-start", gap: 12}},
-          h("div", {style: {fontSize: 29, fontWeight: 700, color: C.blue, flexShrink: 0}}, "•"),
-          h("div", {style: {display: "flex", flexWrap: "wrap", fontSize: 27, lineHeight: 1.3,
-            color: C.ink, fontWeight: 500}}, message)))),
-      h("div", {style: col(4)},
-        label(`Sprawdzono ${checked} · prognoza modelowa`, 22, C.muted),
-        label("Godziny zmian są orientacyjne · Open-Meteo", 21, C.muted))
-    );
+    const tone = (message: string) => {
+      const m = message.toLowerCase();
+      if (/burz|bardzo silne/.test(m)) return {bg:"#FFF1F1", accent:"#B54B54", text:"#873942"};
+      if (/wiatr|porywy/.test(m)) return {bg:"#FBF4E9", accent:"#BA843F", text:"#715025"};
+      if (/opad|deszcz|śnieg|mżaw/.test(m) && !/bez większych opadów|mało prawdopodobne|brak wyraźnego sygnału/.test(m))
+        return {bg:"#EFF6FD", accent:"#367CAD", text:"#174875"};
+      if (/bez większych opadów|mało prawdopodobne|stabiln|przejaśnien|brak wyraźnego sygnału/.test(m))
+        return {bg:"#EDF7F3", accent:"#3C8C78", text:"#285C4F"};
+      return {bg:"#F2F6FB", accent:"#6485AC", text:C.navy};
+    };
+    return h("div", {style: {...root, padding:"15px 17px", gap:8, borderRadius:20, background:"#FFFFFF",
+      border:`1px solid ${C.border}`, justifyContent:"space-between"}},
+      h("div", {style:{display:"flex", justifyContent:"space-between", alignItems:"center", gap:8, flexShrink:0}},
+        label("CO ZMIENI SIĘ DZIŚ?", 30, C.navy, 700),
+        label("ISPINA", 20, C.blue, 700)),
+      h("div", {style: {...col(7), justifyContent:"center", flex:1}},
+        ...messages.map(message=>{
+          const t=tone(message);
+          return h("div", {style:{display:"flex", alignItems:"center", padding:"8px 11px", gap:11,
+            borderRadius:11, background:t.bg, flexShrink:0}},
+            h("div", {style:{display:"flex", width:6, height:28, borderRadius:6,
+              background:t.accent, flexShrink:0}}),
+            h("div", {style:{display:"flex", flexWrap:"wrap", fontSize:26,
+              lineHeight:1.22, color:t.text, fontWeight:600}}, message));
+        })),
+      label(`Model Open-Meteo · sprawdzono ${checked}`, 19, C.muted));
   }
   if (part === "now") return h("div", {style: {...root, justifyContent: "space-between"}}, current,
     h("div", {style: col(3)}, label(`Dane modelowe na ${currentTime}`, 29, C.muted), label(`Sprawdzono ${checked}`, 29, C.muted)));
@@ -118,7 +136,7 @@ export async function GET(request: Request): Promise<Response> {
   let result: WeatherResult | undefined;
   try { result = await load(); } catch { /* A quiet error card, never stale weather. */ }
   const ttl = result ? Math.max(0, Math.floor((result.expires - Date.now()) / 1000)) : 0;
-  const response = new ImageResponse(makeCard(result, compact, part), { width: compact ? 600 : 1200, height: part === "now" ? 550 : part === "daily" ? 610 : part === "trend" ? 510 : compact ? 1080 : 500 });
+  const response = new ImageResponse(makeCard(result, compact, part), { width: compact ? 600 : 1200, height: part === "now" ? 550 : part === "daily" ? 610 : part === "trend" ? 330 : compact ? 1080 : 500 });
   // Buffer rendering here so image generation errors are observed before sending headers.
   const png = await response.arrayBuffer();
   return new Response(png, {headers: {
