@@ -2,7 +2,7 @@
 
 **Sprawdź datę podróży. Starszy dokument nie potwierdza dzisiejszych odjazdów.**
 
-Kontrola danych: 2026-10-24T20:06:47.637096+02:00
+Kontrola danych: 2026-10-24T20:15:17.958711+02:00
 
 [Oficjalne rozkłady i komunikaty KMŁ](https://kolejemalopolskie.com.pl/pl/rozklad-jazdy/rozklady-autobusowe)
 
@@ -105,6 +105,52 @@ Czasy są planowe, bez opóźnień na żywo. Linia gminna pozostaje na stronie I
 | 21:19 | A65 | Bochnia Dworzec PKP |
 | 22:53 | A7 | Proszowice P+R Kościuszki |
 
+### Ispina Przedszkole
+
+| Godzina | Linia | Kierunek / przystanek końcowy |
+| --- | --- | --- |
+| 05:05 | A7 | Podłęże P+R Północ |
+| 06:52 | A7 | Proszowice P+R Kościuszki |
+| 07:04 | A7 | Podłęże P+R Północ |
+| 08:46 | A7 | Nowe Brzesko Rynek |
+| 09:05 | A7 | Podłęże P+R Północ |
+| 10:32 | A7 | Proszowice P+R Kościuszki |
+| 11:04 | A7 | Podłęże P+R Północ |
+| 12:41 | A7 | Nowe Brzesko Rynek |
+| 13:05 | A7 | Podłęże P+R Północ |
+| 14:52 | A7 | Proszowice P+R Kościuszki |
+| 14:54 | A7 | Podłęże P+R Północ |
+| 16:36 | A7 | Nowe Brzesko Rynek |
+| 16:55 | A7 | Podłęże P+R Północ |
+| 18:29 | A7 | Podłęże P+R Północ |
+| 18:37 | A7 | Proszowice P+R Kościuszki |
+| 20:50 | A7 | Nowe Brzesko Rynek |
+| 21:05 | A7 | Podłęże P+R Północ |
+| 22:52 | A7 | Proszowice P+R Kościuszki |
+
+### Ispina Leśniczówka
+
+| Godzina | Linia | Kierunek / przystanek końcowy |
+| --- | --- | --- |
+| 05:06 | A7 | Podłęże P+R Północ |
+| 06:51 | A7 | Proszowice P+R Kościuszki |
+| 07:05 | A7 | Podłęże P+R Północ |
+| 08:45 | A7 | Nowe Brzesko Rynek |
+| 09:06 | A7 | Podłęże P+R Północ |
+| 10:31 | A7 | Proszowice P+R Kościuszki |
+| 11:05 | A7 | Podłęże P+R Północ |
+| 12:40 | A7 | Nowe Brzesko Rynek |
+| 13:06 | A7 | Podłęże P+R Północ |
+| 14:51 | A7 | Proszowice P+R Kościuszki |
+| 14:55 | A7 | Podłęże P+R Północ |
+| 16:35 | A7 | Nowe Brzesko Rynek |
+| 16:56 | A7 | Podłęże P+R Północ |
+| 18:30 | A7 | Podłęże P+R Północ |
+| 18:36 | A7 | Proszowice P+R Kościuszki |
+| 20:49 | A7 | Nowe Brzesko Rynek |
+| 21:06 | A7 | Podłęże P+R Północ |
+| 22:51 | A7 | Proszowice P+R Kościuszki |
+
 ## 2026-10-25
 
 **A4: potwierdzona zgodność GTFS z PDF.** [PDF przewoźnika](https://kolejemalopolskie.com.pl/brepo/panel_repo/2026/10/19/rccwk3/a4-od-25-x-2026.pdf)
@@ -177,4 +223,42 @@ Czasy są planowe, bez opóźnień na żywo. Linia gminna pozostaje na stronie I
 | 19:59 | A7 | Podłęże P+R Północ |
 | 21:33 | A7 | Proszowice P+R Kościuszki |
 | 21:38 | A65 | Nowe Brzesko Rynek |
+
+### Ispina Przedszkole
+
+| Godzina | Linia | Kierunek / przystanek końcowy |
+| --- | --- | --- |
+| 07:40 | A7 | Podłęże P+R Północ |
+| 09:04 | A7 | Podłęże P+R Północ |
+| 09:32 | A7 | Proszowice P+R Kościuszki |
+| 10:57 | A7 | Nowe Brzesko Rynek |
+| 11:05 | A7 | Podłęże P+R Północ |
+| 12:24 | A7 | Podłęże P+R Północ |
+| 12:42 | A7 | Proszowice P+R Kościuszki |
+| 15:37 | A7 | Nowe Brzesko Rynek |
+| 15:55 | A7 | Podłęże P+R Północ |
+| 17:32 | A7 | Proszowice P+R Kościuszki |
+| 17:59 | A7 | Podłęże P+R Północ |
+| 19:37 | A7 | Nowe Brzesko Rynek |
+| 20:00 | A7 | Podłęże P+R Północ |
+| 21:32 | A7 | Proszowice P+R Kościuszki |
+
+### Ispina Leśniczówka
+
+| Godzina | Linia | Kierunek / przystanek końcowy |
+| --- | --- | --- |
+| 07:41 | A7 | Podłęże P+R Północ |
+| 09:05 | A7 | Podłęże P+R Północ |
+| 09:31 | A7 | Proszowice P+R Kościuszki |
+| 10:56 | A7 | Nowe Brzesko Rynek |
+| 11:06 | A7 | Podłęże P+R Północ |
+| 12:25 | A7 | Podłęże P+R Północ |
+| 12:41 | A7 | Proszowice P+R Kościuszki |
+| 15:36 | A7 | Nowe Brzesko Rynek |
+| 15:56 | A7 | Podłęże P+R Północ |
+| 17:31 | A7 | Proszowice P+R Kościuszki |
+| 18:00 | A7 | Podłęże P+R Północ |
+| 19:36 | A7 | Nowe Brzesko Rynek |
+| 20:01 | A7 | Podłęże P+R Północ |
+| 21:31 | A7 | Proszowice P+R Kościuszki |
 
