@@ -84,6 +84,42 @@ class SafetyTests(unittest.TestCase):
         self.assertFalse(r['validation']['A4']['valid']); self.assertEqual(r['departures'], [])
         self.assertEqual(r['validation']['A4']['differences'][0]['only_gtfs'], ['06:00'])
 
+    def test_a7_pdf_fallback_publishes_independently_reviewed_minute(self):
+        import hashlib
+        f = feed()
+        f['trips.txt'].append({'trip_id': 'a7-test', 'route_id': 'A7', 'service_id': 'regular'})
+        f['stop_times.txt'].append({'trip_id': 'a7-test', 'stop_id': '119',
+                                    'stop_sequence': '1', 'departure_time': '06:31:00'})
+        day = date(2026, 10, 25)
+        body = b'reviewed PDF'
+        references = {'reviewed_at': '2026-10-23', 'review_valid_until': '2026-11-30', 'specs': []}
+        versions, pdfs = {}, {}
+        for line in u.ROUTES:
+            url = 'https://kolejemalopolskie.com.pl/' + line + '.pdf'
+            versions[line] = [(day, url)]
+            pdfs[url] = body
+            rows = [{'stop': 'Ispina Most', 'direction': 'north',
+                     'weekday': ['06:32'], 'saturday': ['06:32'], 'sunday': ['06:32']}] if line == 'A7' else []
+            references['specs'].append({'line': line, 'url': url, 'valid_from': str(day),
+                                       'sha256': hashlib.sha256(body).hexdigest(), 'rows': rows})
+        strict = u.verify_day(f, day, references, versions, pdfs)
+        self.assertFalse(strict['validation']['A7']['valid'])
+        verified = u.verify_day(f, day, references, versions, pdfs, allow_a7_pdf_fallback=True)
+        self.assertTrue(verified['validation']['A7']['valid'])
+        self.assertEqual([(r['line'], r['time']) for r in verified['departures']], [('A7', '06:32')])
+        self.assertEqual(verified['departures'][0]['gtfs_time'], '06:31')
+        self.assertFalse(verified['validation']['A4']['valid'])
+
+        # Even two minutes, changed PDFs, and unexpected extra A7 courses must fail closed.
+        references['specs'][1]['rows'][0]['sunday'] = ['06:33']
+        rejected = u.verify_day(f, day, references, versions, pdfs, allow_a7_pdf_fallback=True)
+        self.assertFalse(rejected['validation']['A7']['valid'])
+        references['specs'][1]['rows'][0]['sunday'] = ['06:32']
+        f['stop_times.txt'].append({'trip_id': 'a7-test', 'stop_id': '67',
+                                    'stop_sequence': '2', 'departure_time': '06:35:00'})
+        rejected = u.verify_day(f, day, references, versions, pdfs, allow_a7_pdf_fallback=True)
+        self.assertFalse(rejected['validation']['A7']['valid'])
+
     def test_changed_pdf_hash_hides_hours(self):
         import hashlib
         day = date(2026,10,25)
