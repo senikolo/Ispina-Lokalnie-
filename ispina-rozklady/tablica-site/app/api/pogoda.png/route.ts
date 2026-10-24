@@ -101,7 +101,7 @@ function makeCard(result: WeatherResult | undefined, compact: boolean, part: str
   const root: CSSProperties = { ...size, ...col(18), padding: compact ? "24px" : "26px 30px", background: C.pale, borderRadius: 28, border: `2px solid ${C.border}`, fontFamily: "sans-serif", color: C.navy };
   if ((part === "trend" || part === "brief") && (!result || !d || !c)) return h("div", {style:{...root,
     padding:"21px 23px", gap:15, justifyContent:"center", background:"#FFFFFF", borderRadius:20}},
-    label("CO ZMIENI SIĘ DZIŚ?", 30, C.navy, 700),
+    label("CO ZMIENI SIĘ DZIŚ?", 32, C.navy, 700),
     label("Prognoza chwilowo niedostępna.", 28, C.ink, 600),
     label("Sprawdź ponownie za chwilę.", 23, C.muted),
     label("Źródło: Open-Meteo", 19, C.muted));
@@ -143,18 +143,18 @@ function makeCard(result: WeatherResult | undefined, compact: boolean, part: str
           borderRadius:12, padding:"11px 14px", gap:13}},
         h("div", {style:{width:7,height:30,background:colors.accent,borderRadius:6,flexShrink:0}}),
         h("div", {style:{display:"flex",width:44,flexShrink:0,alignItems:"center",justifyContent:"center"}},moodIcon(message.kind,37)),
-        h("div", {style:{display:"flex", fontSize:25, lineHeight:1.2, color:colors.text,
+        h("div", {style:{display:"flex", fontSize:message.text.length>85?25:27, lineHeight:1.2, color:colors.text,
             fontWeight:650, flexWrap:"wrap"}}, message.text));
     });
     return h("div", {style:{...size,...col(0),padding:0,overflow:"hidden",
         borderRadius:24,background:"#F8FBFF",border:"2px solid #BDD8F2",fontFamily:"sans-serif"}},
       h("div", {style:{display:"flex",height:54,background:"#14518A",
           alignItems:"center",justifyContent:"space-between",padding:"0 22px"}},
-        label("ISPINA  •  POGODA",27,"#FFFFFF",750),
+        label("ISPINA  •  POGODA",29,"#FFFFFF",750),
         h("div",{style:{display:"flex",alignItems:"center",gap:9}},
           outlook.period.includes("NOC") ? h("svg",{width:29,height:29,viewBox:"0 0 32 32"},
             h("path",{d:"M19 2a13 13 0 1 0 10.5 20.8A12.5 12.5 0 0 1 19 2Z",fill:"#F5D78A"})):null,
-          label(outlook.period,18,"#DCEFFF",700))),
+          label(outlook.period,19,"#DCEFFF",700))),
       h("div", {style:{display:"flex",height:121,background:"#E8F3FF",
           justifyContent:"space-between",alignItems:"center",padding:"5px 20px",gap:10}},
         h("div", {style:{display:"flex",alignItems:"center",gap:12}},
@@ -167,7 +167,7 @@ function makeCard(result: WeatherResult | undefined, compact: boolean, part: str
         ...bits),
       h("div", {style:{display:"flex",height:35,justifyContent:"space-between",
           alignItems:"center",padding:"0 20px",gap:8}},
-        label("Zmiany pogody dla Ispiny",19,"#365A77",650),
+        label("Zmiany pogody dla Ispiny",20,"#365A77",650),
         label(`Aktualizacja: ${checked}`,17,"#647D93",500))
     );
   }
@@ -175,11 +175,12 @@ function makeCard(result: WeatherResult | undefined, compact: boolean, part: str
     const messages = summarizeWeatherChanges(d, result.fetchedAt);
     const tone = (message: string) => {
       const m = message.toLowerCase();
+      const dryOrEnding=/prognoza nie wskazuje opadów|opady są mało prawdopodobne|opady powinny ustąpić/.test(m);
       if (/burz|bardzo silne/.test(m)) return {bg:"#FFF1F1", accent:"#B54B54", text:"#873942"};
       if (/wiatr|porywy/.test(m)) return {bg:"#FBF4E9", accent:"#BA843F", text:"#715025"};
-      if (/opad|deszcz|śnieg|mżaw/.test(m) && !/bez większych opadów|mało prawdopodobne|brak wyraźnego sygnału/.test(m))
+      if (/opad|deszcz|śnieg|mżaw/.test(m) && !dryOrEnding)
         return {bg:"#EFF6FD", accent:"#367CAD", text:"#174875"};
-      if (/bez większych opadów|mało prawdopodobne|stabiln|przejaśnien|brak wyraźnego sygnału/.test(m))
+      if (dryOrEnding || /stabiln|przejaśnien/.test(m))
         return {bg:"#EDF7F3", accent:"#3C8C78", text:"#285C4F"};
       return {bg:"#F2F6FB", accent:"#6485AC", text:C.navy};
     };
@@ -195,7 +196,7 @@ function makeCard(result: WeatherResult | undefined, compact: boolean, part: str
             borderRadius:11, background:t.bg, flexShrink:0}},
             h("div", {style:{display:"flex", width:6, height:28, borderRadius:6,
               background:t.accent, flexShrink:0}}),
-            h("div", {style:{display:"flex", flexWrap:"wrap", fontSize:26,
+            h("div", {style:{display:"flex", flexWrap:"wrap", fontSize:message.length>80?26:27,
               lineHeight:1.22, color:t.text, fontWeight:600}}, message));
         })),
       label(`Model Open-Meteo · sprawdzono ${checked}`, 19, C.muted));
