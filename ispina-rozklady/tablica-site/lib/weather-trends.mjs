@@ -127,8 +127,8 @@ export function summarizeWeatherBrief(data, nowMs=Date.now()) {
   };
   if(currentHour>=18 || currentHour<5) {
     const night=all.filter(r=>r.time>=nowSeconds-1800 &&
-      ((r.date===today && (currentHour<5 || r.hour>=18)) ||
-       (r.date===tomorrow && r.hour<7)));
+      (currentHour<5 ? (r.date===today && r.hour<7) :
+        ((r.date===today && r.hour>=18) || (r.date===tomorrow && r.hour<7))));
     const nextMorningDay=currentHour<5?today:tomorrow;
     const morning=all.filter(r=>r.date===nextMorningDay && r.hour>=7 && r.hour<12);
     const notes=[];
