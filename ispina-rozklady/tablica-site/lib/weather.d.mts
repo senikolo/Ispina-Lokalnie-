@@ -2,6 +2,7 @@ export interface Forecast {
   latitude: number; longitude: number; timezone: string; utc_offset_seconds: number;
   current: { time: number; temperature_2m: number; apparent_temperature: number; precipitation: number; wind_speed_10m: number; weather_code: number; is_day: number };
   daily: { time: number[]; temperature_2m_max: number[]; temperature_2m_min: number[]; precipitation_probability_max: number[]; weather_code: number[] };
+  hourly: { time: number[]; precipitation_probability: number[]; precipitation: number[]; weather_code: number[]; wind_speed_10m: number[]; wind_gusts_10m: number[]; cloud_cover: number[] };
 }
 export const LOCATION: Readonly<{ latitude: number; longitude: number; timezone: string }>;
 export const REFRESH_MS: number;
