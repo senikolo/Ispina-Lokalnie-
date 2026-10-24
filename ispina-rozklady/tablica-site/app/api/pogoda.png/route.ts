@@ -41,6 +41,27 @@ function icon(code: number, size = 60, isDay = true) {
     [45,48].includes(code) && h("path", {d: "M12 49h40M18 56h30", stroke: C.blue, strokeWidth: 3, strokeLinecap: "round"})
   );
 }
+// Emoji-style SVG pictograms: generated locally without remote emoji font assets.
+function moodIcon(kind: string, size=39) {
+  const outer={width:size,height:size,viewBox:"0 0 48 48",fill:"none",style:{flexShrink:0}};
+  if(kind==="calm") return h("svg",outer,
+    h("path",{d:"M28 5C17 8 12 20 17 30c4 9 14 13 24 7-4 9-14 13-24 9C5 41 1 27 8 16 12 9 20 5 28 5Z",fill:"#EFB947",stroke:"#B98528",strokeWidth:1.5}),
+    h("path",{d:"M35 5v8M31 9h8M41 17v6M38 20h6",stroke:"#D39B26",strokeWidth:2,strokeLinecap:"round"}));
+  if(kind==="wind")return h("svg",outer,
+    h("path",{d:"M5 16h26c11 0 11-13 1-13M5 24h35c9 0 8-10 2-10M5 32h21c10 0 9 13 0 13",stroke:"#BC7526",strokeWidth:4,strokeLinecap:"round",strokeLinejoin:"round"}));
+  if(kind==="storm")return h("svg",outer,
+    h("path",{d:"M10 30a10 10 0 0 1-1-19 15 15 0 0 1 27 1 9 9 0 0 1 0 18Z",fill:"#CBB6ED",stroke:"#7B4F9B",strokeWidth:2}),
+    h("path",{d:"M26 25 16 36h9l-4 10 15-17h-9l5-4",fill:"#F0B743",stroke:"#A36B20",strokeWidth:1}));
+  if(kind==="rain")return h("svg",outer,
+    h("path",{d:"M11 29a10 10 0 0 1-1-19 14 14 0 0 1 26 1 9 9 0 0 1-1 18Z",fill:"#B9E0F8",stroke:"#397EAA",strokeWidth:2}),
+    ...[13,25,37].map(x=>h("path",{d:`M${x} 33l-3 8`,stroke:"#1C83C4",strokeWidth:3.5,strokeLinecap:"round"})));
+  if(kind==="snow")return h("svg",outer,
+    h("path",{d:"M10 28a10 10 0 0 1-1-19 14 14 0 0 1 27 2 9 9 0 0 1-1 17Z",fill:"#D9ECFC",stroke:"#5A8FB8",strokeWidth:2}),
+    ...[15,25,35].map(x=>h("circle",{cx:x,cy:38,r:3,fill:"#75B1DE"})));
+  return h("svg",outer,
+    h("circle",{cx:24,cy:24,r:11,fill:"#F8CB64",stroke:"#D8A341",strokeWidth:2}),
+    h("path",{d:"M24 3v6M24 39v6M3 24h6M39 24h6M9 9l5 5M34 34l5 5M9 39l5-5M34 14l5-5",stroke:"#D7A043",strokeWidth:3,strokeLinecap:"round"}));
+}
 function dayCard(d: Forecast, i: number, compact: boolean) {
   const title = ["Dziś", "Jutro", "Pojutrze"][i];
   const daily = d.daily;
@@ -101,8 +122,7 @@ function makeCard(result: WeatherResult | undefined, compact: boolean, part: str
       return h("div", {style:{display:"flex", alignItems:"center", flex:1, background:colors.bg,
           borderRadius:12, padding:"11px 14px", gap:13}},
         h("div", {style:{width:7,height:30,background:colors.accent,borderRadius:6,flexShrink:0}}),
-        h("div", {style:{display:"flex", fontSize:33, width:44, flexShrink:0,
-            alignItems:"center", justifyContent:"center"}},message.emoji),
+        h("div", {style:{display:"flex",width:44,flexShrink:0,alignItems:"center",justifyContent:"center"}},moodIcon(message.kind,37)),
         h("div", {style:{display:"flex", fontSize:25, lineHeight:1.2, color:colors.text,
             fontWeight:650, flexWrap:"wrap"}}, message.text));
     });
