@@ -90,3 +90,67 @@ export function summarizeWeatherChanges(data, nowMs=Date.now()) {
   if(messages.length===1 && !runs.length && !messages[0].includes('opadów') && rows.every(dry))messages.push('Opady pozostaną mało prawdopodobne.');
   return messages.slice(0,3);
 }
+
+
+// A planning-focused brief. After 18:00 in Ispina, cover the coming
+// night AND tomorrow morning; a dry evening alone is misleading.
+export function summarizeWeatherBrief(data, nowMs=Date.now()) {
+  const nowSeconds=nowMs/1000;
+  const currentHour=localHour(nowSeconds);
+  const today=localDay(nowSeconds);
+  const nextDate=new Date(today+'T12:00:00Z');
+  nextDate.setUTCDate(nextDate.getUTCDate()+1);
+  const tomorrow=nextDate.toISOString().slice(0,10);
+  const h=data?.hourly;
+  const all=(h?.time||[]).map((time,i)=>({
+    time, hour:localHour(time), date:localDay(time),
+    precipitation_probability:h.precipitation_probability[i],
+    precipitation:h.precipitation[i], weather_code:h.weather_code[i],
+    wind_speed_10m:h.wind_speed_10m[i],
+    wind_gusts_10m:h.wind_gusts_10m[i], cloud_cover:h.cloud_cover[i]
+  }));
+  const entry=(emoji,text,kind)=>({emoji,text,kind});
+  const significant = rows => rows.filter(r=>wet(r) ||
+    (thunder.has(r.weather_code) && r.precipitation_probability>=30));
+  const pickWeather=(rows,label)=>{
+    if(!rows.length)return null;
+    const storms=rows.filter(r=>thunder.has(r.weather_code) && r.precipitation_probability>=30);
+    if(storms.length)return entry('⛈️',label+' możliwe burze.','storm');
+    const events=significant(rows);
+    if(events.length>=2 || events.some(x=>x.precipitation_probability>=70)) {
+      const snow=events.some(r=>snowy.has(r.weather_code));
+      return entry(snow?'❄️':'🌧️',label+(snow?' możliwe opady śniegu.':' możliwy deszcz.'),snow?'snow':'rain');
+    }
+    const highWind=Math.max(...rows.map(r=>r.wind_gusts_10m));
+    if(highWind>=55) return entry('💨',label+' silniejsze porywy wiatru, do ok. '+Math.round(highWind/5)*5+' km/h.','wind');
+    return null;
+  };
+  if(currentHour>=18 || currentHour<5) {
+    const night=all.filter(r=>r.time>=nowSeconds-1800 &&
+      ((r.date===today && (currentHour<5 || r.hour>=18)) ||
+       (r.date===tomorrow && r.hour<7)));
+    const nextMorningDay=currentHour<5?today:tomorrow;
+    const morning=all.filter(r=>r.date===nextMorningDay && r.hour>=7 && r.hour<12);
+    const notes=[];
+    const overnight=pickWeather(night,'W nocy');
+    notes.push(overnight||entry('🌙','Spokojna noc, bez większych opadów.','calm'));
+    const morningWeather=pickWeather(morning,currentHour<5?'Dziś rano':'Jutro rano');
+    if(morningWeather)notes.push(morningWeather);
+    else if(morning.length>=3 && morning.every(dry))
+      notes.push(entry('🌤️',(currentHour<5?'Rano':'Jutro rano')+' bez większych opadów.','stable'));
+    return {period:currentHour<5?'NOC I PORANEK':'NOC I JUTRO',entries:notes.slice(0,2)};
+  }
+  const daytime = summarizeWeatherChanges(data,nowMs).slice(0,2);
+  const entries=daytime.map(text=>{
+    const t=text.toLowerCase();
+    if(t.includes('burz'))return entry('⛈️',text,'storm');
+    if(t.includes('wiatr')||t.includes('porywy'))return entry('💨',text,'wind');
+    if(t.includes('śnieg'))return entry('❄️',text,'snow');
+    if((t.includes('deszcz')||t.includes('opad')) &&
+      !/(bez większych|brak wyraźnego|mało prawdopodobne|ustąpi|pozostaną)/.test(t))
+      return entry('🌧️',text,'rain');
+    if(t.includes('przejaśnien'))return entry('🌤️',text,'stable');
+    return entry('☀️',text,'stable');
+  });
+  return {period:'DZIŚ',entries};
+}
