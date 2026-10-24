@@ -1,11 +1,14 @@
 import { ImageResponse } from "next/og";
 import { createElement as h, type CSSProperties } from "react";
 import { createWeatherLoader, type Forecast, type WeatherResult } from "../../../lib/weather.mjs";
-import { summarizeWeatherChanges, summarizeWeatherBrief } from "../../../lib/weather-trends.mjs";
+import { summarizeWeatherChanges } from "../../../lib/weather-trends.mjs";
+import { summarizeWeatherSmart } from "../../../lib/weather-smart.mjs";
+import { createImgwLoader } from "../../../lib/imgw-warnings.mjs";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 const load = createWeatherLoader();
+const loadImgw = createImgwLoader();
 const C = { navy: "#174875", blue: "#367CAD", pale: "#F3F7FC", ink: "#30485F", muted: "#526477", border: "#DAE6F1" };
 function describe(code: number | undefined): string {
   if (code === 0) return "Bezchmurnie";
@@ -47,6 +50,13 @@ function moodIcon(kind: string, size=39) {
   if(kind==="calm") return h("svg",outer,
     h("path",{d:"M28 5C17 8 12 20 17 30c4 9 14 13 24 7-4 9-14 13-24 9C5 41 1 27 8 16 12 9 20 5 28 5Z",fill:"#EFB947",stroke:"#B98528",strokeWidth:1.5}),
     h("path",{d:"M35 5v8M31 9h8M41 17v6M38 20h6",stroke:"#D39B26",strokeWidth:2,strokeLinecap:"round"}));
+  if(kind==="warning")return h("svg",outer,
+    h("path",{d:"M24 4 46 42H2Z",fill:"#FFDF9D",stroke:"#B76F16",strokeWidth:2.5,strokeLinejoin:"round"}),
+    h("path",{d:"M24 16v13",stroke:"#7C4215",strokeWidth:4,strokeLinecap:"round"}),
+    h("circle",{cx:24,cy:35,r:2.5,fill:"#7C4215"}));
+  if(kind==="fog")return h("svg",outer,
+    h("path",{d:"M11 25a10 10 0 0 1-1-17 14 14 0 0 1 26 1 9 9 0 0 1 0 16Z",fill:"#DCE9EF",stroke:"#6C91A9",strokeWidth:2}),
+    h("path",{d:"M5 30h38M10 37h29M17 44h23",stroke:"#729BAD",strokeWidth:3,strokeLinecap:"round"}));
   if(kind==="wind")return h("svg",outer,
     h("path",{d:"M5 16h26c11 0 11-13 1-13M5 24h35c9 0 8-10 2-10M5 32h21c10 0 9 13 0 13",stroke:"#BC7526",strokeWidth:4,strokeLinecap:"round",strokeLinejoin:"round"}));
   if(kind==="storm")return h("svg",outer,
@@ -77,14 +87,14 @@ function dayCard(d: Forecast, i: number, compact: boolean) {
       h("div",{style:{display:"flex",alignItems:"center",justifyContent:"space-between"}},
         label(title,29,C.navy,700),icon(code,42),label(temps,33,C.navy,700)),
       h("div",{style:{display:"flex",justifyContent:"space-between"}},
-        label(describe(code),23,C.ink),label(`Opady: ${daily.precipitation_probability_max[i]}%`,23,C.muted)));
+        label(describe(code),23,C.ink),label(`Szansa opadów do ${daily.precipitation_probability_max[i]}%`,23,C.muted)));
   }
   return h("div", { style: { ...col(12), flexShrink: 0, width: 210, padding: "22px 18px", borderRadius: 18, border: `1px solid ${C.border}`, background: "#FFFFFF" } },
     label(title, 27, C.blue, 700), icon(daily.weather_code[i], 58), label(temps, 35, C.navy, 700),
-    label(describe(daily.weather_code[i]), 25, C.ink), label(`Opady: ${daily.precipitation_probability_max[i]}%`, 24, C.muted)
+    label(describe(daily.weather_code[i]), 25, C.ink), label(`Szansa opadów do ${daily.precipitation_probability_max[i]}%`, 24, C.muted)
   );
 }
-function makeCard(result: WeatherResult | undefined, compact: boolean, part: string | null) {
+function makeCard(result: WeatherResult | undefined, compact: boolean, part: string | null, officialWarnings: unknown[] = []) {
   const d = result?.data, c = d?.current;
   const height = part === "brief" ? 374 : part === "now" ? 550 : part === "daily" ? 510 : part === "trend" ? 330 : compact ? 1080 : 500;
   const size = {width: part === "brief" ? 720 : compact ? 600 : 1200, height};
@@ -116,10 +126,12 @@ function makeCard(result: WeatherResult | undefined, compact: boolean, part: str
     h("div", {style: compact ? col(10) : {display: "flex", gap: 12}}, ...[0,1,2].map(i => dayCard(d, i, compact)))
   );
   if (part === "brief") {
-    const outlook = summarizeWeatherBrief(d, result.fetchedAt);
+    const outlook = summarizeWeatherSmart(d, result.fetchedAt, officialWarnings);
     const messages = outlook.entries.slice(0, 2);
     const colorFor = (kind: string) => {
       if (kind === "storm") return {bg:"#FBE6F2",text:"#862E61",accent:"#B33A82"};
+      if (kind === "warning") return {bg:"#FFF0E0",text:"#7C3D13",accent:"#C87023"};
+      if (kind === "fog") return {bg:"#E9F2F7",text:"#375C75",accent:"#638FA9"};
       if (kind === "wind") return {bg:"#FFF0DC",text:"#855018",accent:"#C88727"};
       if (kind === "rain" || kind === "snow") return {bg:"#DFEEFF",text:"#185889",accent:"#337BB5"};
       if (kind === "calm" || kind === "stable") return {bg:"#E3F7EA",text:"#1A6549",accent:"#328D68"};
@@ -155,7 +167,7 @@ function makeCard(result: WeatherResult | undefined, compact: boolean, part: str
         ...bits),
       h("div", {style:{display:"flex",height:35,justifyContent:"space-between",
           alignItems:"center",padding:"0 20px",gap:8}},
-        label("Najważniejsze zmiany pogody",19,"#365A77",650),
+        label("Zmiany pogody dla Ispiny",19,"#365A77",650),
         label(`Aktualizacja: ${checked}`,17,"#647D93",500))
     );
   }
@@ -191,7 +203,7 @@ function makeCard(result: WeatherResult | undefined, compact: boolean, part: str
   if (part === "now") return h("div", {style: {...root, justifyContent: "space-between"}}, current,
     h("div", {style: col(3)}, label(`Dane modelowe na ${currentTime}`, 29, C.muted), label(`Sprawdzono ${checked}`, 29, C.muted)));
   if (part === "daily") return h("div", {style: {...root, justifyContent: "space-between"}}, forecast,
-    h("div", {style: col(3)}, label(`Sprawdzono ${checked}`, 29, C.muted), label("Open-Meteo · odświeżanie ok. 30 min", 28, C.muted)));
+    h("div", {style: col(3)}, label(`Sprawdzono ${checked}`, 29, C.muted), label("Maks. szansa opadów w dobie · Open-Meteo", 22, C.muted)));
   return h("div", {style: root},
     compact ? current : h("div", {style: {display: "flex", gap: 24, flex: 1}}, current, forecast),
     compact && forecast,
@@ -207,9 +219,15 @@ export async function GET(request: Request): Promise<Response> {
   const part = ["now", "daily", "trend", "brief"].includes(params.get("part") || "") ? params.get("part") : null;
   const compact = !!part || params.get("layout") === "compact";
   let result: WeatherResult | undefined;
-  try { result = await load(); } catch { /* A quiet error card, never stale weather. */ }
-  const ttl = result ? Math.max(0, Math.floor((result.expires - Date.now()) / 1000)) : 0;
-  const response = new ImageResponse(makeCard(result, compact, part), { width: part === "brief" ? 720 : compact ? 600 : 1200, height: part === "brief" ? 374 : part === "now" ? 550 : part === "daily" ? 510 : part === "trend" ? 330 : compact ? 1080 : 500 });
+  const [weather, official] = await Promise.allSettled([
+    load(), part === "brief" ? loadImgw() : Promise.resolve(null)
+  ]);
+  if(weather.status === "fulfilled") result = weather.value;
+  // When IMGW cannot be reached, omit official claims instead of inventing "no warnings".
+  const imgw = official.status === "fulfilled" ? official.value : null;
+  const warnings = imgw?.warnings || [];
+  const ttl = result ? Math.max(0, Math.min(part === "brief" ? 420 : 1800, Math.floor((result.expires - Date.now()) / 1000))) : 0;
+  const response = new ImageResponse(makeCard(result, compact, part, warnings), { width: part === "brief" ? 720 : compact ? 600 : 1200, height: part === "brief" ? 374 : part === "now" ? 550 : part === "daily" ? 510 : part === "trend" ? 330 : compact ? 1080 : 500 });
   // Buffer rendering here so image generation errors are observed before sending headers.
   const png = await response.arrayBuffer();
   return new Response(png, {headers: {
@@ -220,6 +238,8 @@ export async function GET(request: Request): Promise<Response> {
     "X-Content-Type-Options": "nosniff",
     "X-Weather-Status": result ? "ok" : "unavailable",
     "X-Weather-Location": "50.11336,20.37746;Europe/Warsaw",
+    ...(part === "brief" ? { "X-IMGW-Status": imgw ? "checked" : "unavailable",
+      "X-IMGW-County": "1201", "X-IMGW-Warnings": String(warnings.length) } : {}),
     ...(result ? { "X-Weather-Checked": new Date(result.fetchedAt).toISOString(), "X-Weather-Data-Time": new Date(result.data.current.time * 1000).toISOString(), "X-Weather-Expires": new Date(result.expires).toISOString() } : {})
   }});
 }
