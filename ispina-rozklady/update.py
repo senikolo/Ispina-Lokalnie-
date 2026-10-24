@@ -48,7 +48,7 @@ A7_EXTRA_STOPS = {
     'lesniczowka': {'name': 'Ispina Leśniczówka', 'north_delta': -2, 'south_delta': 2},
 }
 DISPLAY_STOPS = {**STOPS, **A7_EXTRA_STOPS}
-BLUE, MID, INK, LIGHT, WHITE = '#174875', '#367cad', '#243f59', '#ffffff'
+BLUE, MID, INK, LIGHT, WHITE = '#174875', '#367cad', '#243f59', '#f3f7fc', '#ffffff'
 
 
 class Links(HTMLParser):
