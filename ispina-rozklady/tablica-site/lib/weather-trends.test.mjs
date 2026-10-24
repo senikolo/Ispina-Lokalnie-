@@ -13,7 +13,7 @@ function setPeriod(data, hours, values) {
 }
 test('short dry-day message without 24 hourly temperatures',()=>{
  const messages=summarizeWeatherChanges(fixture(now),now);
- assert.ok(messages.some(x=>/Do końca dnia bez większych opadów/.test(x)),JSON.stringify(messages));
+ assert.ok(messages.some(x=>/Do końca dnia prognoza nie wskazuje opadów/.test(x)),JSON.stringify(messages));
  assert.equal(messages.join(' ').includes('°C'),false);
 });
 test('rain onset and end are presented as approximate changes',()=>{
@@ -108,4 +108,21 @@ test('daytime headline keeps rain emoji and explicit approximate time',()=>{
  assert.equal(o.period,'DZIŚ');
  assert.equal(o.entries[0].emoji,'🌧️');
  assert.match(o.entries[0].text,/Około 14:00/);
+});
+
+test('uncertain chance is distinguished from no precipitation',()=>{
+ const d=fixture(now);
+ d.hourly.time.forEach((t,i)=>{
+   if(isToday(t)&&hour(t)===14)d.hourly.precipitation_probability[i]=58;
+ });
+ const messages=summarizeWeatherChanges(d,now);
+ assert.match(messages[0],/Do końca dnia możliwe opady/);
+ assert.doesNotMatch(messages[0],/bez większych opadów/);
+});
+test('low chance is labelled unlikely, not dry',()=>{
+ const d=fixture(now);
+ d.hourly.time.forEach((t,i)=>{
+   if(isToday(t)&&hour(t)===14)d.hourly.precipitation_probability[i]=28;
+ });
+ assert.match(summarizeWeatherChanges(d,now)[0],/opady są mało prawdopodobne/);
 });
