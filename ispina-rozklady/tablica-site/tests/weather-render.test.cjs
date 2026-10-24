@@ -16,7 +16,7 @@ test('actual PNG renderer serves both responsive cards, full widget, and outage 
     const {fixture} = await import('./fixtures/weather.mjs');
     global.fetch = async () => ({ok:true, json:async()=>fixture(Date.now())});
     const {GET} = await import(pathToFileURL(temporary).href + '?ok');
-    for (const [query,width,height] of [['?part=now',600,550],['?part=daily',600,610],['?part=trend',600,330],['?layout=compact',600,1080],['',1200,500]]) {
+    for (const [query,width,height] of [['?part=now',600,550],['?part=daily',600,610],['?part=trend',600,330],['?part=brief',720,374],['?layout=compact',600,1080],['',1200,500]]) {
       const response = await GET(new Request('https://weather.example/api/pogoda'+query));
       assert.equal(response.headers.get('content-type'),'image/png');
       assert.equal(response.headers.get('x-weather-status'),'ok');
