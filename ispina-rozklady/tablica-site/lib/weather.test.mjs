@@ -27,6 +27,23 @@ test('rejects incomplete, null, nonfinite, stale, future and wrong-location data
     assert.throws(() => validateWeather(d, baseline));
   }
 });
+test('includes hourly probability, gusts and cloud forecast in the existing API request', () => {
+  const u=weatherUrl(baseline);
+  assert.equal(u.searchParams.get('hourly'),'precipitation_probability,precipitation,weather_code,wind_speed_10m,wind_gusts_10m,cloud_cover');
+});
+test('rejects incomplete hourly forecasts, null probabilities and wrong wind units', () => {
+  for(const mutate of [
+    d=>d.hourly.time.pop(),
+    d=>d.hourly.precipitation_probability[1]=null,
+    d=>d.hourly.wind_gusts_10m[0]=Infinity,
+    d=>d.hourly.cloud_cover[0]=101,
+    d=>d.hourly.time[2]=d.hourly.time[1],
+    d=>d.hourly_units.wind_gusts_10m='mph'
+  ]) {
+    const d=fixture(baseline);mutate(d);
+    assert.throws(()=>validateWeather(d,baseline));
+  }
+});
 test('coalesces requests, refreshes after thirty minutes and drops expired data on failure', async () => {
   let now = baseline, calls = 0, fail = false;
   const load = createWeatherLoader(async (url, options) => {
