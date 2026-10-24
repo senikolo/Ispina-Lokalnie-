@@ -11,7 +11,7 @@ export function weatherUrl(now = Date.now()) {
   const end = new Date(start + 'T12:00:00Z');
   end.setUTCDate(end.getUTCDate() + 2);
   // Explicit dates avoid an upstream response cached across Warsaw midnight.
-  const params = { ...LOCATION, start_date: start, end_date: end.toISOString().slice(0, 10), timeformat: 'unixtime', temperature_unit: 'celsius', wind_speed_unit: 'kmh', precipitation_unit: 'mm', current: 'temperature_2m,apparent_temperature,precipitation,weather_code,wind_speed_10m,is_day', daily: 'temperature_2m_max,temperature_2m_min,precipitation_probability_max,weather_code' };
+  const params = { ...LOCATION, start_date: start, end_date: end.toISOString().slice(0, 10), timeformat: 'unixtime', temperature_unit: 'celsius', wind_speed_unit: 'kmh', precipitation_unit: 'mm', current: 'temperature_2m,apparent_temperature,precipitation,weather_code,wind_speed_10m,is_day', hourly: 'precipitation_probability,precipitation,weather_code,wind_speed_10m,wind_gusts_10m,cloud_cover', daily: 'temperature_2m_max,temperature_2m_min,precipitation_probability_max,weather_code' };
   for (const [key, value] of Object.entries(params)) url.searchParams.set(key, String(value));
   return url;
 }
@@ -36,6 +36,31 @@ export function validateWeather(data, now = Date.now()) {
     const apiDate = new Date((d.time[i] + data.utc_offset_seconds) * 1000).toISOString().slice(0, 10);
     if (apiDate !== date.toISOString().slice(0, 10)) throw new Error('Wrong forecast dates');
   }
+  const h=data.hourly, hu=data.hourly_units;
+  if(hu?.time !== 'unixtime' || hu?.precipitation_probability !== '%' || hu?.precipitation !== 'mm' ||
+    hu?.wind_speed_10m !== 'km/h' || hu?.wind_gusts_10m !== 'km/h' || hu?.cloud_cover !== '%') throw new Error('Wrong hourly forecast units');
+  const keys=['time','precipitation_probability','precipitation','weather_code','wind_speed_10m','wind_gusts_10m','cloud_cover'];
+  const count=h?.time?.length;
+  // Three civil days have 71, 72 or 73 hourly instants across Warsaw DST.
+  if(!Number.isInteger(count) || count<71 || count>73 || keys.some(k=>!Array.isArray(h[k]) || h[k].length!==count))
+    throw new Error('Incomplete hourly change forecast');
+  const hourlyDates=new Set();
+  for(let i=0;i<count;i++){
+    const t=h.time[i];
+    if(!number(t,0,1e11) || (i && t-h.time[i-1]!==3600) ||
+      !number(h.precipitation_probability[i],0,100) || !number(h.precipitation[i],0,1000) ||
+      !codes.has(h.weather_code[i]) || !number(h.wind_speed_10m[i],0,350) ||
+      !number(h.wind_gusts_10m[i],0,400) || !number(h.cloud_cover[i],0,100))
+      throw new Error('Invalid hourly change forecast');
+    hourlyDates.add(localDate(t));
+  }
+  const expectedDays=d.time.map((_,i)=>{
+    const date=new Date(today+'T12:00:00Z');date.setUTCDate(date.getUTCDate()+i);
+    return date.toISOString().slice(0,10);
+  });
+  if(expectedDays.some(day=>!hourlyDates.has(day)) || hourlyDates.size!==3 ||
+     localDate(h.time[0])!==today || localDate(h.time[count-1])!==expectedDays[2])
+    throw new Error('Wrong hourly forecast days');
   return data;
 }
 
