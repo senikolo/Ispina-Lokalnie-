@@ -60,10 +60,32 @@ function eventToMessage(event,scope,nowMs){
   if(event.kind==='snow')return {kind:'snow',text:when+' możliwe opady śniegu.'};
   return {kind:'rain',text:when+' możliwy deszcz.'};
 }
-function stable(scope){
-  if(scope==='night')return {kind:'calm',text:'Spokojna noc, bez większych utrudnień pogodowych.'};
-  if(scope==='morning')return {kind:'stable',text:'Jutro rano bez większych opadów.'};
-  return {kind:'stable',text:'Do końca dnia bez większych zmian pogody.'};
+// State clearly whether the forecast expects precipitation, not whether it is "large".
+// Thresholds are conservative presentation bands, not guaranteed probabilities
+// for the entire period: the input is an hourly forecast.
+function periodOutlook(scope, rows, currentHour) {
+  if (rows.length < 2) return null;
+  const maxChance = Math.max(...rows.map(r => r.prob));
+  const precipitationSignal = rows.some(r => r.mm >= 0.2 ||
+    rainy.has(r.code) || snowy.has(r.code));
+  const lowChance = maxChance < 20 && !precipitationSignal;
+  const moderateChance = maxChance < 35 && !precipitationSignal;
+  const period = scope==='night'?'W nocy':
+    scope==='morning'?(currentHour<5?'Dziś rano':'Jutro rano'):'Do końca dnia';
+  if (lowChance) {
+    const text = scope==='night'?'Spokojna noc. Prognoza nie wskazuje opadów.':
+      scope==='morning'?period+' prognoza nie wskazuje opadów.':
+      'Do końca dnia prognoza nie wskazuje opadów.';
+    return {kind:scope==='night'?'calm':'stable',text};
+  }
+  if (moderateChance) {
+    return {kind:'stable',text:scope==='day'
+      ? 'Do końca dnia opady są mało prawdopodobne.'
+      : period+' opady są mało prawdopodobne.'};
+  }
+  return {kind:'rain',text:scope==='day'
+    ? 'Do końca dnia możliwe opady. Dokładna pora jest niepewna.'
+    : period+' możliwe opady. Dokładna pora jest niepewna.'};
 }
 export function summarizeWeatherSmart(data,nowMs=Date.now(),officialWarnings=[]){
   const now=nowMs/1000, hour=hourOf(now), day=dateOf(now);
@@ -89,9 +111,9 @@ export function summarizeWeatherSmart(data,nowMs=Date.now(),officialWarnings=[])
     const secondary=morningEvents[0];
     // Do not claim a calm night if only one observation remains.
     if(primary) messages.push(eventToMessage(primary,'night',nowMs));
-    else if(night.length>=2)messages.push(stable('night'));
+    else if(night.length>=2)messages.push(periodOutlook('night',night,hour));
     if(secondary)messages.push(eventToMessage(secondary,'morning',nowMs));
-    else if(morning.length>=3&&morning.every(r=>r.prob<35&&r.mm<0.2)&&messages.length<2)messages.push(stable('morning'));
+    else if(morning.length>=3&&messages.length<2)messages.push(periodOutlook('morning',morning,hour));
   }else{
     const events=extractEvents(daytime);
     if(events.length){
@@ -104,7 +126,7 @@ export function summarizeWeatherSmart(data,nowMs=Date.now(),officialWarnings=[])
         if(after.length>=2&&after.every(r=>r.mm<0.2&&r.prob<35))
            messages.push({kind:'stable',text:'Po około '+String(after[0].hour).padStart(2,'0')+':00 opady powinny ustąpić.'});
       }
-    }else if(daytime.length>=2)messages.push(stable('day'));
+    }else if(daytime.length>=2)messages.push(periodOutlook('day',daytime,hour));
   }
   if(!messages.length)messages.push({kind:'stable',text:'Brak pełnych danych o zmianach pogody.'});
   return {period:evening?(hour<5?'NOC I PORANEK':'NOC I JUTRO'):'DZIŚ',
