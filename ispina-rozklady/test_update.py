@@ -172,4 +172,27 @@ class SafetyTests(unittest.TestCase):
                 with Image.open(path) as image: image.verify()
 
 
+    def test_png_times_are_vertical_and_chronological(self):
+        from PIL import Image, ImageChops
+        import tempfile
+        with tempfile.TemporaryDirectory() as tmp:
+            def rendered(times, name):
+                day = {'departures': [
+                    {'stop': 'lesniczowka', 'line': 'A7', 'direction': 'south', 'time': time}
+                    for time in times
+                ], 'validation': {'A7': {'valid': True}}}
+                path = Path(tmp) / (name + '.png')
+                u.draw_image(path, date(2026, 10, 26), 'lesniczowka', day)
+                with Image.open(path) as image:
+                    return image.copy()
+
+            earlier = rendered(['15:27', '16:15', '17:01'], 'earlier')
+            shuffled = rendered(['17:01', '15:27', '16:15'], 'shuffled')
+            longer = rendered(['15:27', '16:15', '17:01', '18:00'], 'longer')
+            self.assertEqual(earlier.width, 480)
+            self.assertIsNone(ImageChops.difference(earlier, shuffled).getbbox())
+            # In a one-column layout every extra departure adds a whole row.
+            self.assertEqual(longer.height - earlier.height, 46)
+
+
 if __name__ == '__main__': unittest.main()

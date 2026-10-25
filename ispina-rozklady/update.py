@@ -294,7 +294,7 @@ def font(size, bold=False):
 
 
 def draw_image(path, target, slug, day=None, error=None):
-    # Two generous columns remain readable inside a narrow WordPress phone card.
+    # One chronological column makes the phone timetable unambiguous to read.
     width = 480
     groups = []
     if day:
@@ -304,7 +304,7 @@ def draw_image(path, target, slug, day=None, error=None):
                 selected = [r for r in rows if r['direction'] == direction]
                 if selected:
                     dest = 'Nowe Brzesko / Proszowice' if direction == 'north' and line == 'A7' else 'Nowe Brzesko' if direction == 'north' else 'Podłęże' if line == 'A7' else 'Bochnia'
-                    groups.append((line + ' → ' + dest, [r['time'] for r in selected]))
+                    groups.append((line + ' → ' + dest, sorted(r['time'] for r in selected)))
     available_lines = ('A7',) if slug in A7_EXTRA_STOPS else ROUTES
     blocked = [line for line in available_lines
                if (line != 'A7' or slug in ('most', *A7_EXTRA_STOPS))
@@ -319,7 +319,7 @@ def draw_image(path, target, slug, day=None, error=None):
             else: current = candidate
         if current: lines.append(current)
         wrapped_groups.append((lines, times))
-    height = 180 + sum(len(lines) * 40 + 10 + ((len(times) + 1) // 2) * 56 + 20 for lines, times in wrapped_groups) + (135 if blocked else 0) + 95
+    height = 180 + sum(len(lines) * 40 + 10 + len(times) * 46 + 20 for lines, times in wrapped_groups) + (135 if blocked else 0) + 95
     img = Image.new('RGB', (width, height), WHITE); d = ImageDraw.Draw(img)
     d.rounded_rectangle((2, 2, width - 3, height - 3), radius=20, outline='#dbe5ef', width=2)
     d.rounded_rectangle((3, 3, width - 4, 151), radius=20, fill=BLUE)
@@ -337,12 +337,11 @@ def draw_image(path, target, slug, day=None, error=None):
         for line in lines:
             d.text((20, y), line, font=font(29, True), fill=BLUE); y += 40
         y += 10
-        for i, value in enumerate(times):
-            x = 20 + (i % 2) * 228
-            if i and i % 2 == 0: y += 56
-            d.rounded_rectangle((x, y, x + 212, y + 49), radius=8, fill=LIGHT)
-            d.text((x + 41, y), value, font=font(40, True), fill=INK)
-        y += 76
+        for value in times:
+            d.rounded_rectangle((20, y, width - 20, y + 42), radius=8, fill=LIGHT)
+            d.text((width // 2, y + 4), value, font=font(33, True), fill=INK, anchor='mt')
+            y += 46
+        y += 20
     if blocked:
         d.rounded_rectangle((12, y, width - 12, y + 118), radius=12, fill=LIGHT)
         d.text((22, y + 10), ', '.join(blocked) + ' — sprawdź rozkład KMŁ', font=font(22, True), fill=BLUE)
