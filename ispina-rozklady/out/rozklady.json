@@ -1,77 +1,104 @@
 {
-  "generated_at": "2026-10-25T20:37:39.960132+01:00",
+  "generated_at": "2026-10-26T01:23:44.940438+01:00",
   "timezone": "Europe/Warsaw",
   "data_type": "scheduled_not_realtime",
-  "date": "2026-10-25",
+  "date": "2026-10-26",
   "valid": true,
   "status": "verified",
   "days": [
     {
-      "date": "2026-10-25",
+      "date": "2026-10-26",
       "departures": [
+        {
+          "stop": "most",
+          "stop_id": "67",
+          "line": "A65",
+          "direction": "south",
+          "time": "04:09",
+          "destination": "Bochnia Dworzec PKP",
+          "trip_id": "1383_2447"
+        },
+        {
+          "stop": "dom-ludowy",
+          "stop_id": "4352",
+          "line": "A65",
+          "direction": "south",
+          "time": "04:10",
+          "destination": "Bochnia Dworzec PKP",
+          "trip_id": "1383_2447"
+        },
+        {
+          "stop": "wislisko",
+          "stop_id": "4076",
+          "line": "A65",
+          "direction": "south",
+          "time": "04:11",
+          "destination": "Bochnia Dworzec PKP",
+          "trip_id": "1383_2447"
+        },
         {
           "stop": "wislisko",
           "stop_id": "4222",
-          "line": "A4",
+          "line": "A65",
           "direction": "north",
-          "time": "06:08",
+          "time": "04:26",
           "destination": "Nowe Brzesko Rynek",
-          "trip_id": "1383_2413"
+          "trip_id": "1383_2433"
         },
         {
           "stop": "dom-ludowy",
           "stop_id": "4533",
-          "line": "A4",
+          "line": "A65",
           "direction": "north",
-          "time": "06:09",
+          "time": "04:27",
           "destination": "Nowe Brzesko Rynek",
-          "trip_id": "1383_2413"
+          "trip_id": "1383_2433"
         },
         {
           "stop": "most",
           "stop_id": "119",
-          "line": "A4",
+          "line": "A65",
           "direction": "north",
-          "time": "06:10",
+          "time": "04:28",
           "destination": "Nowe Brzesko Rynek",
-          "trip_id": "1383_2413"
+          "trip_id": "1383_2433"
         },
         {
           "stop": "most",
           "stop_id": "67",
           "line": "A4",
           "direction": "south",
-          "time": "06:29",
+          "time": "04:29",
           "destination": "Bochnia Dworzec PKP",
-          "trip_id": "1383_2414"
+          "trip_id": "1383_2393"
         },
         {
           "stop": "dom-ludowy",
           "stop_id": "4352",
           "line": "A4",
           "direction": "south",
-          "time": "06:30",
+          "time": "04:30",
           "destination": "Bochnia Dworzec PKP",
-          "trip_id": "1383_2414"
+          "trip_id": "1383_2393"
         },
         {
           "stop": "wislisko",
           "stop_id": "4076",
           "line": "A4",
           "direction": "south",
-          "time": "06:31",
+          "time": "04:31",
           "destination": "Bochnia Dworzec PKP",
-          "trip_id": "1383_2414"
+          "trip_id": "1383_2393"
         },
         {
           "stop": "most",
           "stop_id": "67",
           "line": "A7",
           "direction": "south",
-          "time": "07:39",
+          "time": "04:54",
           "destination": "Podłęże P+R Północ",
-          "trip_id": "1383_2038",
-          "gtfs_time": "07:39",
+          "trip_id": "1383_1988",
+          "gtfs_time": "04:54",
           "source": "PDF przewoźnika"
         },
         {
@@ -79,10 +106,10 @@
           "stop_id": "67",
           "line": "A7",
           "direction": "south",
-          "time": "07:40",
+          "time": "04:55",
           "destination": "Podłęże P+R Północ",
-          "trip_id": "1383_2038",
-          "gtfs_time": "07:39",
+          "trip_id": "1383_1988",
+          "gtfs_time": "04:54",
           "source": "PDF przewoźnika"
         },
         {
@@ -90,10 +117,238 @@
           "stop_id": "67",
           "line": "A7",
           "direction": "south",
-          "time": "07:41",
+          "time": "04:56",
           "destination": "Podłęże P+R Północ",
-          "trip_id": "1383_2038",
-          "gtfs_time": "07:39",
+          "trip_id": "1383_1988",
+          "gtfs_time": "04:54",
+          "source": "PDF przewoźnika"
+        },
+        {
+          "stop": "most",
+          "stop_id": "67",
+          "line": "A65",
+          "direction": "south",
+          "time": "04:59",
+          "destination": "Bochnia Dworzec PKP",
+          "trip_id": "1383_2434"
+        },
+        {
+          "stop": "dom-ludowy",
+          "stop_id": "4352",
+          "line": "A65",
+          "direction": "south",
+          "time": "05:00",
+          "destination": "Bochnia Dworzec PKP",
+          "trip_id": "1383_2434"
+        },
+        {
+          "stop": "wislisko",
+          "stop_id": "4076",
+          "line": "A65",
+          "direction": "south",
+          "time": "05:01",
+          "destination": "Bochnia Dworzec PKP",
+          "trip_id": "1383_2434"
+        },
+        {
+          "stop": "most",
+          "stop_id": "67",
+          "line": "A4",
+          "direction": "south",
+          "time": "05:34",
+          "destination": "Bochnia Dworzec PKP",
+          "trip_id": "1383_2401"
+        },
+        {
+          "stop": "dom-ludowy",
+          "stop_id": "4352",
+          "line": "A4",
+          "direction": "south",
+          "time": "05:35",
+          "destination": "Bochnia Dworzec PKP",
+          "trip_id": "1383_2401"
+        },
+        {
+          "stop": "wislisko",
+          "stop_id": "4076",
+          "line": "A4",
+          "direction": "south",
+          "time": "05:36",
+          "destination": "Bochnia Dworzec PKP",
+          "trip_id": "1383_2401"
+        },
+        {
+          "stop": "wislisko",
+          "stop_id": "4222",
+          "line": "A65",
+          "direction": "north",
+          "time": "05:56",
+          "destination": "Nowe Brzesko Rynek",
+          "trip_id": "1383_2448"
+        },
+        {
+          "stop": "dom-ludowy",
+          "stop_id": "4533",
+          "line": "A65",
+          "direction": "north",
+          "time": "05:57",
+          "destination": "Nowe Brzesko Rynek",
+          "trip_id": "1383_2448"
+        },
+        {
+          "stop": "most",
+          "stop_id": "119",
+          "line": "A65",
+          "direction": "north",
+          "time": "05:58",
+          "destination": "Nowe Brzesko Rynek",
+          "trip_id": "1383_2448"
+        },
+        {
+          "stop": "most",
+          "stop_id": "67",
+          "line": "A7",
+          "direction": "south",
+          "time": "06:08",
+          "destination": "Podłęże P+R Północ",
+          "trip_id": "1383_2006",
+          "gtfs_time": "06:08",
+          "source": "PDF przewoźnika"
+        },
+        {
+          "stop": "przedszkole",
+          "stop_id": "67",
+          "line": "A7",
+          "direction": "south",
+          "time": "06:09",
+          "destination": "Podłęże P+R Północ",
+          "trip_id": "1383_2006",
+          "gtfs_time": "06:08",
+          "source": "PDF przewoźnika"
+        },
+        {
+          "stop": "lesniczowka",
+          "stop_id": "67",
+          "line": "A7",
+          "direction": "south",
+          "time": "06:10",
+          "destination": "Podłęże P+R Północ",
+          "trip_id": "1383_2006",
+          "gtfs_time": "06:08",
+          "source": "PDF przewoźnika"
+        },
+        {
+          "stop": "most",
+          "stop_id": "67",
+          "line": "A65",
+          "direction": "south",
+          "time": "06:29",
+          "destination": "Bochnia Dworzec PKP",
+          "trip_id": "1383_2449"
+        },
+        {
+          "stop": "dom-ludowy",
+          "stop_id": "4352",
+          "line": "A65",
+          "direction": "south",
+          "time": "06:30",
+          "destination": "Bochnia Dworzec PKP",
+          "trip_id": "1383_2449"
+        },
+        {
+          "stop": "wislisko",
+          "stop_id": "4076",
+          "line": "A65",
+          "direction": "south",
+          "time": "06:31",
+          "destination": "Bochnia Dworzec PKP",
+          "trip_id": "1383_2449"
+        },
+        {
+          "stop": "wislisko",
+          "stop_id": "4222",
+          "line": "A4",
+          "direction": "north",
+          "time": "06:43",
+          "destination": "Nowe Brzesko Rynek",
+          "trip_id": "1383_2394"
+        },
+        {
+          "stop": "dom-ludowy",
+          "stop_id": "4533",
+          "line": "A4",
+          "direction": "north",
+          "time": "06:44",
+          "destination": "Nowe Brzesko Rynek",
+          "trip_id": "1383_2394"
+        },
+        {
+          "stop": "most",
+          "stop_id": "119",
+          "line": "A4",
+          "direction": "north",
+          "time": "06:45",
+          "destination": "Nowe Brzesko Rynek",
+          "trip_id": "1383_2394"
+        },
+        {
+          "stop": "wislisko",
+          "stop_id": "4222",
+          "line": "A65",
+          "direction": "north",
+          "time": "06:51",
+          "destination": "Nowe Brzesko Rynek",
+          "trip_id": "1383_2435"
+        },
+        {
+          "stop": "dom-ludowy",
+          "stop_id": "4533",
+          "line": "A65",
+          "direction": "north",
+          "time": "06:52",
+          "destination": "Nowe Brzesko Rynek",
+          "trip_id": "1383_2435"
+        },
+        {
+          "stop": "most",
+          "stop_id": "119",
+          "line": "A65",
+          "direction": "north",
+          "time": "06:53",
+          "destination": "Nowe Brzesko Rynek",
+          "trip_id": "1383_2435"
+        },
+        {
+          "stop": "lesniczowka",
+          "stop_id": "119",
+          "line": "A7",
+          "direction": "north",
+          "time": "06:55",
+          "destination": "Proszowice P+R Kościuszki",
+          "trip_id": "1383_2081",
+          "gtfs_time": "06:57",
+          "source": "PDF przewoźnika"
+        },
+        {
+          "stop": "przedszkole",
+          "stop_id": "119",
+          "line": "A7",
+          "direction": "north",
+          "time": "06:56",
+          "destination": "Proszowice P+R Kościuszki",
+          "trip_id": "1383_2081",
+          "gtfs_time": "06:57",
+          "source": "PDF przewoźnika"
+        },
+        {
+          "stop": "most",
+          "stop_id": "119",
+          "line": "A7",
+          "direction": "north",
+          "time": "06:57",
+          "destination": "Proszowice P+R Kościuszki",
+          "trip_id": "1383_2081",
+          "gtfs_time": "06:57",
           "source": "PDF przewoźnika"
         },
         {
@@ -101,21 +356,288 @@
           "stop_id": "67",
           "line": "A7",
           "direction": "south",
-          "time": "09:03",
+          "time": "07:00",
           "destination": "Podłęże P+R Północ",
-          "trip_id": "1383_2046",
-          "gtfs_time": "09:03",
+          "trip_id": "1383_2024",
+          "gtfs_time": "07:00",
           "source": "PDF przewoźnika"
         },
         {
           "stop": "przedszkole",
+          "stop_id": "67",
+          "line": "A7",
+          "direction": "south",
+          "time": "07:01",
+          "destination": "Podłęże P+R Północ",
+          "trip_id": "1383_2024",
+          "gtfs_time": "07:00",
+          "source": "PDF przewoźnika"
+        },
+        {
+          "stop": "lesniczowka",
+          "stop_id": "67",
+          "line": "A7",
+          "direction": "south",
+          "time": "07:02",
+          "destination": "Podłęże P+R Północ",
+          "trip_id": "1383_2024",
+          "gtfs_time": "07:00",
+          "source": "PDF przewoźnika"
+        },
+        {
+          "stop": "most",
+          "stop_id": "67",
+          "line": "A4",
+          "direction": "south",
+          "time": "07:04",
+          "destination": "Bochnia Dworzec PKP",
+          "trip_id": "1383_2395"
+        },
+        {
+          "stop": "dom-ludowy",
+          "stop_id": "4352",
+          "line": "A4",
+          "direction": "south",
+          "time": "07:05",
+          "destination": "Bochnia Dworzec PKP",
+          "trip_id": "1383_2395"
+        },
+        {
+          "stop": "wislisko",
+          "stop_id": "4076",
+          "line": "A4",
+          "direction": "south",
+          "time": "07:06",
+          "destination": "Bochnia Dworzec PKP",
+          "trip_id": "1383_2395"
+        },
+        {
+          "stop": "most",
+          "stop_id": "67",
+          "line": "A65",
+          "direction": "south",
+          "time": "07:34",
+          "destination": "Bochnia Dworzec PKP",
+          "trip_id": "1383_2436"
+        },
+        {
+          "stop": "dom-ludowy",
+          "stop_id": "4352",
+          "line": "A65",
+          "direction": "south",
+          "time": "07:35",
+          "destination": "Bochnia Dworzec PKP",
+          "trip_id": "1383_2436"
+        },
+        {
+          "stop": "wislisko",
+          "stop_id": "4076",
+          "line": "A65",
+          "direction": "south",
+          "time": "07:36",
+          "destination": "Bochnia Dworzec PKP",
+          "trip_id": "1383_2436"
+        },
+        {
+          "stop": "wislisko",
+          "stop_id": "4222",
+          "line": "A4",
+          "direction": "north",
+          "time": "07:43",
+          "destination": "Nowe Brzesko Rynek",
+          "trip_id": "1383_2402"
+        },
+        {
+          "stop": "dom-ludowy",
+          "stop_id": "4533",
+          "line": "A4",
+          "direction": "north",
+          "time": "07:44",
+          "destination": "Nowe Brzesko Rynek",
+          "trip_id": "1383_2402"
+        },
+        {
+          "stop": "most",
+          "stop_id": "119",
+          "line": "A4",
+          "direction": "north",
+          "time": "07:45",
+          "destination": "Nowe Brzesko Rynek",
+          "trip_id": "1383_2402"
+        },
+        {
+          "stop": "lesniczowka",
+          "stop_id": "119",
+          "line": "A7",
+          "direction": "north",
+          "time": "07:50",
+          "destination": "Nowe Brzesko Rynek",
+          "trip_id": "1383_2007",
+          "gtfs_time": "07:52",
+          "source": "PDF przewoźnika"
+        },
+        {
+          "stop": "przedszkole",
+          "stop_id": "119",
+          "line": "A7",
+          "direction": "north",
+          "time": "07:51",
+          "destination": "Nowe Brzesko Rynek",
+          "trip_id": "1383_2007",
+          "gtfs_time": "07:52",
+          "source": "PDF przewoźnika"
+        },
+        {
+          "stop": "most",
+          "stop_id": "119",
+          "line": "A7",
+          "direction": "north",
+          "time": "07:52",
+          "destination": "Nowe Brzesko Rynek",
+          "trip_id": "1383_2007",
+          "gtfs_time": "07:52",
+          "source": "PDF przewoźnika"
+        },
+        {
+          "stop": "most",
+          "stop_id": "67",
+          "line": "A7",
+          "direction": "south",
+          "time": "08:08",
+          "destination": "Podłęże P+R Północ",
+          "trip_id": "1383_2008",
+          "gtfs_time": "08:08",
+          "source": "PDF przewoźnika"
+        },
+        {
+          "stop": "przedszkole",
+          "stop_id": "67",
+          "line": "A7",
+          "direction": "south",
+          "time": "08:09",
+          "destination": "Podłęże P+R Północ",
+          "trip_id": "1383_2008",
+          "gtfs_time": "08:08",
+          "source": "PDF przewoźnika"
+        },
+        {
+          "stop": "lesniczowka",
+          "stop_id": "67",
+          "line": "A7",
+          "direction": "south",
+          "time": "08:10",
+          "destination": "Podłęże P+R Północ",
+          "trip_id": "1383_2008",
+          "gtfs_time": "08:08",
+          "source": "PDF przewoźnika"
+        },
+        {
+          "stop": "most",
+          "stop_id": "67",
+          "line": "A4",
+          "direction": "south",
+          "time": "08:19",
+          "destination": "Bochnia Dworzec PKP",
+          "trip_id": "1383_2403"
+        },
+        {
+          "stop": "dom-ludowy",
+          "stop_id": "4352",
+          "line": "A4",
+          "direction": "south",
+          "time": "08:20",
+          "destination": "Bochnia Dworzec PKP",
+          "trip_id": "1383_2403"
+        },
+        {
+          "stop": "wislisko",
+          "stop_id": "4076",
+          "line": "A4",
+          "direction": "south",
+          "time": "08:21",
+          "destination": "Bochnia Dworzec PKP",
+          "trip_id": "1383_2403"
+        },
+        {
+          "stop": "wislisko",
+          "stop_id": "4222",
+          "line": "A65",
+          "direction": "north",
+          "time": "08:26",
+          "destination": "Nowe Brzesko Rynek",
+          "trip_id": "1383_2450"
+        },
+        {
+          "stop": "dom-ludowy",
+          "stop_id": "4533",
+          "line": "A65",
+          "direction": "north",
+          "time": "08:27",
+          "destination": "Nowe Brzesko Rynek",
+          "trip_id": "1383_2450"
+        },
+        {
+          "stop": "most",
+          "stop_id": "119",
+          "line": "A65",
+          "direction": "north",
+          "time": "08:28",
+          "destination": "Nowe Brzesko Rynek",
+          "trip_id": "1383_2450"
+        },
+        {
+          "stop": "lesniczowka",
+          "stop_id": "119",
+          "line": "A7",
+          "direction": "north",
+          "time": "08:45",
+          "destination": "Proszowice P+R Kościuszki",
+          "trip_id": "1383_2025",
+          "gtfs_time": "08:47",
+          "source": "PDF przewoźnika"
+        },
+        {
+          "stop": "przedszkole",
+          "stop_id": "119",
+          "line": "A7",
+          "direction": "north",
+          "time": "08:46",
+          "destination": "Proszowice P+R Kościuszki",
+          "trip_id": "1383_2025",
+          "gtfs_time": "08:47",
+          "source": "PDF przewoźnika"
+        },
+        {
+          "stop": "most",
+          "stop_id": "119",
+          "line": "A7",
+          "direction": "north",
+          "time": "08:47",
+          "destination": "Proszowice P+R Kościuszki",
+          "trip_id": "1383_2025",
+          "gtfs_time": "08:47",
+          "source": "PDF przewoźnika"
+        },
+        {
+          "stop": "most",
           "stop_id": "67",
           "line": "A7",
           "direction": "south",
           "time": "09:04",
           "destination": "Podłęże P+R Północ",
-          "trip_id": "1383_2046",
-          "gtfs_time": "09:03",
+          "trip_id": "1383_2082",
+          "gtfs_time": "09:04",
+          "source": "PDF przewoźnika"
+        },
+        {
+          "stop": "przedszkole",
+          "stop_id": "67",
+          "line": "A7",
+          "direction": "south",
+          "time": "09:05",
+          "destination": "Podłęże P+R Północ",
+          "trip_id": "1383_2082",
+          "gtfs_time": "09:04",
           "source": "PDF przewoźnika"
         },
         {
@@ -123,48 +645,75 @@
           "stop_id": "67",
           "line": "A7",
           "direction": "south",
-          "time": "09:05",
+          "time": "09:06",
           "destination": "Podłęże P+R Północ",
-          "trip_id": "1383_2046",
-          "gtfs_time": "09:03",
+          "trip_id": "1383_2082",
+          "gtfs_time": "09:04",
           "source": "PDF przewoźnika"
         },
         {
           "stop": "wislisko",
           "stop_id": "4222",
-          "line": "A65",
+          "line": "A4",
           "direction": "north",
-          "time": "09:21",
+          "time": "09:23",
           "destination": "Nowe Brzesko Rynek",
-          "trip_id": "1383_2415"
+          "trip_id": "1383_2396"
         },
         {
           "stop": "dom-ludowy",
           "stop_id": "4533",
-          "line": "A65",
+          "line": "A4",
           "direction": "north",
-          "time": "09:22",
+          "time": "09:24",
           "destination": "Nowe Brzesko Rynek",
-          "trip_id": "1383_2415"
+          "trip_id": "1383_2396"
         },
         {
           "stop": "most",
           "stop_id": "119",
-          "line": "A65",
+          "line": "A4",
           "direction": "north",
-          "time": "09:23",
+          "time": "09:25",
           "destination": "Nowe Brzesko Rynek",
-          "trip_id": "1383_2415"
+          "trip_id": "1383_2396"
+        },
+        {
+          "stop": "most",
+          "stop_id": "67",
+          "line": "A65",
+          "direction": "south",
+          "time": "09:29",
+          "destination": "Bochnia Dworzec PKP",
+          "trip_id": "1383_2451"
+        },
+        {
+          "stop": "dom-ludowy",
+          "stop_id": "4352",
+          "line": "A65",
+          "direction": "south",
+          "time": "09:30",
+          "destination": "Bochnia Dworzec PKP",
+          "trip_id": "1383_2451"
+        },
+        {
+          "stop": "wislisko",
+          "stop_id": "4076",
+          "line": "A65",
+          "direction": "south",
+          "time": "09:31",
+          "destination": "Bochnia Dworzec PKP",
+          "trip_id": "1383_2451"
         },
         {
           "stop": "lesniczowka",
           "stop_id": "119",
           "line": "A7",
           "direction": "north",
-          "time": "09:31",
-          "destination": "Proszowice P+R Kościuszki",
-          "trip_id": "1383_2039",
-          "gtfs_time": "09:33",
+          "time": "09:36",
+          "destination": "Nowe Brzesko Rynek",
+          "trip_id": "1383_2009",
+          "gtfs_time": "09:37",
           "source": "PDF przewoźnika"
         },
         {
@@ -172,10 +721,10 @@
           "stop_id": "119",
           "line": "A7",
           "direction": "north",
-          "time": "09:32",
-          "destination": "Proszowice P+R Kościuszki",
-          "trip_id": "1383_2039",
-          "gtfs_time": "09:33",
+          "time": "09:37",
+          "destination": "Nowe Brzesko Rynek",
+          "trip_id": "1383_2009",
+          "gtfs_time": "09:37",
           "source": "PDF przewoźnika"
         },
         {
@@ -183,65 +732,98 @@
           "stop_id": "119",
           "line": "A7",
           "direction": "north",
-          "time": "09:33",
-          "destination": "Proszowice P+R Kościuszki",
-          "trip_id": "1383_2039",
-          "gtfs_time": "09:33",
+          "time": "09:38",
+          "destination": "Nowe Brzesko Rynek",
+          "trip_id": "1383_2009",
+          "gtfs_time": "09:37",
           "source": "PDF przewoźnika"
         },
         {
+          "stop": "wislisko",
+          "stop_id": "4222",
+          "line": "A65",
+          "direction": "north",
+          "time": "10:01",
+          "destination": "Nowe Brzesko Rynek",
+          "trip_id": "1383_2437"
+        },
+        {
+          "stop": "dom-ludowy",
+          "stop_id": "4533",
+          "line": "A65",
+          "direction": "north",
+          "time": "10:02",
+          "destination": "Nowe Brzesko Rynek",
+          "trip_id": "1383_2437"
+        },
+        {
+          "stop": "most",
+          "stop_id": "119",
+          "line": "A65",
+          "direction": "north",
+          "time": "10:03",
+          "destination": "Nowe Brzesko Rynek",
+          "trip_id": "1383_2437"
+        },
+        {
           "stop": "most",
           "stop_id": "67",
-          "line": "A4",
+          "line": "A65",
+          "direction": "south",
+          "time": "10:24",
+          "destination": "Bochnia Dworzec PKP",
+          "trip_id": "1383_2438"
+        },
+        {
+          "stop": "dom-ludowy",
+          "stop_id": "4352",
+          "line": "A65",
+          "direction": "south",
+          "time": "10:25",
+          "destination": "Bochnia Dworzec PKP",
+          "trip_id": "1383_2438"
+        },
+        {
+          "stop": "wislisko",
+          "stop_id": "4076",
+          "line": "A65",
+          "direction": "south",
+          "time": "10:26",
+          "destination": "Bochnia Dworzec PKP",
+          "trip_id": "1383_2438"
+        },
+        {
+          "stop": "most",
+          "stop_id": "67",
+          "line": "A7",
+          "direction": "south",
+          "time": "10:28",
+          "destination": "Podłęże P+R Północ",
+          "trip_id": "1383_2010",
+          "gtfs_time": "10:28",
+          "source": "PDF przewoźnika"
+        },
+        {
+          "stop": "przedszkole",
+          "stop_id": "67",
+          "line": "A7",
           "direction": "south",
           "time": "10:29",
-          "destination": "Bochnia Dworzec PKP",
-          "trip_id": "1383_2419"
+          "destination": "Podłęże P+R Północ",
+          "trip_id": "1383_2010",
+          "gtfs_time": "10:28",
+          "source": "PDF przewoźnika"
         },
         {
-          "stop": "dom-ludowy",
-          "stop_id": "4352",
-          "line": "A4",
+          "stop": "lesniczowka",
+          "stop_id": "67",
+          "line": "A7",
           "direction": "south",
           "time": "10:30",
-          "destination": "Bochnia Dworzec PKP",
-          "trip_id": "1383_2419"
-        },
-        {
-          "stop": "wislisko",
-          "stop_id": "4076",
-          "line": "A4",
-          "direction": "south",
-          "time": "10:31",
-          "destination": "Bochnia Dworzec PKP",
-          "trip_id": "1383_2419"
-        },
-        {
-          "stop": "most",
-          "stop_id": "67",
-          "line": "A65",
-          "direction": "south",
-          "time": "10:34",
-          "destination": "Bochnia Dworzec PKP",
-          "trip_id": "1383_2416"
-        },
-        {
-          "stop": "dom-ludowy",
-          "stop_id": "4352",
-          "line": "A65",
-          "direction": "south",
-          "time": "10:35",
-          "destination": "Bochnia Dworzec PKP",
-          "trip_id": "1383_2416"
-        },
-        {
-          "stop": "wislisko",
-          "stop_id": "4076",
-          "line": "A65",
-          "direction": "south",
-          "time": "10:36",
-          "destination": "Bochnia Dworzec PKP",
-          "trip_id": "1383_2416"
+          "destination": "Podłęże P+R Północ",
+          "trip_id": "1383_2010",
+          "gtfs_time": "10:28",
+          "source": "PDF przewoźnika"
         },
         {
           "stop": "lesniczowka",
@@ -249,9 +831,9 @@
           "line": "A7",
           "direction": "north",
           "time": "10:56",
-          "destination": "Nowe Brzesko Rynek",
-          "trip_id": "1383_2095",
-          "gtfs_time": "10:57",
+          "destination": "Proszowice P+R Kościuszki",
+          "trip_id": "1383_2083",
+          "gtfs_time": "10:58",
           "source": "PDF przewoźnika"
         },
         {
@@ -260,9 +842,9 @@
           "line": "A7",
           "direction": "north",
           "time": "10:57",
-          "destination": "Nowe Brzesko Rynek",
-          "trip_id": "1383_2095",
-          "gtfs_time": "10:57",
+          "destination": "Proszowice P+R Kościuszki",
+          "trip_id": "1383_2083",
+          "gtfs_time": "10:58",
           "source": "PDF przewoźnika"
         },
         {
@@ -271,76 +853,151 @@
           "line": "A7",
           "direction": "north",
           "time": "10:58",
+          "destination": "Proszowice P+R Kościuszki",
+          "trip_id": "1383_2083",
+          "gtfs_time": "10:58",
+          "source": "PDF przewoźnika"
+        },
+        {
+          "stop": "most",
+          "stop_id": "67",
+          "line": "A4",
+          "direction": "south",
+          "time": "11:09",
+          "destination": "Bochnia Dworzec PKP",
+          "trip_id": "1383_2397"
+        },
+        {
+          "stop": "dom-ludowy",
+          "stop_id": "4352",
+          "line": "A4",
+          "direction": "south",
+          "time": "11:10",
+          "destination": "Bochnia Dworzec PKP",
+          "trip_id": "1383_2397"
+        },
+        {
+          "stop": "wislisko",
+          "stop_id": "4076",
+          "line": "A4",
+          "direction": "south",
+          "time": "11:11",
+          "destination": "Bochnia Dworzec PKP",
+          "trip_id": "1383_2397"
+        },
+        {
+          "stop": "wislisko",
+          "stop_id": "4222",
+          "line": "A65",
+          "direction": "north",
+          "time": "11:26",
           "destination": "Nowe Brzesko Rynek",
-          "trip_id": "1383_2095",
-          "gtfs_time": "10:57",
-          "source": "PDF przewoźnika"
+          "trip_id": "1383_2404"
+        },
+        {
+          "stop": "dom-ludowy",
+          "stop_id": "4533",
+          "line": "A65",
+          "direction": "north",
+          "time": "11:27",
+          "destination": "Nowe Brzesko Rynek",
+          "trip_id": "1383_2404"
+        },
+        {
+          "stop": "most",
+          "stop_id": "119",
+          "line": "A65",
+          "direction": "north",
+          "time": "11:28",
+          "destination": "Nowe Brzesko Rynek",
+          "trip_id": "1383_2404"
         },
         {
           "stop": "most",
           "stop_id": "67",
-          "line": "A7",
+          "line": "A65",
           "direction": "south",
-          "time": "11:04",
-          "destination": "Podłęże P+R Północ",
-          "trip_id": "1383_2040",
-          "gtfs_time": "11:04",
+          "time": "11:44",
+          "destination": "Bochnia Dworzec PKP",
+          "trip_id": "1383_2405"
+        },
+        {
+          "stop": "dom-ludowy",
+          "stop_id": "4352",
+          "line": "A65",
+          "direction": "south",
+          "time": "11:45",
+          "destination": "Bochnia Dworzec PKP",
+          "trip_id": "1383_2405"
+        },
+        {
+          "stop": "wislisko",
+          "stop_id": "4076",
+          "line": "A65",
+          "direction": "south",
+          "time": "11:46",
+          "destination": "Bochnia Dworzec PKP",
+          "trip_id": "1383_2405"
+        },
+        {
+          "stop": "lesniczowka",
+          "stop_id": "119",
+          "line": "A7",
+          "direction": "north",
+          "time": "11:56",
+          "destination": "Nowe Brzesko Rynek",
+          "trip_id": "1383_2011",
+          "gtfs_time": "11:57",
           "source": "PDF przewoźnika"
         },
         {
           "stop": "przedszkole",
-          "stop_id": "67",
+          "stop_id": "119",
           "line": "A7",
-          "direction": "south",
-          "time": "11:05",
-          "destination": "Podłęże P+R Północ",
-          "trip_id": "1383_2040",
-          "gtfs_time": "11:04",
-          "source": "PDF przewoźnika"
-        },
-        {
-          "stop": "lesniczowka",
-          "stop_id": "67",
-          "line": "A7",
-          "direction": "south",
-          "time": "11:06",
-          "destination": "Podłęże P+R Północ",
-          "trip_id": "1383_2040",
-          "gtfs_time": "11:04",
+          "direction": "north",
+          "time": "11:57",
+          "destination": "Nowe Brzesko Rynek",
+          "trip_id": "1383_2011",
+          "gtfs_time": "11:57",
           "source": "PDF przewoźnika"
         },
         {
           "stop": "most",
-          "stop_id": "67",
+          "stop_id": "119",
           "line": "A7",
-          "direction": "south",
-          "time": "12:23",
-          "destination": "Podłęże P+R Północ",
-          "trip_id": "1383_2096",
-          "gtfs_time": "12:23",
+          "direction": "north",
+          "time": "11:58",
+          "destination": "Nowe Brzesko Rynek",
+          "trip_id": "1383_2011",
+          "gtfs_time": "11:57",
           "source": "PDF przewoźnika"
         },
         {
-          "stop": "przedszkole",
-          "stop_id": "67",
-          "line": "A7",
-          "direction": "south",
-          "time": "12:24",
-          "destination": "Podłęże P+R Północ",
-          "trip_id": "1383_2096",
-          "gtfs_time": "12:23",
-          "source": "PDF przewoźnika"
+          "stop": "wislisko",
+          "stop_id": "4222",
+          "line": "A4",
+          "direction": "north",
+          "time": "12:08",
+          "destination": "Nowe Brzesko Rynek",
+          "trip_id": "1383_2452"
         },
         {
-          "stop": "lesniczowka",
-          "stop_id": "67",
-          "line": "A7",
-          "direction": "south",
-          "time": "12:25",
-          "destination": "Podłęże P+R Północ",
-          "trip_id": "1383_2096",
-          "gtfs_time": "12:23",
-          "source": "PDF przewoźnika"
+          "stop": "dom-ludowy",
+          "stop_id": "4533",
+          "line": "A4",
+          "direction": "north",
+          "time": "12:09",
+          "destination": "Nowe Brzesko Rynek",
+          "trip_id": "1383_2452"
+        },
+        {
+          "stop": "most",
+          "stop_id": "119",
+          "line": "A4",
+          "direction": "north",
+          "time": "12:10",
+          "destination": "Nowe Brzesko Rynek",
+          "trip_id": "1383_2452"
         },
         {
           "stop": "wislisko",
@@ -349,7 +1006,7 @@
           "direction": "north",
           "time": "12:26",
           "destination": "Nowe Brzesko Rynek",
-          "trip_id": "1383_2420"
+          "trip_id": "1383_2439"
         },
         {
           "stop": "dom-ludowy",
@@ -358,7 +1015,7 @@
           "direction": "north",
           "time": "12:27",
           "destination": "Nowe Brzesko Rynek",
-          "trip_id": "1383_2420"
+          "trip_id": "1383_2439"
         },
         {
           "stop": "most",
@@ -367,28 +1024,256 @@
           "direction": "north",
           "time": "12:28",
           "destination": "Nowe Brzesko Rynek",
-          "trip_id": "1383_2420"
+          "trip_id": "1383_2439"
+        },
+        {
+          "stop": "most",
+          "stop_id": "67",
+          "line": "A4",
+          "direction": "south",
+          "time": "12:29",
+          "destination": "Bochnia Dworzec PKP",
+          "trip_id": "1383_2453"
+        },
+        {
+          "stop": "dom-ludowy",
+          "stop_id": "4352",
+          "line": "A4",
+          "direction": "south",
+          "time": "12:30",
+          "destination": "Bochnia Dworzec PKP",
+          "trip_id": "1383_2453"
+        },
+        {
+          "stop": "wislisko",
+          "stop_id": "4076",
+          "line": "A4",
+          "direction": "south",
+          "time": "12:31",
+          "destination": "Bochnia Dworzec PKP",
+          "trip_id": "1383_2453"
+        },
+        {
+          "stop": "most",
+          "stop_id": "67",
+          "line": "A7",
+          "direction": "south",
+          "time": "12:55",
+          "destination": "Podłęże P+R Północ",
+          "trip_id": "1383_2084",
+          "gtfs_time": "12:55",
+          "source": "PDF przewoźnika"
+        },
+        {
+          "stop": "przedszkole",
+          "stop_id": "67",
+          "line": "A7",
+          "direction": "south",
+          "time": "12:56",
+          "destination": "Podłęże P+R Północ",
+          "trip_id": "1383_2084",
+          "gtfs_time": "12:55",
+          "source": "PDF przewoźnika"
+        },
+        {
+          "stop": "lesniczowka",
+          "stop_id": "67",
+          "line": "A7",
+          "direction": "south",
+          "time": "12:57",
+          "destination": "Podłęże P+R Północ",
+          "trip_id": "1383_2084",
+          "gtfs_time": "12:55",
+          "source": "PDF przewoźnika"
+        },
+        {
+          "stop": "most",
+          "stop_id": "67",
+          "line": "A65",
+          "direction": "south",
+          "time": "13:09",
+          "destination": "Bochnia Dworzec PKP",
+          "trip_id": "1383_2440"
+        },
+        {
+          "stop": "dom-ludowy",
+          "stop_id": "4352",
+          "line": "A65",
+          "direction": "south",
+          "time": "13:10",
+          "destination": "Bochnia Dworzec PKP",
+          "trip_id": "1383_2440"
+        },
+        {
+          "stop": "wislisko",
+          "stop_id": "4076",
+          "line": "A65",
+          "direction": "south",
+          "time": "13:11",
+          "destination": "Bochnia Dworzec PKP",
+          "trip_id": "1383_2440"
+        },
+        {
+          "stop": "wislisko",
+          "stop_id": "4222",
+          "line": "A4",
+          "direction": "north",
+          "time": "13:33",
+          "destination": "Nowe Brzesko Rynek",
+          "trip_id": "1383_2406"
+        },
+        {
+          "stop": "dom-ludowy",
+          "stop_id": "4533",
+          "line": "A4",
+          "direction": "north",
+          "time": "13:34",
+          "destination": "Nowe Brzesko Rynek",
+          "trip_id": "1383_2406"
+        },
+        {
+          "stop": "most",
+          "stop_id": "119",
+          "line": "A4",
+          "direction": "north",
+          "time": "13:35",
+          "destination": "Nowe Brzesko Rynek",
+          "trip_id": "1383_2406"
+        },
+        {
+          "stop": "most",
+          "stop_id": "67",
+          "line": "A7",
+          "direction": "south",
+          "time": "13:43",
+          "destination": "Podłęże P+R Północ",
+          "trip_id": "1383_2014",
+          "gtfs_time": "13:43",
+          "source": "PDF przewoźnika"
+        },
+        {
+          "stop": "przedszkole",
+          "stop_id": "67",
+          "line": "A7",
+          "direction": "south",
+          "time": "13:44",
+          "destination": "Podłęże P+R Północ",
+          "trip_id": "1383_2014",
+          "gtfs_time": "13:43",
+          "source": "PDF przewoźnika"
+        },
+        {
+          "stop": "lesniczowka",
+          "stop_id": "67",
+          "line": "A7",
+          "direction": "south",
+          "time": "13:45",
+          "destination": "Podłęże P+R Północ",
+          "trip_id": "1383_2014",
+          "gtfs_time": "13:43",
+          "source": "PDF przewoźnika"
+        },
+        {
+          "stop": "most",
+          "stop_id": "67",
+          "line": "A4",
+          "direction": "south",
+          "time": "13:49",
+          "destination": "Bochnia Dworzec PKP",
+          "trip_id": "1383_2407"
+        },
+        {
+          "stop": "dom-ludowy",
+          "stop_id": "4352",
+          "line": "A4",
+          "direction": "south",
+          "time": "13:50",
+          "destination": "Bochnia Dworzec PKP",
+          "trip_id": "1383_2407"
+        },
+        {
+          "stop": "wislisko",
+          "stop_id": "4076",
+          "line": "A4",
+          "direction": "south",
+          "time": "13:51",
+          "destination": "Bochnia Dworzec PKP",
+          "trip_id": "1383_2407"
+        },
+        {
+          "stop": "wislisko",
+          "stop_id": "4222",
+          "line": "A65",
+          "direction": "north",
+          "time": "14:31",
+          "destination": "Nowe Brzesko Rynek",
+          "trip_id": "1383_2454"
+        },
+        {
+          "stop": "dom-ludowy",
+          "stop_id": "4533",
+          "line": "A65",
+          "direction": "north",
+          "time": "14:32",
+          "destination": "Nowe Brzesko Rynek",
+          "trip_id": "1383_2454"
+        },
+        {
+          "stop": "most",
+          "stop_id": "119",
+          "line": "A65",
+          "direction": "north",
+          "time": "14:33",
+          "destination": "Nowe Brzesko Rynek",
+          "trip_id": "1383_2454"
+        },
+        {
+          "stop": "most",
+          "stop_id": "67",
+          "line": "A65",
+          "direction": "south",
+          "time": "14:54",
+          "destination": "Bochnia Dworzec PKP",
+          "trip_id": "1383_2455"
+        },
+        {
+          "stop": "dom-ludowy",
+          "stop_id": "4352",
+          "line": "A65",
+          "direction": "south",
+          "time": "14:55",
+          "destination": "Bochnia Dworzec PKP",
+          "trip_id": "1383_2455"
         },
         {
           "stop": "lesniczowka",
           "stop_id": "119",
           "line": "A7",
           "direction": "north",
-          "time": "12:41",
+          "time": "14:55",
           "destination": "Proszowice P+R Kościuszki",
-          "trip_id": "1383_2041",
-          "gtfs_time": "12:43",
+          "trip_id": "1383_2085",
+          "gtfs_time": "14:57",
           "source": "PDF przewoźnika"
+        },
+        {
+          "stop": "wislisko",
+          "stop_id": "4076",
+          "line": "A65",
+          "direction": "south",
+          "time": "14:56",
+          "destination": "Bochnia Dworzec PKP",
+          "trip_id": "1383_2455"
         },
         {
           "stop": "przedszkole",
           "stop_id": "119",
           "line": "A7",
           "direction": "north",
-          "time": "12:42",
+          "time": "14:56",
           "destination": "Proszowice P+R Kościuszki",
-          "trip_id": "1383_2041",
-          "gtfs_time": "12:43",
+          "trip_id": "1383_2085",
+          "gtfs_time": "14:57",
           "source": "PDF przewoźnika"
         },
         {
@@ -396,10 +1281,43 @@
           "stop_id": "119",
           "line": "A7",
           "direction": "north",
-          "time": "12:43",
+          "time": "14:57",
           "destination": "Proszowice P+R Kościuszki",
-          "trip_id": "1383_2041",
-          "gtfs_time": "12:43",
+          "trip_id": "1383_2085",
+          "gtfs_time": "14:57",
+          "source": "PDF przewoźnika"
+        },
+        {
+          "stop": "most",
+          "stop_id": "67",
+          "line": "A7",
+          "direction": "south",
+          "time": "15:25",
+          "destination": "Podłęże P+R Północ",
+          "trip_id": "1383_1996",
+          "gtfs_time": "15:25",
+          "source": "PDF przewoźnika"
+        },
+        {
+          "stop": "przedszkole",
+          "stop_id": "67",
+          "line": "A7",
+          "direction": "south",
+          "time": "15:26",
+          "destination": "Podłęże P+R Północ",
+          "trip_id": "1383_1996",
+          "gtfs_time": "15:25",
+          "source": "PDF przewoźnika"
+        },
+        {
+          "stop": "lesniczowka",
+          "stop_id": "67",
+          "line": "A7",
+          "direction": "south",
+          "time": "15:27",
+          "destination": "Podłęże P+R Północ",
+          "trip_id": "1383_1996",
+          "gtfs_time": "15:25",
           "source": "PDF przewoźnika"
         },
         {
@@ -407,211 +1325,91 @@
           "stop_id": "4222",
           "line": "A4",
           "direction": "north",
-          "time": "13:28",
+          "time": "15:28",
           "destination": "Nowe Brzesko Rynek",
-          "trip_id": "1383_2417"
+          "trip_id": "1383_2398"
         },
         {
           "stop": "dom-ludowy",
           "stop_id": "4533",
           "line": "A4",
           "direction": "north",
-          "time": "13:29",
+          "time": "15:29",
           "destination": "Nowe Brzesko Rynek",
-          "trip_id": "1383_2417"
+          "trip_id": "1383_2398"
         },
         {
           "stop": "most",
           "stop_id": "119",
           "line": "A4",
           "direction": "north",
-          "time": "13:30",
+          "time": "15:30",
           "destination": "Nowe Brzesko Rynek",
-          "trip_id": "1383_2417"
-        },
-        {
-          "stop": "most",
-          "stop_id": "67",
-          "line": "A65",
-          "direction": "south",
-          "time": "14:29",
-          "destination": "Bochnia Dworzec PKP",
-          "trip_id": "1383_2421"
-        },
-        {
-          "stop": "dom-ludowy",
-          "stop_id": "4352",
-          "line": "A65",
-          "direction": "south",
-          "time": "14:30",
-          "destination": "Bochnia Dworzec PKP",
-          "trip_id": "1383_2421"
+          "trip_id": "1383_2398"
         },
         {
           "stop": "wislisko",
-          "stop_id": "4076",
+          "stop_id": "4222",
           "line": "A65",
-          "direction": "south",
-          "time": "14:31",
-          "destination": "Bochnia Dworzec PKP",
-          "trip_id": "1383_2421"
-        },
-        {
-          "stop": "most",
-          "stop_id": "67",
-          "line": "A4",
-          "direction": "south",
-          "time": "15:24",
-          "destination": "Bochnia Dworzec PKP",
-          "trip_id": "1383_2418"
-        },
-        {
-          "stop": "dom-ludowy",
-          "stop_id": "4352",
-          "line": "A4",
-          "direction": "south",
-          "time": "15:25",
-          "destination": "Bochnia Dworzec PKP",
-          "trip_id": "1383_2418"
-        },
-        {
-          "stop": "wislisko",
-          "stop_id": "4076",
-          "line": "A4",
-          "direction": "south",
-          "time": "15:26",
-          "destination": "Bochnia Dworzec PKP",
-          "trip_id": "1383_2418"
-        },
-        {
-          "stop": "lesniczowka",
-          "stop_id": "119",
-          "line": "A7",
           "direction": "north",
           "time": "15:36",
           "destination": "Nowe Brzesko Rynek",
-          "trip_id": "1383_2049",
-          "gtfs_time": "15:37",
-          "source": "PDF przewoźnika"
-        },
-        {
-          "stop": "przedszkole",
-          "stop_id": "119",
-          "line": "A7",
-          "direction": "north",
-          "time": "15:37",
-          "destination": "Nowe Brzesko Rynek",
-          "trip_id": "1383_2049",
-          "gtfs_time": "15:37",
-          "source": "PDF przewoźnika"
-        },
-        {
-          "stop": "most",
-          "stop_id": "119",
-          "line": "A7",
-          "direction": "north",
-          "time": "15:38",
-          "destination": "Nowe Brzesko Rynek",
-          "trip_id": "1383_2049",
-          "gtfs_time": "15:37",
-          "source": "PDF przewoźnika"
-        },
-        {
-          "stop": "most",
-          "stop_id": "67",
-          "line": "A7",
-          "direction": "south",
-          "time": "15:54",
-          "destination": "Podłęże P+R Północ",
-          "trip_id": "1383_2042",
-          "gtfs_time": "15:54",
-          "source": "PDF przewoźnika"
-        },
-        {
-          "stop": "przedszkole",
-          "stop_id": "67",
-          "line": "A7",
-          "direction": "south",
-          "time": "15:55",
-          "destination": "Podłęże P+R Północ",
-          "trip_id": "1383_2042",
-          "gtfs_time": "15:54",
-          "source": "PDF przewoźnika"
-        },
-        {
-          "stop": "lesniczowka",
-          "stop_id": "67",
-          "line": "A7",
-          "direction": "south",
-          "time": "15:56",
-          "destination": "Podłęże P+R Północ",
-          "trip_id": "1383_2042",
-          "gtfs_time": "15:54",
-          "source": "PDF przewoźnika"
-        },
-        {
-          "stop": "wislisko",
-          "stop_id": "4222",
-          "line": "A4",
-          "direction": "north",
-          "time": "16:23",
-          "destination": "Nowe Brzesko Rynek",
-          "trip_id": "1383_2422"
+          "trip_id": "1383_2441"
         },
         {
           "stop": "dom-ludowy",
           "stop_id": "4533",
-          "line": "A4",
+          "line": "A65",
           "direction": "north",
-          "time": "16:24",
+          "time": "15:37",
           "destination": "Nowe Brzesko Rynek",
-          "trip_id": "1383_2422"
+          "trip_id": "1383_2441"
         },
         {
           "stop": "most",
           "stop_id": "119",
-          "line": "A4",
+          "line": "A65",
           "direction": "north",
-          "time": "16:25",
+          "time": "15:38",
           "destination": "Nowe Brzesko Rynek",
-          "trip_id": "1383_2422"
+          "trip_id": "1383_2441"
         },
         {
           "stop": "most",
           "stop_id": "67",
           "line": "A65",
           "direction": "south",
-          "time": "17:29",
+          "time": "15:49",
           "destination": "Bochnia Dworzec PKP",
-          "trip_id": "1383_2423"
+          "trip_id": "1383_2442"
         },
         {
           "stop": "dom-ludowy",
           "stop_id": "4352",
           "line": "A65",
           "direction": "south",
-          "time": "17:30",
+          "time": "15:50",
           "destination": "Bochnia Dworzec PKP",
-          "trip_id": "1383_2423"
+          "trip_id": "1383_2442"
         },
         {
           "stop": "wislisko",
           "stop_id": "4076",
           "line": "A65",
           "direction": "south",
-          "time": "17:31",
+          "time": "15:51",
           "destination": "Bochnia Dworzec PKP",
-          "trip_id": "1383_2423"
+          "trip_id": "1383_2442"
         },
         {
           "stop": "lesniczowka",
           "stop_id": "119",
           "line": "A7",
           "direction": "north",
-          "time": "17:31",
-          "destination": "Proszowice P+R Kościuszki",
-          "trip_id": "1383_2043",
-          "gtfs_time": "17:33",
+          "time": "15:56",
+          "destination": "Nowe Brzesko Rynek",
+          "trip_id": "1383_2015",
+          "gtfs_time": "15:57",
           "source": "PDF przewoźnika"
         },
         {
@@ -619,10 +1417,10 @@
           "stop_id": "119",
           "line": "A7",
           "direction": "north",
-          "time": "17:32",
-          "destination": "Proszowice P+R Kościuszki",
-          "trip_id": "1383_2043",
-          "gtfs_time": "17:33",
+          "time": "15:57",
+          "destination": "Nowe Brzesko Rynek",
+          "trip_id": "1383_2015",
+          "gtfs_time": "15:57",
           "source": "PDF przewoźnika"
         },
         {
@@ -630,11 +1428,305 @@
           "stop_id": "119",
           "line": "A7",
           "direction": "north",
-          "time": "17:33",
-          "destination": "Proszowice P+R Kościuszki",
-          "trip_id": "1383_2043",
-          "gtfs_time": "17:33",
+          "time": "15:58",
+          "destination": "Nowe Brzesko Rynek",
+          "trip_id": "1383_2015",
+          "gtfs_time": "15:57",
           "source": "PDF przewoźnika"
+        },
+        {
+          "stop": "most",
+          "stop_id": "67",
+          "line": "A7",
+          "direction": "south",
+          "time": "16:13",
+          "destination": "Podłęże P+R Północ",
+          "trip_id": "1383_2016",
+          "gtfs_time": "16:13",
+          "source": "PDF przewoźnika"
+        },
+        {
+          "stop": "most",
+          "stop_id": "67",
+          "line": "A4",
+          "direction": "south",
+          "time": "16:14",
+          "destination": "Bochnia Dworzec PKP",
+          "trip_id": "1383_2399"
+        },
+        {
+          "stop": "przedszkole",
+          "stop_id": "67",
+          "line": "A7",
+          "direction": "south",
+          "time": "16:14",
+          "destination": "Podłęże P+R Północ",
+          "trip_id": "1383_2016",
+          "gtfs_time": "16:13",
+          "source": "PDF przewoźnika"
+        },
+        {
+          "stop": "dom-ludowy",
+          "stop_id": "4352",
+          "line": "A4",
+          "direction": "south",
+          "time": "16:15",
+          "destination": "Bochnia Dworzec PKP",
+          "trip_id": "1383_2399"
+        },
+        {
+          "stop": "lesniczowka",
+          "stop_id": "67",
+          "line": "A7",
+          "direction": "south",
+          "time": "16:15",
+          "destination": "Podłęże P+R Północ",
+          "trip_id": "1383_2016",
+          "gtfs_time": "16:13",
+          "source": "PDF przewoźnika"
+        },
+        {
+          "stop": "wislisko",
+          "stop_id": "4076",
+          "line": "A4",
+          "direction": "south",
+          "time": "16:16",
+          "destination": "Bochnia Dworzec PKP",
+          "trip_id": "1383_2399"
+        },
+        {
+          "stop": "wislisko",
+          "stop_id": "4222",
+          "line": "A4",
+          "direction": "north",
+          "time": "16:33",
+          "destination": "Nowe Brzesko Rynek",
+          "trip_id": "1383_2408"
+        },
+        {
+          "stop": "dom-ludowy",
+          "stop_id": "4533",
+          "line": "A4",
+          "direction": "north",
+          "time": "16:34",
+          "destination": "Nowe Brzesko Rynek",
+          "trip_id": "1383_2408"
+        },
+        {
+          "stop": "most",
+          "stop_id": "119",
+          "line": "A4",
+          "direction": "north",
+          "time": "16:35",
+          "destination": "Nowe Brzesko Rynek",
+          "trip_id": "1383_2408"
+        },
+        {
+          "stop": "most",
+          "stop_id": "67",
+          "line": "A7",
+          "direction": "south",
+          "time": "16:59",
+          "destination": "Podłęże P+R Północ",
+          "trip_id": "1383_2032",
+          "gtfs_time": "16:59",
+          "source": "PDF przewoźnika"
+        },
+        {
+          "stop": "przedszkole",
+          "stop_id": "67",
+          "line": "A7",
+          "direction": "south",
+          "time": "17:00",
+          "destination": "Podłęże P+R Północ",
+          "trip_id": "1383_2032",
+          "gtfs_time": "16:59",
+          "source": "PDF przewoźnika"
+        },
+        {
+          "stop": "lesniczowka",
+          "stop_id": "67",
+          "line": "A7",
+          "direction": "south",
+          "time": "17:01",
+          "destination": "Podłęże P+R Północ",
+          "trip_id": "1383_2032",
+          "gtfs_time": "16:59",
+          "source": "PDF przewoźnika"
+        },
+        {
+          "stop": "lesniczowka",
+          "stop_id": "119",
+          "line": "A7",
+          "direction": "north",
+          "time": "17:01",
+          "destination": "Proszowice P+R Kościuszki",
+          "trip_id": "1383_1997",
+          "gtfs_time": "17:03",
+          "source": "PDF przewoźnika"
+        },
+        {
+          "stop": "przedszkole",
+          "stop_id": "119",
+          "line": "A7",
+          "direction": "north",
+          "time": "17:02",
+          "destination": "Proszowice P+R Kościuszki",
+          "trip_id": "1383_1997",
+          "gtfs_time": "17:03",
+          "source": "PDF przewoźnika"
+        },
+        {
+          "stop": "most",
+          "stop_id": "119",
+          "line": "A7",
+          "direction": "north",
+          "time": "17:03",
+          "destination": "Proszowice P+R Kościuszki",
+          "trip_id": "1383_1997",
+          "gtfs_time": "17:03",
+          "source": "PDF przewoźnika"
+        },
+        {
+          "stop": "wislisko",
+          "stop_id": "4222",
+          "line": "A65",
+          "direction": "north",
+          "time": "17:06",
+          "destination": "Nowe Brzesko Rynek",
+          "trip_id": "1383_2456"
+        },
+        {
+          "stop": "dom-ludowy",
+          "stop_id": "4533",
+          "line": "A65",
+          "direction": "north",
+          "time": "17:07",
+          "destination": "Nowe Brzesko Rynek",
+          "trip_id": "1383_2456"
+        },
+        {
+          "stop": "most",
+          "stop_id": "119",
+          "line": "A65",
+          "direction": "north",
+          "time": "17:08",
+          "destination": "Nowe Brzesko Rynek",
+          "trip_id": "1383_2456"
+        },
+        {
+          "stop": "most",
+          "stop_id": "67",
+          "line": "A65",
+          "direction": "south",
+          "time": "17:09",
+          "destination": "Bochnia Dworzec PKP",
+          "trip_id": "1383_2409"
+        },
+        {
+          "stop": "dom-ludowy",
+          "stop_id": "4352",
+          "line": "A65",
+          "direction": "south",
+          "time": "17:10",
+          "destination": "Bochnia Dworzec PKP",
+          "trip_id": "1383_2409"
+        },
+        {
+          "stop": "wislisko",
+          "stop_id": "4076",
+          "line": "A65",
+          "direction": "south",
+          "time": "17:11",
+          "destination": "Bochnia Dworzec PKP",
+          "trip_id": "1383_2409"
+        },
+        {
+          "stop": "wislisko",
+          "stop_id": "4222",
+          "line": "A65",
+          "direction": "north",
+          "time": "17:36",
+          "destination": "Nowe Brzesko Rynek",
+          "trip_id": "1383_2443"
+        },
+        {
+          "stop": "lesniczowka",
+          "stop_id": "119",
+          "line": "A7",
+          "direction": "north",
+          "time": "17:36",
+          "destination": "Nowe Brzesko Rynek",
+          "trip_id": "1383_2017",
+          "gtfs_time": "17:37",
+          "source": "PDF przewoźnika"
+        },
+        {
+          "stop": "dom-ludowy",
+          "stop_id": "4533",
+          "line": "A65",
+          "direction": "north",
+          "time": "17:37",
+          "destination": "Nowe Brzesko Rynek",
+          "trip_id": "1383_2443"
+        },
+        {
+          "stop": "przedszkole",
+          "stop_id": "119",
+          "line": "A7",
+          "direction": "north",
+          "time": "17:37",
+          "destination": "Nowe Brzesko Rynek",
+          "trip_id": "1383_2017",
+          "gtfs_time": "17:37",
+          "source": "PDF przewoźnika"
+        },
+        {
+          "stop": "most",
+          "stop_id": "119",
+          "line": "A65",
+          "direction": "north",
+          "time": "17:38",
+          "destination": "Nowe Brzesko Rynek",
+          "trip_id": "1383_2443"
+        },
+        {
+          "stop": "most",
+          "stop_id": "119",
+          "line": "A7",
+          "direction": "north",
+          "time": "17:38",
+          "destination": "Nowe Brzesko Rynek",
+          "trip_id": "1383_2017",
+          "gtfs_time": "17:37",
+          "source": "PDF przewoźnika"
+        },
+        {
+          "stop": "most",
+          "stop_id": "67",
+          "line": "A4",
+          "direction": "south",
+          "time": "17:49",
+          "destination": "Bochnia Dworzec PKP",
+          "trip_id": "1383_2457"
+        },
+        {
+          "stop": "dom-ludowy",
+          "stop_id": "4352",
+          "line": "A4",
+          "direction": "south",
+          "time": "17:50",
+          "destination": "Bochnia Dworzec PKP",
+          "trip_id": "1383_2457"
+        },
+        {
+          "stop": "wislisko",
+          "stop_id": "4076",
+          "line": "A4",
+          "direction": "south",
+          "time": "17:51",
+          "destination": "Bochnia Dworzec PKP",
+          "trip_id": "1383_2457"
         },
         {
           "stop": "most",
@@ -643,7 +1735,7 @@
           "direction": "south",
           "time": "17:58",
           "destination": "Podłęże P+R Północ",
-          "trip_id": "1383_2050",
+          "trip_id": "1383_2018",
           "gtfs_time": "17:58",
           "source": "PDF przewoźnika"
         },
@@ -654,7 +1746,7 @@
           "direction": "south",
           "time": "17:59",
           "destination": "Podłęże P+R Północ",
-          "trip_id": "1383_2050",
+          "trip_id": "1383_2018",
           "gtfs_time": "17:58",
           "source": "PDF przewoźnika"
         },
@@ -665,8 +1757,155 @@
           "direction": "south",
           "time": "18:00",
           "destination": "Podłęże P+R Północ",
-          "trip_id": "1383_2050",
+          "trip_id": "1383_2018",
           "gtfs_time": "17:58",
+          "source": "PDF przewoźnika"
+        },
+        {
+          "stop": "lesniczowka",
+          "stop_id": "119",
+          "line": "A7",
+          "direction": "north",
+          "time": "18:36",
+          "destination": "Proszowice P+R Kościuszki",
+          "trip_id": "1383_2033",
+          "gtfs_time": "18:38",
+          "source": "PDF przewoźnika"
+        },
+        {
+          "stop": "przedszkole",
+          "stop_id": "119",
+          "line": "A7",
+          "direction": "north",
+          "time": "18:37",
+          "destination": "Proszowice P+R Kościuszki",
+          "trip_id": "1383_2033",
+          "gtfs_time": "18:38",
+          "source": "PDF przewoźnika"
+        },
+        {
+          "stop": "wislisko",
+          "stop_id": "4222",
+          "line": "A4",
+          "direction": "north",
+          "time": "18:38",
+          "destination": "Nowe Brzesko Rynek",
+          "trip_id": "1383_2400"
+        },
+        {
+          "stop": "most",
+          "stop_id": "119",
+          "line": "A7",
+          "direction": "north",
+          "time": "18:38",
+          "destination": "Proszowice P+R Kościuszki",
+          "trip_id": "1383_2033",
+          "gtfs_time": "18:38",
+          "source": "PDF przewoźnika"
+        },
+        {
+          "stop": "dom-ludowy",
+          "stop_id": "4533",
+          "line": "A4",
+          "direction": "north",
+          "time": "18:39",
+          "destination": "Nowe Brzesko Rynek",
+          "trip_id": "1383_2400"
+        },
+        {
+          "stop": "most",
+          "stop_id": "119",
+          "line": "A4",
+          "direction": "north",
+          "time": "18:40",
+          "destination": "Nowe Brzesko Rynek",
+          "trip_id": "1383_2400"
+        },
+        {
+          "stop": "most",
+          "stop_id": "67",
+          "line": "A65",
+          "direction": "south",
+          "time": "18:49",
+          "destination": "Bochnia Dworzec PKP",
+          "trip_id": "1383_2444"
+        },
+        {
+          "stop": "dom-ludowy",
+          "stop_id": "4352",
+          "line": "A65",
+          "direction": "south",
+          "time": "18:50",
+          "destination": "Bochnia Dworzec PKP",
+          "trip_id": "1383_2444"
+        },
+        {
+          "stop": "wislisko",
+          "stop_id": "4076",
+          "line": "A65",
+          "direction": "south",
+          "time": "18:51",
+          "destination": "Bochnia Dworzec PKP",
+          "trip_id": "1383_2444"
+        },
+        {
+          "stop": "wislisko",
+          "stop_id": "4222",
+          "line": "A65",
+          "direction": "north",
+          "time": "19:11",
+          "destination": "Nowe Brzesko Rynek",
+          "trip_id": "1383_2410"
+        },
+        {
+          "stop": "dom-ludowy",
+          "stop_id": "4533",
+          "line": "A65",
+          "direction": "north",
+          "time": "19:12",
+          "destination": "Nowe Brzesko Rynek",
+          "trip_id": "1383_2410"
+        },
+        {
+          "stop": "most",
+          "stop_id": "119",
+          "line": "A65",
+          "direction": "north",
+          "time": "19:13",
+          "destination": "Nowe Brzesko Rynek",
+          "trip_id": "1383_2410"
+        },
+        {
+          "stop": "most",
+          "stop_id": "67",
+          "line": "A7",
+          "direction": "south",
+          "time": "19:24",
+          "destination": "Podłęże P+R Północ",
+          "trip_id": "1383_2090",
+          "gtfs_time": "19:24",
+          "source": "PDF przewoźnika"
+        },
+        {
+          "stop": "przedszkole",
+          "stop_id": "67",
+          "line": "A7",
+          "direction": "south",
+          "time": "19:25",
+          "destination": "Podłęże P+R Północ",
+          "trip_id": "1383_2090",
+          "gtfs_time": "19:24",
+          "source": "PDF przewoźnika"
+        },
+        {
+          "stop": "lesniczowka",
+          "stop_id": "67",
+          "line": "A7",
+          "direction": "south",
+          "time": "19:26",
+          "destination": "Podłęże P+R Północ",
+          "trip_id": "1383_2090",
+          "gtfs_time": "19:24",
           "source": "PDF przewoźnika"
         },
         {
@@ -676,7 +1915,7 @@
           "direction": "north",
           "time": "19:36",
           "destination": "Nowe Brzesko Rynek",
-          "trip_id": "1383_2051",
+          "trip_id": "1383_2019",
           "gtfs_time": "19:37",
           "source": "PDF przewoźnika"
         },
@@ -687,7 +1926,7 @@
           "direction": "north",
           "time": "19:37",
           "destination": "Nowe Brzesko Rynek",
-          "trip_id": "1383_2051",
+          "trip_id": "1383_2019",
           "gtfs_time": "19:37",
           "source": "PDF przewoźnika"
         },
@@ -698,19 +1937,46 @@
           "direction": "north",
           "time": "19:38",
           "destination": "Nowe Brzesko Rynek",
-          "trip_id": "1383_2051",
+          "trip_id": "1383_2019",
           "gtfs_time": "19:37",
           "source": "PDF przewoźnika"
+        },
+        {
+          "stop": "wislisko",
+          "stop_id": "4222",
+          "line": "A4",
+          "direction": "north",
+          "time": "19:48",
+          "destination": "Nowe Brzesko Rynek",
+          "trip_id": "1383_2458"
+        },
+        {
+          "stop": "dom-ludowy",
+          "stop_id": "4533",
+          "line": "A4",
+          "direction": "north",
+          "time": "19:49",
+          "destination": "Nowe Brzesko Rynek",
+          "trip_id": "1383_2458"
+        },
+        {
+          "stop": "most",
+          "stop_id": "119",
+          "line": "A4",
+          "direction": "north",
+          "time": "19:50",
+          "destination": "Nowe Brzesko Rynek",
+          "trip_id": "1383_2458"
         },
         {
           "stop": "most",
           "stop_id": "67",
           "line": "A7",
           "direction": "south",
-          "time": "19:59",
+          "time": "20:08",
           "destination": "Podłęże P+R Północ",
-          "trip_id": "1383_2102",
-          "gtfs_time": "19:59",
+          "trip_id": "1383_2020",
+          "gtfs_time": "20:08",
           "source": "PDF przewoźnika"
         },
         {
@@ -718,10 +1984,10 @@
           "stop_id": "67",
           "line": "A7",
           "direction": "south",
-          "time": "20:00",
+          "time": "20:09",
           "destination": "Podłęże P+R Północ",
-          "trip_id": "1383_2102",
-          "gtfs_time": "19:59",
+          "trip_id": "1383_2020",
+          "gtfs_time": "20:08",
           "source": "PDF przewoźnika"
         },
         {
@@ -729,10 +1995,130 @@
           "stop_id": "67",
           "line": "A7",
           "direction": "south",
-          "time": "20:01",
+          "time": "20:10",
           "destination": "Podłęże P+R Północ",
-          "trip_id": "1383_2102",
-          "gtfs_time": "19:59",
+          "trip_id": "1383_2020",
+          "gtfs_time": "20:08",
+          "source": "PDF przewoźnika"
+        },
+        {
+          "stop": "most",
+          "stop_id": "67",
+          "line": "A65",
+          "direction": "south",
+          "time": "20:14",
+          "destination": "Bochnia Dworzec PKP",
+          "trip_id": "1383_2411"
+        },
+        {
+          "stop": "dom-ludowy",
+          "stop_id": "4352",
+          "line": "A65",
+          "direction": "south",
+          "time": "20:15",
+          "destination": "Bochnia Dworzec PKP",
+          "trip_id": "1383_2411"
+        },
+        {
+          "stop": "wislisko",
+          "stop_id": "4076",
+          "line": "A65",
+          "direction": "south",
+          "time": "20:16",
+          "destination": "Bochnia Dworzec PKP",
+          "trip_id": "1383_2411"
+        },
+        {
+          "stop": "wislisko",
+          "stop_id": "4222",
+          "line": "A65",
+          "direction": "north",
+          "time": "20:26",
+          "destination": "Nowe Brzesko Rynek",
+          "trip_id": "1383_2445"
+        },
+        {
+          "stop": "dom-ludowy",
+          "stop_id": "4533",
+          "line": "A65",
+          "direction": "north",
+          "time": "20:27",
+          "destination": "Nowe Brzesko Rynek",
+          "trip_id": "1383_2445"
+        },
+        {
+          "stop": "most",
+          "stop_id": "119",
+          "line": "A65",
+          "direction": "north",
+          "time": "20:28",
+          "destination": "Nowe Brzesko Rynek",
+          "trip_id": "1383_2445"
+        },
+        {
+          "stop": "lesniczowka",
+          "stop_id": "119",
+          "line": "A7",
+          "direction": "north",
+          "time": "20:51",
+          "destination": "Proszowice P+R Kościuszki",
+          "trip_id": "1383_2091",
+          "gtfs_time": "20:53",
+          "source": "PDF przewoźnika"
+        },
+        {
+          "stop": "przedszkole",
+          "stop_id": "119",
+          "line": "A7",
+          "direction": "north",
+          "time": "20:52",
+          "destination": "Proszowice P+R Kościuszki",
+          "trip_id": "1383_2091",
+          "gtfs_time": "20:53",
+          "source": "PDF przewoźnika"
+        },
+        {
+          "stop": "most",
+          "stop_id": "119",
+          "line": "A7",
+          "direction": "north",
+          "time": "20:53",
+          "destination": "Proszowice P+R Kościuszki",
+          "trip_id": "1383_2091",
+          "gtfs_time": "20:53",
+          "source": "PDF przewoźnika"
+        },
+        {
+          "stop": "most",
+          "stop_id": "67",
+          "line": "A7",
+          "direction": "south",
+          "time": "21:04",
+          "destination": "Podłęże P+R Północ",
+          "trip_id": "1383_2000",
+          "gtfs_time": "21:04",
+          "source": "PDF przewoźnika"
+        },
+        {
+          "stop": "przedszkole",
+          "stop_id": "67",
+          "line": "A7",
+          "direction": "south",
+          "time": "21:05",
+          "destination": "Podłęże P+R Północ",
+          "trip_id": "1383_2000",
+          "gtfs_time": "21:04",
+          "source": "PDF przewoźnika"
+        },
+        {
+          "stop": "lesniczowka",
+          "stop_id": "67",
+          "line": "A7",
+          "direction": "south",
+          "time": "21:06",
+          "destination": "Podłęże P+R Północ",
+          "trip_id": "1383_2000",
+          "gtfs_time": "21:04",
           "source": "PDF przewoźnika"
         },
         {
@@ -741,9 +2127,9 @@
           "line": "A7",
           "direction": "north",
           "time": "21:31",
-          "destination": "Proszowice P+R Kościuszki",
-          "trip_id": "1383_2103",
-          "gtfs_time": "21:33",
+          "destination": "Nowe Brzesko Rynek",
+          "trip_id": "1383_2021",
+          "gtfs_time": "21:32",
           "source": "PDF przewoźnika"
         },
         {
@@ -752,9 +2138,9 @@
           "line": "A7",
           "direction": "north",
           "time": "21:32",
-          "destination": "Proszowice P+R Kościuszki",
-          "trip_id": "1383_2103",
-          "gtfs_time": "21:33",
+          "destination": "Nowe Brzesko Rynek",
+          "trip_id": "1383_2021",
+          "gtfs_time": "21:32",
           "source": "PDF przewoźnika"
         },
         {
@@ -763,37 +2149,97 @@
           "line": "A7",
           "direction": "north",
           "time": "21:33",
-          "destination": "Proszowice P+R Kościuszki",
-          "trip_id": "1383_2103",
-          "gtfs_time": "21:33",
+          "destination": "Nowe Brzesko Rynek",
+          "trip_id": "1383_2021",
+          "gtfs_time": "21:32",
           "source": "PDF przewoźnika"
+        },
+        {
+          "stop": "most",
+          "stop_id": "67",
+          "line": "A65",
+          "direction": "south",
+          "time": "21:44",
+          "destination": "Bochnia Dworzec PKP",
+          "trip_id": "1383_2446"
+        },
+        {
+          "stop": "dom-ludowy",
+          "stop_id": "4352",
+          "line": "A65",
+          "direction": "south",
+          "time": "21:45",
+          "destination": "Bochnia Dworzec PKP",
+          "trip_id": "1383_2446"
+        },
+        {
+          "stop": "wislisko",
+          "stop_id": "4076",
+          "line": "A65",
+          "direction": "south",
+          "time": "21:46",
+          "destination": "Bochnia Dworzec PKP",
+          "trip_id": "1383_2446"
         },
         {
           "stop": "wislisko",
           "stop_id": "4222",
           "line": "A65",
           "direction": "north",
-          "time": "21:36",
+          "time": "22:01",
           "destination": "Nowe Brzesko Rynek",
-          "trip_id": "1383_2424"
+          "trip_id": "1383_2412"
         },
         {
           "stop": "dom-ludowy",
           "stop_id": "4533",
           "line": "A65",
           "direction": "north",
-          "time": "21:37",
+          "time": "22:02",
           "destination": "Nowe Brzesko Rynek",
-          "trip_id": "1383_2424"
+          "trip_id": "1383_2412"
         },
         {
           "stop": "most",
           "stop_id": "119",
           "line": "A65",
           "direction": "north",
-          "time": "21:38",
+          "time": "22:03",
           "destination": "Nowe Brzesko Rynek",
-          "trip_id": "1383_2424"
+          "trip_id": "1383_2412"
+        },
+        {
+          "stop": "lesniczowka",
+          "stop_id": "119",
+          "line": "A7",
+          "direction": "north",
+          "time": "22:51",
+          "destination": "Proszowice P+R Kościuszki",
+          "trip_id": "1383_2001",
+          "gtfs_time": "22:53",
+          "source": "PDF przewoźnika"
+        },
+        {
+          "stop": "przedszkole",
+          "stop_id": "119",
+          "line": "A7",
+          "direction": "north",
+          "time": "22:52",
+          "destination": "Proszowice P+R Kościuszki",
+          "trip_id": "1383_2001",
+          "gtfs_time": "22:53",
+          "source": "PDF przewoźnika"
+        },
+        {
+          "stop": "most",
+          "stop_id": "119",
+          "line": "A7",
+          "direction": "north",
+          "time": "22:53",
+          "destination": "Proszowice P+R Kościuszki",
+          "trip_id": "1383_2001",
+          "gtfs_time": "22:53",
+          "source": "PDF przewoźnika"
         }
       ],
       "validation": {
@@ -813,14 +2259,20 @@
               "stop": "most",
               "direction": "north",
               "only_gtfs": [
-                "10:57",
-                "15:37",
-                "19:37"
+                "09:37",
+                "11:57",
+                "15:57",
+                "17:37",
+                "19:37",
+                "21:32"
               ],
               "only_pdf": [
-                "10:58",
-                "15:38",
-                "19:38"
+                "09:38",
+                "11:58",
+                "15:58",
+                "17:38",
+                "19:38",
+                "21:33"
               ]
             }
           ],
@@ -836,7 +2288,7 @@
       }
     },
     {
-      "date": "2026-10-26",
+      "date": "2026-10-27",
       "departures": [
         {
           "stop": "most",
