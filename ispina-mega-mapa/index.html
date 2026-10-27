@@ -1,0 +1,844 @@
+<!doctype html>
+<html lang="pl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#174875">
+  <meta name="description" content="Interaktywna mapa Ispiny: przysiółki, punkty adresowe i działki ewidencyjne.">
+  <title>Mega lokalna mapa Ispiny · Ispina Lokalnie</title>
+  <link rel="icon" type="image/png" href="https://ispinalokalnie.wordpress.com/wp-content/uploads/2026/10/ispina-lokalnie-monogram-il.png?w=64">
+  <link rel="apple-touch-icon" href="https://ispinalokalnie.wordpress.com/wp-content/uploads/2026/10/ispina-lokalnie-monogram-il.png?w=150">
+  <link rel="preconnect" href="https://tile.openmaps.fr">
+  <link rel="preconnect" href="https://mapy.geoportal.gov.pl">
+  <link rel="preconnect" href="https://integracja.gugik.gov.pl">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
+  <style>
+    :root{--pine:#174875;--pine-2:#2366ad;--moss:#367cad;--paper:#f3f7fc;--white:#fff;--ink:#23415f;--muted:#526477;--line:#dbe5ef;--amber:#e4a451;--shadow:0 14px 34px rgba(23,72,117,.13)}
+    *{box-sizing:border-box}
+    html,body{margin:0;width:100%;height:100%;font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;color:var(--ink);background:var(--paper)}
+    body{overflow:hidden}
+    button,input{font:inherit}
+    button{cursor:pointer}
+    .topbar{height:72px;background:var(--pine);color:#fff;display:flex;align-items:center;justify-content:space-between;padding:0 24px;position:relative;z-index:1000;box-shadow:0 3px 14px rgba(23,72,117,.18)}
+    .brand{display:flex;align-items:center;gap:12px;min-width:0}
+    .monogram{width:42px;height:42px;flex:0 0 42px;border-radius:12px;overflow:hidden;background:#fff;box-shadow:0 2px 8px rgba(0,0,0,.13)}
+    .monogram img{display:block;width:100%;height:100%;object-fit:cover}
+    .brand-title{font-size:15px;font-weight:750;letter-spacing:.11em;line-height:1.15}
+    .brand-title span{font-weight:450;color:#d2e4f3}
+    .brand-subtitle{font-size:11px;color:#c2d9eb;margin-top:4px;letter-spacing:.03em}
+    .top-actions{display:flex;align-items:center;gap:10px}
+    .top-chip{border:1px solid rgba(255,255,255,.24);border-radius:999px;padding:8px 12px;color:#edf5fc;font-size:12px;white-space:nowrap}
+    .top-button{border:0;background:#e4a451;color:#174875;border-radius:10px;padding:10px 14px;font-size:12px;font-weight:750;box-shadow:0 3px 10px rgba(0,0,0,.08)}
+    .layout{height:calc(100% - 72px);display:grid;grid-template-columns:365px minmax(0,1fr)}
+    .sidebar{height:100%;overflow:auto;background:var(--paper);padding:22px 20px 24px;border-right:1px solid var(--line);position:relative;z-index:500;scrollbar-width:thin}
+    .eyebrow{font-size:10px;font-weight:800;letter-spacing:.15em;text-transform:uppercase;color:var(--moss);display:flex;align-items:center;gap:8px}
+    .eyebrow:before{content:"";width:17px;height:2px;background:var(--moss);border-radius:3px}
+    h1{font-family:Georgia,"Times New Roman",serif;font-size:31px;line-height:1.06;letter-spacing:-.7px;color:var(--pine);margin:12px 0 10px;font-weight:600}
+    .intro{font-size:13px;line-height:1.55;color:#526477;margin:0 0 18px}
+    .search-card{background:#fff;border:1px solid var(--line);border-radius:16px;padding:14px;box-shadow:0 6px 20px rgba(23,72,117,.06)}
+    .search-tabs{display:grid;grid-template-columns:1fr 1fr;background:#eaf2fa;padding:4px;border-radius:11px;margin-bottom:12px}
+    .search-tab{border:0;background:transparent;color:#6b8093;border-radius:8px;padding:8px;font-size:12px;font-weight:700}
+    .search-tab.active{background:var(--pine);color:#fff;box-shadow:0 2px 7px rgba(23,72,117,.19)}
+    .input-wrap{position:relative}
+    .search-input{width:100%;height:46px;border:1px solid var(--line);background:#fff;border-radius:10px;padding:0 42px 0 12px;color:var(--ink);outline:none;font-size:16px;transition:border .15s,box-shadow .15s}
+    .search-input:focus{border-color:#80b1d3;box-shadow:0 0 0 3px rgba(54,124,173,.16)}
+    .search-icon{position:absolute;right:13px;top:12px;color:#71869a;font-size:18px;pointer-events:none}
+    .search-submit{width:100%;height:46px;border:0;border-radius:10px;background:var(--pine-2);color:#fff;font-size:15px;font-weight:750;margin-top:9px;transition:background .15s,transform .15s}
+    .search-submit:hover{background:var(--pine);transform:translateY(-1px)}
+    .search-submit:disabled{opacity:.72;cursor:wait;transform:none}
+    .search-hint{font-size:12px;color:#526477;line-height:1.5;margin:9px 1px 0}
+    .status{display:none;padding:10px 11px;margin-top:10px;background:#eaf2fa;border-radius:9px;font-size:13px;line-height:1.5;color:#23415f}
+    .status.show{display:block}
+    .status.error{background:#fff2e9;color:#8a4b24}
+    .results{display:grid;gap:7px;margin-top:9px}
+    .result-row{border:1px solid var(--line);border-radius:10px;background:#fff;padding:10px 11px;text-align:left;display:flex;align-items:center;justify-content:space-between;color:var(--ink);font-size:13px;line-height:1.45}
+    .result-row:hover{border-color:#a8c7de;background:#f5f9fd}
+    .result-row strong{font-size:14px;color:var(--pine)}
+    .parcel-info{background:#fff;border:1px solid #bfd6e8;border-radius:12px;padding:12px;box-shadow:0 5px 16px rgba(23,72,117,.05)}
+    .parcel-info h3{font-size:14px;color:var(--pine);margin:0 0 6px}
+    .parcel-info p{font-size:12px;line-height:1.5;color:#526477;margin:6px 0}
+    .parcel-address-summary,.parcel-use-summary{padding:8px 9px;background:#f5f9fd;border-radius:8px}
+    .parcel-codes{padding:8px 9px;background:#f5f9fd;border-radius:8px;color:#23415f!important}
+    .parcel-info-links{display:flex;flex-wrap:wrap;gap:7px;margin-top:9px}
+    .parcel-info-link{display:inline-flex;align-items:center;justify-content:center;min-height:38px;border:1px solid #c7d9e8;border-radius:9px;padding:7px 9px;color:var(--pine);font-size:12px;font-weight:700;text-decoration:none;background:#f5f9fd}
+    .parcel-info-link:hover{border-color:#8eb4d1;background:#eaf2fa}
+    .parcel-info [hidden],.parcel-map-info [hidden]{display:none!important}
+    .section-title{font-size:12px;letter-spacing:.08em;text-transform:uppercase;font-weight:800;color:#526477;margin:22px 0 10px;display:flex;align-items:center;justify-content:space-between}
+    .section-title small{font-weight:500;text-transform:none;letter-spacing:0;font-size:11px;color:#71869a}
+    .hamlet-list{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+    .hamlet-button{min-height:42px;border:1px solid var(--line);background:#fff;border-radius:10px;padding:8px 9px;display:flex;align-items:center;gap:8px;text-align:left;color:#23415f;font-size:12px;font-weight:650;transition:all .15s}
+    .hamlet-button:hover{border-color:#a8c7de;background:#f5f9fd;transform:translateY(-1px)}
+    .hamlet-button.local{border-style:dashed;color:#6b8093;background:#f5f9fd}
+    .pin{width:8px;height:8px;flex:0 0 8px;border-radius:50%;background:#d88e40;box-shadow:0 0 0 3px rgba(216,142,64,.15)}
+    .pin.local{background:#a58e69;box-shadow:0 0 0 3px rgba(165,142,105,.16)}
+    .poi-list{display:grid;gap:7px}
+    .poi-button{width:100%;min-height:46px;border:1px solid #dbe5ef;background:#fff;border-radius:10px;padding:8px 10px;display:flex;align-items:center;gap:9px;text-align:left;color:#23415f;font-size:13px;font-weight:680;transition:all .15s}
+    .poi-button:hover{border-color:#a8c7de;background:#f5f9fd;transform:translateY(-1px)}
+    .poi-button small{display:block;margin-top:2px;color:#526477;font-size:11px;font-weight:500}
+    .poi-bullet{width:21px;height:21px;flex:0 0 21px;border-radius:7px;display:grid;place-items:center;background:#eaf2fa;font-size:12px}
+    .poi-bullet.bus{background:#e3eef8}.poi-bullet.delivery{background:#f0edfb}.poi-bullet.emergency{background:#faeded}.poi-bullet.culture{background:#fbf2e5}.poi-bullet.cycling{background:#eaf2fa}.poi-bullet.memory{background:#edf1f5}
+    .local-note{font-size:12px;line-height:1.5;color:#526477;margin:9px 1px 0}
+    .useful-card{background:#fff;border:1px solid var(--line);border-radius:14px;padding:13px;margin-top:12px;box-shadow:0 5px 16px rgba(23,72,117,.05)}
+    .useful-card h2{font-size:16px;margin:0 0 10px;color:var(--pine)}
+    .quick-routes{display:grid;gap:8px}
+    .quick-route{display:grid;grid-template-columns:72px 1fr;gap:8px;font-size:12px;line-height:1.5}
+    .quick-route strong{color:var(--pine)}
+    .quick-paczk{font-size:12px;line-height:1.5;margin:9px 0 0}
+    .fold-section{margin-top:9px;background:#fff;border:1px solid var(--line);border-radius:12px;overflow:hidden}
+    .fold-section summary{list-style:none;display:flex;align-items:center;gap:8px;min-height:48px;padding:11px 13px;color:var(--pine);font-size:13px;font-weight:750;cursor:pointer}
+    .fold-section summary::-webkit-details-marker{display:none}
+    .fold-section summary:after{content:"+";margin-left:auto;color:var(--pine-2);font-size:18px;font-weight:500}
+    .fold-section[open] summary:after{content:"−"}
+    .fold-section summary small{color:#526477;font-size:12px;font-weight:550}
+    .fold-content{padding:0 12px 12px}
+    .fold-content .source-box{margin:0}
+    .fold-content .local-note{font-size:12px}
+    .layers{display:grid;grid-template-columns:1fr;gap:8px}
+    .layer-group-title{grid-column:1/-1;margin:7px 0 0;color:var(--pine);font-size:12px;font-weight:800}
+    .layer-group-note{grid-column:1/-1;margin:-2px 0 3px;color:#526477;font-size:12px;line-height:1.45}
+    .layer-toggle{display:flex;align-items:center;justify-content:space-between;gap:12px;background:#fff;border:1px solid var(--line);border-radius:10px;padding:9px 10px;font-size:11px;color:#23415f;cursor:pointer}
+    .layer-toggle:hover{border-color:#bfd6e8}
+    .layer-name{display:flex;align-items:center;gap:9px}
+    .layer-swatch{width:20px;height:20px;border-radius:6px;background:#eaf2fa;display:grid;place-items:center;color:#2366ad;font-size:11px}
+    .layer-toggle input{accent-color:var(--pine-2);width:15px;height:15px;margin:0}
+    .source-box{background:#eaf2fa;border:1px solid #dbe5ef;border-radius:12px;padding:11px 12px;margin-top:18px}
+    .source-box h3{font-size:12px;letter-spacing:.08em;text-transform:uppercase;margin:0 0 6px;color:#23415f}
+    .source-box p{margin:0;font-size:12px;line-height:1.55;color:#526477}
+    .source-box a{color:#174875;text-decoration:underline;text-underline-offset:2px}
+    .map-shell{position:relative;min-width:0;min-height:0;background:#eaf2fa}
+    #map{position:absolute;inset:0;background:#eaf2fa;z-index:1}
+    .map-float{position:absolute;z-index:450;pointer-events:none}
+    .parcel-map-info{display:none;pointer-events:auto;background:rgba(255,255,255,.97);border:1px solid #bfd6e8;border-radius:11px;padding:10px 12px;box-shadow:var(--shadow);font-size:12px;line-height:1.45;color:#526477}
+    .parcel-map-info strong{display:block;color:var(--pine);font-size:13px;margin-bottom:3px}
+    .parcel-map-info span{display:block}
+    .parcel-map-info a{display:inline-block;margin-top:5px;color:var(--pine);font-weight:750;text-decoration:underline;text-underline-offset:2px}
+    .map-topline{left:18px;top:16px;right:18px;display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
+    .map-title-card,.map-tool{pointer-events:auto;background:rgba(255,255,255,.96);border:1px solid rgba(255,255,255,.9);box-shadow:var(--shadow);border-radius:12px;backdrop-filter:blur(8px)}
+    .map-title-card{padding:10px 13px;display:flex;align-items:center;gap:10px}
+    .map-title-dot{width:9px;height:9px;background:#d88e40;border-radius:50%;box-shadow:0 0 0 4px rgba(216,142,64,.15)}
+    .map-title-card strong{font-size:13px;color:var(--pine);display:block}
+    .map-title-card span{font-size:11px;color:#526477;display:block;margin-top:3px}
+    .map-actions{pointer-events:auto;display:flex;align-items:flex-start;gap:8px;flex:0 0 auto}
+    .map-tool{border:0;color:var(--pine);font-size:12px;font-weight:700;padding:11px 13px;display:flex;align-items:center;gap:7px;min-height:42px}
+    .map-tool:hover{background:#fff}
+    .tool-short{display:none}
+    .map-bottom{left:16px;bottom:26px;max-width:min(440px,calc(100% - 32px));pointer-events:auto;background:rgba(255,255,255,.94);border:1px solid rgba(219,229,239,.95);border-radius:10px;padding:8px 11px;color:#526477;font-size:11px;line-height:1.5;box-shadow:0 5px 16px rgba(23,72,117,.08)}
+    .map-bottom strong{color:#174875}
+    .leaflet-container{font-family:inherit}
+    .leaflet-control-attribution{font-size:10px!important}
+    .leaflet-control-zoom a{color:var(--pine)!important}
+    .hamlet-label{background:#fff;border:1px solid rgba(23,72,117,.14);border-radius:6px;box-shadow:0 2px 8px rgba(23,72,117,.13);color:#174875;font-size:11px;font-weight:750;padding:4px 7px;white-space:nowrap}
+    .hamlet-label:before{border-top-color:#fff!important}
+    .hamlet-label.local{background:#f1f6fb;border-color:#d2e2ef;color:#526477;font-weight:650}
+    .hamlet-label.local:before{border-top-color:#f1f6fb!important}
+    .hamlet-dot{width:14px!important;height:14px!important;background:#d88e40;border:3px solid #fff;border-radius:50%;box-shadow:0 1px 7px rgba(0,0,0,.27)}
+    .hamlet-dot.local{background:#a58e69}
+    .home-dot{width:13px!important;height:13px!important;background:#174875;border:3px solid #fff;border-radius:50%;box-shadow:0 1px 7px rgba(0,0,0,.28)}
+    .poi-marker-wrap{background:transparent;border:0}
+    .poi-marker{width:28px;height:28px;border:3px solid #fff;border-radius:10px;box-shadow:0 2px 9px rgba(0,0,0,.27);display:grid;place-items:center;font-size:14px;line-height:1}
+    .poi-marker.bus{background:#174875}.poi-marker.delivery{background:#6b5bb2}.poi-marker.emergency{background:#a74446}.poi-marker.culture{background:#b87524}.poi-marker.cycling{background:#367cad}.poi-marker.memory{background:#526477}
+    .poi-marker.approximate{background:#fff;border:2px dashed #b87524;color:#9a641d;box-shadow:0 2px 8px rgba(0,0,0,.2)}
+    .bus-stop-pair{width:42px;height:28px;border:2px solid #fff;border-radius:10px;background:#174875;box-shadow:0 2px 8px rgba(23,72,117,.38);display:flex;align-items:center;justify-content:center;gap:1px;color:#fff;font-size:13px;line-height:1;white-space:nowrap}
+    .bus-stop-pair span{width:17px;text-align:center}
+    .parcel-highlight{filter:drop-shadow(0 0 4px rgba(225,131,45,.8))}
+    .address-marker{width:10px!important;height:10px!important;border-radius:50%;background:#fff;border:3px solid #174875;box-shadow:0 1px 5px rgba(0,0,0,.32)}
+    .map-error{position:absolute;z-index:700;inset:0;display:none;align-items:center;justify-content:center;background:rgba(243,247,252,.94);padding:24px;text-align:center;color:#23415f}
+    .map-error.show{display:flex}
+    .map-error strong{display:block;font-family:Georgia,serif;font-size:22px;color:var(--pine);margin-bottom:8px}
+    .mobile-search-jump{display:none}
+    @media(max-width:700px){.parcel-map-info.show{display:block;left:10px;right:10px;bottom:62px}}
+    @media(max-width:900px){.layout{grid-template-columns:325px minmax(0,1fr)}.sidebar{padding:19px 16px}.topbar{padding:0 17px}}
+    @media(max-width:700px){body{overflow:auto}.topbar{height:64px;padding:0 13px}.monogram{width:37px;height:37px;border-radius:11px}.brand-title{font-size:13px}.brand-subtitle{font-size:10px}.top-chip{display:none}.top-button{padding:9px 11px;font-size:11px}.layout{height:auto;min-height:calc(100% - 64px);display:flex;flex-direction:column}.mobile-entry{order:0;background:var(--paper);padding:17px 15px 14px;border-bottom:1px solid var(--line)}.map-shell{order:1;height:58vh;height:58svh;min-height:400px;flex:0 0 auto}.sidebar{order:2;height:auto;max-height:none;overflow:visible;border-right:0;border-bottom:1px solid var(--line);padding:18px 15px 16px}.sidebar h1,.mobile-entry h1{font-size:26px;margin:9px 0 7px}.intro{font-size:14px;margin-bottom:13px}.search-card{padding:12px;scroll-margin-top:12px}.search-tab{font-size:13px;padding:10px}.search-input{font-size:16px}.search-submit{height:46px;font-size:15px}.search-hint{font-size:13px}.status{font-size:13px}.result-row{font-size:13px}.result-row strong{font-size:14px}.section-title{margin-top:16px}.hamlet-list{grid-template-columns:repeat(3,1fr)}.hamlet-button{font-size:12px;min-height:42px;padding:7px}.poi-button{font-size:13px}.poi-button small{font-size:11px}.layers{grid-template-columns:1fr 1fr}.layer-toggle{font-size:13px;padding:10px}.layer-group-title{font-size:13px}.useful-card{padding:14px}.useful-card h2{font-size:16px}.quick-route,.quick-paczk{font-size:13px}.fold-section summary{font-size:14px;min-height:50px}.fold-section summary small{font-size:11px}.fold-content .local-note{font-size:12px}.map-topline{left:9px;top:9px;right:9px;gap:6px}.map-title-card{padding:8px 9px;max-width:48%}.map-title-card span{display:none}.map-actions{gap:5px}.map-tool{font-size:12px;padding:8px 9px;min-height:44px}.tool-full{display:none}.tool-short{display:inline}.map-bottom{display:none}.mobile-search-jump{display:flex;align-items:center;justify-content:center;gap:7px;left:12px;bottom:14px;pointer-events:auto;background:var(--pine-2);border:2px solid #fff;border-radius:999px;padding:11px 15px;color:#fff;font-size:12px;font-weight:750;box-shadow:0 4px 14px rgba(23,72,117,.32)}}
+    @media(max-width:390px){.hamlet-list{grid-template-columns:repeat(2,1fr)}.layers{grid-template-columns:1fr}.map-shell{height:55vh}.map-title-card{max-width:42%}.map-actions{gap:4px}.map-tool{padding:8px 9px;min-height:44px}}
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+    <div class="monogram"><img src="https://ispinalokalnie.wordpress.com/wp-content/uploads/2026/10/ispina-lokalnie-monogram-il.png?w=150" alt="Monogram Ispina Lokalnie"></div>
+      <div><div class="brand-title">ISPINA <span>LOKALNIE</span></div><div class="brand-subtitle">Mega lokalna mapa</div></div>
+    </div>
+    <div class="top-actions"><div class="top-chip">Ispina · gmina Drwinia · powiat bocheński</div><button class="top-button" id="homeTop">⌖ &nbsp; Cała Ispina</button></div>
+  </header>
+  <main class="layout">
+    <aside class="sidebar">
+      <div class="mobile-entry" id="mobileEntry">
+      <div class="eyebrow">Łączy nas Ispina</div>
+      <h1>Sprawdź działkę w Ispinie</h1>
+      <p class="intro">Wpisz numer działki lub domu albo kliknij przystanek, aby zobaczyć jego nazwę i obsługujące linie.</p>
+
+      <section class="search-card" id="searchCard" aria-label="Wyszukiwarka mapy">
+        <div class="search-tabs" role="tablist" aria-label="Rodzaj wyszukiwania">
+          <button class="search-tab active" id="parcelTab" role="tab" aria-controls="searchForm" aria-selected="true" tabindex="0">Działka</button>
+          <button class="search-tab" id="houseTab" role="tab" aria-controls="searchForm" aria-selected="false" tabindex="-1">Numer domu</button>
+        </div>
+        <form id="searchForm" role="tabpanel" aria-labelledby="parcelTab">
+          <label for="searchInput" id="inputLabel" class="section-title" style="display:block;margin:2px 0 7px;letter-spacing:.02em;text-transform:none;color:#5c6c64">Numer działki w obrębie Ispina</label>
+          <div class="input-wrap"><input class="search-input" id="searchInput" type="search" inputmode="text" enterkeyhint="search" autocapitalize="off" spellcheck="false" autocomplete="off" placeholder="np. 123/4" aria-label="Wpisz numer działki"><span class="search-icon" aria-hidden="true">⌕</span></div>
+          <button class="search-submit" id="searchSubmit" type="submit">Znajdź działkę na mapie</button>
+        </form>
+        <p class="search-hint" id="searchHint">Wystarczy sam numer. Mapa dopisze obręb 0006 Ispina.</p>
+        <div class="status" id="searchStatus" role="status" aria-live="polite"></div>
+        <div class="results" id="searchResults"></div>
+      </section>
+      </div>
+
+      <section class="useful-card" aria-label="Przydatne informacje">
+        <h2>Przydatne informacje</h2>
+        <div class="quick-routes">
+          <div class="quick-route"><strong>A7</strong><span>Ispina Most, Ispina Przedszkole, Ispina Leśniczówka</span></div>
+          <div class="quick-route"><strong>A4 · A65</strong><span>Ispina Most, Ispina Dom Ludowy, Ispina Wiślisko</span></div>
+          <div class="quick-route"><strong>Gminna 1</strong><span>Ispina Wiślisko, Ispina Dom Ludowy, Ispina Most</span></div>
+        </div>
+        <p class="quick-paczk"><strong>Paczkomat InPost:</strong> Ispina 100 · dostęp 24/7.</p>
+      </section>
+
+      <details class="fold-section">
+        <summary><span>Przysiółki i części Ispiny</span><small>6 nazw</small></summary>
+        <div class="fold-content">
+          <div class="hamlet-list" id="hamletList"></div>
+          <p class="local-note">„Pole” to nazwa lokalna spotykana w źródłach, bez statusu urzędowego przysiółka.</p>
+        </div>
+      </details>
+
+      <details class="fold-section">
+        <summary><span>Przystanki i miejsca</span><small>10 punktów</small></summary>
+        <div class="fold-content">
+          <div class="poi-list" id="poiList"></div>
+          <p class="local-note">Dotknij miejsca, aby przybliżyć mapę i otworzyć opis. Podwójny symbol autobusu oznacza stanowiska po obu stronach drogi; punkt przystanku jest orientacyjny.</p>
+          <p class="local-note">Położenie trzech obiektów przydrożnych wymaga potwierdzenia w terenie.</p>
+        </div>
+      </details>
+
+      <details class="fold-section">
+        <summary><span>Warstwy mapy</span><small id="layerViewState">czytelny widok</small></summary>
+        <div class="fold-content">
+          <div class="layers">
+            <div class="layer-group-title">Przystanki i lokalne miejsca</div>
+            <p class="layer-group-note">Widoczne na mapie od razu. Odznacz, aby ukryć wybraną kategorię.</p>
+            <label class="layer-toggle"><span class="layer-name"><span class="layer-swatch">🚌</span>Przystanki autobusowe (5)</span><input type="checkbox" id="stopsToggle" checked></label>
+            <label class="layer-toggle"><span class="layer-name"><span class="layer-swatch">▣</span>InPost · paczkomat</span><input type="checkbox" id="lockerToggle" checked></label>
+            <label class="layer-toggle"><span class="layer-name"><span class="layer-swatch">✚</span>OSP Ispina</span><input type="checkbox" id="ospToggle" checked></label>
+            <label class="layer-toggle"><span class="layer-name"><span class="layer-swatch">♧</span>MOR Ispina</span><input type="checkbox" id="morToggle" checked></label>
+            <label class="layer-toggle"><span class="layer-name"><span class="layer-swatch">✝</span>Kapliczki, krzyż i pamięć</span><input type="checkbox" id="cultureToggle" checked></label>
+            <div class="layer-group-title">Działki, budynki i adresy</div>
+            <p class="layer-group-note">Wszystkie są zaznaczone. Drobne szczegóły oraz punkty adresowe pokażą się po przybliżeniu mapy.</p>
+            <label class="layer-toggle"><span class="layer-name"><span class="layer-swatch">⌑</span>Granica Ispiny</span><input type="checkbox" id="boundaryToggle" checked></label>
+            <label class="layer-toggle"><span class="layer-name"><span class="layer-swatch">R</span>Rodzaj gruntu (EGiB)</span><input type="checkbox" id="landUseToggle" checked aria-describedby="landUseHint"></label>
+            <label class="layer-toggle"><span class="layer-name"><span class="layer-swatch">▧</span>Działki i ich numery</span><input type="checkbox" id="parcelToggle" checked></label>
+            <label class="layer-toggle"><span class="layer-name"><span class="layer-swatch">⌂</span>Budynki</span><input type="checkbox" id="buildingToggle" checked></label>
+            <label class="layer-toggle"><span class="layer-name"><span class="layer-swatch">#</span>Numery ulic i domów</span><input type="checkbox" id="addressToggle" checked></label>
+            <label class="layer-toggle"><span class="layer-name"><span class="layer-swatch">●</span>Adresy do wyszukania</span><input type="checkbox" id="pointsToggle" checked aria-describedby="prgHint"></label>
+          </div>
+          <p class="local-note" id="landUseHint">Oznaczenia użytków z mapy powiatu: np. R: grunty orne, Ł: łąki, B: tereny mieszkaniowe. Dostępność zależy od danych dla danego miejsca.</p>
+          <p class="local-note" id="prgHint">Punkty adresowe z rejestru GUGiK. Pokażą się po przybliżeniu mapy; pierwsze wczytanie może potrwać do 20 sekund.</p>
+        </div>
+      </details>
+
+      <details class="fold-section">
+        <summary><span>Źródła i dokładność</span></summary>
+        <div class="fold-content">
+          <div class="source-box">
+            <h3>Źródła i dokładność</h3>
+            <p>Drogi i nazwy: <a href="https://github.com/sletuffe/OpenTopoMap" target="_blank" rel="noopener">OpenTopoMap-R</a> / <a href="https://openmaps.fr/tile-usage-policy.html" target="_blank" rel="noopener">OpenMaps.fr</a> / © OpenStreetMap contributors. Ortofotomapa, granice, działki i budynki: <a href="https://www.geoportal.gov.pl/pl/dane/ewidencja-gruntow-i-budynkow-egib/" target="_blank" rel="noopener">GUGiK · EGiB / Geoportal</a>. Numery adresowe: <a href="https://ogcapi.geoportal.gov.pl/res/ims/maps/prg_ad/apiFeatures" target="_blank" rel="noopener">GUGiK · PRG</a>. Przystanki i punkty lokalne: <a href="https://www.drwinia.pl/turysta/interaktywna-mapa" target="_blank" rel="noopener">interaktywna mapa Gminy Drwinia</a>. Wyszukiwanie działek: <a href="https://uldk.gugik.gov.pl/" target="_blank" rel="noopener">ULDK</a>. Rejestry mogą mieć braki lub opóźnienia aktualizacji.</p>
+          </div>
+        </div>
+      </details>
+    </aside>
+
+    <section class="map-shell" aria-label="Mapa Ispiny">
+      <div id="map" role="application" aria-label="Interaktywna mapa Ispiny"></div>
+      <div class="map-float map-topline">
+        <div class="map-title-card"><i class="map-title-dot"></i><div><strong>Mapa obrębu Ispina</strong><span>działki · domy · przystanki · miejsca</span></div></div>
+        <div class="map-actions">
+          <button class="map-tool" id="layerPresetToggle" type="button" aria-pressed="false" aria-label="Pokaż wszystkie warstwy" title="Pokaż wszystkie warstwy mapy"><span class="tool-full">Pokaż wszystkie warstwy</span><span class="tool-short" aria-hidden="true">Warstwy</span></button>
+          <button class="map-tool" id="baseToggle" type="button" aria-label="Pokaż zdjęcia lotnicze" aria-pressed="false" title="Pokaż zdjęcia lotnicze">◩ &nbsp; <span class="tool-full">Pokaż zdjęcia</span><span class="tool-short" aria-hidden="true">Zdjęcia</span></button>
+        </div>
+      </div>
+      <button class="map-float mobile-search-jump" id="mobileSearchJump" type="button" aria-controls="searchCard">⌕ &nbsp; Szukaj działki lub domu</button>
+      <div class="map-float parcel-map-info" id="parcelMapInfo" role="status" aria-live="polite"><strong id="parcelMapInfoHeading">Informacje o działce</strong><span id="parcelMapAddress" hidden></span><span id="parcelMapUse" hidden></span><a href="https://www.drwinia.pl/samorzad/plan-zagospodarowania-przestrzennego" target="_blank" rel="noopener">Sprawdź przeznaczenie w planie gminy</a></div>
+      <div class="map-float map-bottom"><strong>Granica:</strong> obręb ewidencyjny 0006 Ispina &nbsp;·&nbsp; <strong>drogi:</strong> OpenTopoMap-R / OSM &nbsp;·&nbsp; <strong>działki i ortofoto:</strong> GUGiK</div>
+      <div class="map-error" id="mapError"><div><strong>Nie udało się wczytać mapy</strong>Sprawdź połączenie z internetem i odśwież stronę.</div></div>
+    </section>
+  </main>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+  <script>
+    (() => {
+      const CENTER = [50.11361, 20.37900];
+      const PARCEL_ID_PREFIX = "120103_2.0006.";
+      const HAMLETS = [
+        {name:"Ameryka", lat:50.10611, lng:20.39611, official:true},
+        {name:"Cierniaczka", lat:50.11194, lng:20.38944, official:true},
+        {name:"Krzykówka", lat:50.11194, lng:20.39583, official:true},
+        {name:"Zwierzyniec", lat:50.10833, lng:20.38889, official:true},
+        {name:"Pole", lat:50.11111, lng:20.38667, official:false}
+      ];
+      const POINTS = [
+        {id:"ispina-most",name:"Ispina Most",lat:50.117705,lng:20.3837892,group:"stops",icon:"🚌",subtitle:"Przystanek · A4, A65, A7, gminna 1"},
+        {id:"ispina-przedszkole",name:"Ispina Przedszkole",lat:50.116952,lng:20.383356,group:"stops",icon:"🚌",subtitle:"Przystanek · A7"},
+        {id:"ispina-lesniczowka",name:"Ispina Leśniczówka",lat:50.113667,lng:20.3786302,group:"stops",icon:"🚌",subtitle:"Przystanek · A7"},
+        {id:"ispina-dom-ludowy",name:"Ispina Dom Ludowy",lat:50.116,lng:20.3885,group:"stops",icon:"🚌",subtitle:"Przystanek · A4, A65, gminna 1"},
+        {id:"ispina-wislisko",name:"Ispina Wiślisko",lat:50.115,lng:20.395,group:"stops",icon:"🚌",subtitle:"Przystanek · A4, A65, gminna 1"},
+        {id:"inpost-ispina",name:"Paczkomat InPost ISP01BAPP",lat:50.11635,lng:20.38849,group:"locker",icon:"▣",subtitle:"Ispina 100 · dostęp 24/7",detail:"Paczkomat przy Domu Ludowym. Dostęp całodobowy."},
+        {id:"osp-ispina",name:"OSP Ispina",lat:50.1183579473,lng:20.3831362724,group:"osp",icon:"✚",subtitle:"Ochotnicza Straż Pożarna",detail:"Siedziba OSP Ispina; punkt z gminnej mapy interaktywnej."},
+        {id:"mor-ispina",name:"MOR Ispina",lat:50.1161155640,lng:20.3831148148,group:"mor",icon:"♧",subtitle:"Miejsce Obsługi Rowerzystów",detail:"Gminny punkt odpoczynku dla rowerzystów."},
+        {id:"memorial-ispina",name:"Mogiła pacyfikacji mieszkańców Ispiny (1943)",lat:50.0995529361,lng:20.3717207909,group:"culture",icon:"✝",subtitle:"Miejsce pamięci · 1943",detail:"Miejsce upamiętnia ofiary pacyfikacji Ispiny. Położenie z gminnej mapy interaktywnej."},
+        {id:"roadside-shrines",name:"Kapliczki i krzyż przydrożny",lat:CENTER[0],lng:CENTER[1],group:"culture",icon:"✝",subtitle:"3 obiekty · lokalizacja orientacyjna",detail:"Przydrożny krzyż z 1831 r.; kapliczka słupowa Matki Bożej z przełomu XIX i XX w.; kapliczka domkowa Matki Bożej z XIX w. Opis lokalny nazywa ją także kapliczką Serca Pana Jezusa i Matki Bożej. Gminny wykaz nie podaje współrzędnych tych trzech obiektów, dlatego punkt jest orientacyjny i nie wskazuje faktycznego miejsca kapliczek."}
+      ];
+      const PLACE_NAMES = ["ispina","ameryka","cierniaczka","krzykowka","zwierzyniec","pole"];
+      const SIMC_IDS = ["0317429","1066656","1066768","0317435","1066662"];
+      const ADDRESS_API = "https://ogcapi.geoportal.gov.pl/res/ims/maps/prg_ad/apiFeatures/collections/PunktAdresowy/items";
+      const ADDRESS_TIMEOUT_MESSAGE = "Rejestr adresów PRG nie odpowiedział w ciągu 20 sekund. Spróbuj ponownie; pozostałe warstwy mapy działają.";
+      const KIEG = "https://integracja.gugik.gov.pl/cgi-bin/KrajowaIntegracjaEwidencjiGruntow";
+      const COUNTY_EGIB_WMS = "https://bochenski-wms.webewid.pl/iip/ows";
+      const ADDRESSES_WMS = "https://mapy.geoportal.gov.pl/wss/ext/KrajowaIntegracjaNumeracjiAdresowej";
+      const ROAD_TILES = "https://tile.openmaps.fr/opentopomap/{z}/{x}/{y}.png";
+      const ORTHOPHOTO_TILES = "https://mapy.geoportal.gov.pl/wss/service/PZGIK/ORTO/WMTS/StandardResolution?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0&LAYER=ORTOFOTOMAPA&STYLE=default&FORMAT=image/jpeg&TILEMATRIXSET=EPSG:3857&TILEMATRIX=EPSG:3857:{z}&TILEROW={y}&TILECOL={x}";
+
+      const map = L.map("map", {zoomControl:false, preferCanvas:true, zoomSnap:.5}).setView(CENTER, 14.5);
+      L.control.zoom({position:"bottomright"}).addTo(map);
+      L.control.scale({imperial:false,position:"bottomright",maxWidth:110}).addTo(map);
+      const street = L.tileLayer(ROAD_TILES,{maxZoom:19,maxNativeZoom:17,attribution:'<a href="https://github.com/sletuffe/OpenTopoMap">OpenTopoMap-R</a> · <a href="https://openmaps.fr/donate">OpenMaps.fr ♥</a> · © <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'}).addTo(map);
+      const aerial = L.tileLayer(ORTHOPHOTO_TILES,{maxZoom:18,attribution:'Ortofotomapa <a href="https://www.geoportal.gov.pl/pl/dane/ortofotomapa-orto/">GUGiK</a>'});
+
+      const wmsOptions = {transparent:true,format:"image/png",version:"1.1.1",uppercase:true,opacity:.78,attribution:'<a href="https://www.geoportal.gov.pl/">GUGiK</a>'};
+      const boundaryLayer = L.tileLayer.wms(KIEG,{...wmsOptions,layers:"obreby",opacity:.9});
+      const landUseLayer = L.tileLayer.wms(COUNTY_EGIB_WMS,{...wmsOptions,layers:"uzytki,opisy_uzytkow",opacity:.66,minZoom:15});
+      const parcelLayer = L.tileLayer.wms(KIEG,{...wmsOptions,layers:"dzialki,numery_dzialek",opacity:.76,minZoom:15.5});
+      const buildingLayer = L.tileLayer.wms(KIEG,{...wmsOptions,layers:"budynki",opacity:.8,minZoom:15});
+      const addressLayer = L.tileLayer.wms(ADDRESSES_WMS,{...wmsOptions,layers:"prg-adresy,prg-ulice,prg-place",opacity:.85,minZoom:15.5});
+
+      const hamletLayer = L.layerGroup().addTo(map);
+      const addressPoints = L.layerGroup();
+      let addressPointsReady = false;
+      const poiLayers = {stops:L.layerGroup().addTo(map),locker:L.layerGroup().addTo(map),osp:L.layerGroup().addTo(map),mor:L.layerGroup().addTo(map),culture:L.layerGroup().addTo(map)};
+      const poiMarkers = new Map();
+      const selectionLayer = L.geoJSON(null,{style:{color:"#e1883f",weight:4,opacity:1,fillColor:"#f4a346",fillOpacity:.28,className:"parcel-highlight"},pointToLayer:(f,latlng)=>L.circleMarker(latlng,{radius:10,color:"#e1883f",weight:4,fillColor:"#fff3e1",fillOpacity:.85})}).addTo(map);
+      const highlightPoint = L.layerGroup().addTo(map);
+
+      const placeIcon = L.divIcon({className:"hamlet-dot",iconSize:[14,14],iconAnchor:[7,7]});
+      const localIcon = L.divIcon({className:"hamlet-dot local",iconSize:[14,14],iconAnchor:[7,7]});
+      const ispinaMarker = L.marker(CENTER,{icon:L.divIcon({className:"home-dot",iconSize:[13,13],iconAnchor:[6,6]})}).bindTooltip("Ispina",{permanent:true,direction:"top",offset:[0,-7],className:"hamlet-label"}).bindPopup("<strong>Ispina</strong><br><span style='font-size:13px;color:#526477'>Obręb ewidencyjny 0006</span>").addTo(hamletLayer);
+      const hamletMarkers = new Map();
+      HAMLETS.forEach(place => {
+        const marker = L.marker([place.lat,place.lng],{icon:place.official?placeIcon:localIcon}).bindTooltip(place.name,{permanent:true,direction:"top",offset:[0,-7],className:place.official?"hamlet-label":"hamlet-label local"});
+        marker.bindPopup(`<strong>${place.name}</strong><br><span style="font-size:13px;color:#526477">${place.official?"Nazwa w rejestrze miejscowości":"Nazwa lokalna spotykana w źródłach"}</span>`);
+        hamletLayer.addLayer(marker);
+        hamletMarkers.set(place.name,marker);
+      });
+      const pointIcons = {stops:"bus",locker:"delivery",osp:"emergency",mor:"cycling",culture:"memory"};
+      function labelMapMarker(marker,label){
+        const setLabel=()=>marker.getElement()?.setAttribute("aria-label",label);
+        marker.options.title=label;
+        marker.on("add",setLabel);
+        return marker;
+      }
+      POINTS.forEach(point=>{
+        const detail=point.detail;
+        const popup=point.group==="stops"
+          ?`<strong>${escapeHTML(point.name)}</strong><br><span style="font-size:13px;color:#526477">${escapeHTML(point.subtitle)}</span>`
+          :`<strong>${escapeHTML(point.name)}</strong><br><span style="font-size:13px;color:#526477">${escapeHTML(point.subtitle)}</span><br><span style="font-size:13px">${escapeHTML(detail)}</span>`;
+        if(point.group==="stops"){
+          const icon=L.divIcon({className:"poi-marker-wrap",html:`<span class="bus-stop-pair" aria-label="${escapeHTML(point.name)}, stanowiska po obu stronach drogi"><span aria-hidden="true">🚌</span><span aria-hidden="true">🚌</span></span>`,iconSize:[42,28],iconAnchor:[21,14]});
+          const marker=labelMapMarker(L.marker([point.lat,point.lng],{icon}),`${point.name}. ${point.subtitle}.`).bindTooltip(point.name,{direction:"top",offset:[0,-14],className:"hamlet-label"}).bindPopup(popup);
+          poiLayers.stops.addLayer(marker);
+          poiMarkers.set(point.id,marker);
+          return;
+        }
+        const approximate=point.id==="roadside-shrines";
+        const icon=L.divIcon({className:"poi-marker-wrap",html:`<span class="poi-marker ${approximate?"approximate":pointIcons[point.group]}">${approximate?"?":point.icon}</span>`,iconSize:[28,28],iconAnchor:[14,14]});
+        const tooltip=approximate?`${point.name} · lokalizacja orientacyjna`:point.name;
+        const marker=labelMapMarker(L.marker([point.lat,point.lng],{icon}),`${point.name}. ${point.subtitle}. Otwórz opis miejsca.`).bindTooltip(tooltip,{direction:"top",offset:[0,-14],className:"hamlet-label"}).bindPopup(popup);
+        poiLayers[point.group].addLayer(marker);
+        poiMarkers.set(point.id,marker);
+      });
+
+      let addressIndex = [];
+      let addressIndexPromise = null;
+      let parcelInfoGeneration = 0;
+      let searchGeneration = 0;
+      let mode = "parcel";
+      let isAerial = false;
+      const $ = id => document.getElementById(id);
+      const searchInput = $("searchInput"), statusBox = $("searchStatus"), resultBox = $("searchResults");
+      const mapShellElement=document.querySelector(".map-shell");
+      function focusMapOnMobile(){
+        if(window.matchMedia("(max-width:700px)").matches)mapShellElement.scrollIntoView({behavior:"smooth",block:"start"});
+      }
+
+      function normalize(value){return String(value??"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().trim();}
+      function normalizeKey(value){return normalize(value).replace(/[^a-z0-9]/g,"");}
+      function property(props, wanted){
+        const wantedKeys=wanted.map(normalizeKey);
+        const entry=Object.entries(props||{}).find(([key])=>wantedKeys.includes(normalizeKey(key)));
+        return entry?entry[1]:"";
+      }
+      function addressNumber(feature){return String(property(feature.properties,["numerPorzadkowy","numer","nrPorzadkowy"])||"").trim();}
+      function addressPlace(feature){return String(property(feature.properties,["nazwaMiejscowosci","miejscowosc","nazwaMiejscowosciAdresowej"])||"").trim();}
+      function addressStreet(feature){return String(property(feature.properties,["nazwaUlicy","ulica"])||"").trim();}
+      function addressZip(feature){return String(property(feature.properties,["kodPocztowy"])||"").trim();}
+      function inIspina(feature){
+        const props=feature.properties||{};
+        const place=normalize(addressPlace(feature));
+        const simc=String(property(props,["idSIMCNazwyMiejscowosci","idSimc","simc"]));
+        return PLACE_NAMES.includes(place)||SIMC_IDS.includes(simc);
+      }
+      function setStatus(text,kind="ok"){
+        statusBox.textContent=text;
+        statusBox.className="status show"+(kind==="error"?" error":"");
+      }
+      function clearStatus(){parcelInfoGeneration++;statusBox.textContent="";statusBox.className="status";resultBox.innerHTML="";$("parcelMapInfo").classList.remove("show");}
+      function niceAddress(feature){
+        const number=addressNumber(feature)||"?";
+        const place=addressPlace(feature)||"Ispina";
+        const streetName=addressStreet(feature);
+        return `${place}${streetName?`, ${streetName}`:""} ${number}`;
+      }
+      function featureLatLng(feature){
+        const coords=feature?.geometry?.coordinates;
+        if(!coords||coords.length<2||Math.abs(coords[0])>180||Math.abs(coords[1])>90)return null;
+        return [coords[1],coords[0]];
+      }
+      function pointInRing(lon,lat,ring){
+        let inside=false;
+        for(let i=0,j=ring.length-1;i<ring.length;j=i++){
+          const [xi,yi]=ring[i],[xj,yj]=ring[j];
+          const cross=(lon-xi)*(yj-yi)-(lat-yi)*(xj-xi);
+          if(Math.abs(cross)<1e-10&&lon>=Math.min(xi,xj)-1e-10&&lon<=Math.max(xi,xj)+1e-10&&lat>=Math.min(yi,yj)-1e-10&&lat<=Math.max(yi,yj)+1e-10)return true;
+          if((yi>lat)!==(yj>lat)&&lon<(xj-xi)*(lat-yi)/(yj-yi)+xi)inside=!inside;
+        }
+        return inside;
+      }
+      function geometryContainsLatLng(geometry,latlng){
+        if(!geometry||!latlng)return false;
+        const point=[latlng[1],latlng[0]],polygons=geometry.type==="Polygon"?[geometry.coordinates]:geometry.type==="MultiPolygon"?geometry.coordinates:[];
+        return polygons.some(polygon=>polygon?.[0]&&pointInRing(point[0],point[1],polygon[0])&&!polygon.slice(1).some(hole=>pointInRing(point[0],point[1],hole)));
+      }
+      function parcelInteriorPoint(geometry,preferredLatLng){
+        if(geometryContainsLatLng(geometry,preferredLatLng))return [preferredLatLng[1],preferredLatLng[0]];
+        const polygons=geometry?.type==="Polygon"?[geometry.coordinates]:geometry?.type==="MultiPolygon"?geometry.coordinates:[];
+        const fractions=[.5,.25,.75,.125,.875,.375,.625,.0625,.9375];
+        let best=null,bestWidth=-1;
+        for(const polygon of polygons){
+          const ring=polygon?.[0]||[];if(ring.length<4)continue;
+          const ys=ring.map(point=>point[1]),minY=Math.min(...ys),maxY=Math.max(...ys),span=maxY-minY;if(!span)continue;
+          for(const fraction of fractions){
+            const lat=minY+span*fraction,intersections=[];
+            for(let i=0,j=ring.length-1;i<ring.length;j=i++){
+              const [x1,y1]=ring[j],[x2,y2]=ring[i];
+              if((y1>lat)!==(y2>lat))intersections.push(x1+(lat-y1)*(x2-x1)/(y2-y1));
+            }
+            intersections.sort((a,b)=>a-b);
+            for(let i=0;i+1<intersections.length;i+=2){
+              const width=intersections[i+1]-intersections[i],point=[(intersections[i]+intersections[i+1])/2,lat];
+              if(width>bestWidth&&geometryContainsLatLng(geometry,[lat,point[0]])){best=point;bestWidth=width;}
+            }
+          }
+        }
+        return best;
+      }
+      const LAND_USE_TYPES={R:"grunty orne",S:"sady",Ł:"łąki trwałe",Ps:"pastwiska trwałe",Br:"grunty rolne zabudowane",Lzr:"grunty zadrzewione i zakrzewione na użytkach rolnych",Wsr:"grunty pod stawami",W:"grunty pod rowami",N:"nieużytki",Ls:"lasy",Lz:"grunty zadrzewione i zakrzewione",B:"tereny mieszkaniowe",Ba:"tereny przemysłowe",Bi:"inne tereny zabudowane",Bp:"zurbanizowane tereny niezabudowane lub w trakcie zabudowy",Bz:"tereny rekreacyjno-wypoczynkowe",K:"użytki kopalne",dr:"drogi",Tk:"tereny kolejowe",Ti:"inne tereny komunikacyjne",Tp:"grunty przeznaczone pod budowę dróg lub linii kolejowych",Wp:"grunty pod wodami płynącymi",Ws:"grunty pod wodami stojącymi",Tr:"tereny różne"};
+      function parseLandUse(raw){
+        const value=String(raw||"").replace(/^\s*oznaczenie\s*[:\-]?\s*/i,"").trim();
+        const match=value.match(/(?:^|[^A-Za-zŁł])(Lzr|Wsr|Lz|Ls|Br|Ba|Bi|Bp|Bz|dr|Tk|Ti|Tp|Wp|Ws|Tr|Ps|Ł|R|S|W|N|B|K)(?:[IVX]{1,4}[ab]?)?(?=$|[^A-Za-zŁł])/i);
+        if(!match)return null;
+        const code=Object.keys(LAND_USE_TYPES).find(key=>key.toLocaleLowerCase("pl-PL")===match[1].toLocaleLowerCase("pl-PL"));
+        return code?{code:value,label:LAND_USE_TYPES[code]}:null;
+      }
+      async function getLandUseAtPoint(geometry,preferredLatLng){
+        const point=parcelInteriorPoint(geometry,preferredLatLng);if(!point)return {unavailable:true};
+        const [lon,lat]=point,span=.0015,url=new URL(COUNTY_EGIB_WMS);
+        const params={SERVICE:"WMS",VERSION:"1.1.1",REQUEST:"GetFeatureInfo",LAYERS:"uzytki",QUERY_LAYERS:"uzytki",STYLES:"",SRS:"EPSG:4326",BBOX:`${lon-span},${lat-span},${lon+span},${lat+span}`,WIDTH:"256",HEIGHT:"256",X:"128",Y:"128",INFO_FORMAT:"text/html",FEATURE_COUNT:"5"};
+        Object.entries(params).forEach(([key,value])=>url.searchParams.set(key,value));
+        const controller=typeof AbortController==="function"?new AbortController():null,timeout=controller?window.setTimeout(()=>controller.abort(),7000):null;
+        try{
+          const options={headers:{Accept:"text/html"}};if(controller)options.signal=controller.signal;
+          const response=await fetch(url.toString(),options);
+          if(!response.ok)return {unavailable:true};
+          const html=await response.text(),doc=new DOMParser().parseFromString(html,"text/html");
+          const label=[...doc.querySelectorAll("td,th")].find(cell=>normalize(cell.textContent)==="oznaczenie");
+          const raw=label?.nextElementSibling?.textContent?.trim()||"";
+          return {...(parseLandUse(raw)||{unavailable:true}),point:[lat,lon]};
+        }catch{return {unavailable:true};}
+        finally{if(timeout)window.clearTimeout(timeout);}
+      }
+      async function getParcelByAddress(feature){
+        const latlng=featureLatLng(feature);if(!latlng)throw new Error("Brakuje współrzędnych punktu adresowego.");
+        const url=new URL("https://uldk.gugik.gov.pl/");
+        url.searchParams.set("request","GetParcelByXY");url.searchParams.set("xy",`${latlng[1]},${latlng[0]},4326`);url.searchParams.set("result","id,parcel,teryt,geom_wkt");url.searchParams.set("srid","4326");
+        const response=await fetch(url.toString(),{headers:{Accept:"text/plain"}});if(!response.ok)throw new Error(`ULDK zwrócił błąd ${response.status}.`);
+        const lines=(await response.text()).split(/\r?\n/).map(line=>line.trim()).filter(Boolean),code=Number.parseInt(lines[0],10),fields=(lines[1]||"").split("|");
+        const id=fields[0]?.trim(),wkt=fields.find(value=>/^(?:SRID=\d+;)?(?:MULTI)?POLYGON\s*\(/i.test(value.trim()));
+        if(code!==0||!id||!wkt)throw new Error("ULDK nie wskazał działki dla punktu adresowego.");
+        return {id,geometry:wktToGeoJSON(wkt),latlng};
+      }
+      async function updateParcelAddressSummary(id,geometry,target,preferredFeature,generation,card){
+        try{
+          await loadAddressIndex();if(generation!==parcelInfoGeneration||!card.isConnected)return;
+          const matches=addressIndex.filter(feature=>geometryContainsLatLng(geometry,featureLatLng(feature))&&feature!==preferredFeature);
+          if(!matches.length){
+            target.textContent="";target.hidden=true;$("parcelMapAddress").textContent="";$("parcelMapAddress").hidden=true;return;
+          }
+          const names=matches.slice(0,8).map(niceAddress),extra=matches.length>names.length?` i ${matches.length-names.length} kolejnych`:"";
+          target.textContent=preferredFeature?`Punkt adresowy ${niceAddress(preferredFeature)} przypisano do działki ${id} w usłudze ULDK. Inne punkty adresowe PRG w granicach tej działki: ${names.join(", ")}${extra}.`:`Punkty adresowe PRG w granicach działki ${id}: ${names.join(", ")}${extra}.`;
+          target.hidden=false;$("parcelMapAddress").textContent=preferredFeature?`${niceAddress(preferredFeature)} → działka ${id}.`:`Adresy w działce: ${names.join(", ")}${extra}.`;$("parcelMapAddress").hidden=false;
+        }catch{
+          if(generation!==parcelInfoGeneration||!card.isConnected)return;
+          target.textContent="";target.hidden=true;$("parcelMapAddress").textContent="";$("parcelMapAddress").hidden=true;
+        }
+        const note=document.createElement("small");note.textContent="To lokalizacje punktów adresowych PRG; nie wyznaczają dokładnego obrysu budynku.";target.appendChild(note);
+      }
+      function showParcelInfo(id,geometry,{addressFeature=null}={}){
+        const generation=++parcelInfoGeneration,card=document.createElement("section");card.className="parcel-info";card.setAttribute("aria-label","Tekstowe informacje o działce");
+        const number=id.split(".").pop();
+        const heading=document.createElement("h3");heading.textContent=`Informacje o działce ${number}`;card.appendChild(heading);
+        const addressSummary=document.createElement("p");addressSummary.className="parcel-address-summary";addressSummary.textContent=addressFeature?`Punkt adresowy ${niceAddress(addressFeature)} przypisano do działki ${id} w usłudze ULDK.`:`Sprawdzam punkty adresowe w granicach działki ${id}…`;card.appendChild(addressSummary);
+        const useSummary=document.createElement("p");useSummary.className="parcel-use-summary";useSummary.textContent="";useSummary.hidden=true;card.appendChild(useSummary);
+        const codes=document.createElement("p");codes.className="parcel-codes";codes.textContent="Przykładowe kody: R: grunty orne · Ł: łąki · Ps: pastwiska · B: tereny mieszkaniowe · Br: grunty rolne zabudowane · Ls: lasy.";card.appendChild(codes);
+        const caveat=document.createElement("p");caveat.textContent="W jednej działce mogą występować różne użytki. EGiB nie rozstrzyga, czy można budować. Sprawdź plan miejscowy lub decyzję WZ.";card.appendChild(caveat);
+        const links=document.createElement("div");links.className="parcel-info-links";
+        const plan=document.createElement("a");plan.className="parcel-info-link";plan.href="https://www.drwinia.pl/samorzad/plan-zagospodarowania-przestrzennego";plan.target="_blank";plan.rel="noopener";plan.textContent="Sprawdź plan gminy";links.appendChild(plan);
+        const regulations=document.createElement("a");regulations.className="parcel-info-link";regulations.href="https://eli.gov.pl/api/acts/DU/2024/219/text.html";regulations.target="_blank";regulations.rel="noopener";regulations.textContent="Legenda kodów EGiB";links.appendChild(regulations);
+        card.appendChild(links);resultBox.querySelector(".parcel-info")?.remove();resultBox.appendChild(card);
+        $("parcelMapInfoHeading").textContent=`Działka ${number}`;$("parcelMapAddress").textContent=addressFeature?`${niceAddress(addressFeature)} → działka ${number}.`:"Sprawdzam punkty adresowe…";$("parcelMapAddress").hidden=false;$("parcelMapUse").textContent="";$("parcelMapUse").hidden=true;$("parcelMapInfo").classList.add("show");
+        if(addressFeature){
+          const note=document.createElement("small");note.textContent="To punkt adresowy z rejestru PRG; nie wyznacza dokładnego obrysu budynku.";addressSummary.appendChild(note);
+        }else updateParcelAddressSummary(id,geometry,addressSummary,null,generation,card);
+        getLandUseAtPoint(geometry,featureLatLng(addressFeature)).then(use=>{
+          if(generation!==parcelInfoGeneration||!card.isConnected)return;
+          if(use?.code){useSummary.textContent=`Użytek w sprawdzonym punkcie: ${use.code}: ${use.label}.`;useSummary.hidden=false;$("parcelMapUse").textContent=`Użytek: ${use.code}: ${use.label}.`;$("parcelMapUse").hidden=false;
+          }else{useSummary.textContent="";useSummary.hidden=true;$("parcelMapUse").textContent="";$("parcelMapUse").hidden=true;}
+        });
+      }
+      async function loadAddressIndex(){
+        if(addressIndex.length)return addressIndex;
+        if(addressIndexPromise)return addressIndexPromise;
+        const controller=typeof AbortController==="function"?new AbortController():null;
+        let timedOut=false,timeoutId;
+        const timeoutPromise=new Promise((_,reject)=>{
+          timeoutId=window.setTimeout(()=>{timedOut=true;if(controller)controller.abort();reject(new Error(ADDRESS_TIMEOUT_MESSAGE));},20000);
+        });
+        const fetchPromise=(async()=>{
+          const bbox="20.35,50.09,20.41,50.13";
+          let url=`${ADDRESS_API}?bbox=${bbox}&limit=100&f=json`;
+          const all=[];
+          for(let page=0;url&&page<12;page++){
+            const options={headers:{Accept:"application/geo+json, application/json"}};
+            if(controller)options.signal=controller.signal;
+            const response=await fetch(url,options);
+            if(timedOut)throw new Error(ADDRESS_TIMEOUT_MESSAGE);
+            if(!response.ok)throw new Error(`PRG zwrócił błąd ${response.status}.`);
+            const payload=await response.json();
+            if(timedOut)throw new Error(ADDRESS_TIMEOUT_MESSAGE);
+            all.push(...(payload.features||[]));
+            const next=(payload.links||[]).find(link=>link.rel==="next");
+            url=next?.href?new URL(next.href,url).toString():"";
+          }
+          return all.filter(inIspina).filter(featureLatLng);
+        })();
+        addressIndexPromise=Promise.race([fetchPromise,timeoutPromise]).then(result=>{
+          addressIndex=result;
+          window.clearTimeout(timeoutId);
+          return addressIndex;
+        },error=>{
+          window.clearTimeout(timeoutId);
+          addressIndexPromise=null;
+          if(error?.name==="AbortError")throw new Error(ADDRESS_TIMEOUT_MESSAGE);
+          throw error;
+        });
+        return addressIndexPromise;
+      }
+      function displayAddressPoints(features=addressIndex){
+        addressPoints.clearLayers();
+        features.forEach(feature=>{
+          const latlng=featureLatLng(feature);if(!latlng)return;
+          const props=feature.properties||{};
+          const number=addressNumber(feature), place=addressPlace(feature), zip=addressZip(feature);
+          const marker=L.circleMarker(latlng,{radius:5,color:"#fff",weight:2,fillColor:"#1c6050",fillOpacity:.98,className:"address-marker"});
+          marker.bindPopup(`<strong>${niceAddress(feature)}</strong><br><span style="font-size:13px;color:#526477">${zip?`${zip} · `:""}Państwowy Rejestr Granic (GUGiK)</span>`);
+          marker.bindTooltip(number,{direction:"top",offset:[0,-4],className:"hamlet-label"});
+          addressPoints.addLayer(marker);
+        });
+        addressPointsReady=true;
+      }
+      function syncAddressPointsZoomVisibility(){
+        const shouldShow=$("pointsToggle")?.checked&&addressIndex.length>0&&map.getZoom()>=16;
+        if(shouldShow){if(!addressPointsReady)displayAddressPoints();if(!map.hasLayer(addressPoints))addressPoints.addTo(map);}
+        else if(map.hasLayer(addressPoints))map.removeLayer(addressPoints);
+      }
+      map.on("zoomend",syncAddressPointsZoomVisibility);
+      async function selectAddress(feature,searchToken=searchGeneration){
+        if(searchToken!==searchGeneration)return;
+        const latlng=featureLatLng(feature);if(!latlng)return;
+        setSearchBusy(true);
+        const selectionToken=++parcelInfoGeneration;
+        selectionLayer.clearLayers();highlightPoint.clearLayers();
+        const marker=L.circleMarker(latlng,{radius:11,color:"#fff",weight:4,fillColor:"#e1883f",fillOpacity:1}).addTo(highlightPoint);
+        marker.bindPopup(`<strong>${niceAddress(feature)}</strong><br><span style="font-size:13px;color:#526477">Punkt adresowy z PRG · GUGiK</span>`).openPopup();
+        map.setView(latlng,17,{animate:true});
+        setStatus(`Znaleziono ${niceAddress(feature)}. Sprawdzam, na której działce leży punkt adresowy…`);
+        try{
+          const parcel=await getParcelByAddress(feature);
+          if(searchToken!==searchGeneration||selectionToken!==parcelInfoGeneration)return;
+          selectionLayer.addData({type:"Feature",properties:{id:parcel.id},geometry:parcel.geometry});
+          const bounds=selectionLayer.getBounds();if(bounds.isValid())map.fitBounds(bounds.pad(.45),{maxZoom:17,animate:true});
+          setStatus(`Punkt adresowy ${niceAddress(feature)} leży w granicach działki ${parcel.id}.`);
+          showParcelInfo(parcel.id,parcel.geometry,{addressFeature:feature});
+        }catch{
+          if(searchToken!==searchGeneration||selectionToken!==parcelInfoGeneration)return;
+          setStatus(`Znaleziono ${niceAddress(feature)}, ale usługa nie wskazała działki dla tego punktu adresowego.`,"error");
+        }
+        if(searchToken!==searchGeneration||selectionToken!==parcelInfoGeneration)return;
+        focusMapOnMobile();
+        setSearchBusy(false);
+      }
+      function renderAddressResults(matches,searchToken){
+        resultBox.innerHTML="";
+        matches.slice(0,12).forEach(feature=>{
+          const row=document.createElement("button");row.type="button";row.className="result-row";
+          row.innerHTML=`<span><strong>${escapeHTML(niceAddress(feature))}</strong><br><span style="font-size:12px;color:#526477">${escapeHTML(addressZip(feature)||"Punkt adresowy PRG")}</span></span><span aria-hidden="true">↗</span>`;
+          row.addEventListener("click",()=>{void selectAddress(feature,searchToken);});resultBox.appendChild(row);
+        });
+      }
+      function escapeHTML(text){return String(text).replace(/[&<>"']/g,char=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[char]));}
+
+      function splitWktParts(text){
+        const pieces=[];let depth=0,start=0;
+        for(let i=0;i<text.length;i++){
+          if(text[i]==="(")depth++;
+          else if(text[i]===")")depth--;
+          else if(text[i]===","&&depth===0){pieces.push(text.slice(start,i).trim());start=i+1;}
+        }
+        pieces.push(text.slice(start).trim());return pieces.filter(Boolean);
+      }
+      function stripOuter(text){let value=text.trim();if(value.startsWith("(" )&&value.endsWith(")"))value=value.slice(1,-1).trim();return value;}
+      function parseWktRing(text){
+        return splitWktParts(stripOuter(text)).map(pair=>pair.trim().split(/\s+/).slice(0,2).map(Number)).filter(pair=>pair.length===2&&pair.every(Number.isFinite));
+      }
+      function parseWktPolygon(text){return splitWktParts(stripOuter(text)).map(parseWktRing);}
+      function wktToGeoJSON(wkt){
+        const normalized=wkt.trim().replace(/^SRID=\d+;/i,"");
+        const type=(normalized.match(/^\s*([A-Z]+)/i)||[])[1]?.toUpperCase();
+        if(type!=="POLYGON"&&type!=="MULTIPOLYGON")throw new Error("Usługa zwróciła nieznany kształt działki.");
+        const body=stripOuter(normalized.slice(type.length).trim());
+        if(type==="POLYGON")return {type:"Polygon",coordinates:parseWktPolygon(body)};
+        return {type:"MultiPolygon",coordinates:splitWktParts(body).map(parseWktPolygon)};
+      }
+      function toParcelId(value){
+        const trimmed=value.trim().replace(/^120103_2\.0006\./i,"");
+        if(!/^\d+(?:\/\d+)?$/.test(trimmed))throw new Error("Wpisz numer działki, np. 123/4.");
+        return PARCEL_ID_PREFIX+trimmed;
+      }
+      async function searchParcel(query,searchToken){
+        const id=toParcelId(query);
+        if(searchToken!==searchGeneration)return;
+        setStatus(`Szukam działki ${id} w usłudze GUGiK…`);
+        const url=new URL("https://uldk.gugik.gov.pl/");
+        url.searchParams.set("request","GetParcelById");url.searchParams.set("id",id);url.searchParams.set("result","geom_wkt");url.searchParams.set("srid","4326");
+        try{
+          const response=await fetch(url.toString(),{headers:{Accept:"text/plain"}});
+          if(searchToken!==searchGeneration)return;
+          if(!response.ok)throw new Error(`ULDK zwrócił błąd ${response.status}.`);
+          const text=await response.text();
+          if(searchToken!==searchGeneration)return;
+          const lines=text.split(/\r?\n/).map(line=>line.trim()).filter(Boolean);
+          const code=Number.parseInt(lines[0],10);
+          const wkt=lines.find(line=>/^(?:SRID=\d+;)?(?:MULTI)?POLYGON\s*\(/i.test(line));
+          if(code!==0||!wkt)throw new Error("Nie znaleziono tej działki w obrębie Ispina.");
+          const geometry=wktToGeoJSON(wkt);
+          const feature={type:"Feature",properties:{id},geometry};
+          selectionLayer.addData(feature);
+          const bounds=selectionLayer.getBounds();
+          if(bounds.isValid())map.fitBounds(bounds.pad(.55),{maxZoom:18,animate:true});
+          setStatus(`Zaznaczono działkę ${id}. Kontur pochodzi z usługi lokalizacji działek GUGiK.`);
+          showParcelInfo(id,geometry);
+          focusMapOnMobile();
+        }catch(error){
+          if(searchToken!==searchGeneration)return;
+          const direct=url.toString();
+          setStatus(`${error.message||"Nie udało się pobrać działki."} Możesz otworzyć oficjalne zapytanie ULDK.`,"error");
+          const link=document.createElement("a");link.href=direct;link.target="_blank";link.rel="noopener";link.textContent="Otwórz ULDK";link.style.cssText="display:inline-block;margin-top:6px;color:#315e4d;font-weight:700";statusBox.appendChild(document.createElement("br"));statusBox.appendChild(link);
+        }
+      }
+      async function searchHouse(query,searchToken){
+        const text=normalize(query);
+        const numberMatch=text.match(/(\d+[a-z]?(?:\/\d+)?)\s*$/);
+        const number=numberMatch?numberMatch[1]:text;
+        if(!number)throw new Error("Wpisz numer domu, np. 28.");
+        setStatus("Pobieram punkty adresowe z państwowego rejestru…");
+        try{
+          await loadAddressIndex();
+        }catch(error){
+          if(searchToken!==searchGeneration)return;
+          if(error?.message===ADDRESS_TIMEOUT_MESSAGE)throw error;
+          throw new Error("Nie udało się odczytać indeksu adresów PRG. Sprawdź połączenie z internetem lub spróbuj ponownie.");
+        }
+        if(searchToken!==searchGeneration)return;
+        const matches=addressIndex.filter(feature=>{
+          const candidate=normalize(addressNumber(feature));
+          const place=normalize(addressPlace(feature));
+          const numberOK=candidate===number||candidate.startsWith(number+" ");
+          const placeOK=!text.slice(0,text.lastIndexOf(number)).trim()||place.includes(text.slice(0,text.lastIndexOf(number)).trim());
+          return numberOK&&placeOK;
+        });
+        if(!matches.length)throw new Error(`Nie znaleziono numeru ${number} w dostępnych punktach adresowych Ispiny.`);
+        renderAddressResults(matches,searchToken);
+        if(matches.length===1){await selectAddress(matches[0],searchToken);}
+        else setStatus(`Znaleziono ${matches.length} ${matches.length>=5?"adresów":"adresy"} z numerem ${number}. Wybierz właściwy wynik.`);
+      }
+
+      function setSearchBusy(isBusy){
+        const form=$("searchForm"),button=$("searchSubmit");
+        form.setAttribute("aria-busy",String(isBusy));
+        button.disabled=isBusy;
+        button.textContent=isBusy?"Szukam…":mode==="parcel"?"Znajdź działkę na mapie":"Znajdź numer domu";
+      }
+
+      function setMode(next){
+        if(next===mode)return;
+        mode=next;
+        searchGeneration++;
+        setSearchBusy(false);
+        selectionLayer.clearLayers();highlightPoint.clearLayers();
+        searchInput.value="";
+        const parcel=next==="parcel";
+        $("parcelTab").classList.toggle("active",parcel);$("houseTab").classList.toggle("active",!parcel);
+        $("parcelTab").setAttribute("aria-selected",String(parcel));$("houseTab").setAttribute("aria-selected",String(!parcel));
+        $("parcelTab").tabIndex=parcel?0:-1;$("houseTab").tabIndex=parcel?-1:0;
+        $("searchForm").setAttribute("aria-labelledby",parcel?"parcelTab":"houseTab");
+        $("inputLabel").textContent=parcel?"Numer działki w obrębie Ispina":"Numer domu lub miejscowość + numer";
+        searchInput.placeholder=parcel?"np. 123/4":"np. 28 lub Ameryka 28";
+        searchInput.setAttribute("aria-label",parcel?"Wpisz numer działki":"Wpisz numer domu");
+        $("searchHint").textContent=parcel?"Wystarczy sam numer. Mapa dopisze obręb 0006 Ispina.":"Wpisz numer, np. 28. Gdy numer się powtarza, możesz dopisać nazwę przysiółka.";
+        clearStatus();
+      }
+      $("parcelTab").addEventListener("click",()=>setMode("parcel"));
+      $("houseTab").addEventListener("click",()=>setMode("house"));
+      document.querySelectorAll(".search-tab").forEach(tab=>tab.addEventListener("keydown",event=>{
+        const forward=event.key==="ArrowRight"||event.key==="ArrowDown",backward=event.key==="ArrowLeft"||event.key==="ArrowUp";
+        if(!forward&&!backward&&event.key!=="Home"&&event.key!=="End")return;
+        event.preventDefault();
+        const next=event.key==="Home"?$("parcelTab"):event.key==="End"?$("houseTab"):forward?$("houseTab"):$("parcelTab");
+        setMode(next.id==="parcelTab"?"parcel":"house");next.focus();
+      }));
+      searchInput.addEventListener("input",()=>{
+        if($("searchForm").getAttribute("aria-busy")!=="true")return;
+        searchGeneration++;
+        setSearchBusy(false);
+        clearStatus();
+        selectionLayer.clearLayers();highlightPoint.clearLayers();
+      });
+      $("searchForm").addEventListener("submit",async event=>{
+        event.preventDefault();const query=searchInput.value.trim();if(!query){searchInput.focus();return;}
+        const searchToken=++searchGeneration,searchMode=mode;
+        clearStatus();
+        selectionLayer.clearLayers();highlightPoint.clearLayers();
+        setSearchBusy(true);
+        try{if(searchMode==="parcel")await searchParcel(query,searchToken);else await searchHouse(query,searchToken);}
+        catch(error){if(searchToken===searchGeneration)setStatus(error.message||"Wyszukiwanie nie powiodło się.","error");}
+        finally{if(searchToken===searchGeneration)setSearchBusy(false);}
+      });
+
+      const optionalMapLayers={landUseToggle:landUseLayer,boundaryToggle:boundaryLayer,parcelToggle:parcelLayer,buildingToggle:buildingLayer,addressToggle:addressLayer};
+      const optionalLayerIds=[...Object.keys(optionalMapLayers),"pointsToggle"];
+      Object.values(optionalMapLayers).forEach(layer=>layer.addTo(map));
+      function syncLayerPresetToggle(){
+        const showAll=optionalLayerIds.every(id=>$(id).checked),button=$("layerPresetToggle");
+        button.setAttribute("aria-pressed",String(showAll));
+        button.setAttribute("aria-label",showAll?"Wróć do czytelnego widoku":"Pokaż wszystkie warstwy");
+        button.title=showAll?"Wróć do czytelnego widoku mapy":"Pokaż wszystkie warstwy mapy";
+        button.querySelector(".tool-full").textContent=showAll?"Czytelny widok":"Pokaż wszystkie warstwy";
+        button.querySelector(".tool-short").textContent=showAll?"Czytelny":"Warstwy";
+        $("layerViewState").textContent=showAll?"wszystkie włączone":"czytelny widok";
+      }
+      function setOptionalLayers(visible){
+        Object.entries(optionalMapLayers).forEach(([id,layer])=>{
+          $(id).checked=visible;
+          visible?map.addLayer(layer):map.removeLayer(layer);
+        });
+        const pointsToggle=$("pointsToggle");
+        if(pointsToggle.checked!==visible){pointsToggle.checked=visible;pointsToggle.dispatchEvent(new Event("change"));}
+        syncLayerPresetToggle();
+      }
+      Object.entries(optionalMapLayers).forEach(([id,layer])=>$(id).addEventListener("change",event=>{
+        event.target.checked?map.addLayer(layer):map.removeLayer(layer);
+        syncLayerPresetToggle();
+      }));
+      $("layerPresetToggle").addEventListener("click",()=>setOptionalLayers(!optionalLayerIds.every(id=>$(id).checked)));
+      syncLayerPresetToggle();
+      const layerToggles={stops:"stopsToggle",locker:"lockerToggle",osp:"ospToggle",mor:"morToggle",culture:"cultureToggle"};
+      Object.entries(layerToggles).forEach(([group,id])=>$(id).addEventListener("change",event=>event.target.checked?map.addLayer(poiLayers[group]):map.removeLayer(poiLayers[group])));
+      $("pointsToggle").addEventListener("change",async event=>{
+        if(!event.target.checked){map.removeLayer(addressPoints);setStatus("Punkty adresowe PRG są ukryte na mapie.");syncLayerPresetToggle();return;}
+        syncLayerPresetToggle();
+        try{setStatus("Wczytuję punkty adresowe…");await loadAddressIndex();if(!event.target.checked)return;syncAddressPointsZoomVisibility();setStatus(map.getZoom()>=16?"Punkty adresowe PRG są widoczne na mapie.":"Punkty adresowe pojawią się po przybliżeniu mapy.");}
+        catch(error){if(!event.target.checked)return;event.target.checked=false;setStatus(error?.message===ADDRESS_TIMEOUT_MESSAGE?ADDRESS_TIMEOUT_MESSAGE:"Punkty adresowe PRG są chwilowo niedostępne. Pozostałe warstwy nadal działają.","error");syncLayerPresetToggle();}
+      });
+      if($("pointsToggle").checked){
+        setStatus("Wczytuję punkty adresowe z rejestru PRG…");
+        loadAddressIndex().then(()=>{syncAddressPointsZoomVisibility();setStatus(map.getZoom()>=16?"Punkty adresowe PRG są widoczne na mapie.":"Punkty adresowe pojawią się po przybliżeniu mapy.");}).catch(error=>{
+          $("pointsToggle").checked=false;
+          setStatus(error?.message===ADDRESS_TIMEOUT_MESSAGE?ADDRESS_TIMEOUT_MESSAGE:"Punkty adresowe PRG są chwilowo niedostępne; pozostałe warstwy działają.","error");
+          syncLayerPresetToggle();
+        });
+      }
+      $("baseToggle").addEventListener("click",()=>{
+        isAerial=!isAerial;
+        const button=$("baseToggle");
+        if(isAerial){map.removeLayer(street);aerial.addTo(map);button.setAttribute("aria-label","Pokaż mapę drogową");button.setAttribute("aria-pressed","true");button.title="Pokaż mapę drogową";button.innerHTML="▤ &nbsp; <span class=\"tool-full\">Pokaż mapę drogową</span><span class=\"tool-short\" aria-hidden=\"true\">Mapa</span>";}
+        else{map.removeLayer(aerial);street.addTo(map);button.setAttribute("aria-label","Pokaż zdjęcia lotnicze");button.setAttribute("aria-pressed","false");button.title="Pokaż zdjęcia lotnicze";button.innerHTML="◩ &nbsp; <span class=\"tool-full\">Pokaż zdjęcia</span><span class=\"tool-short\" aria-hidden=\"true\">Zdjęcia</span>";}
+      });
+      $("mobileSearchJump").addEventListener("click",()=>$("searchCard").scrollIntoView({behavior:"smooth",block:"start"}));
+      const layoutElement=document.querySelector(".layout"),sidebarElement=document.querySelector(".sidebar"),mobileEntryElement=$("mobileEntry");
+      let responsiveIsMobile=null;
+      function arrangeResponsiveLayout(){
+        const isMobile=window.matchMedia("(max-width:700px)").matches;
+        if(responsiveIsMobile!==isMobile){
+          responsiveIsMobile=isMobile;
+          if(isMobile){
+            layoutElement.insertBefore(mobileEntryElement,mapShellElement);
+            layoutElement.appendChild(mapShellElement);
+            layoutElement.appendChild(sidebarElement);
+          }else{
+            sidebarElement.insertBefore(mobileEntryElement,sidebarElement.firstChild);
+            layoutElement.insertBefore(sidebarElement,mapShellElement);
+          }
+        }
+        requestAnimationFrame(()=>map.invalidateSize());
+      }
+      arrangeResponsiveLayout();
+      window.addEventListener("resize",arrangeResponsiveLayout,{passive:true});
+      function showWholeIspina(){selectionLayer.clearLayers();highlightPoint.clearLayers();clearStatus();map.setView(CENTER,14.5,{animate:true});}
+      $("homeTop").addEventListener("click",showWholeIspina);
+      function renderHamlets(){
+        const list=$("hamletList");
+        list.innerHTML=`<button class="hamlet-button" data-name="Ispina"><span class="pin"></span>Ispina</button>`+
+          HAMLETS.map(place=>`<button class="hamlet-button ${place.official?"":"local"}" data-name="${escapeHTML(place.name)}"><span class="pin ${place.official?"":"local"}"></span>${escapeHTML(place.name)}</button>`).join("");
+        list.querySelectorAll(".hamlet-button").forEach(button=>button.addEventListener("click",()=>{
+          const name=button.dataset.name;
+          if(name==="Ispina"){map.setView(CENTER,15,{animate:true});ispinaMarker.openPopup();focusMapOnMobile();return;}
+          const place=HAMLETS.find(item=>item.name===name);if(!place)return;
+          const marker=hamletMarkers.get(name);map.setView([place.lat,place.lng],16,{animate:true});marker?.openPopup();focusMapOnMobile();
+        }));
+      }
+      renderHamlets();
+      function renderPoints(){
+        const list=$("poiList");
+        list.innerHTML=POINTS.map(point=>`<button class="poi-button" data-point="${point.id}"><span class="poi-bullet ${pointIcons[point.group]}">${point.icon}</span><span>${escapeHTML(point.name)}<small>${escapeHTML(point.subtitle)}</small></span></button>`).join("");
+        list.querySelectorAll(".poi-button").forEach(button=>button.addEventListener("click",()=>{
+          const point=POINTS.find(item=>item.id===button.dataset.point);if(!point)return;
+          const group=point.group,toggleId=layerToggles[group];
+          if(!map.hasLayer(poiLayers[group])){map.addLayer(poiLayers[group]);$(toggleId).checked=true;}
+          map.setView([point.lat,point.lng],point.group==="culture"&&point.id==="memorial-ispina"?16:17,{animate:true});
+          poiMarkers.get(point.id)?.openPopup();
+          focusMapOnMobile();
+        }));
+      }
+      renderPoints();
+      map.on("tileerror",event=>{if(event?.tile?.src?.includes("tile.openmaps.fr"))$("mapError").classList.add("show");});
+      map.on("load",()=>$("mapError").classList.remove("show"));
+      setTimeout(()=>map.invalidateSize(),250);
+    })();
+  </script>
+</body>
+</html>
