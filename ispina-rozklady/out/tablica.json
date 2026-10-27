@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "generated_at": "2026-10-27T02:29:21.299745+01:00",
+  "generated_at": "2026-10-27T11:35:07.996958+01:00",
   "timezone": "Europe/Warsaw",
   "days": [
     {
@@ -7303,14 +7303,14 @@
           "direction": "north",
           "time": "06:10",
           "destination": "Nowe Brzesko Rynek",
-          "trip_id": "1383_2413",
+          "trip_id": "1384_2287",
           "source": "GTFS + PDF",
           "pdf": "https://kolejemalopolskie.com.pl/brepo/panel_repo/2026/10/19/rccwk3/a4-od-25-x-2026.pdf",
           "stop_name": "Ispina Most",
           "scheduled": 1793509800,
           "gtfs_scheduled": 1793509800,
           "sequence": 46,
-          "route_id": "1383_A4",
+          "route_id": "1384_A4",
           "service_date": "20261101"
         },
         {
@@ -7320,14 +7320,14 @@
           "direction": "south",
           "time": "06:29",
           "destination": "Bochnia Dworzec PKP",
-          "trip_id": "1383_2414",
+          "trip_id": "1384_2288",
           "source": "GTFS + PDF",
           "pdf": "https://kolejemalopolskie.com.pl/brepo/panel_repo/2026/10/19/rccwk3/a4-od-25-x-2026.pdf",
           "stop_name": "Ispina Most",
           "scheduled": 1793510940,
           "gtfs_scheduled": 1793510940,
           "sequence": 2,
-          "route_id": "1383_A4",
+          "route_id": "1384_A4",
           "service_date": "20261101"
         },
         {
@@ -7337,7 +7337,7 @@
           "direction": "south",
           "time": "07:39",
           "destination": "Podłęże P+R Północ",
-          "trip_id": "1383_2038",
+          "trip_id": "1384_1912",
           "gtfs_time": "07:39",
           "source": "PDF przewoźnika",
           "pdf": "https://kolejemalopolskie.com.pl/brepo/panel_repo/2026/10/19/m73lie/a7-od-25-x-2026.pdf",
@@ -7345,7 +7345,7 @@
           "scheduled": 1793515140,
           "gtfs_scheduled": 1793515140,
           "sequence": 15,
-          "route_id": "1383_A7",
+          "route_id": "1384_A7",
           "service_date": "20261101"
         },
         {
@@ -7355,7 +7355,7 @@
           "direction": "south",
           "time": "09:03",
           "destination": "Podłęże P+R Północ",
-          "trip_id": "1383_2046",
+          "trip_id": "1384_1920",
           "gtfs_time": "09:03",
           "source": "PDF przewoźnika",
           "pdf": "https://kolejemalopolskie.com.pl/brepo/panel_repo/2026/10/19/m73lie/a7-od-25-x-2026.pdf",
@@ -7363,7 +7363,7 @@
           "scheduled": 1793520180,
           "gtfs_scheduled": 1793520180,
           "sequence": 2,
-          "route_id": "1383_A7",
+          "route_id": "1384_A7",
           "service_date": "20261101"
         },
         {
@@ -7373,14 +7373,14 @@
           "direction": "north",
           "time": "09:23",
           "destination": "Nowe Brzesko Rynek",
-          "trip_id": "1383_2415",
+          "trip_id": "1384_2289",
           "source": "GTFS + PDF",
           "pdf": "https://kolejemalopolskie.com.pl/brepo/panel_repo/2026/10/19/qcfw1q/a65-od-25-x-2026.pdf",
           "stop_name": "Ispina Most",
           "scheduled": 1793521380,
           "gtfs_scheduled": 1793521380,
           "sequence": 41,
-          "route_id": "1383_A65",
+          "route_id": "1384_A65",
           "service_date": "20261101"
         },
         {
@@ -7390,7 +7390,7 @@
           "direction": "north",
           "time": "09:33",
           "destination": "Proszowice P+R Kościuszki",
-          "trip_id": "1383_2039",
+          "trip_id": "1384_1913",
           "gtfs_time": "09:33",
           "source": "PDF przewoźnika",
           "pdf": "https://kolejemalopolskie.com.pl/brepo/panel_repo/2026/10/19/m73lie/a7-od-25-x-2026.pdf",
@@ -7398,7 +7398,7 @@
           "scheduled": 1793521980,
           "gtfs_scheduled": 1793521980,
           "sequence": 27,
-          "route_id": "1383_A7",
+          "route_id": "1384_A7",
           "service_date": "20261101"
         },
         {
@@ -7408,14 +7408,14 @@
           "direction": "south",
           "time": "10:29",
           "destination": "Bochnia Dworzec PKP",
-          "trip_id": "1383_2419",
+          "trip_id": "1384_2293",
           "source": "GTFS + PDF",
           "pdf": "https://kolejemalopolskie.com.pl/brepo/panel_repo/2026/10/19/rccwk3/a4-od-25-x-2026.pdf",
           "stop_name": "Ispina Most",
           "scheduled": 1793525340,
           "gtfs_scheduled": 1793525340,
           "sequence": 2,
-          "route_id": "1383_A4",
+          "route_id": "1384_A4",
           "service_date": "20261101"
         },
         {
@@ -7425,14 +7425,14 @@
           "direction": "south",
           "time": "10:34",
           "destination": "Bochnia Dworzec PKP",
-          "trip_id": "1383_2416",
+          "trip_id": "1384_2290",
           "source": "GTFS + PDF",
           "pdf": "https://kolejemalopolskie.com.pl/brepo/panel_repo/2026/10/19/qcfw1q/a65-od-25-x-2026.pdf",
           "stop_name": "Ispina Most",
           "scheduled": 1793525640,
           "gtfs_scheduled": 1793525640,
           "sequence": 2,
-          "route_id": "1383_A65",
+          "route_id": "1384_A65",
           "service_date": "20261101"
         },
         {
@@ -7442,7 +7442,7 @@
           "direction": "north",
           "time": "10:58",
           "destination": "Nowe Brzesko Rynek",
-          "trip_id": "1383_2095",
+          "trip_id": "1384_1969",
           "gtfs_time": "10:57",
           "source": "PDF przewoźnika",
           "pdf": "https://kolejemalopolskie.com.pl/brepo/panel_repo/2026/10/19/m73lie/a7-od-25-x-2026.pdf",
@@ -7450,7 +7450,7 @@
           "scheduled": 1793527080,
           "gtfs_scheduled": 1793527020,
           "sequence": 27,
-          "route_id": "1383_A7",
+          "route_id": "1384_A7",
           "service_date": "20261101"
         },
         {
@@ -7460,7 +7460,7 @@
           "direction": "south",
           "time": "11:04",
           "destination": "Podłęże P+R Północ",
-          "trip_id": "1383_2040",
+          "trip_id": "1384_1914",
           "gtfs_time": "11:04",
           "source": "PDF przewoźnika",
           "pdf": "https://kolejemalopolskie.com.pl/brepo/panel_repo/2026/10/19/m73lie/a7-od-25-x-2026.pdf",
@@ -7468,7 +7468,7 @@
           "scheduled": 1793527440,
           "gtfs_scheduled": 1793527440,
           "sequence": 15,
-          "route_id": "1383_A7",
+          "route_id": "1384_A7",
           "service_date": "20261101"
         },
         {
@@ -7478,7 +7478,7 @@
           "direction": "south",
           "time": "12:23",
           "destination": "Podłęże P+R Północ",
-          "trip_id": "1383_2096",
+          "trip_id": "1384_1970",
           "gtfs_time": "12:23",
           "source": "PDF przewoźnika",
           "pdf": "https://kolejemalopolskie.com.pl/brepo/panel_repo/2026/10/19/m73lie/a7-od-25-x-2026.pdf",
@@ -7486,7 +7486,7 @@
           "scheduled": 1793532180,
           "gtfs_scheduled": 1793532180,
           "sequence": 2,
-          "route_id": "1383_A7",
+          "route_id": "1384_A7",
           "service_date": "20261101"
         },
         {
@@ -7496,14 +7496,14 @@
           "direction": "north",
           "time": "12:28",
           "destination": "Nowe Brzesko Rynek",
-          "trip_id": "1383_2420",
+          "trip_id": "1384_2294",
           "source": "GTFS + PDF",
           "pdf": "https://kolejemalopolskie.com.pl/brepo/panel_repo/2026/10/19/qcfw1q/a65-od-25-x-2026.pdf",
           "stop_name": "Ispina Most",
           "scheduled": 1793532480,
           "gtfs_scheduled": 1793532480,
           "sequence": 41,
-          "route_id": "1383_A65",
+          "route_id": "1384_A65",
           "service_date": "20261101"
         },
         {
@@ -7513,7 +7513,7 @@
           "direction": "north",
           "time": "12:43",
           "destination": "Proszowice P+R Kościuszki",
-          "trip_id": "1383_2041",
+          "trip_id": "1384_1915",
           "gtfs_time": "12:43",
           "source": "PDF przewoźnika",
           "pdf": "https://kolejemalopolskie.com.pl/brepo/panel_repo/2026/10/19/m73lie/a7-od-25-x-2026.pdf",
@@ -7521,7 +7521,7 @@
           "scheduled": 1793533380,
           "gtfs_scheduled": 1793533380,
           "sequence": 27,
-          "route_id": "1383_A7",
+          "route_id": "1384_A7",
           "service_date": "20261101"
         },
         {
@@ -7531,14 +7531,14 @@
           "direction": "north",
           "time": "13:30",
           "destination": "Nowe Brzesko Rynek",
-          "trip_id": "1383_2417",
+          "trip_id": "1384_2291",
           "source": "GTFS + PDF",
           "pdf": "https://kolejemalopolskie.com.pl/brepo/panel_repo/2026/10/19/rccwk3/a4-od-25-x-2026.pdf",
           "stop_name": "Ispina Most",
           "scheduled": 1793536200,
           "gtfs_scheduled": 1793536200,
           "sequence": 46,
-          "route_id": "1383_A4",
+          "route_id": "1384_A4",
           "service_date": "20261101"
         },
         {
@@ -7548,14 +7548,14 @@
           "direction": "south",
           "time": "14:29",
           "destination": "Bochnia Dworzec PKP",
-          "trip_id": "1383_2421",
+          "trip_id": "1384_2295",
           "source": "GTFS + PDF",
           "pdf": "https://kolejemalopolskie.com.pl/brepo/panel_repo/2026/10/19/qcfw1q/a65-od-25-x-2026.pdf",
           "stop_name": "Ispina Most",
           "scheduled": 1793539740,
           "gtfs_scheduled": 1793539740,
           "sequence": 2,
-          "route_id": "1383_A65",
+          "route_id": "1384_A65",
           "service_date": "20261101"
         },
         {
@@ -7565,14 +7565,14 @@
           "direction": "south",
           "time": "15:24",
           "destination": "Bochnia Dworzec PKP",
-          "trip_id": "1383_2418",
+          "trip_id": "1384_2292",
           "source": "GTFS + PDF",
           "pdf": "https://kolejemalopolskie.com.pl/brepo/panel_repo/2026/10/19/rccwk3/a4-od-25-x-2026.pdf",
           "stop_name": "Ispina Most",
           "scheduled": 1793543040,
           "gtfs_scheduled": 1793543040,
           "sequence": 2,
-          "route_id": "1383_A4",
+          "route_id": "1384_A4",
           "service_date": "20261101"
         },
         {
@@ -7582,7 +7582,7 @@
           "direction": "north",
           "time": "15:38",
           "destination": "Nowe Brzesko Rynek",
-          "trip_id": "1383_2049",
+          "trip_id": "1384_1923",
           "gtfs_time": "15:37",
           "source": "PDF przewoźnika",
           "pdf": "https://kolejemalopolskie.com.pl/brepo/panel_repo/2026/10/19/m73lie/a7-od-25-x-2026.pdf",
@@ -7590,7 +7590,7 @@
           "scheduled": 1793543880,
           "gtfs_scheduled": 1793543820,
           "sequence": 27,
-          "route_id": "1383_A7",
+          "route_id": "1384_A7",
           "service_date": "20261101"
         },
         {
@@ -7600,7 +7600,7 @@
           "direction": "south",
           "time": "15:54",
           "destination": "Podłęże P+R Północ",
-          "trip_id": "1383_2042",
+          "trip_id": "1384_1916",
           "gtfs_time": "15:54",
           "source": "PDF przewoźnika",
           "pdf": "https://kolejemalopolskie.com.pl/brepo/panel_repo/2026/10/19/m73lie/a7-od-25-x-2026.pdf",
@@ -7608,7 +7608,7 @@
           "scheduled": 1793544840,
           "gtfs_scheduled": 1793544840,
           "sequence": 15,
-          "route_id": "1383_A7",
+          "route_id": "1384_A7",
           "service_date": "20261101"
         },
         {
@@ -7618,14 +7618,14 @@
           "direction": "north",
           "time": "16:25",
           "destination": "Nowe Brzesko Rynek",
-          "trip_id": "1383_2422",
+          "trip_id": "1384_2296",
           "source": "GTFS + PDF",
           "pdf": "https://kolejemalopolskie.com.pl/brepo/panel_repo/2026/10/19/rccwk3/a4-od-25-x-2026.pdf",
           "stop_name": "Ispina Most",
           "scheduled": 1793546700,
           "gtfs_scheduled": 1793546700,
           "sequence": 46,
-          "route_id": "1383_A4",
+          "route_id": "1384_A4",
           "service_date": "20261101"
         },
         {
@@ -7635,14 +7635,14 @@
           "direction": "south",
           "time": "17:29",
           "destination": "Bochnia Dworzec PKP",
-          "trip_id": "1383_2423",
+          "trip_id": "1384_2297",
           "source": "GTFS + PDF",
           "pdf": "https://kolejemalopolskie.com.pl/brepo/panel_repo/2026/10/19/qcfw1q/a65-od-25-x-2026.pdf",
           "stop_name": "Ispina Most",
           "scheduled": 1793550540,
           "gtfs_scheduled": 1793550540,
           "sequence": 2,
-          "route_id": "1383_A65",
+          "route_id": "1384_A65",
           "service_date": "20261101"
         },
         {
@@ -7652,7 +7652,7 @@
           "direction": "north",
           "time": "17:33",
           "destination": "Proszowice P+R Kościuszki",
-          "trip_id": "1383_2043",
+          "trip_id": "1384_1917",
           "gtfs_time": "17:33",
           "source": "PDF przewoźnika",
           "pdf": "https://kolejemalopolskie.com.pl/brepo/panel_repo/2026/10/19/m73lie/a7-od-25-x-2026.pdf",
@@ -7660,7 +7660,7 @@
           "scheduled": 1793550780,
           "gtfs_scheduled": 1793550780,
           "sequence": 27,
-          "route_id": "1383_A7",
+          "route_id": "1384_A7",
           "service_date": "20261101"
         },
         {
@@ -7670,7 +7670,7 @@
           "direction": "south",
           "time": "17:58",
           "destination": "Podłęże P+R Północ",
-          "trip_id": "1383_2050",
+          "trip_id": "1384_1924",
           "gtfs_time": "17:58",
           "source": "PDF przewoźnika",
           "pdf": "https://kolejemalopolskie.com.pl/brepo/panel_repo/2026/10/19/m73lie/a7-od-25-x-2026.pdf",
@@ -7678,7 +7678,7 @@
           "scheduled": 1793552280,
           "gtfs_scheduled": 1793552280,
           "sequence": 2,
-          "route_id": "1383_A7",
+          "route_id": "1384_A7",
           "service_date": "20261101"
         },
         {
@@ -7688,7 +7688,7 @@
           "direction": "north",
           "time": "19:38",
           "destination": "Nowe Brzesko Rynek",
-          "trip_id": "1383_2051",
+          "trip_id": "1384_1925",
           "gtfs_time": "19:37",
           "source": "PDF przewoźnika",
           "pdf": "https://kolejemalopolskie.com.pl/brepo/panel_repo/2026/10/19/m73lie/a7-od-25-x-2026.pdf",
@@ -7696,7 +7696,7 @@
           "scheduled": 1793558280,
           "gtfs_scheduled": 1793558220,
           "sequence": 27,
-          "route_id": "1383_A7",
+          "route_id": "1384_A7",
           "service_date": "20261101"
         },
         {
@@ -7706,7 +7706,7 @@
           "direction": "south",
           "time": "19:59",
           "destination": "Podłęże P+R Północ",
-          "trip_id": "1383_2102",
+          "trip_id": "1384_1976",
           "gtfs_time": "19:59",
           "source": "PDF przewoźnika",
           "pdf": "https://kolejemalopolskie.com.pl/brepo/panel_repo/2026/10/19/m73lie/a7-od-25-x-2026.pdf",
@@ -7714,7 +7714,7 @@
           "scheduled": 1793559540,
           "gtfs_scheduled": 1793559540,
           "sequence": 15,
-          "route_id": "1383_A7",
+          "route_id": "1384_A7",
           "service_date": "20261101"
         },
         {
@@ -7724,7 +7724,7 @@
           "direction": "north",
           "time": "21:33",
           "destination": "Proszowice P+R Kościuszki",
-          "trip_id": "1383_2103",
+          "trip_id": "1384_1977",
           "gtfs_time": "21:33",
           "source": "PDF przewoźnika",
           "pdf": "https://kolejemalopolskie.com.pl/brepo/panel_repo/2026/10/19/m73lie/a7-od-25-x-2026.pdf",
@@ -7732,7 +7732,7 @@
           "scheduled": 1793565180,
           "gtfs_scheduled": 1793565180,
           "sequence": 27,
-          "route_id": "1383_A7",
+          "route_id": "1384_A7",
           "service_date": "20261101"
         },
         {
@@ -7742,14 +7742,14 @@
           "direction": "north",
           "time": "21:38",
           "destination": "Nowe Brzesko Rynek",
-          "trip_id": "1383_2424",
+          "trip_id": "1384_2298",
           "source": "GTFS + PDF",
           "pdf": "https://kolejemalopolskie.com.pl/brepo/panel_repo/2026/10/19/qcfw1q/a65-od-25-x-2026.pdf",
           "stop_name": "Ispina Most",
           "scheduled": 1793565480,
           "gtfs_scheduled": 1793565480,
           "sequence": 41,
-          "route_id": "1383_A65",
+          "route_id": "1384_A65",
           "service_date": "20261101"
         }
       ],
@@ -7765,14 +7765,14 @@
           "direction": "south",
           "time": "04:09",
           "destination": "Bochnia Dworzec PKP",
-          "trip_id": "1383_2447",
+          "trip_id": "1384_2321",
           "source": "GTFS + PDF",
           "pdf": "https://kolejemalopolskie.com.pl/brepo/panel_repo/2026/10/19/qcfw1q/a65-od-25-x-2026.pdf",
           "stop_name": "Ispina Most",
           "scheduled": 1793588940,
           "gtfs_scheduled": 1793588940,
           "sequence": 2,
-          "route_id": "1383_A65",
+          "route_id": "1384_A65",
           "service_date": "20261102"
         },
         {
@@ -7793,14 +7793,14 @@
           "direction": "north",
           "time": "04:28",
           "destination": "Nowe Brzesko Rynek",
-          "trip_id": "1383_2433",
+          "trip_id": "1384_2307",
           "source": "GTFS + PDF",
           "pdf": "https://kolejemalopolskie.com.pl/brepo/panel_repo/2026/10/19/qcfw1q/a65-od-25-x-2026.pdf",
           "stop_name": "Ispina Most",
           "scheduled": 1793590080,
           "gtfs_scheduled": 1793590080,
           "sequence": 41,
-          "route_id": "1383_A65",
+          "route_id": "1384_A65",
           "service_date": "20261102"
         },
         {
@@ -7810,14 +7810,14 @@
           "direction": "south",
           "time": "04:29",
           "destination": "Bochnia Dworzec PKP",
-          "trip_id": "1383_2393",
+          "trip_id": "1384_2267",
           "source": "GTFS + PDF",
           "pdf": "https://kolejemalopolskie.com.pl/brepo/panel_repo/2026/10/19/rccwk3/a4-od-25-x-2026.pdf",
           "stop_name": "Ispina Most",
           "scheduled": 1793590140,
           "gtfs_scheduled": 1793590140,
           "sequence": 2,
-          "route_id": "1383_A4",
+          "route_id": "1384_A4",
           "service_date": "20261102"
         },
         {
@@ -7827,7 +7827,7 @@
           "direction": "south",
           "time": "04:54",
           "destination": "Podłęże P+R Północ",
-          "trip_id": "1383_1988",
+          "trip_id": "1384_1862",
           "gtfs_time": "04:54",
           "source": "PDF przewoźnika",
           "pdf": "https://kolejemalopolskie.com.pl/brepo/panel_repo/2026/10/19/m73lie/a7-od-25-x-2026.pdf",
@@ -7835,7 +7835,7 @@
           "scheduled": 1793591640,
           "gtfs_scheduled": 1793591640,
           "sequence": 15,
-          "route_id": "1383_A7",
+          "route_id": "1384_A7",
           "service_date": "20261102"
         },
         {
@@ -7845,14 +7845,14 @@
           "direction": "south",
           "time": "04:59",
           "destination": "Bochnia Dworzec PKP",
-          "trip_id": "1383_2434",
+          "trip_id": "1384_2308",
           "source": "GTFS + PDF",
           "pdf": "https://kolejemalopolskie.com.pl/brepo/panel_repo/2026/10/19/qcfw1q/a65-od-25-x-2026.pdf",
           "stop_name": "Ispina Most",
           "scheduled": 1793591940,
           "gtfs_scheduled": 1793591940,
           "sequence": 2,
-          "route_id": "1383_A65",
+          "route_id": "1384_A65",
           "service_date": "20261102"
         },
         {
@@ -7884,14 +7884,14 @@
           "direction": "south",
           "time": "05:34",
           "destination": "Bochnia Dworzec PKP",
-          "trip_id": "1383_2401",
+          "trip_id": "1384_2275",
           "source": "GTFS + PDF",
           "pdf": "https://kolejemalopolskie.com.pl/brepo/panel_repo/2026/10/19/rccwk3/a4-od-25-x-2026.pdf",
           "stop_name": "Ispina Most",
           "scheduled": 1793594040,
           "gtfs_scheduled": 1793594040,
           "sequence": 2,
-          "route_id": "1383_A4",
+          "route_id": "1384_A4",
           "service_date": "20261102"
         },
         {
@@ -7901,14 +7901,14 @@
           "direction": "north",
           "time": "05:58",
           "destination": "Nowe Brzesko Rynek",
-          "trip_id": "1383_2448",
+          "trip_id": "1384_2322",
           "source": "GTFS + PDF",
           "pdf": "https://kolejemalopolskie.com.pl/brepo/panel_repo/2026/10/19/qcfw1q/a65-od-25-x-2026.pdf",
           "stop_name": "Ispina Most",
           "scheduled": 1793595480,
           "gtfs_scheduled": 1793595480,
           "sequence": 41,
-          "route_id": "1383_A65",
+          "route_id": "1384_A65",
           "service_date": "20261102"
         },
         {
@@ -7918,7 +7918,7 @@
           "direction": "south",
           "time": "06:08",
           "destination": "Podłęże P+R Północ",
-          "trip_id": "1383_2006",
+          "trip_id": "1384_1880",
           "gtfs_time": "06:08",
           "source": "PDF przewoźnika",
           "pdf": "https://kolejemalopolskie.com.pl/brepo/panel_repo/2026/10/19/m73lie/a7-od-25-x-2026.pdf",
@@ -7926,7 +7926,7 @@
           "scheduled": 1793596080,
           "gtfs_scheduled": 1793596080,
           "sequence": 2,
-          "route_id": "1383_A7",
+          "route_id": "1384_A7",
           "service_date": "20261102"
         },
         {
@@ -7947,14 +7947,14 @@
           "direction": "south",
           "time": "06:29",
           "destination": "Bochnia Dworzec PKP",
-          "trip_id": "1383_2449",
+          "trip_id": "1384_2323",
           "source": "GTFS + PDF",
           "pdf": "https://kolejemalopolskie.com.pl/brepo/panel_repo/2026/10/19/qcfw1q/a65-od-25-x-2026.pdf",
           "stop_name": "Ispina Most",
           "scheduled": 1793597340,
           "gtfs_scheduled": 1793597340,
           "sequence": 2,
-          "route_id": "1383_A65",
+          "route_id": "1384_A65",
           "service_date": "20261102"
         },
         {
@@ -7975,14 +7975,14 @@
           "direction": "north",
           "time": "06:45",
           "destination": "Nowe Brzesko Rynek",
-          "trip_id": "1383_2394",
+          "trip_id": "1384_2268",
           "source": "GTFS + PDF",
           "pdf": "https://kolejemalopolskie.com.pl/brepo/panel_repo/2026/10/19/rccwk3/a4-od-25-x-2026.pdf",
           "stop_name": "Ispina Most",
           "scheduled": 1793598300,
           "gtfs_scheduled": 1793598300,
           "sequence": 46,
-          "route_id": "1383_A4",
+          "route_id": "1384_A4",
           "service_date": "20261102"
         },
         {
@@ -7992,14 +7992,14 @@
           "direction": "north",
           "time": "06:53",
           "destination": "Nowe Brzesko Rynek",
-          "trip_id": "1383_2435",
+          "trip_id": "1384_2309",
           "source": "GTFS + PDF",
           "pdf": "https://kolejemalopolskie.com.pl/brepo/panel_repo/2026/10/19/qcfw1q/a65-od-25-x-2026.pdf",
           "stop_name": "Ispina Most",
           "scheduled": 1793598780,
           "gtfs_scheduled": 1793598780,
           "sequence": 41,
-          "route_id": "1383_A65",
+          "route_id": "1384_A65",
           "service_date": "20261102"
         },
         {
@@ -8009,7 +8009,7 @@
           "direction": "north",
           "time": "06:57",
           "destination": "Proszowice P+R Kościuszki",
-          "trip_id": "1383_2081",
+          "trip_id": "1384_1955",
           "gtfs_time": "06:57",
           "source": "PDF przewoźnika",
           "pdf": "https://kolejemalopolskie.com.pl/brepo/panel_repo/2026/10/19/m73lie/a7-od-25-x-2026.pdf",
@@ -8017,7 +8017,7 @@
           "scheduled": 1793599020,
           "gtfs_scheduled": 1793599020,
           "sequence": 27,
-          "route_id": "1383_A7",
+          "route_id": "1384_A7",
           "service_date": "20261102"
         },
         {
@@ -8027,7 +8027,7 @@
           "direction": "south",
           "time": "07:00",
           "destination": "Podłęże P+R Północ",
-          "trip_id": "1383_2024",
+          "trip_id": "1384_1898",
           "gtfs_time": "07:00",
           "source": "PDF przewoźnika",
           "pdf": "https://kolejemalopolskie.com.pl/brepo/panel_repo/2026/10/19/m73lie/a7-od-25-x-2026.pdf",
@@ -8035,7 +8035,7 @@
           "scheduled": 1793599200,
           "gtfs_scheduled": 1793599200,
           "sequence": 15,
-          "route_id": "1383_A7",
+          "route_id": "1384_A7",
           "service_date": "20261102"
         },
         {
@@ -8045,14 +8045,14 @@
           "direction": "south",
           "time": "07:04",
           "destination": "Bochnia Dworzec PKP",
-          "trip_id": "1383_2395",
+          "trip_id": "1384_2269",
           "source": "GTFS + PDF",
           "pdf": "https://kolejemalopolskie.com.pl/brepo/panel_repo/2026/10/19/rccwk3/a4-od-25-x-2026.pdf",
           "stop_name": "Ispina Most",
           "scheduled": 1793599440,
           "gtfs_scheduled": 1793599440,
           "sequence": 2,
-          "route_id": "1383_A4",
+          "route_id": "1384_A4",
           "service_date": "20261102"
         },
         {
@@ -8073,14 +8073,14 @@
           "direction": "south",
           "time": "07:34",
           "destination": "Bochnia Dworzec PKP",
-          "trip_id": "1383_2436",
+          "trip_id": "1384_2310",
           "source": "GTFS + PDF",
           "pdf": "https://kolejemalopolskie.com.pl/brepo/panel_repo/2026/10/19/qcfw1q/a65-od-25-x-2026.pdf",
           "stop_name": "Ispina Most",
           "scheduled": 1793601240,
           "gtfs_scheduled": 1793601240,
           "sequence": 2,
-          "route_id": "1383_A65",
+          "route_id": "1384_A65",
           "service_date": "20261102"
         },
         {
@@ -8101,14 +8101,14 @@
           "direction": "north",
           "time": "07:45",
           "destination": "Nowe Brzesko Rynek",
-          "trip_id": "1383_2402",
+          "trip_id": "1384_2276",
           "source": "GTFS + PDF",
           "pdf": "https://kolejemalopolskie.com.pl/brepo/panel_repo/2026/10/19/rccwk3/a4-od-25-x-2026.pdf",
           "stop_name": "Ispina Most",
           "scheduled": 1793601900,
           "gtfs_scheduled": 1793601900,
           "sequence": 46,
-          "route_id": "1383_A4",
+          "route_id": "1384_A4",
           "service_date": "20261102"
         },
         {
@@ -8118,7 +8118,7 @@
           "direction": "north",
           "time": "07:52",
           "destination": "Nowe Brzesko Rynek",
-          "trip_id": "1383_2007",
+          "trip_id": "1384_1881",
           "gtfs_time": "07:52",
           "source": "PDF przewoźnika",
           "pdf": "https://kolejemalopolskie.com.pl/brepo/panel_repo/2026/10/19/m73lie/a7-od-25-x-2026.pdf",
@@ -8126,7 +8126,7 @@
           "scheduled": 1793602320,
           "gtfs_scheduled": 1793602320,
           "sequence": 27,
-          "route_id": "1383_A7",
+          "route_id": "1384_A7",
           "service_date": "20261102"
         },
         {
@@ -8136,7 +8136,7 @@
           "direction": "south",
           "time": "08:08",
           "destination": "Podłęże P+R Północ",
-          "trip_id": "1383_2008",
+          "trip_id": "1384_1882",
           "gtfs_time": "08:08",
           "source": "PDF przewoźnika",
           "pdf": "https://kolejemalopolskie.com.pl/brepo/panel_repo/2026/10/19/m73lie/a7-od-25-x-2026.pdf",
@@ -8144,7 +8144,7 @@
           "scheduled": 1793603280,
           "gtfs_scheduled": 1793603280,
           "sequence": 2,
-          "route_id": "1383_A7",
+          "route_id": "1384_A7",
           "service_date": "20261102"
         },
         {
@@ -8154,14 +8154,14 @@
           "direction": "south",
           "time": "08:19",
           "destination": "Bochnia Dworzec PKP",
-          "trip_id": "1383_2403",
+          "trip_id": "1384_2277",
           "source": "GTFS + PDF",
           "pdf": "https://kolejemalopolskie.com.pl/brepo/panel_repo/2026/10/19/rccwk3/a4-od-25-x-2026.pdf",
           "stop_name": "Ispina Most",
           "scheduled": 1793603940,
           "gtfs_scheduled": 1793603940,
           "sequence": 2,
-          "route_id": "1383_A4",
+          "route_id": "1384_A4",
           "service_date": "20261102"
         },
         {
@@ -8171,14 +8171,14 @@
           "direction": "north",
           "time": "08:28",
           "destination": "Nowe Brzesko Rynek",
-          "trip_id": "1383_2450",
+          "trip_id": "1384_2324",
           "source": "GTFS + PDF",
           "pdf": "https://kolejemalopolskie.com.pl/brepo/panel_repo/2026/10/19/qcfw1q/a65-od-25-x-2026.pdf",
           "stop_name": "Ispina Most",
           "scheduled": 1793604480,
           "gtfs_scheduled": 1793604480,
           "sequence": 41,
-          "route_id": "1383_A65",
+          "route_id": "1384_A65",
           "service_date": "20261102"
         },
         {
@@ -8199,7 +8199,7 @@
           "direction": "north",
           "time": "08:47",
           "destination": "Proszowice P+R Kościuszki",
-          "trip_id": "1383_2025",
+          "trip_id": "1384_1899",
           "gtfs_time": "08:47",
           "source": "PDF przewoźnika",
           "pdf": "https://kolejemalopolskie.com.pl/brepo/panel_repo/2026/10/19/m73lie/a7-od-25-x-2026.pdf",
@@ -8207,7 +8207,7 @@
           "scheduled": 1793605620,
           "gtfs_scheduled": 1793605620,
           "sequence": 27,
-          "route_id": "1383_A7",
+          "route_id": "1384_A7",
           "service_date": "20261102"
         },
         {
@@ -8228,7 +8228,7 @@
           "direction": "south",
           "time": "09:04",
           "destination": "Podłęże P+R Północ",
-          "trip_id": "1383_2082",
+          "trip_id": "1384_1956",
           "gtfs_time": "09:04",
           "source": "PDF przewoźnika",
           "pdf": "https://kolejemalopolskie.com.pl/brepo/panel_repo/2026/10/19/m73lie/a7-od-25-x-2026.pdf",
@@ -8236,7 +8236,7 @@
           "scheduled": 1793606640,
           "gtfs_scheduled": 1793606640,
           "sequence": 15,
-          "route_id": "1383_A7",
+          "route_id": "1384_A7",
           "service_date": "20261102"
         },
         {
@@ -8246,14 +8246,14 @@
           "direction": "north",
           "time": "09:25",
           "destination": "Nowe Brzesko Rynek",
-          "trip_id": "1383_2396",
+          "trip_id": "1384_2270",
           "source": "GTFS + PDF",
           "pdf": "https://kolejemalopolskie.com.pl/brepo/panel_repo/2026/10/19/rccwk3/a4-od-25-x-2026.pdf",
           "stop_name": "Ispina Most",
           "scheduled": 1793607900,
           "gtfs_scheduled": 1793607900,
           "sequence": 46,
-          "route_id": "1383_A4",
+          "route_id": "1384_A4",
           "service_date": "20261102"
         },
         {
@@ -8263,14 +8263,14 @@
           "direction": "south",
           "time": "09:29",
           "destination": "Bochnia Dworzec PKP",
-          "trip_id": "1383_2451",
+          "trip_id": "1384_2325",
           "source": "GTFS + PDF",
           "pdf": "https://kolejemalopolskie.com.pl/brepo/panel_repo/2026/10/19/qcfw1q/a65-od-25-x-2026.pdf",
           "stop_name": "Ispina Most",
           "scheduled": 1793608140,
           "gtfs_scheduled": 1793608140,
           "sequence": 2,
-          "route_id": "1383_A65",
+          "route_id": "1384_A65",
           "service_date": "20261102"
         },
         {
@@ -8280,7 +8280,7 @@
           "direction": "north",
           "time": "09:38",
           "destination": "Nowe Brzesko Rynek",
-          "trip_id": "1383_2009",
+          "trip_id": "1384_1883",
           "gtfs_time": "09:37",
           "source": "PDF przewoźnika",
           "pdf": "https://kolejemalopolskie.com.pl/brepo/panel_repo/2026/10/19/m73lie/a7-od-25-x-2026.pdf",
@@ -8288,7 +8288,7 @@
           "scheduled": 1793608680,
           "gtfs_scheduled": 1793608620,
           "sequence": 27,
-          "route_id": "1383_A7",
+          "route_id": "1384_A7",
           "service_date": "20261102"
         },
         {
@@ -8309,14 +8309,14 @@
           "direction": "north",
           "time": "10:03",
           "destination": "Nowe Brzesko Rynek",
-          "trip_id": "1383_2437",
+          "trip_id": "1384_2311",
           "source": "GTFS + PDF",
           "pdf": "https://kolejemalopolskie.com.pl/brepo/panel_repo/2026/10/19/qcfw1q/a65-od-25-x-2026.pdf",
           "stop_name": "Ispina Most",
           "scheduled": 1793610180,
           "gtfs_scheduled": 1793610180,
           "sequence": 41,
-          "route_id": "1383_A65",
+          "route_id": "1384_A65",
           "service_date": "20261102"
         },
         {
@@ -8337,14 +8337,14 @@
           "direction": "south",
           "time": "10:24",
           "destination": "Bochnia Dworzec PKP",
-          "trip_id": "1383_2438",
+          "trip_id": "1384_2312",
           "source": "GTFS + PDF",
           "pdf": "https://kolejemalopolskie.com.pl/brepo/panel_repo/2026/10/19/qcfw1q/a65-od-25-x-2026.pdf",
           "stop_name": "Ispina Most",
           "scheduled": 1793611440,
           "gtfs_scheduled": 1793611440,
           "sequence": 2,
-          "route_id": "1383_A65",
+          "route_id": "1384_A65",
           "service_date": "20261102"
         },
         {
@@ -8354,7 +8354,7 @@
           "direction": "south",
           "time": "10:28",
           "destination": "Podłęże P+R Północ",
-          "trip_id": "1383_2010",
+          "trip_id": "1384_1884",
           "gtfs_time": "10:28",
           "source": "PDF przewoźnika",
           "pdf": "https://kolejemalopolskie.com.pl/brepo/panel_repo/2026/10/19/m73lie/a7-od-25-x-2026.pdf",
@@ -8362,7 +8362,7 @@
           "scheduled": 1793611680,
           "gtfs_scheduled": 1793611680,
           "sequence": 2,
-          "route_id": "1383_A7",
+          "route_id": "1384_A7",
           "service_date": "20261102"
         },
         {
@@ -8372,7 +8372,7 @@
           "direction": "north",
           "time": "10:58",
           "destination": "Proszowice P+R Kościuszki",
-          "trip_id": "1383_2083",
+          "trip_id": "1384_1957",
           "gtfs_time": "10:58",
           "source": "PDF przewoźnika",
           "pdf": "https://kolejemalopolskie.com.pl/brepo/panel_repo/2026/10/19/m73lie/a7-od-25-x-2026.pdf",
@@ -8380,7 +8380,7 @@
           "scheduled": 1793613480,
           "gtfs_scheduled": 1793613480,
           "sequence": 27,
-          "route_id": "1383_A7",
+          "route_id": "1384_A7",
           "service_date": "20261102"
         },
         {
@@ -8390,14 +8390,14 @@
           "direction": "south",
           "time": "11:09",
           "destination": "Bochnia Dworzec PKP",
-          "trip_id": "1383_2397",
+          "trip_id": "1384_2271",
           "source": "GTFS + PDF",
           "pdf": "https://kolejemalopolskie.com.pl/brepo/panel_repo/2026/10/19/rccwk3/a4-od-25-x-2026.pdf",
           "stop_name": "Ispina Most",
           "scheduled": 1793614140,
           "gtfs_scheduled": 1793614140,
           "sequence": 2,
-          "route_id": "1383_A4",
+          "route_id": "1384_A4",
           "service_date": "20261102"
         },
         {
@@ -8418,14 +8418,14 @@
           "direction": "north",
           "time": "11:28",
           "destination": "Nowe Brzesko Rynek",
-          "trip_id": "1383_2404",
+          "trip_id": "1384_2278",
           "source": "GTFS + PDF",
           "pdf": "https://kolejemalopolskie.com.pl/brepo/panel_repo/2026/10/19/qcfw1q/a65-od-25-x-2026.pdf",
           "stop_name": "Ispina Most",
           "scheduled": 1793615280,
           "gtfs_scheduled": 1793615280,
           "sequence": 41,
-          "route_id": "1383_A65",
+          "route_id": "1384_A65",
           "service_date": "20261102"
         },
         {
@@ -8435,14 +8435,14 @@
           "direction": "south",
           "time": "11:44",
           "destination": "Bochnia Dworzec PKP",
-          "trip_id": "1383_2405",
+          "trip_id": "1384_2279",
           "source": "GTFS + PDF",
           "pdf": "https://kolejemalopolskie.com.pl/brepo/panel_repo/2026/10/19/qcfw1q/a65-od-25-x-2026.pdf",
           "stop_name": "Ispina Most",
           "scheduled": 1793616240,
           "gtfs_scheduled": 1793616240,
           "sequence": 2,
-          "route_id": "1383_A65",
+          "route_id": "1384_A65",
           "service_date": "20261102"
         },
         {
@@ -8452,7 +8452,7 @@
           "direction": "north",
           "time": "11:58",
           "destination": "Nowe Brzesko Rynek",
-          "trip_id": "1383_2011",
+          "trip_id": "1384_1885",
           "gtfs_time": "11:57",
           "source": "PDF przewoźnika",
           "pdf": "https://kolejemalopolskie.com.pl/brepo/panel_repo/2026/10/19/m73lie/a7-od-25-x-2026.pdf",
@@ -8460,7 +8460,7 @@
           "scheduled": 1793617080,
           "gtfs_scheduled": 1793617020,
           "sequence": 27,
-          "route_id": "1383_A7",
+          "route_id": "1384_A7",
           "service_date": "20261102"
         },
         {
@@ -8470,14 +8470,14 @@
           "direction": "north",
           "time": "12:10",
           "destination": "Nowe Brzesko Rynek",
-          "trip_id": "1383_2452",
+          "trip_id": "1384_2326",
           "source": "GTFS + PDF",
           "pdf": "https://kolejemalopolskie.com.pl/brepo/panel_repo/2026/10/19/rccwk3/a4-od-25-x-2026.pdf",
           "stop_name": "Ispina Most",
           "scheduled": 1793617800,
           "gtfs_scheduled": 1793617800,
           "sequence": 46,
-          "route_id": "1383_A4",
+          "route_id": "1384_A4",
           "service_date": "20261102"
         },
         {
@@ -8498,14 +8498,14 @@
           "direction": "north",
           "time": "12:28",
           "destination": "Nowe Brzesko Rynek",
-          "trip_id": "1383_2439",
+          "trip_id": "1384_2313",
           "source": "GTFS + PDF",
           "pdf": "https://kolejemalopolskie.com.pl/brepo/panel_repo/2026/10/19/qcfw1q/a65-od-25-x-2026.pdf",
           "stop_name": "Ispina Most",
           "scheduled": 1793618880,
           "gtfs_scheduled": 1793618880,
           "sequence": 41,
-          "route_id": "1383_A65",
+          "route_id": "1384_A65",
           "service_date": "20261102"
         },
         {
@@ -8515,14 +8515,14 @@
           "direction": "south",
           "time": "12:29",
           "destination": "Bochnia Dworzec PKP",
-          "trip_id": "1383_2453",
+          "trip_id": "1384_2327",
           "source": "GTFS + PDF",
           "pdf": "https://kolejemalopolskie.com.pl/brepo/panel_repo/2026/10/19/rccwk3/a4-od-25-x-2026.pdf",
           "stop_name": "Ispina Most",
           "scheduled": 1793618940,
           "gtfs_scheduled": 1793618940,
           "sequence": 2,
-          "route_id": "1383_A4",
+          "route_id": "1384_A4",
           "service_date": "20261102"
         },
         {
@@ -8532,7 +8532,7 @@
           "direction": "south",
           "time": "12:55",
           "destination": "Podłęże P+R Północ",
-          "trip_id": "1383_2084",
+          "trip_id": "1384_1958",
           "gtfs_time": "12:55",
           "source": "PDF przewoźnika",
           "pdf": "https://kolejemalopolskie.com.pl/brepo/panel_repo/2026/10/19/m73lie/a7-od-25-x-2026.pdf",
@@ -8540,7 +8540,7 @@
           "scheduled": 1793620500,
           "gtfs_scheduled": 1793620500,
           "sequence": 15,
-          "route_id": "1383_A7",
+          "route_id": "1384_A7",
           "service_date": "20261102"
         },
         {
@@ -8550,14 +8550,14 @@
           "direction": "south",
           "time": "13:09",
           "destination": "Bochnia Dworzec PKP",
-          "trip_id": "1383_2440",
+          "trip_id": "1384_2314",
           "source": "GTFS + PDF",
           "pdf": "https://kolejemalopolskie.com.pl/brepo/panel_repo/2026/10/19/qcfw1q/a65-od-25-x-2026.pdf",
           "stop_name": "Ispina Most",
           "scheduled": 1793621340,
           "gtfs_scheduled": 1793621340,
           "sequence": 2,
-          "route_id": "1383_A65",
+          "route_id": "1384_A65",
           "service_date": "20261102"
         },
         {
@@ -8589,14 +8589,14 @@
           "direction": "north",
           "time": "13:35",
           "destination": "Nowe Brzesko Rynek",
-          "trip_id": "1383_2406",
+          "trip_id": "1384_2280",
           "source": "GTFS + PDF",
           "pdf": "https://kolejemalopolskie.com.pl/brepo/panel_repo/2026/10/19/rccwk3/a4-od-25-x-2026.pdf",
           "stop_name": "Ispina Most",
           "scheduled": 1793622900,
           "gtfs_scheduled": 1793622900,
           "sequence": 46,
-          "route_id": "1383_A4",
+          "route_id": "1384_A4",
           "service_date": "20261102"
         },
         {
@@ -8606,7 +8606,7 @@
           "direction": "south",
           "time": "13:43",
           "destination": "Podłęże P+R Północ",
-          "trip_id": "1383_2014",
+          "trip_id": "1384_1888",
           "gtfs_time": "13:43",
           "source": "PDF przewoźnika",
           "pdf": "https://kolejemalopolskie.com.pl/brepo/panel_repo/2026/10/19/m73lie/a7-od-25-x-2026.pdf",
@@ -8614,7 +8614,7 @@
           "scheduled": 1793623380,
           "gtfs_scheduled": 1793623380,
           "sequence": 2,
-          "route_id": "1383_A7",
+          "route_id": "1384_A7",
           "service_date": "20261102"
         },
         {
@@ -8624,14 +8624,14 @@
           "direction": "south",
           "time": "13:49",
           "destination": "Bochnia Dworzec PKP",
-          "trip_id": "1383_2407",
+          "trip_id": "1384_2281",
           "source": "GTFS + PDF",
           "pdf": "https://kolejemalopolskie.com.pl/brepo/panel_repo/2026/10/19/rccwk3/a4-od-25-x-2026.pdf",
           "stop_name": "Ispina Most",
           "scheduled": 1793623740,
           "gtfs_scheduled": 1793623740,
           "sequence": 2,
-          "route_id": "1383_A4",
+          "route_id": "1384_A4",
           "service_date": "20261102"
         },
         {
@@ -8641,14 +8641,14 @@
           "direction": "north",
           "time": "14:33",
           "destination": "Nowe Brzesko Rynek",
-          "trip_id": "1383_2454",
+          "trip_id": "1384_2328",
           "source": "GTFS + PDF",
           "pdf": "https://kolejemalopolskie.com.pl/brepo/panel_repo/2026/10/19/qcfw1q/a65-od-25-x-2026.pdf",
           "stop_name": "Ispina Most",
           "scheduled": 1793626380,
           "gtfs_scheduled": 1793626380,
           "sequence": 41,
-          "route_id": "1383_A65",
+          "route_id": "1384_A65",
           "service_date": "20261102"
         },
         {
@@ -8669,14 +8669,14 @@
           "direction": "south",
           "time": "14:54",
           "destination": "Bochnia Dworzec PKP",
-          "trip_id": "1383_2455",
+          "trip_id": "1384_2329",
           "source": "GTFS + PDF",
           "pdf": "https://kolejemalopolskie.com.pl/brepo/panel_repo/2026/10/19/qcfw1q/a65-od-25-x-2026.pdf",
           "stop_name": "Ispina Most",
           "scheduled": 1793627640,
           "gtfs_scheduled": 1793627640,
           "sequence": 2,
-          "route_id": "1383_A65",
+          "route_id": "1384_A65",
           "service_date": "20261102"
         },
         {
@@ -8686,7 +8686,7 @@
           "direction": "north",
           "time": "14:57",
           "destination": "Proszowice P+R Kościuszki",
-          "trip_id": "1383_2085",
+          "trip_id": "1384_1959",
           "gtfs_time": "14:57",
           "source": "PDF przewoźnika",
           "pdf": "https://kolejemalopolskie.com.pl/brepo/panel_repo/2026/10/19/m73lie/a7-od-25-x-2026.pdf",
@@ -8694,7 +8694,7 @@
           "scheduled": 1793627820,
           "gtfs_scheduled": 1793627820,
           "sequence": 27,
-          "route_id": "1383_A7",
+          "route_id": "1384_A7",
           "service_date": "20261102"
         },
         {
@@ -8715,7 +8715,7 @@
           "direction": "south",
           "time": "15:25",
           "destination": "Podłęże P+R Północ",
-          "trip_id": "1383_1996",
+          "trip_id": "1384_1870",
           "gtfs_time": "15:25",
           "source": "PDF przewoźnika",
           "pdf": "https://kolejemalopolskie.com.pl/brepo/panel_repo/2026/10/19/m73lie/a7-od-25-x-2026.pdf",
@@ -8723,7 +8723,7 @@
           "scheduled": 1793629500,
           "gtfs_scheduled": 1793629500,
           "sequence": 15,
-          "route_id": "1383_A7",
+          "route_id": "1384_A7",
           "service_date": "20261102"
         },
         {
@@ -8733,14 +8733,14 @@
           "direction": "north",
           "time": "15:30",
           "destination": "Nowe Brzesko Rynek",
-          "trip_id": "1383_2398",
+          "trip_id": "1384_2272",
           "source": "GTFS + PDF",
           "pdf": "https://kolejemalopolskie.com.pl/brepo/panel_repo/2026/10/19/rccwk3/a4-od-25-x-2026.pdf",
           "stop_name": "Ispina Most",
           "scheduled": 1793629800,
           "gtfs_scheduled": 1793629800,
           "sequence": 46,
-          "route_id": "1383_A4",
+          "route_id": "1384_A4",
           "service_date": "20261102"
         },
         {
@@ -8750,14 +8750,14 @@
           "direction": "north",
           "time": "15:38",
           "destination": "Nowe Brzesko Rynek",
-          "trip_id": "1383_2441",
+          "trip_id": "1384_2315",
           "source": "GTFS + PDF",
           "pdf": "https://kolejemalopolskie.com.pl/brepo/panel_repo/2026/10/19/qcfw1q/a65-od-25-x-2026.pdf",
           "stop_name": "Ispina Most",
           "scheduled": 1793630280,
           "gtfs_scheduled": 1793630280,
           "sequence": 41,
-          "route_id": "1383_A65",
+          "route_id": "1384_A65",
           "service_date": "20261102"
         },
         {
@@ -8767,14 +8767,14 @@
           "direction": "south",
           "time": "15:49",
           "destination": "Bochnia Dworzec PKP",
-          "trip_id": "1383_2442",
+          "trip_id": "1384_2316",
           "source": "GTFS + PDF",
           "pdf": "https://kolejemalopolskie.com.pl/brepo/panel_repo/2026/10/19/qcfw1q/a65-od-25-x-2026.pdf",
           "stop_name": "Ispina Most",
           "scheduled": 1793630940,
           "gtfs_scheduled": 1793630940,
           "sequence": 2,
-          "route_id": "1383_A65",
+          "route_id": "1384_A65",
           "service_date": "20261102"
         },
         {
@@ -8784,7 +8784,7 @@
           "direction": "north",
           "time": "15:58",
           "destination": "Nowe Brzesko Rynek",
-          "trip_id": "1383_2015",
+          "trip_id": "1384_1889",
           "gtfs_time": "15:57",
           "source": "PDF przewoźnika",
           "pdf": "https://kolejemalopolskie.com.pl/brepo/panel_repo/2026/10/19/m73lie/a7-od-25-x-2026.pdf",
@@ -8792,7 +8792,7 @@
           "scheduled": 1793631480,
           "gtfs_scheduled": 1793631420,
           "sequence": 27,
-          "route_id": "1383_A7",
+          "route_id": "1384_A7",
           "service_date": "20261102"
         },
         {
@@ -8813,7 +8813,7 @@
           "direction": "south",
           "time": "16:13",
           "destination": "Podłęże P+R Północ",
-          "trip_id": "1383_2016",
+          "trip_id": "1384_1890",
           "gtfs_time": "16:13",
           "source": "PDF przewoźnika",
           "pdf": "https://kolejemalopolskie.com.pl/brepo/panel_repo/2026/10/19/m73lie/a7-od-25-x-2026.pdf",
@@ -8821,7 +8821,7 @@
           "scheduled": 1793632380,
           "gtfs_scheduled": 1793632380,
           "sequence": 2,
-          "route_id": "1383_A7",
+          "route_id": "1384_A7",
           "service_date": "20261102"
         },
         {
@@ -8831,14 +8831,14 @@
           "direction": "south",
           "time": "16:14",
           "destination": "Bochnia Dworzec PKP",
-          "trip_id": "1383_2399",
+          "trip_id": "1384_2273",
           "source": "GTFS + PDF",
           "pdf": "https://kolejemalopolskie.com.pl/brepo/panel_repo/2026/10/19/rccwk3/a4-od-25-x-2026.pdf",
           "stop_name": "Ispina Most",
           "scheduled": 1793632440,
           "gtfs_scheduled": 1793632440,
           "sequence": 2,
-          "route_id": "1383_A4",
+          "route_id": "1384_A4",
           "service_date": "20261102"
         },
         {
@@ -8848,14 +8848,14 @@
           "direction": "north",
           "time": "16:35",
           "destination": "Nowe Brzesko Rynek",
-          "trip_id": "1383_2408",
+          "trip_id": "1384_2282",
           "source": "GTFS + PDF",
           "pdf": "https://kolejemalopolskie.com.pl/brepo/panel_repo/2026/10/19/rccwk3/a4-od-25-x-2026.pdf",
           "stop_name": "Ispina Most",
           "scheduled": 1793633700,
           "gtfs_scheduled": 1793633700,
           "sequence": 46,
-          "route_id": "1383_A4",
+          "route_id": "1384_A4",
           "service_date": "20261102"
         },
         {
@@ -8876,7 +8876,7 @@
           "direction": "south",
           "time": "16:59",
           "destination": "Podłęże P+R Północ",
-          "trip_id": "1383_2032",
+          "trip_id": "1384_1906",
           "gtfs_time": "16:59",
           "source": "PDF przewoźnika",
           "pdf": "https://kolejemalopolskie.com.pl/brepo/panel_repo/2026/10/19/m73lie/a7-od-25-x-2026.pdf",
@@ -8884,7 +8884,7 @@
           "scheduled": 1793635140,
           "gtfs_scheduled": 1793635140,
           "sequence": 15,
-          "route_id": "1383_A7",
+          "route_id": "1384_A7",
           "service_date": "20261102"
         },
         {
@@ -8894,7 +8894,7 @@
           "direction": "north",
           "time": "17:03",
           "destination": "Proszowice P+R Kościuszki",
-          "trip_id": "1383_1997",
+          "trip_id": "1384_1871",
           "gtfs_time": "17:03",
           "source": "PDF przewoźnika",
           "pdf": "https://kolejemalopolskie.com.pl/brepo/panel_repo/2026/10/19/m73lie/a7-od-25-x-2026.pdf",
@@ -8902,7 +8902,7 @@
           "scheduled": 1793635380,
           "gtfs_scheduled": 1793635380,
           "sequence": 27,
-          "route_id": "1383_A7",
+          "route_id": "1384_A7",
           "service_date": "20261102"
         },
         {
@@ -8912,14 +8912,14 @@
           "direction": "north",
           "time": "17:08",
           "destination": "Nowe Brzesko Rynek",
-          "trip_id": "1383_2456",
+          "trip_id": "1384_2330",
           "source": "GTFS + PDF",
           "pdf": "https://kolejemalopolskie.com.pl/brepo/panel_repo/2026/10/19/qcfw1q/a65-od-25-x-2026.pdf",
           "stop_name": "Ispina Most",
           "scheduled": 1793635680,
           "gtfs_scheduled": 1793635680,
           "sequence": 41,
-          "route_id": "1383_A65",
+          "route_id": "1384_A65",
           "service_date": "20261102"
         },
         {
@@ -8929,14 +8929,14 @@
           "direction": "south",
           "time": "17:09",
           "destination": "Bochnia Dworzec PKP",
-          "trip_id": "1383_2409",
+          "trip_id": "1384_2283",
           "source": "GTFS + PDF",
           "pdf": "https://kolejemalopolskie.com.pl/brepo/panel_repo/2026/10/19/qcfw1q/a65-od-25-x-2026.pdf",
           "stop_name": "Ispina Most",
           "scheduled": 1793635740,
           "gtfs_scheduled": 1793635740,
           "sequence": 2,
-          "route_id": "1383_A65",
+          "route_id": "1384_A65",
           "service_date": "20261102"
         },
         {
@@ -8946,14 +8946,14 @@
           "direction": "north",
           "time": "17:38",
           "destination": "Nowe Brzesko Rynek",
-          "trip_id": "1383_2443",
+          "trip_id": "1384_2317",
           "source": "GTFS + PDF",
           "pdf": "https://kolejemalopolskie.com.pl/brepo/panel_repo/2026/10/19/qcfw1q/a65-od-25-x-2026.pdf",
           "stop_name": "Ispina Most",
           "scheduled": 1793637480,
           "gtfs_scheduled": 1793637480,
           "sequence": 41,
-          "route_id": "1383_A65",
+          "route_id": "1384_A65",
           "service_date": "20261102"
         },
         {
@@ -8963,7 +8963,7 @@
           "direction": "north",
           "time": "17:38",
           "destination": "Nowe Brzesko Rynek",
-          "trip_id": "1383_2017",
+          "trip_id": "1384_1891",
           "gtfs_time": "17:37",
           "source": "PDF przewoźnika",
           "pdf": "https://kolejemalopolskie.com.pl/brepo/panel_repo/2026/10/19/m73lie/a7-od-25-x-2026.pdf",
@@ -8971,7 +8971,7 @@
           "scheduled": 1793637480,
           "gtfs_scheduled": 1793637420,
           "sequence": 27,
-          "route_id": "1383_A7",
+          "route_id": "1384_A7",
           "service_date": "20261102"
         },
         {
@@ -8992,14 +8992,14 @@
           "direction": "south",
           "time": "17:49",
           "destination": "Bochnia Dworzec PKP",
-          "trip_id": "1383_2457",
+          "trip_id": "1384_2331",
           "source": "GTFS + PDF",
           "pdf": "https://kolejemalopolskie.com.pl/brepo/panel_repo/2026/10/19/rccwk3/a4-od-25-x-2026.pdf",
           "stop_name": "Ispina Most",
           "scheduled": 1793638140,
           "gtfs_scheduled": 1793638140,
           "sequence": 2,
-          "route_id": "1383_A4",
+          "route_id": "1384_A4",
           "service_date": "20261102"
         },
         {
@@ -9020,7 +9020,7 @@
           "direction": "south",
           "time": "17:58",
           "destination": "Podłęże P+R Północ",
-          "trip_id": "1383_2018",
+          "trip_id": "1384_1892",
           "gtfs_time": "17:58",
           "source": "PDF przewoźnika",
           "pdf": "https://kolejemalopolskie.com.pl/brepo/panel_repo/2026/10/19/m73lie/a7-od-25-x-2026.pdf",
@@ -9028,7 +9028,7 @@
           "scheduled": 1793638680,
           "gtfs_scheduled": 1793638680,
           "sequence": 2,
-          "route_id": "1383_A7",
+          "route_id": "1384_A7",
           "service_date": "20261102"
         },
         {
@@ -9038,7 +9038,7 @@
           "direction": "north",
           "time": "18:38",
           "destination": "Proszowice P+R Kościuszki",
-          "trip_id": "1383_2033",
+          "trip_id": "1384_1907",
           "gtfs_time": "18:38",
           "source": "PDF przewoźnika",
           "pdf": "https://kolejemalopolskie.com.pl/brepo/panel_repo/2026/10/19/m73lie/a7-od-25-x-2026.pdf",
@@ -9046,7 +9046,7 @@
           "scheduled": 1793641080,
           "gtfs_scheduled": 1793641080,
           "sequence": 27,
-          "route_id": "1383_A7",
+          "route_id": "1384_A7",
           "service_date": "20261102"
         },
         {
@@ -9056,14 +9056,14 @@
           "direction": "north",
           "time": "18:40",
           "destination": "Nowe Brzesko Rynek",
-          "trip_id": "1383_2400",
+          "trip_id": "1384_2274",
           "source": "GTFS + PDF",
           "pdf": "https://kolejemalopolskie.com.pl/brepo/panel_repo/2026/10/19/rccwk3/a4-od-25-x-2026.pdf",
           "stop_name": "Ispina Most",
           "scheduled": 1793641200,
           "gtfs_scheduled": 1793641200,
           "sequence": 46,
-          "route_id": "1383_A4",
+          "route_id": "1384_A4",
           "service_date": "20261102"
         },
         {
@@ -9073,14 +9073,14 @@
           "direction": "south",
           "time": "18:49",
           "destination": "Bochnia Dworzec PKP",
-          "trip_id": "1383_2444",
+          "trip_id": "1384_2318",
           "source": "GTFS + PDF",
           "pdf": "https://kolejemalopolskie.com.pl/brepo/panel_repo/2026/10/19/qcfw1q/a65-od-25-x-2026.pdf",
           "stop_name": "Ispina Most",
           "scheduled": 1793641740,
           "gtfs_scheduled": 1793641740,
           "sequence": 2,
-          "route_id": "1383_A65",
+          "route_id": "1384_A65",
           "service_date": "20261102"
         },
         {
@@ -9101,14 +9101,14 @@
           "direction": "north",
           "time": "19:13",
           "destination": "Nowe Brzesko Rynek",
-          "trip_id": "1383_2410",
+          "trip_id": "1384_2284",
           "source": "GTFS + PDF",
           "pdf": "https://kolejemalopolskie.com.pl/brepo/panel_repo/2026/10/19/qcfw1q/a65-od-25-x-2026.pdf",
           "stop_name": "Ispina Most",
           "scheduled": 1793643180,
           "gtfs_scheduled": 1793643180,
           "sequence": 41,
-          "route_id": "1383_A65",
+          "route_id": "1384_A65",
           "service_date": "20261102"
         },
         {
@@ -9129,7 +9129,7 @@
           "direction": "south",
           "time": "19:24",
           "destination": "Podłęże P+R Północ",
-          "trip_id": "1383_2090",
+          "trip_id": "1384_1964",
           "gtfs_time": "19:24",
           "source": "PDF przewoźnika",
           "pdf": "https://kolejemalopolskie.com.pl/brepo/panel_repo/2026/10/19/m73lie/a7-od-25-x-2026.pdf",
@@ -9137,7 +9137,7 @@
           "scheduled": 1793643840,
           "gtfs_scheduled": 1793643840,
           "sequence": 15,
-          "route_id": "1383_A7",
+          "route_id": "1384_A7",
           "service_date": "20261102"
         },
         {
@@ -9147,7 +9147,7 @@
           "direction": "north",
           "time": "19:38",
           "destination": "Nowe Brzesko Rynek",
-          "trip_id": "1383_2019",
+          "trip_id": "1384_1893",
           "gtfs_time": "19:37",
           "source": "PDF przewoźnika",
           "pdf": "https://kolejemalopolskie.com.pl/brepo/panel_repo/2026/10/19/m73lie/a7-od-25-x-2026.pdf",
@@ -9155,7 +9155,7 @@
           "scheduled": 1793644680,
           "gtfs_scheduled": 1793644620,
           "sequence": 27,
-          "route_id": "1383_A7",
+          "route_id": "1384_A7",
           "service_date": "20261102"
         },
         {
@@ -9165,14 +9165,14 @@
           "direction": "north",
           "time": "19:50",
           "destination": "Nowe Brzesko Rynek",
-          "trip_id": "1383_2458",
+          "trip_id": "1384_2332",
           "source": "GTFS + PDF",
           "pdf": "https://kolejemalopolskie.com.pl/brepo/panel_repo/2026/10/19/rccwk3/a4-od-25-x-2026.pdf",
           "stop_name": "Ispina Most",
           "scheduled": 1793645400,
           "gtfs_scheduled": 1793645400,
           "sequence": 46,
-          "route_id": "1383_A4",
+          "route_id": "1384_A4",
           "service_date": "20261102"
         },
         {
@@ -9182,7 +9182,7 @@
           "direction": "south",
           "time": "20:08",
           "destination": "Podłęże P+R Północ",
-          "trip_id": "1383_2020",
+          "trip_id": "1384_1894",
           "gtfs_time": "20:08",
           "source": "PDF przewoźnika",
           "pdf": "https://kolejemalopolskie.com.pl/brepo/panel_repo/2026/10/19/m73lie/a7-od-25-x-2026.pdf",
@@ -9190,7 +9190,7 @@
           "scheduled": 1793646480,
           "gtfs_scheduled": 1793646480,
           "sequence": 2,
-          "route_id": "1383_A7",
+          "route_id": "1384_A7",
           "service_date": "20261102"
         },
         {
@@ -9200,14 +9200,14 @@
           "direction": "south",
           "time": "20:14",
           "destination": "Bochnia Dworzec PKP",
-          "trip_id": "1383_2411",
+          "trip_id": "1384_2285",
           "source": "GTFS + PDF",
           "pdf": "https://kolejemalopolskie.com.pl/brepo/panel_repo/2026/10/19/qcfw1q/a65-od-25-x-2026.pdf",
           "stop_name": "Ispina Most",
           "scheduled": 1793646840,
           "gtfs_scheduled": 1793646840,
           "sequence": 2,
-          "route_id": "1383_A65",
+          "route_id": "1384_A65",
           "service_date": "20261102"
         },
         {
@@ -9239,14 +9239,14 @@
           "direction": "north",
           "time": "20:28",
           "destination": "Nowe Brzesko Rynek",
-          "trip_id": "1383_2445",
+          "trip_id": "1384_2319",
           "source": "GTFS + PDF",
           "pdf": "https://kolejemalopolskie.com.pl/brepo/panel_repo/2026/10/19/qcfw1q/a65-od-25-x-2026.pdf",
           "stop_name": "Ispina Most",
           "scheduled": 1793647680,
           "gtfs_scheduled": 1793647680,
           "sequence": 41,
-          "route_id": "1383_A65",
+          "route_id": "1384_A65",
           "service_date": "20261102"
         },
         {
@@ -9256,7 +9256,7 @@
           "direction": "north",
           "time": "20:53",
           "destination": "Proszowice P+R Kościuszki",
-          "trip_id": "1383_2091",
+          "trip_id": "1384_1965",
           "gtfs_time": "20:53",
           "source": "PDF przewoźnika",
           "pdf": "https://kolejemalopolskie.com.pl/brepo/panel_repo/2026/10/19/m73lie/a7-od-25-x-2026.pdf",
@@ -9264,7 +9264,7 @@
           "scheduled": 1793649180,
           "gtfs_scheduled": 1793649180,
           "sequence": 27,
-          "route_id": "1383_A7",
+          "route_id": "1384_A7",
           "service_date": "20261102"
         },
         {
@@ -9274,7 +9274,7 @@
           "direction": "south",
           "time": "21:04",
           "destination": "Podłęże P+R Północ",
-          "trip_id": "1383_2000",
+          "trip_id": "1384_1874",
           "gtfs_time": "21:04",
           "source": "PDF przewoźnika",
           "pdf": "https://kolejemalopolskie.com.pl/brepo/panel_repo/2026/10/19/m73lie/a7-od-25-x-2026.pdf",
@@ -9282,7 +9282,7 @@
           "scheduled": 1793649840,
           "gtfs_scheduled": 1793649840,
           "sequence": 15,
-          "route_id": "1383_A7",
+          "route_id": "1384_A7",
           "service_date": "20261102"
         },
         {
@@ -9303,7 +9303,7 @@
           "direction": "north",
           "time": "21:33",
           "destination": "Nowe Brzesko Rynek",
-          "trip_id": "1383_2021",
+          "trip_id": "1384_1895",
           "gtfs_time": "21:32",
           "source": "PDF przewoźnika",
           "pdf": "https://kolejemalopolskie.com.pl/brepo/panel_repo/2026/10/19/m73lie/a7-od-25-x-2026.pdf",
@@ -9311,7 +9311,7 @@
           "scheduled": 1793651580,
           "gtfs_scheduled": 1793651520,
           "sequence": 27,
-          "route_id": "1383_A7",
+          "route_id": "1384_A7",
           "service_date": "20261102"
         },
         {
@@ -9321,14 +9321,14 @@
           "direction": "south",
           "time": "21:44",
           "destination": "Bochnia Dworzec PKP",
-          "trip_id": "1383_2446",
+          "trip_id": "1384_2320",
           "source": "GTFS + PDF",
           "pdf": "https://kolejemalopolskie.com.pl/brepo/panel_repo/2026/10/19/qcfw1q/a65-od-25-x-2026.pdf",
           "stop_name": "Ispina Most",
           "scheduled": 1793652240,
           "gtfs_scheduled": 1793652240,
           "sequence": 2,
-          "route_id": "1383_A65",
+          "route_id": "1384_A65",
           "service_date": "20261102"
         },
         {
@@ -9349,14 +9349,14 @@
           "direction": "north",
           "time": "22:03",
           "destination": "Nowe Brzesko Rynek",
-          "trip_id": "1383_2412",
+          "trip_id": "1384_2286",
           "source": "GTFS + PDF",
           "pdf": "https://kolejemalopolskie.com.pl/brepo/panel_repo/2026/10/19/qcfw1q/a65-od-25-x-2026.pdf",
           "stop_name": "Ispina Most",
           "scheduled": 1793653380,
           "gtfs_scheduled": 1793653380,
           "sequence": 41,
-          "route_id": "1383_A65",
+          "route_id": "1384_A65",
           "service_date": "20261102"
         },
         {
@@ -9366,7 +9366,7 @@
           "direction": "north",
           "time": "22:53",
           "destination": "Proszowice P+R Kościuszki",
-          "trip_id": "1383_2001",
+          "trip_id": "1384_1875",
           "gtfs_time": "22:53",
           "source": "PDF przewoźnika",
           "pdf": "https://kolejemalopolskie.com.pl/brepo/panel_repo/2026/10/19/m73lie/a7-od-25-x-2026.pdf",
@@ -9374,7 +9374,7 @@
           "scheduled": 1793656380,
           "gtfs_scheduled": 1793656380,
           "sequence": 27,
-          "route_id": "1383_A7",
+          "route_id": "1384_A7",
           "service_date": "20261102"
         },
         {
@@ -9393,6 +9393,6 @@
     }
   ],
   "gminna_notice": "Linia gminna: odjazdy z Domu Ludowego (Ispina III). Osobny odjazd z Mostu nie jest potwierdzony w oficjalnym PDF.",
-  "feed_version": "1382_1383",
+  "feed_version": "1383_1384",
   "review_valid_until": "2026-11-30"
 }
