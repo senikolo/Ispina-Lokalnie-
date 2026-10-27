@@ -1,0 +1,7 @@
+Ispina Lokalnie is a community information app for Ispina and nearby places in southern Poland.
+
+It provides local news and historical information along with tools for checking public transport departures and planning journeys.
+
+Some information is retrieved from online services. Availability and freshness depend on the data providers; please verify important journey details with the relevant operator.
+
+The interface is designed with readability in mind, including options useful for people who prefer larger on-screen controls.

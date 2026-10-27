@@ -1,0 +1,7 @@
+Ispina Lokalnie to aplikacja przygotowana z myślą o mieszkańcach Ispiny i okolic w Małopolsce.
+
+W jednym miejscu pomaga śledzić lokalne aktualności, poznawać historię miejscowości i sprawdzać informacje przydatne na co dzień. Zawiera również planer połączeń komunikacji publicznej i informacje o odjazdach.
+
+Wybrane dane i materiały są pobierane przez internet, dlatego ich dostępność i aktualność zależy od źródeł. W przypadku podróży warto sprawdzić szczegóły połączenia u przewoźnika.
+
+Projekt Ispina Lokalnie jest rozwijany z myślą o czytelności, także dla osób preferujących większe elementy interfejsu.
