@@ -1,6 +1,9 @@
 """Regression checks against the exact UltraSmart 77 APK, without signing keys."""
 import importlib.util
 import json
+import hashlib
+import struct
+import zlib
 import subprocess
 import tempfile
 import unittest
@@ -25,7 +28,18 @@ class VideoPatchTests(unittest.TestCase):
                 expected = {n for n in original.namelist() if not patch.signature_entry(n)}
                 self.assertEqual(set(result.namelist()), expected)
                 changed = {n for n in expected if original.read(n) != result.read(n)}
-                self.assertEqual(changed, {"AndroidManifest.xml", "assets/main_ui.js", "assets/il-build.json"})
+                self.assertEqual(changed, {"AndroidManifest.xml", "assets/main_ui.js", "assets/il-build.json", "classes4.dex"})
+                old_dex, new_dex = original.read('classes4.dex'), result.read('classes4.dex')
+                start, end, old_shell = patch.native_shell(old_dex)
+                _, _, new_shell = patch.native_shell(new_dex)
+                self.assertIn(b"frame-src 'none'; object-src 'none'", old_shell)
+                self.assertIn(patch.VIDEO_FRAME_POLICY.encode(), new_shell)
+                self.assertEqual(len(new_dex), len(old_dex))
+                self.assertEqual(old_dex[:8], new_dex[:8])
+                self.assertEqual(old_dex[32:start], new_dex[32:start])
+                self.assertEqual(old_dex[end:], new_dex[end:])
+                self.assertEqual(new_dex[12:32], hashlib.sha1(new_dex[32:]).digest())
+                self.assertEqual(struct.unpack_from('<I', new_dex, 8)[0], zlib.adler32(new_dex[12:]) & 0xffffffff)
                 info = json.loads(result.read("assets/il-build.json"))
                 self.assertEqual((info["packageName"], info["versionName"], info["versionCode"]),
                                  (patch.PACKAGE, "2.0.0-smart.78", 20349))

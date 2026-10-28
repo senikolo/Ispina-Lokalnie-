@@ -7,9 +7,9 @@ Jedyną bazą jest `downloads/Ispina-Lokalnie-UltraSmart-77-Drogowskaz.apk`:
 - SHA-256 pliku bazowego: `7c49ebf0c20563335148952f6c6e6da27028bd974a700216cb2d711028184a23`
 - SHA-256 certyfikatu podpisującego: `e17105f5c66beec08508ac2e7d60f9f27b85b80ef0f6e23183a70642c6dae8a3`
 
-Wynik ma wersję `2.0.0-smart.78`, `versionCode 20349`, ten sam pakiet i niezmieniony kod natywny oraz zasoby. Zmieniają się wyłącznie manifest i dwa pliki w `assets`: `main_ui.js` i `il-build.json`. Skrypt odrzuca inne pliki bazowe.
+Wynik ma wersję `2.0.0-smart.78`, `versionCode 20349`, ten sam pakiet i zachowuje zasoby oraz instrukcje kodu natywnego. Zmieniają się manifest, dwa pliki w `assets` (`main_ui.js` i `il-build.json`) oraz stała HTML lokalnego ekranu w `classes4.dex`. Oryginalne `frame-src 'none'` blokowało wszystkie filmy. Poprawka zezwala wyłącznie na `https://www.youtube-nocookie.com`, zachowuje `object-src 'none'` i przelicza sumy DEX bez zmiany jego układu ani instrukcji. Skrypt odrzuca inne pliki bazowe.
 
-Przycisk **Wideo** znajduje się w istniejącym menu aplikacji, przy sekcjach o Ispinie. Trzy filmy są osadzone w panelu aplikacji jako odtwarzacze YouTube, bez automatycznego odtwarzania. Odtwarzacze są wczytywane po otwarciu Wideo i usuwane z pamięci po opuszczeniu panelu lub ukryciu aplikacji. Linki YouTube pozostają dodatkowymi opcjami. WebView bazowej aplikacji otwiera `https://ispinalokalnie.wordpress.com/`; odtwarzacze zachowują HTTPS Referer, mają określony `origin` i minimalny rozmiar 200 × 200 px.
+Przycisk **Wideo** znajduje się w istniejącym menu aplikacji, przy sekcjach o Ispinie. Trzy filmy są osadzone w panelu aplikacji jako odtwarzacze YouTube, bez automatycznego odtwarzania. Odtwarzacze są wczytywane po otwarciu Wideo i usuwane z pamięci po opuszczeniu panelu lub ukryciu aplikacji. Linki YouTube pozostają dodatkowymi opcjami w Wideo. W galerii aplikacji usuwane są odnośniki „Poznaj historię Ispiny”, „Przekaż fotografię lub wspomnienie” i „Wideo” oraz zdublowana lista filmów; treść witryny pozostaje bez zmian. Lokalny ekran aplikacji używa `loadDataWithBaseURL` z bazą `https://ispinalokalnie.wordpress.com/`; odtwarzacze zachowują HTTPS Referer, mają określony `origin` i minimalny rozmiar 200 × 200 px.
 
 ## Klucz aktualizacyjny
 
@@ -31,6 +31,6 @@ Następnie uruchomić **Actions → Build Ispina Lokalnie UltraSmart 78 Wideo �
 
 ## Weryfikacja
 
-`test_patch.py` sprawdza tożsamość bazy, manifest, metadane, integralność ZIP, zachowanie wszystkich pozostałych plików i poprawne uruchomienie dopisanego JavaScript. `test_ui.cjs` uruchamia pełny interfejs z wynikowego APK w Chromium i sprawdza menu, trzy osadzenia, Referer, rozmiary ekranu, powrót i zatrzymanie odtwarzaczy. W teście odpowiedzi YouTube są zastąpione atrapami; nie jest to test rzeczywistego strumienia ani instalacji na Androidzie.
+`test_patch.py` sprawdza tożsamość bazy, manifest, metadane, integralność ZIP, zachowanie wszystkich pozostałych plików i poprawne uruchomienie dopisanego JavaScript. `test_ui.cjs` uruchamia pełny interfejs z wynikowego APK w Chromium z rzeczywistym HTML/CSP wyciągniętym z APK. Odtwarza błąd na starej polityce, sprawdza działanie trzech osadzeń po poprawce, utrzymanie blokady obcych ramek, usunięcie wskazanych treści galerii, Referer, rozmiary ekranu, powrót i zatrzymanie odtwarzaczy. W teście odpowiedzi YouTube są zastąpione atrapami; nie jest to test rzeczywistego strumienia ani instalacji na Androidzie.
 
 Po uzyskaniu właściwego klucza końcowy test na urządzeniu obejmuje instalację APK jako aktualizacji UltraSmart 77 (bez odinstalowywania) i ręczne odtworzenie każdego filmu. Dostępność materiałów, zgoda właścicieli na osadzanie i odtwarzanie w danym WebView pozostają zależne od YouTube; testy atrap tego nie potwierdzają.

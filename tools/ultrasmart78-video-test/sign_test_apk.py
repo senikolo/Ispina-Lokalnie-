@@ -10,7 +10,7 @@ import tempfile
 import zipfile
 from pathlib import Path
 
-from make_test_variant import PACKAGE, VERSION
+from make_test_variant import PACKAGE, VERSION, VERSION_CODE
 
 HERE = Path(__file__).resolve().parent
 ORIGINAL_CERT = "e17105f5c66beec08508ac2e7d60f9f27b85b80ef0f6e23183a70642c6dae8a3"
@@ -26,7 +26,7 @@ def sign(args):
             raise ValueError("Refusing to sign anything except the separate TEST application")
     tools = Path(args.build_tools)
     info = subprocess.check_output([str(tools / "aapt"), "dump", "badging", args.input], text=True).splitlines()[0]
-    if any(value not in info for value in (f"name='{PACKAGE}'", f"versionName='{VERSION}'", "versionCode='20349'")):
+    if any(value not in info for value in (f"name='{PACKAGE}'", f"versionName='{VERSION}'", f"versionCode='{VERSION_CODE}'")):
         raise ValueError("Android manifest does not match the separate TEST identity")
     if Path(args.output).resolve() in (Path(args.input).resolve(), Path(args.keystore).resolve()):
         raise ValueError("Output must not overwrite input APK or keystore")

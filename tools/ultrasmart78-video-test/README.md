@@ -7,10 +7,10 @@ Ten wariant jest przeznaczony do instalacji **obok UltraSmart 77**. Nie odinstal
 | Jedyna baza | UltraSmart 77, `2.0.0-smart.77`, kod 20348 |
 | Nazwa w telefonie | `Ispina Lokalnie 78 TEST` |
 | Pakiet testowy | `com.ispina.mldcheck.smartai78test` |
-| Wersja | `2.0.0-smart.78-test`, kod 20349 |
+| Wersja | `2.0.0-smart.78-test.2`, kod 20350 |
 | Podpis | Nowy, osobny klucz testowy; publiczny odcisk w `test-certificate.json` |
 
-Generator wywołuje istniejącą, sprawdzoną poprawkę Wideo z `../ultrasmart78-video-tab`. Zmienia tożsamość pakietu w manifeście, własne uprawnienie aplikacji, authority providera AndroidX, nazwę pakietu w zasobach oraz metadane interfejsu. Nazwy klas natywnych i wszystkie DEX pozostają identyczne. Etykieta w telefonie i pasek aplikacji wyraźnie wskazują TEST. Trzy odtwarzacze Wideo pozostają wewnątrz aplikacji.
+Generator wywołuje istniejącą, sprawdzoną poprawkę Wideo z `../ultrasmart78-video-tab`. Zmienia tożsamość pakietu w manifeście, własne uprawnienie aplikacji, authority providera AndroidX, nazwę pakietu w zasobach oraz metadane interfejsu. Nazwy klas natywnych i ich instrukcje pozostają identyczne. W `classes4.dex` zmienia się tylko stała HTML/CSP lokalnego ekranu i jego sumy kontrolne: filmy z konkretnej domeny YouTube są dozwolone, inne ramki pozostają zablokowane. Etykieta w telefonie i pasek aplikacji wyraźnie wskazują TEST. Trzy odtwarzacze Wideo pozostają wewnątrz aplikacji.
 
 ```bash
 python3 tools/ultrasmart78-video-test/test_variant.py
@@ -25,3 +25,5 @@ Workflow `build-ultrasmart78-video-test.yml` buduje i testuje osobny wariant. Do
 Klucz aktualizacji UltraSmart 77 i jego workflow pozostają osobną ścieżką: `../ultrasmart78-video-tab/README.md`. Nie wolno podpisać starego pakietu nowym kluczem testowym.
 
 Testy automatyczne sprawdzają izolację pakietu, niezmienność kodu natywnego i nawigację pełnego interfejsu z osadzonymi atrapami YouTube. Nie zastępują odtworzenia trzech rzeczywistych filmów na telefonie.
+
+Poprawka TEST.2 zachowuje pakiet i klucz pierwszej wersji TEST, a podnosi versionCode do 20350, dzięki czemu można zainstalować ją jako aktualizację TEST bez odinstalowywania. Usuwa blokadę CSP odtwarzaczy oraz wskazane odnośniki i zdublowaną listę Wideo z galerii aplikacji. Nie zmienia witryny WordPress ani zainstalowanej UltraSmart 77.

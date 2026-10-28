@@ -36,18 +36,15 @@ jobs:
           python3 tools/ultrasmart78-video-test/make_test_variant.py \
             downloads/Ispina-Lokalnie-UltraSmart-77-Drogowskaz.apk \
             Ispina-Lokalnie-UltraSmart-78-WIDEO-TEST-UNSIGNED.apk
-          python3 - <<'PY'
-          import zipfile
-          from pathlib import Path
-          with zipfile.ZipFile('Ispina-Lokalnie-UltraSmart-78-WIDEO-TEST-UNSIGNED.apk') as apk:
-              Path('main_ui_test.js').write_bytes(apk.read('assets/main_ui.js'))
-          PY
+          python3 tools/ultrasmart78-video-tab/extract_ui_fixture.py Ispina-Lokalnie-UltraSmart-78-WIDEO-TEST-UNSIGNED.apk main_ui_test
+          python3 tools/ultrasmart78-video-tab/extract_ui_fixture.py downloads/Ispina-Lokalnie-UltraSmart-77-Drogowskaz.apk original_ui
       - name: Verify complete TEST UI
         run: |
           set -euo pipefail
           npm install --prefix "$RUNNER_TEMP/il-test" --no-save --ignore-scripts --no-audit --no-fund playwright@1.56.1
           node "$RUNNER_TEMP/il-test/node_modules/playwright/cli.js" install --with-deps chromium
-          NODE_PATH="$RUNNER_TEMP/il-test/node_modules" node tools/ultrasmart78-video-tab/test_ui.cjs main_ui_test.js
+          NODE_PATH="$RUNNER_TEMP/il-test/node_modules" node tools/ultrasmart78-video-tab/test_ui.cjs main_ui_test.js original_ui.html --expect-csp-block
+          NODE_PATH="$RUNNER_TEMP/il-test/node_modules" node tools/ultrasmart78-video-tab/test_ui.cjs main_ui_test.js main_ui_test.html
       - name: Install Android build tools and check test manifest
         run: |
           set -euo pipefail
@@ -56,7 +53,7 @@ jobs:
           python3 - <<'PY'
           from pathlib import Path
           line = Path('test-package.txt').read_text().splitlines()[0]
-          for value in ("name='com.ispina.mldcheck.smartai78test'", "versionCode='20349'", "versionName='2.0.0-smart.78-test'"):
+          for value in ("name='com.ispina.mldcheck.smartai78test'", "versionCode='20350'", "versionName='2.0.0-smart.78-test.2'"):
               assert value in line, value
           PY
       - uses: actions/upload-artifact@v4
@@ -97,7 +94,7 @@ jobs:
             --keystore "$RUNNER_TEMP/il78-test.p12"
           sha256sum Ispina-Lokalnie-UltraSmart-78-WIDEO-TEST.apk > SHA256SUMS-TEST.txt
           echo '### Podpisany APK TEST — instalacja obok UltraSmart 77' >> "$GITHUB_STEP_SUMMARY"
-          echo 'Pakiet com.ispina.mldcheck.smartai78test, wersja 2.0.0-smart.78-test, kod 20349. Nie jest aktualizacją pakietu UltraSmart 77.' >> "$GITHUB_STEP_SUMMARY"
+          echo 'Pakiet com.ispina.mldcheck.smartai78test, wersja 2.0.0-smart.78-test.2, kod 20350. Nie jest aktualizacją pakietu UltraSmart 77.' >> "$GITHUB_STEP_SUMMARY"
       - name: Remove temporary private TEST key
         if: ${{ always() }}
         run: rm -f "$RUNNER_TEMP/il78-test.p12"

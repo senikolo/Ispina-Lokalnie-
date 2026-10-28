@@ -19,14 +19,14 @@ class SeparateTestAppTests(unittest.TestCase):
             with zipfile.ZipFile(SOURCE) as source, zipfile.ZipFile(result) as target:
                 self.assertIsNone(target.testzip())
                 changed = {n for n in target.namelist() if target.read(n) != source.read(n)}
-                self.assertEqual(changed, {"AndroidManifest.xml", "resources.arsc", "assets/main_ui.js", "assets/il-build.json"})
+                self.assertEqual(changed, {"AndroidManifest.xml", "resources.arsc", "assets/main_ui.js", "assets/il-build.json", "classes4.dex"})
                 # Resource IDs and all table content stay identical except the
                 # package's fixed-width name, which has the same byte length.
                 self.assertEqual(target.read("resources.arsc"), source.read("resources.arsc").replace(
                     build.base.PACKAGE.encode("utf-16le"), build.PACKAGE.encode("utf-16le")))
                 meta = json.loads(target.read("assets/il-build.json"))
                 self.assertEqual((meta["packageName"], meta["versionName"], meta["versionCode"], meta["label"]),
-                                 (build.PACKAGE, build.VERSION, 20349, build.LABEL))
+                                 (build.PACKAGE, build.VERSION, build.VERSION_CODE, build.LABEL))
                 manifest = target.read("AndroidManifest.xml")
                 pos = 8
                 import struct

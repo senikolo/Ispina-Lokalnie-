@@ -16,7 +16,8 @@ base = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(base)
 
 PACKAGE = "com.ispina.mldcheck.smartai78test"
-VERSION = "2.0.0-smart.78-test"
+VERSION = "2.0.0-smart.78-test.2"
+VERSION_CODE = 20350
 LABEL = "Ispina Lokalnie 78 TEST"
 VARIANT = "ULTRASMART-78-WIDEO-TEST"
 
@@ -64,7 +65,26 @@ def rewrite_pool(data: bytes) -> bytes:
         chunk += struct.pack("<" + "I" * count, *offsets) + payload
         result = bytearray(data[:pos] + chunk + data[pos + size:])
         struct.pack_into("<I", result, 4, len(result))
-        return bytes(result)
+        # This is an update of the already installed TEST package, not 77.
+        at = 8
+        while at + 8 <= len(result):
+            kind, hdr, chunk_size = struct.unpack_from("<HHI", result, at)
+            if kind == 0x0102:
+                ext = at + hdr
+                tag_index, = struct.unpack_from("<I", result, ext + 4)
+                if values[tag_index] == 'manifest':
+                    attr_start, attr_size, attr_count = struct.unpack_from("<HHH", result, ext + 8)
+                    for index in range(attr_count):
+                        attr = ext + attr_start + index * attr_size
+                        attr_name, = struct.unpack_from("<I", result, attr + 4)
+                        if values[attr_name] == 'versionCode':
+                            original, = struct.unpack_from("<I", result, attr + 16)
+                            if original != base.NEW_CODE:
+                                raise ValueError('Unexpected input TEST versionCode')
+                            struct.pack_into("<I", result, attr + 16, VERSION_CODE)
+                            return bytes(result)
+            at += chunk_size
+        raise ValueError('No versionCode in manifest')
     raise ValueError("No manifest string pool")
 
 
@@ -112,9 +132,10 @@ def make_test_variant(source: Path, output: Path) -> None:
         with zipfile.ZipFile(patched) as src:
             js = src.read("assets/main_ui.js").decode("utf-8")
             js = js.replace(base.PACKAGE, PACKAGE).replace(base.NEW_NAME, VERSION)
+            js = js.replace('"versionCode":' + str(base.NEW_CODE), '"versionCode":' + str(VERSION_CODE))
             js += TEST_BANNER
             metadata = json.loads(src.read("assets/il-build.json"))
-            metadata.update(packageName=PACKAGE, versionName=VERSION, variant=VARIANT, label=LABEL)
+            metadata.update(packageName=PACKAGE, versionName=VERSION, versionCode=VERSION_CODE, variant=VARIANT, label=LABEL)
             replacements = {
                 "AndroidManifest.xml": rewrite_pool(src.read("AndroidManifest.xml")),
                 "resources.arsc": rewrite_resource_package(src.read("resources.arsc")),
@@ -131,4 +152,4 @@ if __name__ == "__main__":
     if len(sys.argv) != 3:
         raise SystemExit("Usage: make_test_variant.py original-ultrasmart77.apk unsigned-test.apk")
     make_test_variant(Path(sys.argv[1]), Path(sys.argv[2]))
-    print(f"Built separate test application: {PACKAGE}, {VERSION}, versionCode {base.NEW_CODE}")
+    print(f"Built separate test application: {PACKAGE}, {VERSION}, versionCode {VERSION_CODE}")

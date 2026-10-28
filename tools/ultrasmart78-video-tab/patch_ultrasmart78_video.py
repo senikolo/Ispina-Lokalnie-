@@ -8,6 +8,7 @@ import json
 import struct
 import sys
 import zipfile
+import zlib
 from pathlib import Path
 
 
@@ -18,6 +19,50 @@ NEW_CODE = 20349
 PACKAGE = "com.ispina.mldcheck.smartai44demo"
 MARKER = "__IL_ULTRASMART_WIDEO_TAB_78__"
 SOURCE_SHA256 = "7c49ebf0c20563335148952f6c6e6da27028bd974a700216cb2d711028184a23"
+VIDEO_FRAME_POLICY = "frame-src https://www.youtube-nocookie.com; object-src 'none'"
+
+
+def native_shell(data: bytes) -> tuple[int, int, bytes]:
+    """Read the real HTML shell constant from HomeActivity's DEX string table."""
+    if not data.startswith(b"dex\n"):
+        raise ValueError("Nieprawidłowy plik DEX ekranu aplikacji")
+    count, table = struct.unpack_from("<II", data, 56)
+    found = []
+    for i in range(count):
+        offset, = struct.unpack_from("<I", data, table + 4 * i)
+        _, start = uleb(data, offset)
+        end = data.index(b"\0", start)
+        value = data[start:end]
+        if value.startswith(b"<!doctype html>") and b"Content-Security-Policy" in value:
+            found.append((start, end, value))
+    if len(found) != 1:
+        raise ValueError("Nie znaleziono jednoznacznego lokalnego ekranu aplikacji")
+    return found[0]
+
+
+def patch_shell_csp(data: bytes) -> bytes:
+    start, end, shell = native_shell(data)
+    if shell.count(b"frame-src 'none'; object-src 'none'") != 1:
+        raise ValueError("Nieoczekiwana polityka CSP w UltraSmart 77")
+    # Retain the string's byte/UTF-16 length and every DEX offset. The web page
+    # title is restored by main_ui.js; its unused markup provides space for the
+    # exact YouTube allowlist, without allowing arbitrary HTTPS frames.
+    changed = shell.replace(b"frame-src 'none'; object-src 'none'", VIDEO_FRAME_POLICY.encode())
+    title = b"<title>Ispina Lokalnie</title>"
+    if changed.count(title) != 1:
+        raise ValueError("Nieoczekiwany nagłówek lokalnego ekranu aplikacji")
+    changed = changed.replace(title, b"")
+    padding = len(shell) - len(changed)
+    if padding < 0:
+        raise ValueError("Brak miejsca na dokładną listę odtwarzaczy CSP")
+    changed = changed.replace(b"</head>", b" " * padding + b"</head>")
+    if len(changed) != end - start:
+        raise ValueError("Zmiana CSP naruszyłaby układ pliku DEX")
+    result = bytearray(data)
+    result[start:end] = changed
+    result[12:32] = hashlib.sha1(result[32:]).digest()
+    struct.pack_into("<I", result, 8, zlib.adler32(result[12:]) & 0xffffffff)
+    return bytes(result)
 
 JS_PATCH = r"""
 ;(function(){
@@ -82,6 +127,34 @@ JS_PATCH = r"""
   observer.observe(view,{attributes:true,attributeFilter:['class']});
   observer.observe(panel,{attributes:true,attributeFilter:['class']});
   d.addEventListener('visibilitychange',function(){if(visible())startPlayers();else stopPlayers()});
+
+  // The app has a dedicated Wideo view. Keep the gallery focused on photos,
+  // including content restored from its existing offline cache.
+  var gallery=d.getElementById('vilPage1851'),galleryBody=d.getElementById('ilpBody1851');
+  function cleanGallery(){
+   if(!gallery||!galleryBody||gallery.getAttribute('data-il-page-slug')!=='galeria')return;
+   galleryBody.querySelectorAll('a[href]').forEach(function(a){
+    var text=(a.textContent||'').replace(/\s+/g,' ').trim().toLowerCase();
+    if(!/^(poznaj historię ispiny|przekaż fotografię lub wspomnienie|wideo)$/.test(text))return;
+    var p=a.closest('p');a.remove();
+    if(p&&!p.querySelector('img,figure,a')&&!p.textContent.replace(/[\s·•|]/g,''))p.remove();
+   });
+   galleryBody.querySelectorAll('h2').forEach(function(h){
+    if((h.textContent||'').trim().toLowerCase()!=='wideo')return;
+    var next=h.nextSibling;
+    while(next){
+     if(next.nodeType===1&&/^H[12]$/.test(next.tagName))break;
+     var old=next;next=next.nextSibling;old.remove();
+    }
+    h.remove();
+   });
+  }
+  if(gallery&&galleryBody){
+   var galleryObserver=new MutationObserver(cleanGallery);
+   galleryObserver.observe(gallery,{attributes:true,attributeFilter:['data-il-page-slug']});
+   galleryObserver.observe(galleryBody,{childList:true,subtree:true});
+   cleanGallery();
+  }
  }catch(e){try{console.error('IL UltraSmart 78 Wideo:',e)}catch(_){}}
 })();
 """
@@ -226,7 +299,7 @@ def patch_apk(source: Path, output: Path) -> None:
         raise ValueError("APK nie jest zatwierdzonym oryginałem UltraSmart 77 (SHA-256)")
     with zipfile.ZipFile(source, "r") as zin:
         names = set(zin.namelist())
-        for required in ("AndroidManifest.xml", "assets/main_ui.js"):
+        for required in ("AndroidManifest.xml", "assets/main_ui.js", "classes4.dex"):
             if required not in names:
                 raise ValueError(f"Brak wymaganego pliku APK: {required}")
         manifest = patch_manifest(zin.read("AndroidManifest.xml"))
@@ -235,12 +308,13 @@ def patch_apk(source: Path, output: Path) -> None:
             raise ValueError("main_ui.js nie odpowiada wersji UltraSmart 77")
         if MARKER in js:
             raise ValueError("Zakładka Wideo jest już w tym APK")
-        js = js.replace(OLD_NAME, NEW_NAME).replace(str(OLD_CODE), str(NEW_CODE))
+        js = "document.title='Ispina Lokalnie';\n" + js.replace(OLD_NAME, NEW_NAME).replace(str(OLD_CODE), str(NEW_CODE))
         js = js + "\n;/* " + MARKER + " */\n" + JS_PATCH
 
         replacements: dict[str, bytes] = {
             "AndroidManifest.xml": manifest,
             "assets/main_ui.js": js.encode("utf-8"),
+            "classes4.dex": patch_shell_csp(zin.read("classes4.dex")),
         }
         if "assets/il-build.json" in names:
             metadata = json.loads(zin.read("assets/il-build.json"))
