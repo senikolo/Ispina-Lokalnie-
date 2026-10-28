@@ -52,11 +52,24 @@ CDN i pamięć procesu buforują stronę przez 60 s, informacje o playliście ka
 
 ## Baza APK i zakres
 
-Tak jak w PR #6, jedyna zatwierdzona baza generatora to `downloads/Ispina-Lokalnie-UltraSmart-77-Drogowskaz.apk`, SHA-256 `7c49ebf0c20563335148952f6c6e6da27028bd974a700216cb2d711028184a23`, pakiet `com.ispina.mldcheck.smartai44demo`, wersja `2.0.0-smart.77`, kod 20348. Wynik: `2.0.0-smart.79`, kod 20350. Inna baza i nadpisanie oryginału są odrzucane.
+Starsza ścieżka generatora odziedziczona z PR #6 przyjmuje `downloads/Ispina-Lokalnie-UltraSmart-77-Drogowskaz.apk`, SHA-256 `7c49ebf0c20563335148952f6c6e6da27028bd974a700216cb2d711028184a23`, pakiet `com.ispina.mldcheck.smartai44demo`, wersja `2.0.0-smart.77`, kod 20348. Wynik: `2.0.0-smart.79`, kod 20350. Inna baza i nadpisanie oryginału są odrzucane.
 
 Zmieniamy manifest, `assets/main_ui.js`, `assets/il-build.json` i stałą HTML/CSP w `classes4.dex`; pozostałe bajty DEX, instrukcje i pliki APK pozostają identyczne. CSP dopuszcza wyłącznie `https://www.youtube-nocookie.com` dla ramek, `object-src 'none'` pozostaje. Zachowano porządkowanie Galerii z PR #6.
 
-To **nie jest obietnica aktualizacji opublikowanego pakietu UltraSmart 78**: strona aplikacji opisuje go jako osobny pakiet. Przed wydaniem trzeba ustalić docelowy zainstalowany pakiet, jego bazę i pasujący oryginalny podpis. Generator z tego PR wytwarza wyłącznie roboczy **UNSIGNED**, który nie jest instalacyjny. Nie dodano workflow podpisującego ani publikującego. Nie łączono PR #6.
+### Podpisana aktualizacja TEST opublikowanej wersji 78
+
+Dodatkowy generator `patch_stable78_youtube.py` przyjmuje dokładny [publiczny APK stabilnej wersji 78](https://github.com/senikolo/Ispina-Lokalnie-/releases/download/v2.0.0-smart.78/Ispina-Lokalnie-UltraSmart-78.apk), SHA-256 `58c3ee07a21e85afe250f29252bdb79d94c33b263a1bbf33a55bf3f959562443`. Potwierdzono pakiet `com.ispina.mldcheck.smartai78test`, versionCode **20351**, Android od API 23 i certyfikat `3c7438761d2accca13da08defe4b62a814c3a3d2201c374f5c2e943115591d82`.
+
+Wynik: **2.0.0-smart.79, kod 20352**, ten sam pakiet, etykieta **Ispina Lokalnie YouTube TEST**. Zmieniono tylko manifest i dwa pliki assets; DEX i zasoby pozostają identyczne ze stabilną 78. Stary moduł trzech odtwarzaczy jest usuwany przed dopisaniem nowego. Do podpisania użyto zachowanego klucza, po sprawdzeniu zgodności certyfikatu. Zweryfikowano podpisy v1/v2/v3, wyrównanie ZIP i integralność APK. Ten plik może aktualizować wskazaną stabilną 78 bez jej odinstalowania; nie aktualizuje oryginalnego pakietu 77.
+
+Podpisany `Ispina-Lokalnie-79-YouTube-TEST.apk` przekazano prywatnie właścicielowi. Rozmiar: 7 981 056 bajtów, SHA-256 `8977c73696ad2db35c9325400437f1f47b8bd9bebcd037aa8c63f1aaaf364986`. Klucz i hasło nie zostały dodane do repozytorium. **To wersja testowa: lista nadal wymaga konfiguracji klucza Data API i wdrożenia endpointu.** W aplikacji jest widoczna ta informacja. Nie twierdzimy, że potwierdzono streaming lub instalację na fizycznym Androidzie.
+
+```sh
+python3 tools/ultrasmart78-video-tab/test_stable78_update.py /path/to/stable78.apk
+python3 tools/ultrasmart78-video-tab/patch_stable78_youtube.py /path/to/stable78.apk /tmp/youtube79-unsigned.apk
+```
+
+Sam generator nadal wytwarza UNSIGNED i nie zawiera klucza. Nie dodano workflow podpisującego ani publikującego; CI pobiera dokładną publiczną bazę 78 i sprawdza dodatkowo tę ścieżkę oraz jej pełny interfejs. Nie łączono PR #6 ani #7.
 
 ## Sprawdzenie
 
@@ -88,7 +101,7 @@ Odbiór ręczny **po konfiguracji usługi i uzgodnieniu podpisanej wersji testow
 5. Wyjść do Pulpitu, nacisnąć Wstecz, ukryć aplikację — dźwięk ustaje. Powrót nie wznawia dźwięku.
 6. Sprawdzić nagranie z wyłączonym osadzaniem, błąd 153, obrót ekranu i Tryb Senior. Odnośniki do YouTube pozostają dostępne.
 
-Nie wykonano testu prawdziwej listy przez Data API (brak skonfigurowanego klucza), rzeczywistego odtwarzania, podpisania ani instalacji na Androidzie. To pozostaje warunkiem odbioru, nie deklarowanym wynikiem testów.
+Nie wykonano testu prawdziwej listy przez Data API (brak skonfigurowanego klucza), rzeczywistego odtwarzania ani instalacji na fizycznym Androidzie. Podpisano i sprawdzono opisany powyżej APK TEST. To pozostaje warunkiem odbioru, nie deklarowanym wynikiem testów.
 
 ## Oficjalna dokumentacja
 
