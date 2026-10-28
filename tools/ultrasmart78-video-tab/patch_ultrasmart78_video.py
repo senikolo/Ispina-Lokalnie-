@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Add an in-app Wideo section to Ispina Lokalnie UltraSmart 77."""
+"""Build UltraSmart 79 with a Wideo list loaded from the IL site."""
 
 from __future__ import annotations
 
@@ -13,11 +13,11 @@ from pathlib import Path
 
 
 OLD_NAME = "2.0.0-smart.77"
-NEW_NAME = "2.0.0-smart.78"
+NEW_NAME = "2.0.0-smart.79"
 OLD_CODE = 20348
-NEW_CODE = 20349
+NEW_CODE = 20350
 PACKAGE = "com.ispina.mldcheck.smartai44demo"
-MARKER = "__IL_ULTRASMART_WIDEO_TAB_78__"
+MARKER = "__IL_ULTRASMART_WIDEO_SYNC_79__"
 SOURCE_SHA256 = "7c49ebf0c20563335148952f6c6e6da27028bd974a700216cb2d711028184a23"
 VIDEO_FRAME_POLICY = "frame-src https://www.youtube-nocookie.com; object-src 'none'"
 
@@ -85,12 +85,110 @@ JS_PATCH = r"""
 
   var view=d.createElement('div');view.className='view';view.id='ilWideoViewSmart78';
   view.setAttribute('role','main');view.setAttribute('aria-label','Wideo z Ispiny');
-  view.innerHTML='<div class="ilv-head"><h2>Wideo</h2><p>Trzy nagrania związane z Ispiną. Odtwarzaj je bezpośrednio w aplikacji.</p></div>'+
-   '<article class="ilv-card"><h3>Archiwalny materiał TVP Kraków o pacyfikacji Ispiny</h3><div class="ilv-frame"><iframe title="Archiwalny materiał TVP Kraków o pacyfikacji Ispiny" src="about:blank" data-src="https://www.youtube-nocookie.com/embed/ZG7I26z3nZs?playsinline=1&amp;rel=0" loading="lazy" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe></div><a class="ilv-link" href="https://www.youtube.com/watch?v=ZG7I26z3nZs">Otwórz na YouTube</a></article>'+
-   '<article class="ilv-card"><h3>Ispina w programie „Jedź Bezpiecznie”</h3><div class="ilv-frame"><iframe title="Ispina w programie Jedź Bezpiecznie" src="about:blank" data-src="https://www.youtube-nocookie.com/embed/uH6bZTGhFdE?playsinline=1&amp;rel=0" loading="lazy" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe></div><a class="ilv-link" href="https://www.youtube.com/watch?v=uH6bZTGhFdE">Otwórz na YouTube</a></article>'+
-   '<article class="ilv-card"><h3>Ispina w TVN Turbo. Stare nagranie, ale problem aktualny</h3><div class="ilv-frame"><iframe title="Ispina w TVN Turbo" src="about:blank" data-src="https://www.youtube-nocookie.com/embed/uY9qCLdLzuY?playsinline=1&amp;rel=0" loading="lazy" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe></div><a class="ilv-link" href="https://www.youtube.com/watch?v=uY9qCLdLzuY">Otwórz na YouTube</a></article>'+
-   '<p><a class="ilv-link" href="https://ispinalokalnie.wordpress.com/galeria/#wideo">Otwórz sekcję Wideo na stronie IL</a></p>';
+  view.innerHTML='<div class="ilv-head"><h2>Wideo</h2><p>Lista jest pobierana z sekcji Wideo na portalu IL. Dodaj film do tej sekcji, a pojawi się tu przy następnym otwarciu.</p></div><p id="ilWideoStatusSmart78" class="ilv-status" role="status">Pobieram aktualne nagrania…</p><div id="ilWideoCardsSmart78"></div><p><a class="ilv-link" href="https://ispinalokalnie.wordpress.com/galeria/#wideo">Otwórz sekcję Wideo na stronie IL</a></p>';
   panel.appendChild(view);
+  var videoStatus=view.querySelector('#ilWideoStatusSmart78');
+  var videoCards=view.querySelector('#ilWideoCardsSmart78');
+  var videoRequest=0;
+  var videoFallback=[
+   {id:'ZG7I26z3nZs',title:'Archiwalny materiał TVP Kraków o pacyfikacji Ispiny'},
+   {id:'uH6bZTGhFdE',title:'Ispina w programie „Jedź Bezpiecznie”'},
+   {id:'uY9qCLdLzuY',title:'Ispina w TVN Turbo. Stare nagranie, ale problem aktualny'}
+  ];
+  var videoEndpoint='https://ispinalokalnie.wordpress.com/wp-json/wp/v2/pages?slug=galeria&_fields=content';
+
+  function youtubeIdFrom(value){
+   var raw=String(value||'').replace(/&amp;/g,'&');
+   var urls=raw.match(/https?:\/\/[^\s"'<>]+/g)||[];
+   if(/^https?:\/\//i.test(raw))urls.unshift(raw);
+   for(var i=0;i<urls.length;i++){
+    try{
+     var u=new URL(urls[i].replace(/[),.;]+$/g,''));
+     var host=u.hostname.toLowerCase().replace(/^www\./,'');
+     var id='';
+     if(host==='youtu.be')id=u.pathname.split('/').filter(Boolean)[0]||'';
+     else if(host==='youtube.com'||host==='m.youtube.com'||host==='youtube-nocookie.com'){
+      id=u.searchParams?u.searchParams.get('v')||'':'';
+      if(!id){var m=u.pathname.match(/^\/(?:embed|shorts|live)\/([^/?]+)/);if(m)id=m[1]}
+     }
+     if(/^[A-Za-z0-9_-]{11}$/.test(id))return id;
+    }catch(e){}
+   }
+   return '';
+  }
+
+  function videosFromPage(html){
+   var parsed=new DOMParser().parseFromString(String(html||''),'text/html');
+   var headings=Array.prototype.slice.call(parsed.body.querySelectorAll('h1,h2,h3,h4,h5,h6'));
+   var section=null;
+   for(var i=0;i<headings.length;i++){
+    var headingText=(headings[i].textContent||'').replace(/\s+/g,' ').trim().toLowerCase();
+    if(headingText==='wideo'||headings[i].id==='wideo'){section=headings[i];break}
+   }
+   if(!section)return null;
+   var nodes=Array.prototype.slice.call(parsed.body.querySelectorAll('h1,h2,h3,h4,h5,h6,a,iframe,figure,div,p,blockquote'));
+   var start=nodes.indexOf(section),title='Nagranie z Ispiny',videos=[],seen={};
+   for(var j=start+1;j<nodes.length;j++){
+    var el=nodes[j],tag=el.tagName;
+    if((tag==='H1'||tag==='H2')&&el!==section)break;
+    if(/^H[3-6]$/.test(tag)){
+     title=(el.textContent||'').replace(/\s+/g,' ').trim()||title;
+     continue;
+    }
+    var id=youtubeIdFrom((el.getAttribute('href')||'')+' '+(el.getAttribute('src')||'')+' '+(el.textContent||'')+' '+(el.outerHTML||''));
+    if(!id||seen[id])continue;
+    seen[id]=true;
+    videos.push({id:id,title:title});
+   }
+   return videos.slice(0,30);
+  }
+
+  function renderVideos(items,message){
+   stopPlayers();
+   videoCards.textContent='';
+   var count=0;
+   items.forEach(function(item){
+    if(!/^[A-Za-z0-9_-]{11}$/.test(item.id))return;
+    var card=d.createElement('article');card.className='ilv-card';
+    var heading=d.createElement('h3');heading.textContent=item.title||'Nagranie z Ispiny';
+    var frame=d.createElement('div');frame.className='ilv-frame';
+    var player=d.createElement('iframe');
+    player.setAttribute('title',heading.textContent);
+    player.setAttribute('src','about:blank');
+    player.setAttribute('data-src','https://www.youtube-nocookie.com/embed/'+item.id+'?playsinline=1&rel=0');
+    player.setAttribute('loading','lazy');
+    player.setAttribute('allow','accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture; web-share');
+    player.setAttribute('allowfullscreen','allowfullscreen');
+    player.setAttribute('referrerpolicy','strict-origin-when-cross-origin');
+    if(location.protocol==='https:')player.setAttribute('data-src',player.getAttribute('data-src')+'&origin='+encodeURIComponent(location.origin));
+    frame.appendChild(player);
+    var link=d.createElement('a');link.className='ilv-link';link.href='https://www.youtube.com/watch?v='+item.id;link.textContent='Otwórz na YouTube';
+    card.appendChild(heading);card.appendChild(frame);card.appendChild(link);videoCards.appendChild(card);
+    count++;
+   });
+   videoStatus.textContent=message||(!count?'Na stronie nie znaleziono jeszcze filmów w sekcji Wideo.':'');
+   videoStatus.style.display=videoStatus.textContent?'block':'none';
+   if(visible())startPlayers();
+  }
+
+  function loadVideosFromSite(){
+   var request=++videoRequest;
+   videoStatus.textContent='Odświeżam listę filmów z IL…';
+   videoStatus.style.display='block';
+   fetch(videoEndpoint+'&_il='+Date.now(),{cache:'no-store'}).then(function(response){
+    if(!response.ok)throw new Error('Nie udało się pobrać listy filmów');
+    return response.json();
+   }).then(function(pages){
+    if(request!==videoRequest)return;
+    if(!Array.isArray(pages)||!pages.length||!pages[0].content||typeof pages[0].content.rendered!=='string')throw new Error('Nieprawidłowa odpowiedź portalu');
+    var videos=videosFromPage(pages[0].content.rendered);
+    if(videos===null||!videos.length)renderVideos(videoFallback,'Nie udało się odczytać filmów z sekcji Wideo. Pokazuję zapisane nagrania.');
+    else renderVideos(videos,'');
+   }).catch(function(){
+    if(request!==videoRequest)return;
+    renderVideos(videoFallback,'Nie udało się odświeżyć listy. Pokazuję zapisane nagrania.');
+   });
+  }
   // Keep the enclosing HTTPS page's origin as the YouTube client identity.
   view.querySelectorAll('iframe[data-src]').forEach(function(f){
    f.setAttribute('referrerpolicy','strict-origin-when-cross-origin');
@@ -120,7 +218,7 @@ JS_PATCH = r"""
    panel.querySelectorAll('.view').forEach(function(x){x.classList.remove('on')});
    view.classList.add('on');panel.classList.add('on');
    var sec=d.getElementById('sec');if(sec)sec.textContent='Wideo';
-   panel.scrollTop=0;startPlayers();
+   panel.scrollTop=0;loadVideosFromSite();
   }
   button.addEventListener('click',function(e){e.preventDefault();e.stopPropagation();open()},true);
   var observer=new MutationObserver(function(){if(visible())startPlayers();else stopPlayers()});
@@ -155,7 +253,7 @@ JS_PATCH = r"""
    galleryObserver.observe(galleryBody,{childList:true,subtree:true});
    cleanGallery();
   }
- }catch(e){try{console.error('IL UltraSmart 78 Wideo:',e)}catch(_){}}
+ }catch(e){try{console.error('IL UltraSmart 79 Wideo:',e)}catch(_){}}
 })();
 """
 
@@ -322,7 +420,7 @@ def patch_apk(source: Path, output: Path) -> None:
                 raise ValueError("il-build.json nie odpowiada wersji UltraSmart 77")
             metadata["versionName"] = NEW_NAME
             metadata["versionCode"] = NEW_CODE
-            metadata["variant"] = "ULTRASMART-78"
+            metadata["variant"] = "ULTRASMART-79"
             replacements["assets/il-build.json"] = json.dumps(metadata, ensure_ascii=False, indent=2).encode("utf-8")
 
         output.parent.mkdir(parents=True, exist_ok=True)
