@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-10-28T02:22:45.331951+01:00",
+  "generated_at": "2026-10-28T12:21:00.028554+01:00",
   "timezone": "Europe/Warsaw",
   "data_type": "scheduled_not_realtime",
   "date": "2026-10-28",
@@ -4570,7 +4570,7 @@
     }
   ],
   "source": "https://gtfs.kolejemalopolskie.com.pl/?download=L2hvbWUvcmdfdXNlci9yZ191c2VyL0dURlMtU1QvR1RGUy56aXA%3D",
-  "feed_sha256": "897d1d905d4353f359f89be81dc5b5ea00d23c2bc00f6a22ca443cdbfe969476",
+  "feed_sha256": "8eca0812bae86c8c44593fb6207d4c2ec80b679d946713aaf6f2d1b7ff36e581",
   "feed_info": {
     "feed_publisher_name": "R&G PLUS Sp. z o.o.",
     "feed_publisher_url": "http://www.rg.com.pl",
