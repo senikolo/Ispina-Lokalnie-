@@ -73,7 +73,8 @@ jobs:
           path: unsigned-artifact
       - name: Report missing signing key
         if: ${{ env.IL_STABLE_KEYSTORE_B64 == '' || env.IL_STABLE_KEYSTORE_PASS == '' }}
-        run: echo "::warning::Signing skipped: IL_STABLE_KEYSTORE_B64 or IL_STABLE_KEYSTORE_PASS is missing in this repository."
+        run: |
+          echo "::warning::Signing skipped: IL_STABLE_KEYSTORE_B64 or IL_STABLE_KEYSTORE_PASS is missing in this repository."
       - name: Sign only when the stable key is available
         id: sign
         if: ${{ env.IL_STABLE_KEYSTORE_B64 != '' && env.IL_STABLE_KEYSTORE_PASS != '' }}
