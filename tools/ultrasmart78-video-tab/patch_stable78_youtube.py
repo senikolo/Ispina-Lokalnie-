@@ -5,6 +5,7 @@ import json
 import struct
 import sys
 import zipfile
+import argparse
 from pathlib import Path
 
 import patch_ultrasmart78_video as base
@@ -12,8 +13,8 @@ import patch_ultrasmart78_video as base
 SOURCE_SHA256 = '58c3ee07a21e85afe250f29252bdb79d94c33b263a1bbf33a55bf3f959562443'
 PACKAGE = 'com.ispina.mldcheck.smartai78test'
 CERT_SHA256 = '3c7438761d2accca13da08defe4b62a814c3a3d2201c374f5c2e943115591d82'
-VERSION = '2.0.0-smart.79'
-CODE = 20352
+VERSION = '2.0.0-smart.80'
+CODE = 20353
 LABEL = 'Ispina Lokalnie YouTube TEST'
 OLD_MARKER = ';/* __IL_ULTRASMART_WIDEO_TAB_78__ */'
 
@@ -75,7 +76,16 @@ def patch_apk(source: Path, output: Path):
 
 
 if __name__ == '__main__':
-    if len(sys.argv) != 3:
-        raise SystemExit('Usage: patch_stable78_youtube.py stable78.apk unsigned-test79.apk')
-    patch_apk(Path(sys.argv[1]),Path(sys.argv[2]))
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('source', type=Path)
+    parser.add_argument('output', type=Path)
+    parser.add_argument('--allow-unconfigured-test', action='store_true', help='CI / offline diagnostics only; do not deliver this result to the user')
+    args = parser.parse_args()
+    if not args.allow_unconfigured_test:
+        from verify_youtube_service import verify_service
+        try:
+            verify_service()
+        except ValueError as error:
+            raise SystemExit('APK nie jest gotowy do przekazania: ' + str(error))
+    patch_apk(args.source,args.output)
     print('Prepared YouTube TEST update:',PACKAGE,VERSION,CODE)

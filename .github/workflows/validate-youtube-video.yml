@@ -23,6 +23,7 @@ jobs:
           node-version: '22'
       - run: |
           python3 tools/ultrasmart78-video-tab/test_patch.py
+          python3 tools/ultrasmart78-video-tab/test_youtube_service.py
           node --test ispina-rozklady/tablica-site/lib/youtube.test.mjs
           python3 tools/ultrasmart78-video-tab/patch_ultrasmart78_video.py downloads/Ispina-Lokalnie-UltraSmart-77-Drogowskaz.apk /tmp/il-video-unsigned.apk
           python3 tools/ultrasmart78-video-tab/extract_ui_fixture.py /tmp/il-video-unsigned.apk /tmp/il-video-ui
@@ -31,7 +32,7 @@ jobs:
         run: |
           curl --fail --location --max-time 60 'https://github.com/senikolo/Ispina-Lokalnie-/releases/download/v2.0.0-smart.78/Ispina-Lokalnie-UltraSmart-78.apk' --output /tmp/il-stable78.apk
           python3 tools/ultrasmart78-video-tab/test_stable78_update.py /tmp/il-stable78.apk
-          python3 tools/ultrasmart78-video-tab/patch_stable78_youtube.py /tmp/il-stable78.apk /tmp/il-update79.apk
+          python3 tools/ultrasmart78-video-tab/patch_stable78_youtube.py /tmp/il-stable78.apk /tmp/il-update79.apk --allow-unconfigured-test
           python3 tools/ultrasmart78-video-tab/extract_ui_fixture.py /tmp/il-update79.apk /tmp/il-update79-ui
       - run: |
           npm install --prefix "$RUNNER_TEMP/il-video" --no-save --ignore-scripts --no-audit --no-fund playwright@1.56.1 acorn@8.15.0

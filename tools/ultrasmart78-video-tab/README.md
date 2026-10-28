@@ -1,5 +1,11 @@
 # Wideo — kanał YouTube i jeden odtwarzacz
 
+**Bieżący status odbioru: zablokowany przez usługę listy.** Sprawdzony publiczny endpoint `/api/youtube-videos` zwraca HTTP 404; w projekcie hostingu nie ma skonfigurowanych zmiennych środowiskowych. Bez klucza YouTube Data API i wdrożenia endpointu nie da się sprawdzić pełnej listy ani uznać funkcji za gotową. Wcześniej przekazany APK 79 TEST nie realizuje tego celu.
+
+Ekran Wideo nie ma już własnych odnośników „Otwórz w YouTube”, odnośników do kanału ani komunikatów kierujących do zewnętrznej strony. Wybór dostępnego filmu steruje wyłącznie osadzonym odtwarzaczem. Oryginalne logo i kontrolki YouTube pozostają zgodne z wymaganiami dostawcy. Film z zabronionym osadzaniem pokazuje przyczynę w aplikacji; nie obchodzimy tej blokady.
+
+Generator aktualizacji przygotowuje następny kandydat **2.0.0-smart.80 / kod 20353**. Jego domyślne wywołanie najpierw uruchamia `verify_youtube_service.py`: wymaga rzeczywistej odpowiedzi HTTP 200, poprawnego CORS, właściwego kanału, świeżych danych, wszystkich stron i co najmniej jednego filmu z dozwolonym osadzaniem. Przy obecnym 404 kończy się błędem **przed utworzeniem APK do przekazania**. Flaga `--allow-unconfigured-test` służy wyłącznie CI i testom offline; nie jest zgodą na przekazanie takiego wyniku jako działającej poprawki. Po konfiguracji API trzeba jeszcze sprawdzić rzeczywiste odtwarzanie na Androidzie.
+
 Ten PR zastępuje podejście z roboczego PR #6. WordPress nie jest źródłem listy filmów. Kod aplikacji nie analizuje HTML YouTube, nie używa InnerTube ani usług pośrednich opartych na scrapingu i nie zawiera klucza Data API.
 
 ## Potwierdzone źródło
@@ -20,7 +26,7 @@ Oficjalna strona tego adresu zwróciła kanoniczny odnośnik:
 2. Serwer: `channels.list(part=snippet,contentDetails,id=UCeeKoKHiH-rGyQOZn6wW-7A)` → **rzeczywista** wartość `contentDetails.relatedPlaylists.uploads`. Nie wyliczamy ID playlisty przez zamianę UC na UU.
 3. `playlistItems.list(playlistId=...,maxResults=50)` → `nextPageToken`; aplikacja pobiera kolejne strony aż do końca, bez limitu trzech, trzydziestu ani pięćdziesięciu filmów. Zduplikowane filmy są scalane, zapętlony token kończy się błędem, nie nieskończoną pętlą.
 4. Serwer: `videos.list(part=snippet,status,id=...)` dla każdej strony → aktualne tytuły, daty, przynależność do kanału, publiczna widoczność i zgoda na osadzanie.
-5. Aplikacja → **jeden** iframe `youtube-nocookie.com` obsługiwany przez oficjalny **YouTube IFrame Player API**. Wybór pozycji wywołuje `loadVideoById` na istniejącym obiekcie. `ENDED` przełącza go na następny film z listy kanału; nie tworzy kolejnego odtwarzacza. Poprzedni/Następny omijają filmy z wyłączonym osadzaniem. Wszystkie publiczne pozycje pozostają widoczne, z odnośnikiem do YouTube.
+5. Aplikacja → **jeden** iframe `youtube-nocookie.com` obsługiwany przez oficjalny **YouTube IFrame Player API**. Wybór pozycji wywołuje `loadVideoById` na istniejącym obiekcie. `ENDED` przełącza go na następny film z listy kanału; nie tworzy kolejnego odtwarzacza. Poprzedni/Następny omijają filmy z wyłączonym osadzaniem. Wszystkie publiczne pozycje pozostają widoczne; brak zgody na osadzanie jest opisany w aplikacji bez przekierowania.
 
 Kolejność odpowiada playliście przesłanych filmów zwracanej przez YouTube. Jest to kolejka aplikacji z tej playlisty, nie pobieranie plików wideo. Nie opieramy pełnej listy na liczbie pozycji zwróconych przez odtwarzacz ani na kanale RSS, który nie jest pełnym archiwum. Nowe publiczne nagranie pojawi się po uwzględnieniu go przez YouTube API i ponownym pobraniu listy; nowy APK nie jest potrzebny.
 
@@ -33,7 +39,7 @@ Najprostsza konfiguracja do wykonania po decyzji właściciela:
 1. W Google Cloud utworzyć projekt (lub użyć osobnego istniejącego projektu IL), włączyć **YouTube Data API v3**, utworzyć klucz i ograniczyć go do tego API. Publiczne dane nie wymagają logowania odbiorcy ani OAuth.
 2. Zapisać wartość jako sekret serwera **`IL_YOUTUBE_API_KEY`** w ustawieniach hostingu tego projektu. Bez `NEXT_PUBLIC_`, bez wpisywania wartości do kodu, APK, opisu PR lub logów. W repozytorium jest wyłącznie pusty `.env.example`; lokalny `.env.local` jest ignorowany.
 3. Wdrożyć sprawdzony kod endpointu na powyższy adres HTTPS. Nie wykonywać tego kroku bez zgody właściciela. Zweryfikować odpowiedź `schema:1`, `channel.id`, `uploadsPlaylistId`, aktualne `items` i `nextPageToken`.
-4. Dopiero wtedy sprawdzić APK na urządzeniu. Bez sekretu endpoint świadomie zwraca **503 `not_configured`**, a aplikacja pokazuje czytelny stan oraz odnośnik do kanału, zamiast udawać aktualną listę.
+4. Dopiero wtedy sprawdzić APK na urządzeniu. Bez sekretu endpoint świadomie zwraca **503 `not_configured`**, a aplikacja pokazuje czytelny stan niedostępności listy.
 
 Klucz jest przekazywany do Google wyłącznie przez serwer w nagłówku `X-Goog-Api-Key`. Endpoint nie przyjmuje adresu upstream, kanału ani ID dowolnej playlisty. Przyjmuje tylko token strony; błędy/logi nie zawierają surowych odpowiedzi Google, URL-i żądań ani klucza.
 
@@ -46,7 +52,7 @@ CDN i pamięć procesu buforują stronę przez 60 s, informacje o playliście ka
 - Otwarcie, powrót do aplikacji i ponowne wczytanie odtwarzacza tylko przygotowują film (`autoplay=0`, `cueVideoById`). Dźwięk zaczyna się po działaniu użytkownika. Przejście po zakończeniu wymaga widocznego odtwarzacza; gdy użytkownik przewinął go poza ekran, następny film jest przygotowany bez dźwięku. WebView może wymagać dodatkowego dotknięcia; komunikat `onAutoplayBlocked` to wyjaśnia.
 - Wyjście z Wideo, Wstecz, ukrycie dokumentu i opuszczenie strony usuwają iframe i unieważniają trwające pobranie. Spóźniona odpowiedź nie odtworzy ukrytego filmu. Odświeżanie listy zachowuje bieżący odtwarzacz i wybraną pozycję, jeśli nadal jest dostępna.
 - Po pełnym poprawnym pobraniu zapisujemy metadane w localStorage na najwyżej **24 godziny**. Błąd odświeżenia zachowuje oznaczoną datą poprzednią listę; przerwane stronicowanie nie nadpisuje jej częścią wyników. Wygaśnięty/nieprawidłowy zapis jest usuwany. Pusta odpowiedź usuwa stare pozycje. Nie zapisujemy plików wideo; odtwarzanie wymaga internetu. Zapis może być niedostępny lub zapełniony — aplikacja nadal działa online.
-- Lista obejmuje publiczne filmy zwrócone przez API dla tego kanału. Nie wykrywa prywatnych ani niepublicznych filmów. Wyłączone osadzanie, usunięcie filmu, ograniczenia wieku/regionu, prawa autorskie, transmisje i decyzje YouTube mogą uniemożliwić odtwarzanie. Dostępny jest odnośnik do YouTube. Komunikaty obejmują błędy 100, 101, 150 i 153 oraz brak odpowiedzi.
+- Lista obejmuje publiczne filmy zwrócone przez API dla tego kanału. Nie wykrywa prywatnych ani niepublicznych filmów. Wyłączone osadzanie, usunięcie filmu, ograniczenia wieku/regionu, prawa autorskie, transmisje i decyzje YouTube mogą uniemożliwić odtwarzanie. Przyczyna pozostaje opisana w aplikacji. Komunikaty obejmują błędy 100, 101, 150 i 153 oraz brak odpowiedzi.
 - Nowy ekran używa składni ES5 i XMLHttpRequest, bez zależności od `fetch`, `URLSearchParams`, `AbortController` lub NodeList.forEach. Minimalny viewport odtwarzacza: 200×200. Zgodność aplikacji Android 6+ jest zachowana; sam YouTube może przestać obsługiwać starą wersję silnika WebView. Test Chromium nie jest testem fizycznego Androida 6.
 - Oryginalna lokalna powłoka używa `loadDataWithBaseURL` z bazą `https://ispinalokalnie.wordpress.com/`. Zachowujemy ten origin i automatyczny HTTPS Referer, `referrerpolicy=strict-origin-when-cross-origin`; `widget_referrer` identyfikuje pakiet. Ten parametr analityczny nie zastępuje nagłówka Referer. Natywnego pochodzenia dokumentu nie zmieniamy w tym PR. Aktualne wymagania YouTube opisują także identyfikację aplikacji przez app ID; błąd 153 wymaga kontroli na rzeczywistym urządzeniu i ewentualnej zmiany natywnej integracji, nie podszywania się pod inną witrynę.
 
@@ -62,7 +68,7 @@ Dodatkowy generator `patch_stable78_youtube.py` przyjmuje dokładny [publiczny A
 
 Wynik: **2.0.0-smart.79, kod 20352**, ten sam pakiet, etykieta **Ispina Lokalnie YouTube TEST**. Zmieniono tylko manifest i dwa pliki assets; DEX i zasoby pozostają identyczne ze stabilną 78. Stary moduł trzech odtwarzaczy jest usuwany przed dopisaniem nowego. Do podpisania użyto zachowanego klucza, po sprawdzeniu zgodności certyfikatu. Zweryfikowano podpisy v1/v2/v3, wyrównanie ZIP i integralność APK. Ten plik może aktualizować wskazaną stabilną 78 bez jej odinstalowania; nie aktualizuje oryginalnego pakietu 77.
 
-Podpisany `Ispina-Lokalnie-79-YouTube-TEST.apk` przekazano prywatnie właścicielowi. Rozmiar: 7 981 056 bajtów, SHA-256 `8977c73696ad2db35c9325400437f1f47b8bd9bebcd037aa8c63f1aaaf364986`. Klucz i hasło nie zostały dodane do repozytorium. **To wersja testowa: lista nadal wymaga konfiguracji klucza Data API i wdrożenia endpointu.** W aplikacji jest widoczna ta informacja. Nie twierdzimy, że potwierdzono streaming lub instalację na fizycznym Androidzie.
+Wcześniejszy podpisany `Ispina-Lokalnie-79-YouTube-TEST.apk` przekazano prywatnie właścicielowi; nie jest on działającym rozwiązaniem pełnego Wideo, ponieważ usługa nie została uruchomiona. Rozmiar: 7 981 056 bajtów, SHA-256 `8977c73696ad2db35c9325400437f1f47b8bd9bebcd037aa8c63f1aaaf364986`. Klucz i hasło nie zostały dodane do repozytorium. **To wersja testowa: lista nadal wymaga konfiguracji klucza Data API i wdrożenia endpointu.** W aplikacji jest widoczna ta informacja. Nie twierdzimy, że potwierdzono streaming lub instalację na fizycznym Androidzie.
 
 ```sh
 python3 tools/ultrasmart78-video-tab/test_stable78_update.py /path/to/stable78.apk
@@ -75,6 +81,7 @@ Sam generator nadal wytwarza UNSIGNED i nie zawiera klucza. Nie dodano workflow 
 
 ```sh
 python3 tools/ultrasmart78-video-tab/test_patch.py
+python3 tools/ultrasmart78-video-tab/test_youtube_service.py
 python3 tools/ultrasmart78-video-tab/patch_ultrasmart78_video.py \
   downloads/Ispina-Lokalnie-UltraSmart-77-Drogowskaz.apk /tmp/il-video-unsigned.apk
 python3 tools/ultrasmart78-video-tab/extract_ui_fixture.py /tmp/il-video-unsigned.apk /tmp/il-video-ui
@@ -99,7 +106,7 @@ Odbiór ręczny **po konfiguracji usługi i uzgodnieniu podpisanej wersji testow
 3. Dodać publiczny film na kanale; po propagacji YouTube i upływie cache wybrać Odśwież lub ponownie otworzyć zakładkę. Film ma się pojawić bez innego APK.
 4. Wyłączyć internet: wcześniejsza lista ma datę i ostrzeżenie; pierwsze uruchomienie bez zapisu pokazuje błąd. Włączyć internet i odświeżyć.
 5. Wyjść do Pulpitu, nacisnąć Wstecz, ukryć aplikację — dźwięk ustaje. Powrót nie wznawia dźwięku.
-6. Sprawdzić nagranie z wyłączonym osadzaniem, błąd 153, obrót ekranu i Tryb Senior. Odnośniki do YouTube pozostają dostępne.
+6. Sprawdzić nagranie z wyłączonym osadzaniem, błąd 153, obrót ekranu i Tryb Senior. Aplikacja nie przekierowuje do zewnętrznej strony w celu odtwarzania.
 
 Nie wykonano testu prawdziwej listy przez Data API (brak skonfigurowanego klucza), rzeczywistego odtwarzania ani instalacji na fizycznym Androidzie. Podpisano i sprawdzono opisany powyżej APK TEST. To pozostaje warunkiem odbioru, nie deklarowanym wynikiem testów.
 

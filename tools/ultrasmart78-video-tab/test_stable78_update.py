@@ -25,7 +25,7 @@ class Stable78UpdateTests(unittest.TestCase):
                 self.assertEqual(changed,{'AndroidManifest.xml','assets/main_ui.js','assets/il-build.json'})
                 meta = json.loads(new.read('assets/il-build.json'))
                 self.assertEqual((meta['packageName'],meta['versionName'],meta['versionCode']),
-                                 (patch.PACKAGE,patch.VERSION,20352))
+                                 (patch.PACKAGE,patch.VERSION,patch.CODE))
                 js = new.read('assets/main_ui.js').decode()
                 self.assertNotIn(patch.OLD_MARKER,js)
                 self.assertNotIn('startPlayers',js)

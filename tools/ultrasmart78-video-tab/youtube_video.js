@@ -5,7 +5,6 @@
   var d = document, nav = d.getElementById('nav'), panel = d.getElementById('iaP');
   if (!nav || !panel || d.getElementById('ilWideoViewSmart78')) return;
   var CHANNEL = 'UCeeKoKHiH-rGyQOZn6wW-7A';
-  var CHANNEL_URL = 'https://www.youtube.com/channel/' + CHANNEL;
   var ENDPOINT = 'https://ispina-most-odjazdy.vercel.app/api/youtube-videos';
   var CACHE = 'il-youtube-uploads-v1-' + CHANNEL, MAX_AGE = 24 * 3600000;
   var items = [], selected = '', player = null, ready = false, wantPlay = false;
@@ -31,10 +30,9 @@
    '#ilWideoViewSmart78 a{color:#176f77}#ilWideoViewSmart78 button:focus{outline:2px solid #174875;outline-offset:2px}';
   d.head.appendChild(style);
   var view = el('div', 'view'); view.id = 'ilWideoViewSmart78'; view.setAttribute('aria-label', 'Wideo Ispina Lokalnie');
-  view.innerHTML = '<div class="ilv-head"><h2>Wideo</h2><p>Filmy z kanału Ispina Lokalnie na YouTube. Wybierz nagranie z listy. Kolejne dostępne filmy odtwarzają się w tym samym oknie.</p><a href="' + CHANNEL_URL + '">Kanał w YouTube</a></div>' +
+  view.innerHTML = '<div class="ilv-head"><h2>Wideo</h2><p>Filmy z kanału Ispina Lokalnie na YouTube. Wybierz nagranie z listy. Kolejne dostępne filmy odtwarzają się w tym samym oknie aplikacji.</p></div>' +
    '<p id="ilvStatus" role="status" aria-live="polite"></p><div class="ilv-controls"><button type="button" id="ilvRefresh">Odśwież listę</button></div>' +
    '<div class="ilv-frame" id="ilvFrame"></div><p id="ilvPlayerStatus" role="status" aria-live="polite">Wybierz film po pobraniu listy.</p>' +
-   '<p><a id="ilvWatch" href="' + CHANNEL_URL + '">Otwórz w YouTube</a></p>' +
    '<div class="ilv-controls"><button type="button" id="ilvPrevious" disabled>Poprzedni</button><button type="button" id="ilvNext" disabled>Następny</button><button type="button" id="ilvRetry">Wczytaj odtwarzacz ponownie</button></div>' +
    '<h3>Filmy z YouTube</h3><ol class="ilv-list" id="ilvList"></ol>';
   panel.appendChild(view);
@@ -49,7 +47,6 @@
   }
   function controls() {
    q('ilvPrevious').disabled = !adjacent(-1); q('ilvNext').disabled = !adjacent(1);
-   q('ilvWatch').href = selected ? 'https://www.youtube.com/watch?v=' + selected : CHANNEL_URL;
    each(list.children, function (row) { if (row.getAttribute('data-id') === selected) row.setAttribute('aria-current', 'true'); else row.removeAttribute('aria-current'); });
   }
   function playerVisible() {
@@ -64,8 +61,8 @@
   function errorText(code) {
    if (code === 100) return 'Film został usunięty lub jest prywatny.';
    if (code === 101 || code === 150) return 'Właściciel filmu wyłączył odtwarzanie w aplikacjach.';
-   if (code === 153) return 'YouTube nie rozpoznał aplikacji (błąd 153). Zaktualizuj WebView lub otwórz film w YouTube.';
-   return 'YouTube nie może odtworzyć filmu' + (code ? ' (błąd ' + code + ')' : '') + '. Sprawdź internet i wersję WebView lub otwórz film w YouTube.';
+   if (code === 153) return 'YouTube nie rozpoznał aplikacji (błąd 153). Odtwarzanie w aplikacji wymaga sprawdzenia identyfikacji odtwarzacza.';
+   return 'YouTube nie może odtworzyć filmu' + (code ? ' (błąd ' + code + ')' : '') + '. Sprawdź internet i naciśnij „Wczytaj odtwarzacz ponownie”.';
   }
   function createPlayer() {
    if (!visible() || player || !selected || !window.YT || !window.YT.Player) return;
@@ -99,7 +96,7 @@
     onError:function (event) { if (player === instance) { clearTimeout(playerTimer); wantPlay = false; playerStatus.textContent = errorText(event.data); } },
     onAutoplayBlocked:function () { if (player === instance) playerStatus.textContent = 'WebView wymaga dotknięcia przycisku odtwarzania w oknie YouTube.'; }
    }});
-   playerTimer = setTimeout(function () { if (player === instance && !ready) playerStatus.textContent = 'Odtwarzacz nie odpowiada. Sprawdź internet, spróbuj ponownie lub otwórz film w YouTube.'; }, 15000);
+   playerTimer = setTimeout(function () { if (player === instance && !ready) playerStatus.textContent = 'Odtwarzacz nie odpowiada. Sprawdź internet i naciśnij „Wczytaj odtwarzacz ponownie”.'; }, 15000);
   }
   var previousApiReady = window.onYouTubeIframeAPIReady;
   window.onYouTubeIframeAPIReady = function () {
@@ -136,12 +133,12 @@
     button.addEventListener('click', function () { if (visible()) { frame.scrollIntoView(true); choose(item.id, true); } });
     row.appendChild(button);
     var date = new Date(item.publishedAt), label = isNaN(date.getTime()) ? '' : date.toLocaleDateString('pl-PL');
-    row.appendChild(el('small', '', label + (item.embeddable ? ' · YouTube' : ' · Odtwarzanie tylko na YouTube')));
-    var link = el('a', '', 'Otwórz w YouTube'); link.href = 'https://www.youtube.com/watch?v=' + item.id; row.appendChild(link);
+    row.appendChild(el('small', '', label + (item.embeddable ? ' · YouTube' : ' · Właściciel wyłączył odtwarzanie w aplikacjach')));
     list.appendChild(row);
    });
+   frame.style.display = first ? 'block' : 'none';
    controls(); ensurePlayer();
-   if (!first) playerStatus.textContent = items.length ? 'Te filmy można obejrzeć na YouTube — osadzanie jest wyłączone.' : 'Na kanale nie ma obecnie dostępnych publicznych filmów.';
+   if (!first) playerStatus.textContent = items.length ? 'Właściciele tych filmów wyłączyli odtwarzanie w aplikacjach.' : 'Na kanale nie ma obecnie dostępnych publicznych filmów.';
   }
   function validData(data) {
    if (!data || data.schema !== 1 || !data.channel || data.channel.id !== CHANNEL || !Array.isArray(data.items)) throw new Error('invalid');
@@ -168,7 +165,11 @@
     xhr = null; q('ilvRefresh').disabled = false;
     var old = cached();
     if (old) { render(validData(old)); status.textContent = 'Nie udało się odświeżyć. Pokazuję zapisaną listę z ' + new Date(old.fetchedAt).toLocaleString('pl-PL') + '. Odtwarzanie wymaga internetu.'; }
-    else { render([]); status.textContent = code === 'not_configured' ? 'Lista filmów nie jest jeszcze dostępna. Spróbuj później lub otwórz kanał w YouTube.' : 'Nie udało się pobrać listy filmów. Sprawdź internet i naciśnij „Odśwież listę” lub otwórz kanał w YouTube.'; }
+    else {
+     render([]);
+     playerStatus.textContent = 'Odtwarzacz oczekuje na listę filmów.';
+     status.textContent = code === 'not_configured' || code === 'service_missing' ? 'Lista filmów nie jest jeszcze dostępna. Spróbuj ponownie później.' : 'Nie udało się pobrać listy filmów. Sprawdź internet i naciśnij „Odśwież listę”.';
+    }
    }
    function page(token) {
     if (request !== serial) return;
@@ -176,6 +177,7 @@
     xhr.onerror = xhr.ontimeout = function () { failed(); };
     xhr.onload = function () {
      if (request !== serial) return;
+     if (xhr.status === 404) { failed('service_missing'); return; }
      var data;
      try {
       data = JSON.parse(xhr.responseText);
