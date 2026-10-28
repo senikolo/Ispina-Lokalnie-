@@ -1,0 +1,36 @@
+name: Validate single-player YouTube video tab
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - tools/ultrasmart78-video-tab/**
+      - ispina-rozklady/tablica-site/lib/youtube*
+      - ispina-rozklady/tablica-site/app/api/youtube-videos/**
+      - .github/workflows/validate-youtube-video.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '22'
+      - run: |
+          python3 tools/ultrasmart78-video-tab/test_patch.py
+          node --test ispina-rozklady/tablica-site/lib/youtube.test.mjs
+          python3 tools/ultrasmart78-video-tab/patch_ultrasmart78_video.py downloads/Ispina-Lokalnie-UltraSmart-77-Drogowskaz.apk /tmp/il-video-unsigned.apk
+          python3 tools/ultrasmart78-video-tab/extract_ui_fixture.py /tmp/il-video-unsigned.apk /tmp/il-video-ui
+          python3 tools/ultrasmart78-video-tab/extract_ui_fixture.py downloads/Ispina-Lokalnie-UltraSmart-77-Drogowskaz.apk /tmp/il-original-ui
+      - run: |
+          npm install --prefix "$RUNNER_TEMP/il-video" --no-save --ignore-scripts --no-audit --no-fund playwright@1.56.1 acorn@8.15.0
+          node "$RUNNER_TEMP/il-video/node_modules/playwright/cli.js" install --with-deps chromium
+          NODE_PATH="$RUNNER_TEMP/il-video/node_modules" node -e "require('acorn').parse(require('fs').readFileSync('tools/ultrasmart78-video-tab/youtube_video.js','utf8'),{ecmaVersion:5})"
+          NODE_PATH="$RUNNER_TEMP/il-video/node_modules" node tools/ultrasmart78-video-tab/test_ui.cjs /tmp/il-video-ui.js /tmp/il-original-ui.html --expect-csp-block
+          NODE_PATH="$RUNNER_TEMP/il-video/node_modules" node tools/ultrasmart78-video-tab/test_ui.cjs /tmp/il-video-ui.js /tmp/il-video-ui.html
+      # No APK upload, signing keys, releases, deployments or publishing.

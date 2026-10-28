@@ -6,3 +6,8 @@ planner/visual-*/
 *.p12
 *.jks
 *signing-config.json
+**/.env.local
+**/.env.*.local
+ispina-rozklady/tablica-site/node_modules/
+ispina-rozklady/tablica-site/.next/
+ispina-rozklady/tablica-site/tsconfig.tsbuildinfo
