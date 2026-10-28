@@ -6,7 +6,23 @@ const API = 'https://www.googleapis.com/youtube/v3/';
 const TTL = 60000;
 
 export class YoutubeError extends Error {
-  constructor(code, status = 503) { super(code); this.code = code; this.status = status; }
+  constructor(code, status = 503, diagnostic = null) { super(code); this.code = code; this.status = status; this.diagnostic = diagnostic; }
+}
+
+// Only enum-like reasons are retained. Google messages may echo the submitted
+// key, so never log messages, metadata, full bodies, headers or request URLs.
+const SAFE_REASONS = new Set(['API_KEY_INVALID','API_KEY_SERVICE_BLOCKED','API_KEY_HTTP_REFERRER_BLOCKED',
+  'API_KEY_IP_ADDRESS_BLOCKED','SERVICE_DISABLED','BILLING_DISABLED','RATE_LIMIT_EXCEEDED','QUOTA_EXCEEDED',
+  'ACCESS_TOKEN_SCOPE_INSUFFICIENT','keyInvalid','accessNotConfigured','quotaExceeded','dailyLimitExceeded',
+  'ipRefererBlocked','forbidden','badRequest','playlistNotFound','channelNotFound','backendError']);
+function diagnosticFor(text, resource, status) {
+  let reasons = [];
+  try {
+    const data = JSON.parse(text);
+    reasons = [...(data.error?.errors || []), ...(data.error?.details || [])]
+      .map(item => item.reason).filter(reason => SAFE_REASONS.has(reason));
+  } catch {}
+  return {resource, status, reasons:[...new Set(reasons)]};
 }
 
 export function validPageToken(value) {
@@ -17,7 +33,7 @@ export function createYoutubeService({fetcher = fetch, now = Date.now, getKey = 
   let channel, channelUntil = 0, channelPending;
   const pages = new Map();
   async function request(resource, params) {
-    const key = getKey();
+    const key = getKey()?.trim();
     if (!key) throw new YoutubeError('not_configured');
     const url = new URL(resource, API);
     Object.entries(params).forEach(([name, value]) => url.searchParams.set(name, value));
@@ -25,15 +41,17 @@ export function createYoutubeService({fetcher = fetch, now = Date.now, getKey = 
     try {
       const response = await fetcher(url.href, {cache:'no-store', redirect:'error',
         signal:AbortSignal.timeout(7000), headers:{'X-Goog-Api-Key':key}});
-      if (!response.ok) throw new YoutubeError(response.status === 403 || response.status === 429 ? 'quota_or_key' : 'youtube_unavailable');
       const text = await response.text();
       if (text.length > 500000) throw new YoutubeError('invalid_response');
+      if (!response.ok) throw new YoutubeError(response.status === 403 || response.status === 429 ? 'quota_or_key' : 'youtube_unavailable',
+        503, diagnosticFor(text, resource, response.status));
       const data = JSON.parse(text);
       if (!Array.isArray(data.items)) throw new YoutubeError('invalid_response');
       return data;
     } catch (e) {
       if (e instanceof YoutubeError) throw e;
-      throw new YoutubeError('youtube_unavailable');
+      const failure = ['TimeoutError','AbortError','SyntaxError','TypeError'].includes(e?.name) ? e.name : 'upstream_failure';
+      throw new YoutubeError('youtube_unavailable',503,{resource,failure});
     }
   }
   async function getChannel() {
@@ -110,7 +128,7 @@ export async function youtubeResponse(request, service = getPage) {
       headers:{...HEADERS, 'Cache-Control':'public, max-age=0, s-maxage=60, must-revalidate'}});
   } catch (e) {
     const error = e instanceof YoutubeError ? e : new YoutubeError('youtube_unavailable');
-    console.error('IL YouTube:', error.code); // No raw exceptions, keys, URLs or response bodies.
+    console.error('IL YouTube:', error.code, error.diagnostic || {}); // Sanitized enums only.
     return Response.json({error:error.code}, {status:error.status, headers:{...HEADERS, 'Cache-Control':'no-store', 'Retry-After':'60'}});
   }
 }

@@ -82,3 +82,15 @@ test('channel mismatch, malformed pages and repeated failures are rejected and t
   await assert.rejects(service()); assert.equal(calls,1);
   await assert.rejects(service('bad!'), e => e.status === 400);
 });
+
+test('Google failure diagnostics retain only safe reasons, never echoed keys or messages', async () => {
+  const service = createYoutubeService({getKey:() => ' test-secret ', fetcher:async (_url, options) => {
+    assert.equal(options.headers['X-Goog-Api-Key'],'test-secret');
+    return Response.json({error:{message:'test-secret',details:[{reason:'API_KEY_INVALID',metadata:{key:'test-secret'}},{reason:'test-secret'}]}},{status:400});
+  }});
+  await assert.rejects(service(), error => {
+    assert.deepEqual(error.diagnostic,{resource:'channels',status:400,reasons:['API_KEY_INVALID']});
+    assert.ok(!JSON.stringify(error).includes('test-secret'));
+    return true;
+  });
+});
