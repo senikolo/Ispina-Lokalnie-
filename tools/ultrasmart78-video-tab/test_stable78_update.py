@@ -22,7 +22,7 @@ class Stable78UpdateTests(unittest.TestCase):
                 expected = {n for n in old.namelist() if not patch.base.signature_entry(n)}
                 self.assertEqual(expected,set(new.namelist()))
                 changed = {n for n in expected if old.read(n) != new.read(n)}
-                self.assertEqual(changed,{'AndroidManifest.xml','assets/main_ui.js','assets/il-build.json'})
+                self.assertEqual(changed,{'AndroidManifest.xml','classes3.dex','assets/main_ui.js','assets/il-build.json'})
                 meta = json.loads(new.read('assets/il-build.json'))
                 self.assertEqual((meta['packageName'],meta['versionName'],meta['versionCode']),
                                  (patch.PACKAGE,patch.VERSION,patch.CODE))

@@ -44,7 +44,9 @@ Obie oryginalne APK pobrano z Releases i sprawdzono ich SHA-256. Zbadano JS i ad
 
 Nie zmieniono APK ani podpisów. Brakuje pełnego projektu Java/Kotlin i właściwych prywatnych kluczy. Bezpieczny dostęp do nowej tablicy: przeglądarka lub przycisk na stronie WordPress; nie twierdzimy, że zmieniło to wbudowany moduł odjazdów/planera. Stary WebView może wymagać aktualizacji lub otwarcia w aktualnej przeglądarce.
 
-## Lista filmów dla Androida — przygotowana, niewdrożona
+## Lista filmów dla Androida — wdrożona usługa, nieprawidłowy klucz
+
+Aktualizacja 28.10.2026: endpoint wdrożono na istniejący hosting po potwierdzeniu właściciela. Sekret `IL_YOUTUBE_API_KEY` istnieje w Production, ale Google zwraca `API_KEY_INVALID` (HTTP 400); klient otrzymuje 503. Wartości klucza nie odczytywano. Dalszy odbiór czeka na podmianę nieprawidłowej wartości i ponowne wdrożenie z aktualnym sekretem.
 
 `GET /api/youtube-videos` jest osobnym, tylko do odczytu endpointem dla kanału `UCeeKoKHiH-rGyQOZn6wW-7A`. Wymaga **serwerowego** sekretu `IL_YOUTUBE_API_KEY` (pusty przykład w `.env.example`); bez niego zwraca 503 `not_configured`. To nowa opcjonalna zależność od Google Cloud / YouTube Data API, niezależna od istniejących odjazdów i pogody. Dotychczasowy opis hostingu „bez sekretów” odnosi się do tych istniejących funkcji. Sam PR nie wdraża nowego kodu.
 

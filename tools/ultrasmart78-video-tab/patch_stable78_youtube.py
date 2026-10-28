@@ -6,6 +6,7 @@ import struct
 import sys
 import zipfile
 import argparse
+import os
 from pathlib import Path
 
 import patch_ultrasmart78_video as base
@@ -46,7 +47,7 @@ def manifest(data):
     return bytes(result)
 
 
-def patch_apk(source: Path, output: Path):
+def patch_apk(source: Path, output: Path, native_tools=None):
     if source.resolve() == output.resolve():
         raise ValueError('Do not overwrite the original')
     if hashlib.sha256(source.read_bytes()).hexdigest() != SOURCE_SHA256:
@@ -65,7 +66,12 @@ def patch_apk(source: Path, output: Path):
         if (meta.get('packageName'), meta.get('versionName'), meta.get('versionCode')) != (PACKAGE, '2.0.0-smart.78', 20351):
             raise ValueError('Unexpected stable 78 metadata')
         meta.update(versionName=VERSION, versionCode=CODE, channel='test', variant='ULTRASMART-79-YOUTUBE-TEST', label=LABEL)
+        from patch_native_video import patch_native_dex
+        native_tools = native_tools or os.environ.get('IL_SMALI_TOOLS')
+        if not native_tools:
+            raise ValueError('Set IL_SMALI_TOOLS to the directory of hash-pinned smali tools')
         replacements = {'AndroidManifest.xml':manifest(original.read('AndroidManifest.xml')),
+                        'classes3.dex':patch_native_dex(original.read('classes3.dex'), native_tools),
                         'assets/main_ui.js':js.encode(),
                         'assets/il-build.json':json.dumps(meta,ensure_ascii=False,indent=2).encode()}
         output.parent.mkdir(parents=True,exist_ok=True)
@@ -79,6 +85,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('source', type=Path)
     parser.add_argument('output', type=Path)
+    parser.add_argument('--native-tools', type=Path, default=os.environ.get('IL_SMALI_TOOLS'))
     parser.add_argument('--allow-unconfigured-test', action='store_true', help='CI / offline diagnostics only; do not deliver this result to the user')
     args = parser.parse_args()
     if not args.allow_unconfigured_test:
@@ -87,5 +94,5 @@ if __name__ == '__main__':
             verify_service()
         except ValueError as error:
             raise SystemExit('APK nie jest gotowy do przekazania: ' + str(error))
-    patch_apk(args.source,args.output)
+    patch_apk(args.source,args.output,args.native_tools)
     print('Prepared YouTube TEST update:',PACKAGE,VERSION,CODE)

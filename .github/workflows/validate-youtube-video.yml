@@ -30,6 +30,8 @@ jobs:
           python3 tools/ultrasmart78-video-tab/extract_ui_fixture.py downloads/Ispina-Lokalnie-UltraSmart-77-Drogowskaz.apk /tmp/il-original-ui
       - name: Check update of the published stable 78 package
         run: |
+          python3 tools/ultrasmart78-video-tab/prepare_smali_tools.py "$RUNNER_TEMP/il-smali"
+          export IL_SMALI_TOOLS="$RUNNER_TEMP/il-smali"
           curl --fail --location --max-time 60 'https://github.com/senikolo/Ispina-Lokalnie-/releases/download/v2.0.0-smart.78/Ispina-Lokalnie-UltraSmart-78.apk' --output /tmp/il-stable78.apk
           python3 tools/ultrasmart78-video-tab/test_stable78_update.py /tmp/il-stable78.apk
           python3 tools/ultrasmart78-video-tab/patch_stable78_youtube.py /tmp/il-stable78.apk /tmp/il-update79.apk --allow-unconfigured-test

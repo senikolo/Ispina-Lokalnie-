@@ -1,10 +1,10 @@
 # Wideo — kanał YouTube i jeden odtwarzacz
 
-**Bieżący status odbioru: zablokowany przez usługę listy.** Sprawdzony publiczny endpoint `/api/youtube-videos` zwraca HTTP 404; w projekcie hostingu nie ma skonfigurowanych zmiennych środowiskowych. Bez klucza YouTube Data API i wdrożenia endpointu nie da się sprawdzić pełnej listy ani uznać funkcji za gotową. Wcześniej przekazany APK 79 TEST nie realizuje tego celu.
+**Bieżący status odbioru: zablokowany przez nieprawidłowy klucz API.** Usługę `/api/youtube-videos` wdrożono po potwierdzeniu konfiguracji przez właściciela. Hosting widzi sekret produkcyjny, ale Google zwraca HTTP 400 z powodami `badRequest` i `API_KEY_INVALID`; publiczna odpowiedź aplikacji to 503. Wartości sekretu nie odczytywano. Bez poprawnej wartości klucza nie da się sprawdzić pełnej listy ani uznać funkcji za gotową. Wcześniej przekazany APK 79 TEST nie realizuje tego celu.
 
 Ekran Wideo nie ma już własnych odnośników „Otwórz w YouTube”, odnośników do kanału ani komunikatów kierujących do zewnętrznej strony. Wybór dostępnego filmu steruje wyłącznie osadzonym odtwarzaczem. Oryginalne logo i kontrolki YouTube pozostają zgodne z wymaganiami dostawcy. Film z zabronionym osadzaniem pokazuje przyczynę w aplikacji; nie obchodzimy tej blokady.
 
-Generator aktualizacji przygotowuje następny kandydat **2.0.0-smart.80 / kod 20353**. Jego domyślne wywołanie najpierw uruchamia `verify_youtube_service.py`: wymaga rzeczywistej odpowiedzi HTTP 200, poprawnego CORS, właściwego kanału, świeżych danych, wszystkich stron i co najmniej jednego filmu z dozwolonym osadzaniem. Przy obecnym 404 kończy się błędem **przed utworzeniem APK do przekazania**. Flaga `--allow-unconfigured-test` służy wyłącznie CI i testom offline; nie jest zgodą na przekazanie takiego wyniku jako działającej poprawki. Po konfiguracji API trzeba jeszcze sprawdzić rzeczywiste odtwarzanie na Androidzie.
+Generator aktualizacji przygotowuje następny kandydat **2.0.0-smart.80 / kod 20353**. Jego domyślne wywołanie najpierw uruchamia `verify_youtube_service.py`: wymaga rzeczywistej odpowiedzi HTTP 200, poprawnego CORS, właściwego kanału, świeżych danych, wszystkich stron i co najmniej jednego filmu z dozwolonym osadzaniem. Przy niedziałającej usłudze kończy się błędem **przed utworzeniem APK do przekazania**. Flaga `--allow-unconfigured-test` służy wyłącznie CI i testom offline; nie jest zgodą na przekazanie takiego wyniku jako działającej poprawki. Po konfiguracji API trzeba jeszcze sprawdzić rzeczywiste odtwarzanie na Androidzie.
 
 Ten PR zastępuje podejście z roboczego PR #6. WordPress nie jest źródłem listy filmów. Kod aplikacji nie analizuje HTML YouTube, nie używa InnerTube ani usług pośrednich opartych na scrapingu i nie zawiera klucza Data API.
 
@@ -32,7 +32,7 @@ Kolejność odpowiada playliście przesłanych filmów zwracanej przez YouTube. 
 
 ## Uruchomienie endpointu — wymagane przed odbiorem na urządzeniu
 
-**PR sam nie uruchamia usługi.** Istniejący projekt serwera Next.js znajduje się w `ispina-rozklady/tablica-site`, hosting: `ispina-most-odjazdy`. Według dokumentacji repozytorium nie ma podłączonego automatycznego wdrażania z GitHub. W tym zadaniu nie wdrażano serwera ani nie publikowano aplikacji.
+**PR sam nie uruchamia usługi.** Usługę uruchomiono osobnym wdrożeniem po potwierdzeniu właściciela; pozostał opisany wyżej błąd klucza. Istniejący projekt serwera Next.js znajduje się w `ispina-rozklady/tablica-site`, hosting: `ispina-most-odjazdy`. Według dokumentacji repozytorium nie ma podłączonego automatycznego wdrażania z GitHub. Wdrożono serwer listy; aplikacji nie publikowano ani PR nie scalono.
 
 Najprostsza konfiguracja do wykonania po decyzji właściciela:
 
@@ -76,6 +76,24 @@ python3 tools/ultrasmart78-video-tab/patch_stable78_youtube.py /path/to/stable78
 ```
 
 Sam generator nadal wytwarza UNSIGNED i nie zawiera klucza. Nie dodano workflow podpisującego ani publikującego; CI pobiera dokładną publiczną bazę 78 i sprawdza dodatkowo tę ścieżkę oraz jej pełny interfejs. Nie łączono PR #6 ani #7.
+
+
+### Natywna obsługa osadzonego odtwarzacza w kandydacie 80
+
+W `HomeActivity$3` oba warianty `shouldOverrideUrlLoading` wcześniej kierowały wszystkie adresy do `handleUri`, a ten otwierał adresy spoza WordPressa zewnętrznie. Dotyczyło to także nawigacji podramek. Poprawka `classes3.dex` dodaje dwa warunki przed dotychczasową obsługą:
+
+- Android 7+: żądanie z `isForMainFrame() == false` zwraca `false`, pozostawiając podramkę w WebView.
+- Starszy callback, używany na Androidzie 6: adres z dokładnym prefiksem `https://www.youtube-nocookie.com/embed/` zwraca `false`. Pozostałe adresy przechodzą do dotychczasowej obsługi.
+
+Nowe lokalne rejestry nie nadpisują parametrów callbacków. Pozostałe klasy i metody są porównywane po deasemblacji przebudowanego pliku; oryginalny ciąg instrukcji w obu zmienionych metodach pozostaje zachowany za warunkiem. Budowanie używa API 23 i przypiętych sumami SHA-256 narzędzi smali/baksmali 2.5.2. Narzędzia są pobierane z Maven Central i nie trafiają do APK.
+
+```sh
+python3 tools/ultrasmart78-video-tab/prepare_smali_tools.py /tmp/il-smali
+export IL_SMALI_TOOLS=/tmp/il-smali
+python3 tools/ultrasmart78-video-tab/test_stable78_update.py /path/to/stable78.apk
+```
+
+W aktualizacji 80 zmieniają się manifest, `classes3.dex` i dwa pliki assets. Nie przebudowujemy innych plików DEX ani zasobów. To nie jest jeszcze potwierdzenie rzeczywistego streamingu na urządzeniu — jego próba czeka na poprawną odpowiedź listy.
 
 ## Sprawdzenie
 
