@@ -53,10 +53,27 @@ jobs:
           yes | "$SDKMANAGER" --licenses >/dev/null || true
           "$SDKMANAGER" "build-tools;35.0.0"
           echo "ANDROID_HOME=/usr/local/lib/android/sdk" >> "$GITHUB_ENV"
+      - name: Inspect UltraSmart 77 signing certificate
+        run: |
+          set -euo pipefail
+          BT="$ANDROID_HOME/build-tools/35.0.0"
+          SOURCE_CERT="$("$BT/apksigner" verify --print-certs downloads/Ispina-Lokalnie-UltraSmart-77-Drogowskaz.apk | awk -F': ' '/Signer #1 certificate SHA-256 digest:/{print $2; exit}')"
+          test -n "$SOURCE_CERT"
+          echo "UltraSmart 77 certificate SHA-256: $SOURCE_CERT"
+          EXPECTED_COMPACT="$(printf '%s' "$EXPECTED_CERT_SHA256" | tr -d ':' | tr 'A-F' 'a-f')"
+          SOURCE_COMPACT="$(printf '%s' "$SOURCE_CERT" | tr -d ' ' | tr 'A-F' 'a-f')"
+          if [ "$SOURCE_COMPACT" = "$EXPECTED_COMPACT" ]; then
+            echo "The source APK matches the configured IL stable signing certificate."
+          else
+            echo "The source APK uses a different signing certificate."
+          fi
       - uses: actions/download-artifact@v4
         with:
           name: IL-UltraSmart-78-WIDEO-UNSIGNED
           path: unsigned-artifact
+      - name: Report missing signing key
+        if: ${{ env.IL_STABLE_KEYSTORE_B64 == '' || env.IL_STABLE_KEYSTORE_PASS == '' }}
+        run: echo "::warning::Signing skipped: IL_STABLE_KEYSTORE_B64 or IL_STABLE_KEYSTORE_PASS is missing in this repository."
       - name: Sign only when the stable key is available
         id: sign
         if: ${{ env.IL_STABLE_KEYSTORE_B64 != '' && env.IL_STABLE_KEYSTORE_PASS != '' }}
