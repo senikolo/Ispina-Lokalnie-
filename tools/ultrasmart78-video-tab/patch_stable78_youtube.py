@@ -14,8 +14,8 @@ import patch_ultrasmart78_video as base
 SOURCE_SHA256 = '58c3ee07a21e85afe250f29252bdb79d94c33b263a1bbf33a55bf3f959562443'
 PACKAGE = 'com.ispina.mldcheck.smartai78test'
 CERT_SHA256 = '3c7438761d2accca13da08defe4b62a814c3a3d2201c374f5c2e943115591d82'
-VERSION = '2.0.0-smart.80'
-CODE = 20353
+VERSION = '2.0.0-smart.81'
+CODE = 20354
 LABEL = 'Ispina Lokalnie YouTube TEST'
 OLD_MARKER = ';/* __IL_ULTRASMART_WIDEO_TAB_78__ */'
 
@@ -65,7 +65,7 @@ def patch_apk(source: Path, output: Path, native_tools=None):
         meta = json.loads(original.read('assets/il-build.json'))
         if (meta.get('packageName'), meta.get('versionName'), meta.get('versionCode')) != (PACKAGE, '2.0.0-smart.78', 20351):
             raise ValueError('Unexpected stable 78 metadata')
-        meta.update(versionName=VERSION, versionCode=CODE, channel='test', variant='ULTRASMART-80-YOUTUBE-TEST', label=LABEL)
+        meta.update(versionName=VERSION, versionCode=CODE, channel='test', variant='ULTRASMART-81-YOUTUBE-TEST', label=LABEL)
         from patch_native_video import patch_native_dex
         native_tools = native_tools or os.environ.get('IL_SMALI_TOOLS')
         if not native_tools:

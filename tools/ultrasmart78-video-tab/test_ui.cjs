@@ -30,7 +30,7 @@ window.onYouTubeIframeAPIReady();`;
   const id = n => String(n).padStart(11,'0');
   const video = n => ({id:id(n),title:n === 5 ? '<img src=x onerror="window.XSS=1">' : 'Film kanału ' + n,
     publishedAt:'2026-10-28T10:00:00Z',embeddable:n !== 3});
-  const response = (token) => ({schema:1,channel:{id:CHANNEL,title:'Ispina Lokalnie'},uploadsPlaylistId:'UUfromOfficialApiNotDerived',
+  const response = (token) => ({schema:1,channel:{id:CHANNEL,title:'PRYWATNA_NAZWA_KONTA'},uploadsPlaylistId:'UUfromOfficialApiNotDerived',
     fetchedAt:new Date().toISOString(),items:mode === 'empty' ? [] : token ? [video(3),video(4)] : revision ? [video(5),video(1),video(2)] : [video(1),video(2)],
     nextPageToken:mode === 'empty' || token ? null : 'PAGE_2'});
   const expectBlocked = process.argv.includes('--expect-csp-block');
@@ -66,9 +66,17 @@ window.onYouTubeIframeAPIReady();`;
   async function open(){await page.click('#iaM');await page.click('#ilWideoTabSmart78');await page.waitForSelector('#ilWideoViewSmart78.on');}
   async function close(){await page.click('#iaM');await page.click('#nav .nb[data-u=":dash"]');await page.waitForFunction(()=>!document.querySelector('#ilWideoViewSmart78').classList.contains('on'));await page.waitForTimeout(30);}
   async function loaded(count){await page.waitForFunction(n=>document.querySelectorAll('#ilvList li').length===n && !document.querySelector('#ilvRefresh').disabled,count);}
-  async function ready(){await page.waitForFunction(()=>window.__ytCalls && window.__ytCalls.some(c=>c.method==='cue'));}
+  async function ready(){await page.waitForFunction(()=>window.__ytCalls && window.__ytCalls.some(c=>c.method==='load'));}
   await init(); assert.equal(apiRequests.length,0); assert.equal(requests.length,0);
-  await open(); await loaded(4); await ready();
+  await open(); await loaded(4);
+  assert.equal(await page.locator('#ilvFrame iframe').count(),0,'opening only shows the title list, without a YouTube player');
+  assert.equal(requests.length,0,'no YouTube player request before choosing a title');
+  assert.equal(await page.locator('#ilvNext').isDisabled(),true);
+  assert.equal(await page.locator('#ilvRetry').isDisabled(),true);
+  assert.equal(await page.locator('#ilWideoViewSmart78').innerText().then(t=>t.includes('PRYWATNA_NAZWA_KONTA')),false);
+  assert.equal(await page.locator('#ilvList li').first().innerText(),'Film kanału 1','list entries show video titles, without account or date');
+  assert.ok(await page.locator('#ilvList').evaluate(e=>!!(e.compareDocumentPosition(document.querySelector('#ilvFrame')) & Node.DOCUMENT_POSITION_FOLLOWING)));
+  await page.locator('#ilvList .ilv-select').first().click(); await ready();
   assert.equal(await page.locator('#ilvFrame iframe').count(),1);
   assert.equal(await page.locator('#ilWideoViewSmart78 a[href]').count(),0,'application controls must keep playback inside the app');
   if(expectBlocked){
@@ -79,7 +87,7 @@ window.onYouTubeIframeAPIReady();`;
   assert.equal(await page.locator('#sec').innerText(),'Wideo');
   assert.equal(apiRequests.length,2,'must read every page, beyond the old three-video list');
   assert.equal(await page.locator('#ilvList .ilv-select:disabled').count(),1);
-  assert.equal(await page.evaluate(()=>window.__ytCalls.filter(c=>c.method==='load').length),0,'opening cannot start sound');
+  assert.equal(await page.evaluate(()=>window.__ytCalls.filter(c=>c.method==='load').length),1,'playback starts only after selecting a title');
   const initialFrame=await page.locator('#ilvFrame iframe').getAttribute('data-instance');
   await page.locator('#ilvList .ilv-select').nth(1).click();
   assert.equal(await page.locator('#ilvFrame iframe').getAttribute('data-instance'),initialFrame);
@@ -114,10 +122,12 @@ window.onYouTubeIframeAPIReady();`;
   await open(); await loaded(5); assert.equal(await page.evaluate(()=>history.length),historyLength);
   await close(); assert.equal(await page.locator('#ilvFrame iframe').count(),0);
   const beforeReopen=apiRequests.length;mode='ok';await open();await loaded(5);
+  assert.equal(await page.locator('#ilvFrame iframe').count(),0,'reopening returns to title selection without sound');
+  await page.locator('#ilvList .ilv-select').first().click();
   await page.waitForFunction(()=>window.__ytCalls.filter(c=>c.method==='create').length===2);
   await page.waitForTimeout(50);
   assert.ok(apiRequests.length>beforeReopen);
-  assert.equal(await page.evaluate(()=>window.__ytCalls.at(-1).method),'cue','returning cannot resume sound');
+  assert.equal(await page.evaluate(()=>window.__ytCalls.at(-1).method),'load','explicit title selection starts playback');
   await page.evaluate(()=>{Object.defineProperty(document,'hidden',{configurable:true,value:true});document.dispatchEvent(new Event('visibilitychange'));});
   assert.equal(await page.locator('#ilvFrame iframe').count(),0);
   await page.evaluate(()=>{Object.defineProperty(document,'hidden',{configurable:true,value:false});document.dispatchEvent(new Event('visibilitychange'));});
@@ -140,6 +150,7 @@ window.onYouTubeIframeAPIReady();`;
   assert.equal(await page.locator('#ilvFrame').isVisible(),false,'a missing service must not look like an empty broken player');
   assert.equal(await page.locator('#ilWideoViewSmart78 a[href]').count(),0);
   scriptFail=true;mode='ok';await init();await open();await loaded(5);
+  await page.locator('#ilvList .ilv-select').first().click();
   await page.waitForFunction(()=>document.querySelector('#ilvPlayerStatus').textContent.includes('nie może'));
   assert.equal(await page.locator('#ilvFrame iframe').count(),0);
   scriptFail=false;await page.click('#ilvRetry');await page.waitForSelector('#ilvFrame iframe');
@@ -148,6 +159,6 @@ window.onYouTubeIframeAPIReady();`;
   await page.evaluate(()=>{let f=document.createElement('iframe');f.src='https://untrusted.invalid/';document.body.appendChild(f);});
   await page.waitForFunction(()=>window.__ilCspEvents.some(e=>e.directive==='frame-src' && /untrusted/.test(e.uri)));
   assert.ok(!errors.some(e=>/ilv|ilWideo|IL_ULTRASMART_YOUTUBE/.test(e)),errors.join('\n'));
-  console.log('PASS: one player, all pages, selection, sequential playback, refresh/new video, text safety, offline/expiry/empty/setup/error states, visibility, races, Back, layout, Referer and native CSP');
+  console.log('PASS: title-only list before playback, no account label, no initial iframe, one player after selection, all pages, sequential playback, refresh/new video, text safety, offline/expiry/empty/setup/error states, visibility, races, Back, layout, Referer and native CSP');
  } finally { await browser.close(); }
 })().catch(e=>{console.error(e);process.exitCode=1;});

@@ -16,6 +16,7 @@
    '#ilWideoViewSmart78 .ilv-head{padding:14px;background:#edf6f2;border:1px solid #d7e9e1;border-radius:16px}' +
    '#ilWideoViewSmart78 h2{margin:0 0 7px;color:#174875;font-size:25px}' +
    '#ilWideoViewSmart78 p{font-size:14px;line-height:1.5}' +
+   '#ilWideoViewSmart78 .ilv-placeholder{padding:65px 18px;margin:0;text-align:center;color:#fff}' +
    '#ilWideoViewSmart78 .ilv-frame{position:relative;width:100%;height:52vw;min-height:200px;max-height:480px;margin:14px 0;background:#102c3c}' +
    '#ilWideoViewSmart78 iframe{display:block;position:absolute;left:0;top:0;width:100%;height:100%;border:0}' +
    '#ilWideoViewSmart78 button{font:inherit;min-height:44px;cursor:pointer}' +
@@ -30,23 +31,25 @@
    '#ilWideoViewSmart78 a{color:#176f77}#ilWideoViewSmart78 button:focus{outline:2px solid #174875;outline-offset:2px}';
   d.head.appendChild(style);
   var view = el('div', 'view'); view.id = 'ilWideoViewSmart78'; view.setAttribute('aria-label', 'Wideo Ispina Lokalnie');
-  view.innerHTML = '<div class="ilv-head"><h2>Wideo</h2><p>Filmy z kanału Ispina Lokalnie na YouTube. Wybierz nagranie z listy. Kolejne dostępne filmy odtwarzają się w tym samym oknie aplikacji.</p></div>' +
+  view.innerHTML = '<div class="ilv-head"><h2>Wideo</h2><p>Filmy z YouTube. Wybierz tytuł z listy, aby odtworzyć film w tym oknie.</p></div>' +
    '<p id="ilvStatus" role="status" aria-live="polite"></p><div class="ilv-controls"><button type="button" id="ilvRefresh">Odśwież listę</button></div>' +
+   '<h3>Wybierz film</h3><ol class="ilv-list" id="ilvList"></ol>' +
    '<div class="ilv-frame" id="ilvFrame"></div><p id="ilvPlayerStatus" role="status" aria-live="polite">Wybierz film po pobraniu listy.</p>' +
-   '<div class="ilv-controls"><button type="button" id="ilvPrevious" disabled>Poprzedni</button><button type="button" id="ilvNext" disabled>Następny</button><button type="button" id="ilvRetry">Wczytaj odtwarzacz ponownie</button></div>' +
-   '<h3>Filmy z YouTube</h3><ol class="ilv-list" id="ilvList"></ol>';
+   '<div class="ilv-controls"><button type="button" id="ilvPrevious" disabled>Poprzedni</button><button type="button" id="ilvNext" disabled>Następny</button><button type="button" id="ilvRetry" disabled>Wczytaj odtwarzacz ponownie</button></div>';
   panel.appendChild(view);
   function q(id) { return d.getElementById(id); }
   var status = q('ilvStatus'), playerStatus = q('ilvPlayerStatus'), frame = q('ilvFrame'), list = q('ilvList');
   function visible() { return view.classList.contains('on') && panel.classList.contains('on') && !d.hidden; }
   function currentIndex() { for (var i = 0; i < items.length; i++) if (items[i].id === selected) return i; return -1; }
   function adjacent(direction) {
-   var i = currentIndex() + direction;
+   var current = currentIndex(); if (current < 0) return null;
+   var i = current + direction;
    while (i >= 0 && i < items.length) { if (items[i].embeddable) return items[i]; i += direction; }
    return null;
   }
   function controls() {
    q('ilvPrevious').disabled = !adjacent(-1); q('ilvNext').disabled = !adjacent(1);
+   q('ilvRetry').disabled = !selected;
    each(list.children, function (row) { if (row.getAttribute('data-id') === selected) row.setAttribute('aria-current', 'true'); else row.removeAttribute('aria-current'); });
   }
   function playerVisible() {
@@ -74,7 +77,7 @@
    // Keep its HTTPS origin / Referer; never use a data: or file: player URL.
    var origin = location.protocol === 'https:' ? location.protocol + '//' + location.host : 'https://ispinalokalnie.wordpress.com';
    iframe.src = 'https://www.youtube-nocookie.com/embed/' + selected + '?enablejsapi=1&autoplay=0&playsinline=1&rel=0&origin=' + encodeURIComponent(origin) + '&widget_referrer=' + encodeURIComponent('https://com.ispina.mldcheck.smartai44demo/');
-   frame.appendChild(iframe);
+   frame.textContent = ''; frame.appendChild(iframe);
    playerStatus.textContent = 'Wczytuję odtwarzacz YouTube…';
    var instance;
    player = instance = new window.YT.Player(iframe, {events:{
@@ -125,18 +128,21 @@
   function render(data) {
    items = data; var selectedItem = null, first = null;
    each(items, function (item) { if (item.embeddable && !first) first = item; if (item.id === selected && item.embeddable) selectedItem = item; });
-   if (!selectedItem) { stopPlayer(); selected = first ? first.id : ''; }
+   if (!selectedItem) { stopPlayer(); selected = ''; }
    list.textContent = '';
    each(items, function (item) {
     var row = el('li'); row.setAttribute('data-id', item.id);
     var button = el('button', 'ilv-select', item.title); button.type = 'button'; button.disabled = !item.embeddable;
     button.addEventListener('click', function () { if (visible()) { frame.scrollIntoView(true); choose(item.id, true); } });
     row.appendChild(button);
-    var date = new Date(item.publishedAt), label = isNaN(date.getTime()) ? '' : date.toLocaleDateString('pl-PL');
-    row.appendChild(el('small', '', label + (item.embeddable ? ' · YouTube' : ' · Właściciel wyłączył odtwarzanie w aplikacjach')));
+    if (!item.embeddable) row.appendChild(el('small', '', 'Właściciel wyłączył odtwarzanie w aplikacjach'));
     list.appendChild(row);
    });
    frame.style.display = first ? 'block' : 'none';
+   if (first && !selected) {
+    frame.appendChild(el('p', 'ilv-placeholder', 'Wybierz tytuł filmu z listy powyżej.'));
+    playerStatus.textContent = 'Odtwarzacz wczyta się po wybraniu filmu.';
+   }
    controls(); ensurePlayer();
    if (!first) playerStatus.textContent = items.length ? 'Właściciele tych filmów wyłączyli odtwarzanie w aplikacjach.' : 'Na kanale nie ma obecnie dostępnych publicznych filmów.';
   }
@@ -208,6 +214,7 @@
   if (camera) camera.parentNode.insertBefore(button, camera.nextSibling);
   else { var group = null; each(nav.querySelectorAll('.ng'), function (n) { if (n.textContent.trim() === 'O ISPINIE') group = n; }); var next = group && group.nextElementSibling; while (next && !next.classList.contains('ng')) next = next.nextElementSibling; nav.insertBefore(button, next); }
   function open() {
+   stopPlayer(); selected = ''; controls();
    try { if (!(history.state && history.state.ia)) history.pushState({ia:1,video:1}, '', location.href); } catch (_) {}
    var drawer = q('iaD'), shade = q('sh'); if (drawer) drawer.classList.remove('on'); if (shade) shade.classList.remove('on');
    each(panel.querySelectorAll('.view'), function (x) { x.classList.remove('on'); });
