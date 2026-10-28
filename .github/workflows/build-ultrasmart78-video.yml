@@ -19,17 +19,37 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Test exact UltraSmart 77 base and patch
+        run: python3 tools/ultrasmart78-video-tab/test_patch.py
       - name: Patch UltraSmart 77 into version 78
         run: |
           set -euo pipefail
           python3 tools/ultrasmart78-video-tab/patch_ultrasmart78_video.py \
             downloads/Ispina-Lokalnie-UltraSmart-77-Drogowskaz.apk \
             Ispina-Lokalnie-UltraSmart-78-WIDEO-UNSIGNED.apk
+          python3 - <<'PY'
+          import zipfile
+          from pathlib import Path
+          with zipfile.ZipFile('Ispina-Lokalnie-UltraSmart-78-WIDEO-UNSIGNED.apk') as apk:
+              Path('main_ui_test.js').write_bytes(apk.read('assets/main_ui.js'))
+          PY
+      - name: Test Wideo in the complete UltraSmart UI
+        run: |
+          set -euo pipefail
+          npm install --prefix "$RUNNER_TEMP/il-ui-test" --no-save --ignore-scripts --no-audit --no-fund playwright@1.56.1
+          node "$RUNNER_TEMP/il-ui-test/node_modules/playwright/cli.js" install --with-deps chromium
+          NODE_PATH="$RUNNER_TEMP/il-ui-test/node_modules" node tools/ultrasmart78-video-tab/test_ui.cjs main_ui_test.js
       - uses: actions/upload-artifact@v4
         with:
           name: IL-UltraSmart-78-WIDEO-UNSIGNED
           path: Ispina-Lokalnie-UltraSmart-78-WIDEO-UNSIGNED.apk
           retention-days: 14
+      - name: Mark unsigned artifact clearly
+        run: |
+          echo '### APK roboczy bez podpisu' >> "$GITHUB_STEP_SUMMARY"
+          echo 'UltraSmart 78, 2.0.0-smart.78, versionCode 20349. Ten artefakt NIE jest gotowy do instalacji ani aktualizacji. Gotowy APK powstaje wyłącznie po pomyślnym zadaniu sign.' >> "$GITHUB_STEP_SUMMARY"
 
   sign:
     needs: patch
@@ -38,9 +58,12 @@ jobs:
     env:
       IL_ULTRASMART77_KEYSTORE_B64: ${{ secrets.IL_ULTRASMART77_KEYSTORE_B64 }}
       IL_ULTRASMART77_KEYSTORE_PASS: ${{ secrets.IL_ULTRASMART77_KEYSTORE_PASS }}
-      EXPECTED_CERT_SHA256: "E1:71:05:F5:C6:6B:EE:C0:85:08:AC:2E:7D:60:F9:F2:7B:85:B8:0E:F0:F6:E2:31:83:A7:06:42:C6:DA:E8:A3"
+      IL_ULTRASMART77_KEY_PASS: ${{ secrets.IL_ULTRASMART77_KEY_PASS }}
+      EXPECTED_CERT_SHA256: "e17105f5c66beec08508ac2e7d60f9f27b85b80ef0f6e23183a70642c6dae8a3"
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
@@ -48,56 +71,87 @@ jobs:
       - name: Install Android build tools
         run: |
           set -euo pipefail
-          SDKMANAGER="$(find /usr/local/lib/android/sdk/cmdline-tools -type f -name sdkmanager | head -1)"
-          test -n "$SDKMANAGER"
-          yes | "$SDKMANAGER" --licenses >/dev/null || true
-          "$SDKMANAGER" "build-tools;35.0.0"
-          echo "ANDROID_HOME=/usr/local/lib/android/sdk" >> "$GITHUB_ENV"
-      - name: Inspect UltraSmart 77 signing certificate
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "build-tools;35.0.0"
+      - name: Verify original UltraSmart 77 certificate and application ID
         run: |
           set -euo pipefail
           BT="$ANDROID_HOME/build-tools/35.0.0"
-          SOURCE_CERT="$("$BT/apksigner" verify --print-certs downloads/Ispina-Lokalnie-UltraSmart-77-Drogowskaz.apk | awk -F': ' '/Signer #1 certificate SHA-256 digest:/{print $2; exit}')"
-          test -n "$SOURCE_CERT"
+          SOURCE=downloads/Ispina-Lokalnie-UltraSmart-77-Drogowskaz.apk
+          "$BT/apksigner" verify --print-certs "$SOURCE" > source-verify.txt
+          SOURCE_CERT="$(awk -F': ' '/Signer #1 certificate SHA-256 digest:/{print tolower($2)}' source-verify.txt)"
+          test "$SOURCE_CERT" = "$EXPECTED_CERT_SHA256"
+          "$BT/aapt" dump badging "$SOURCE" | awk 'NR==1' > source-package.txt
+          python3 - <<'PY'
+          from pathlib import Path
+          line = Path('source-package.txt').read_text()
+          for value in ("name='com.ispina.mldcheck.smartai44demo'", "versionCode='20348'", "versionName='2.0.0-smart.77'"):
+              assert value in line, value
+          PY
           echo "UltraSmart 77 certificate SHA-256: $SOURCE_CERT"
-          EXPECTED_COMPACT="$(printf '%s' "$EXPECTED_CERT_SHA256" | tr -d ':' | tr 'A-F' 'a-f')"
-          SOURCE_COMPACT="$(printf '%s' "$SOURCE_CERT" | tr -d ' ' | tr 'A-F' 'a-f')"
-          test "$SOURCE_COMPACT" = "$EXPECTED_COMPACT"
+      - name: Require original UltraSmart 77 signing secrets
+        run: |
+          set -euo pipefail
+          if [ -z "$IL_ULTRASMART77_KEYSTORE_B64" ] || [ -z "$IL_ULTRASMART77_KEYSTORE_PASS" ]; then
+            echo '::error::Cannot build an update APK. Add IL_ULTRASMART77_KEYSTORE_B64 and IL_ULTRASMART77_KEYSTORE_PASS from the original UltraSmart 77 keystore.'
+            echo '### Podpisanie zablokowane — brak oryginalnego klucza' >> "$GITHUB_STEP_SUMMARY"
+            echo 'Dodaj sekrety repozytorium: IL_ULTRASMART77_KEYSTORE_B64 (oryginalny keystore UltraSmart 77 w Base64) i IL_ULTRASMART77_KEYSTORE_PASS (jego hasło). Jeśli hasło klucza różni się od hasła keystore, dodaj też IL_ULTRASMART77_KEY_PASS. Dostępny artefakt UNSIGNED nie nadaje się do instalacji ani aktualizacji.' >> "$GITHUB_STEP_SUMMARY"
+            exit 1
+          fi
       - uses: actions/download-artifact@v4
         with:
           name: IL-UltraSmart-78-WIDEO-UNSIGNED
           path: unsigned-artifact
-      - name: Report missing UltraSmart 77 signing key
-        if: ${{ env.IL_ULTRASMART77_KEYSTORE_B64 == '' || env.IL_ULTRASMART77_KEYSTORE_PASS == '' }}
-        run: |
-          echo "::warning::Signing skipped. Add the original UltraSmart 77 signing keystore as IL_ULTRASMART77_KEYSTORE_B64 and IL_ULTRASMART77_KEYSTORE_PASS repository secrets."
-      - name: Sign only with the matching UltraSmart 77 key
+      - name: Sign only with the matching UltraSmart 77 private key
         id: sign
-        if: ${{ env.IL_ULTRASMART77_KEYSTORE_B64 != '' && env.IL_ULTRASMART77_KEYSTORE_PASS != '' }}
         run: |
           set -euo pipefail
-          printf '%s' "$IL_ULTRASMART77_KEYSTORE_B64" | base64 -d > ultrasmart77-signing.p12
-          EXPECTED_COMPACT="$(printf '%s' "$EXPECTED_CERT_SHA256" | tr -d ':' | tr 'A-F' 'a-f')"
-          KEY_ALIAS="$(keytool -list -v -storetype PKCS12 -keystore ultrasmart77-signing.p12 -storepass "$IL_ULTRASMART77_KEYSTORE_PASS" | awk -F': ' '/Alias name:/{alias=$2} /SHA256:/{print alias "|" $2}' | awk -F'|' -v expected="$EXPECTED_COMPACT" '{cert=tolower($2); gsub(/:/, "", cert); if (cert == expected) { print $1; exit }}')"
-          test -n "$KEY_ALIAS"
-          ACTUAL_CERT="$(keytool -list -v -storetype PKCS12 -keystore ultrasmart77-signing.p12 -storepass "$IL_ULTRASMART77_KEYSTORE_PASS" -alias "$KEY_ALIAS" | awk -F': ' '/SHA256:/{print $2; exit}')"
-          ACTUAL_COMPACT="$(printf '%s' "$ACTUAL_CERT" | tr -d ':' | tr 'A-F' 'a-f')"
-          test "$ACTUAL_COMPACT" = "$EXPECTED_COMPACT"
+          umask 077
+          KEYSTORE="$RUNNER_TEMP/ultrasmart77-signing.keystore"
+          printf '%s' "$IL_ULTRASMART77_KEYSTORE_B64" | base64 -d > "$KEYSTORE"
+          # JKS and PKCS12 are auto-detected. Passwords are read from environment,
+          # never echoed or passed as command-line arguments.
+          keytool -J-Duser.language=en -list -v -keystore "$KEYSTORE" \
+            -storepass:env IL_ULTRASMART77_KEYSTORE_PASS > "$RUNNER_TEMP/il-key-info.txt"
+          KEY_ALIAS="$(awk -F': ' '/Alias name:/{alias=$2; private=0} /Entry type: PrivateKeyEntry/{private=1} /SHA256:/{cert=tolower($2); gsub(/:/, "", cert); if(private && cert==ENVIRON["EXPECTED_CERT_SHA256"]) {print alias; exit}}' "$RUNNER_TEMP/il-key-info.txt")"
+          if [ -z "$KEY_ALIAS" ]; then
+            echo '::error::Keystore has no private key matching the verified UltraSmart 77 certificate. Signing refused.'
+            exit 1
+          fi
+          keytool -exportcert -keystore "$KEYSTORE" -alias "$KEY_ALIAS" \
+            -storepass:env IL_ULTRASMART77_KEYSTORE_PASS -file "$RUNNER_TEMP/il-signer.der" >/dev/null
+          ACTUAL_CERT="$(sha256sum "$RUNNER_TEMP/il-signer.der" | awk '{print $1}')"
+          test "$ACTUAL_CERT" = "$EXPECTED_CERT_SHA256"
+          if [ -z "$IL_ULTRASMART77_KEY_PASS" ]; then
+            export IL_ULTRASMART77_KEY_PASS="$IL_ULTRASMART77_KEYSTORE_PASS"
+          fi
           BT="$ANDROID_HOME/build-tools/35.0.0"
           "$BT/zipalign" -p -f 4 unsigned-artifact/Ispina-Lokalnie-UltraSmart-78-WIDEO-UNSIGNED.apk aligned.apk
           "$BT/apksigner" sign \
-            --ks ultrasmart77-signing.p12 \
-            --ks-type PKCS12 \
+            --ks "$KEYSTORE" \
             --ks-key-alias "$KEY_ALIAS" \
             --ks-pass env:IL_ULTRASMART77_KEYSTORE_PASS \
-            --key-pass env:IL_ULTRASMART77_KEYSTORE_PASS \
+            --key-pass env:IL_ULTRASMART77_KEY_PASS \
             --v1-signing-enabled true \
             --v2-signing-enabled true \
             --v3-signing-enabled true \
             --out Ispina-Lokalnie-UltraSmart-78-WIDEO.apk aligned.apk
           "$BT/apksigner" verify --verbose --print-certs Ispina-Lokalnie-UltraSmart-78-WIDEO.apk > verify.txt
-          grep -qi "$EXPECTED_COMPACT" verify.txt
+          SIGNED_CERT="$(awk -F': ' '/Signer #1 certificate SHA-256 digest:/{print tolower($2)}' verify.txt)"
+          test "$SIGNED_CERT" = "$EXPECTED_CERT_SHA256"
           "$BT/zipalign" -c -v 4 Ispina-Lokalnie-UltraSmart-78-WIDEO.apk >/dev/null
+          "$BT/aapt" dump badging Ispina-Lokalnie-UltraSmart-78-WIDEO.apk | awk 'NR==1' > package.txt
+          python3 - <<'PY'
+          from pathlib import Path
+          line = Path('package.txt').read_text()
+          for value in ("name='com.ispina.mldcheck.smartai44demo'", "versionCode='20349'", "versionName='2.0.0-smart.78'"):
+              assert value in line, value
+          PY
+          sha256sum Ispina-Lokalnie-UltraSmart-78-WIDEO.apk > SHA256SUMS.txt
+          echo '### APK podpisany kluczem UltraSmart 77' >> "$GITHUB_STEP_SUMMARY"
+          echo "Zgodny certyfikat SHA-256: $SIGNED_CERT. Pakiet com.ispina.mldcheck.smartai44demo, versionCode 20349." >> "$GITHUB_STEP_SUMMARY"
+      - name: Remove temporary signing material
+        if: ${{ always() }}
+        run: rm -f "$RUNNER_TEMP/ultrasmart77-signing.keystore" "$RUNNER_TEMP/il-key-info.txt" "$RUNNER_TEMP/il-signer.der"
       - uses: actions/upload-artifact@v4
         if: ${{ steps.sign.outcome == 'success' }}
         with:
@@ -105,4 +159,7 @@ jobs:
           path: |
             Ispina-Lokalnie-UltraSmart-78-WIDEO.apk
             verify.txt
+            package.txt
+            SHA256SUMS.txt
+          if-no-files-found: error
           retention-days: 30

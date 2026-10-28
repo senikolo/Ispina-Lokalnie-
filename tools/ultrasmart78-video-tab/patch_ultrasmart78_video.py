@@ -3,8 +3,8 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
-import re
 import struct
 import sys
 import zipfile
@@ -17,6 +17,7 @@ OLD_CODE = 20348
 NEW_CODE = 20349
 PACKAGE = "com.ispina.mldcheck.smartai44demo"
 MARKER = "__IL_ULTRASMART_WIDEO_TAB_78__"
+SOURCE_SHA256 = "7c49ebf0c20563335148952f6c6e6da27028bd974a700216cb2d711028184a23"
 
 JS_PATCH = r"""
 ;(function(){
@@ -31,8 +32,8 @@ JS_PATCH = r"""
 #ilWideoViewSmart78 .ilv-head p{margin:0;color:#526477;font-size:14px;line-height:1.55}\
 #ilWideoViewSmart78 .ilv-card{box-sizing:border-box;margin:12px 0;padding:14px;background:#fff;border:1px solid #dbe5ef;border-radius:16px;box-shadow:0 3px 12px rgba(23,72,117,.06)}\
 #ilWideoViewSmart78 .ilv-card h3{margin:0 0 11px;color:#174875;font-size:17px;line-height:1.38}\
-#ilWideoViewSmart78 .ilv-frame{position:relative;width:100%;padding-top:56.25%;overflow:hidden;border-radius:12px;background:#102c3c}\
-#ilWideoViewSmart78 .ilv-frame iframe{position:absolute;inset:0;width:100%;height:100%;border:0}\
+#ilWideoViewSmart78 .ilv-frame{position:relative;width:100%;min-height:200px;padding-top:56.25%;overflow:hidden;border-radius:12px;background:#102c3c}\
+#ilWideoViewSmart78 .ilv-frame iframe{position:absolute;top:0;left:0;width:100%;height:100%;border:0}\
 #ilWideoViewSmart78 .ilv-link{display:inline-block;margin-top:9px;color:#176f77;font-size:14px;font-weight:750;text-decoration:none}\
 @media(min-width:760px){#ilWideoViewSmart78{max-width:900px;margin:0 auto}#ilWideoViewSmart78 .ilv-card{padding:18px}}';
   d.head.appendChild(style);
@@ -45,10 +46,16 @@ JS_PATCH = r"""
    '<article class="ilv-card"><h3>Ispina w TVN Turbo. Stare nagranie, ale problem aktualny</h3><div class="ilv-frame"><iframe title="Ispina w TVN Turbo" src="about:blank" data-src="https://www.youtube-nocookie.com/embed/uY9qCLdLzuY?playsinline=1&amp;rel=0" loading="lazy" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe></div><a class="ilv-link" href="https://www.youtube.com/watch?v=uY9qCLdLzuY">Otwórz na YouTube</a></article>'+
    '<p><a class="ilv-link" href="https://ispinalokalnie.wordpress.com/galeria/#wideo">Otwórz sekcję Wideo na stronie IL</a></p>';
   panel.appendChild(view);
+  // Keep the enclosing HTTPS page's origin as the YouTube client identity.
+  view.querySelectorAll('iframe[data-src]').forEach(function(f){
+   f.setAttribute('referrerpolicy','strict-origin-when-cross-origin');
+   if(location.protocol==='https:')f.setAttribute('data-src',f.getAttribute('data-src')+'&origin='+encodeURIComponent(location.origin));
+  });
 
   var button=d.createElement('button');button.type='button';button.className='nb place';
   button.id='ilWideoTabSmart78';button.setAttribute('aria-label','Wideo z Ispiny');
-  button.setAttribute('aria-controls',view.id);button.innerHTML='<span class="ni">▶</span>Wideo';
+  button.setAttribute('data-u',':video');
+  button.setAttribute('aria-controls',view.id);button.innerHTML='<span class="ni" aria-hidden="true"><svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="5" width="18" height="14" rx="3"/><path d="m10 9 5 3-5 3Z"/></svg></span>Wideo';
   var camera=nav.querySelector('.nb[data-u=":camera"]');
   if(camera&&camera.parentNode)camera.parentNode.insertBefore(button,camera.nextSibling);
   else{
@@ -62,7 +69,7 @@ JS_PATCH = r"""
   function startPlayers(){if(!visible())return;view.querySelectorAll('iframe[data-src]').forEach(function(f){var u=f.getAttribute('data-src');if(f.getAttribute('src')!==u)f.setAttribute('src',u)})}
   function stopPlayers(){view.querySelectorAll('iframe[data-src]').forEach(function(f){if(f.getAttribute('src')!=='about:blank')f.setAttribute('src','about:blank')})}
   function open(){
-   try{history.pushState({ia:1,video:1},'',location.href)}catch(e){}
+   try{if(!(history.state&&history.state.ia))history.pushState({ia:1,video:1},'',location.href)}catch(e){}
    var drawer=d.getElementById('iaD'),shade=d.getElementById('sh');
    if(drawer)drawer.classList.remove('on');if(shade)shade.classList.remove('on');
    panel.querySelectorAll('.view').forEach(function(x){x.classList.remove('on')});
@@ -213,6 +220,10 @@ def signature_entry(name: str) -> bool:
 
 
 def patch_apk(source: Path, output: Path) -> None:
+    if source.resolve() == output.resolve():
+        raise ValueError("Plik wynikowy nie może nadpisać UltraSmart 77")
+    if hashlib.sha256(source.read_bytes()).hexdigest() != SOURCE_SHA256:
+        raise ValueError("APK nie jest zatwierdzonym oryginałem UltraSmart 77 (SHA-256)")
     with zipfile.ZipFile(source, "r") as zin:
         names = set(zin.namelist())
         for required in ("AndroidManifest.xml", "assets/main_ui.js"):
@@ -225,7 +236,7 @@ def patch_apk(source: Path, output: Path) -> None:
         if MARKER in js:
             raise ValueError("Zakładka Wideo jest już w tym APK")
         js = js.replace(OLD_NAME, NEW_NAME).replace(str(OLD_CODE), str(NEW_CODE))
-        js = js + "\n" + MARKER + JS_PATCH
+        js = js + "\n;/* " + MARKER + " */\n" + JS_PATCH
 
         replacements: dict[str, bytes] = {
             "AndroidManifest.xml": manifest,
