@@ -1,13 +1,7 @@
-name: Build Ispina Lokalnie UltraSmart 78 Wideo
+name: Build Ispina Lokalnie UltraSmart 79 Wideo
 
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - codex/il-ultrasmart78-video-20261028
-    paths:
-      - tools/ultrasmart78-video-tab/**
-      - .github/workflows/build-ultrasmart78-video.yml
 
 permissions:
   contents: read
@@ -28,8 +22,8 @@ jobs:
           set -euo pipefail
           python3 tools/ultrasmart78-video-tab/patch_ultrasmart78_video.py \
             downloads/Ispina-Lokalnie-UltraSmart-77-Drogowskaz.apk \
-            Ispina-Lokalnie-UltraSmart-78-WIDEO-UNSIGNED.apk
-          python3 tools/ultrasmart78-video-tab/extract_ui_fixture.py Ispina-Lokalnie-UltraSmart-78-WIDEO-UNSIGNED.apk main_ui_test
+            Ispina-Lokalnie-UltraSmart-79-WIDEO-UNSIGNED.apk
+          python3 tools/ultrasmart78-video-tab/extract_ui_fixture.py Ispina-Lokalnie-UltraSmart-79-WIDEO-UNSIGNED.apk main_ui_test
           python3 tools/ultrasmart78-video-tab/extract_ui_fixture.py downloads/Ispina-Lokalnie-UltraSmart-77-Drogowskaz.apk original_ui
       - name: Test Wideo in the complete UltraSmart UI
         run: |
@@ -40,13 +34,13 @@ jobs:
           NODE_PATH="$RUNNER_TEMP/il-ui-test/node_modules" node tools/ultrasmart78-video-tab/test_ui.cjs main_ui_test.js main_ui_test.html
       - uses: actions/upload-artifact@v4
         with:
-          name: IL-UltraSmart-78-WIDEO-UNSIGNED
-          path: Ispina-Lokalnie-UltraSmart-78-WIDEO-UNSIGNED.apk
+          name: IL-UltraSmart-79-WIDEO-UNSIGNED
+          path: Ispina-Lokalnie-UltraSmart-79-WIDEO-UNSIGNED.apk
           retention-days: 14
       - name: Mark unsigned artifact clearly
         run: |
           echo '### APK roboczy bez podpisu' >> "$GITHUB_STEP_SUMMARY"
-          echo 'UltraSmart 78, 2.0.0-smart.78, versionCode 20349. Ten artefakt NIE jest gotowy do instalacji ani aktualizacji. Gotowy APK powstaje wyłącznie po pomyślnym zadaniu sign.' >> "$GITHUB_STEP_SUMMARY"
+          echo 'UltraSmart 79, 2.0.0-smart.79, versionCode 20350. Ten artefakt NIE jest gotowy do instalacji ani aktualizacji. Gotowy APK powstaje wyłącznie po pomyślnym zadaniu sign.' >> "$GITHUB_STEP_SUMMARY"
 
   sign:
     needs: patch
@@ -96,7 +90,7 @@ jobs:
           fi
       - uses: actions/download-artifact@v4
         with:
-          name: IL-UltraSmart-78-WIDEO-UNSIGNED
+          name: IL-UltraSmart-79-WIDEO-UNSIGNED
           path: unsigned-artifact
       - name: Sign only with the matching UltraSmart 77 private key
         id: sign
@@ -122,7 +116,7 @@ jobs:
             export IL_ULTRASMART77_KEY_PASS="$IL_ULTRASMART77_KEYSTORE_PASS"
           fi
           BT="$ANDROID_HOME/build-tools/35.0.0"
-          "$BT/zipalign" -p -f 4 unsigned-artifact/Ispina-Lokalnie-UltraSmart-78-WIDEO-UNSIGNED.apk aligned.apk
+          "$BT/zipalign" -p -f 4 unsigned-artifact/Ispina-Lokalnie-UltraSmart-79-WIDEO-UNSIGNED.apk aligned.apk
           "$BT/apksigner" sign \
             --ks "$KEYSTORE" \
             --ks-key-alias "$KEY_ALIAS" \
@@ -131,30 +125,30 @@ jobs:
             --v1-signing-enabled true \
             --v2-signing-enabled true \
             --v3-signing-enabled true \
-            --out Ispina-Lokalnie-UltraSmart-78-WIDEO.apk aligned.apk
-          "$BT/apksigner" verify --verbose --print-certs Ispina-Lokalnie-UltraSmart-78-WIDEO.apk > verify.txt
+            --out Ispina-Lokalnie-UltraSmart-79-WIDEO.apk aligned.apk
+          "$BT/apksigner" verify --verbose --print-certs Ispina-Lokalnie-UltraSmart-79-WIDEO.apk > verify.txt
           SIGNED_CERT="$(awk -F': ' '/Signer #1 certificate SHA-256 digest:/{print tolower($2)}' verify.txt)"
           test "$SIGNED_CERT" = "$EXPECTED_CERT_SHA256"
-          "$BT/zipalign" -c -v 4 Ispina-Lokalnie-UltraSmart-78-WIDEO.apk >/dev/null
-          "$BT/aapt" dump badging Ispina-Lokalnie-UltraSmart-78-WIDEO.apk | awk 'NR==1' > package.txt
+          "$BT/zipalign" -c -v 4 Ispina-Lokalnie-UltraSmart-79-WIDEO.apk >/dev/null
+          "$BT/aapt" dump badging Ispina-Lokalnie-UltraSmart-79-WIDEO.apk | awk 'NR==1' > package.txt
           python3 - <<'PY'
           from pathlib import Path
           line = Path('package.txt').read_text()
-          for value in ("name='com.ispina.mldcheck.smartai44demo'", "versionCode='20349'", "versionName='2.0.0-smart.78'"):
+          for value in ("name='com.ispina.mldcheck.smartai44demo'", "versionCode='20350'", "versionName='2.0.0-smart.79'"):
               assert value in line, value
           PY
-          sha256sum Ispina-Lokalnie-UltraSmart-78-WIDEO.apk > SHA256SUMS.txt
+          sha256sum Ispina-Lokalnie-UltraSmart-79-WIDEO.apk > SHA256SUMS.txt
           echo '### APK podpisany kluczem UltraSmart 77' >> "$GITHUB_STEP_SUMMARY"
-          echo "Zgodny certyfikat SHA-256: $SIGNED_CERT. Pakiet com.ispina.mldcheck.smartai44demo, versionCode 20349." >> "$GITHUB_STEP_SUMMARY"
+          echo "Zgodny certyfikat SHA-256: $SIGNED_CERT. Pakiet com.ispina.mldcheck.smartai44demo, versionCode 20350." >> "$GITHUB_STEP_SUMMARY"
       - name: Remove temporary signing material
         if: ${{ always() }}
         run: rm -f "$RUNNER_TEMP/ultrasmart77-signing.keystore" "$RUNNER_TEMP/il-key-info.txt" "$RUNNER_TEMP/il-signer.der"
       - uses: actions/upload-artifact@v4
         if: ${{ steps.sign.outcome == 'success' }}
         with:
-          name: IL-UltraSmart-78-WIDEO-SIGNED
+          name: IL-UltraSmart-79-WIDEO-SIGNED
           path: |
-            Ispina-Lokalnie-UltraSmart-78-WIDEO.apk
+            Ispina-Lokalnie-UltraSmart-79-WIDEO.apk
             verify.txt
             package.txt
             SHA256SUMS.txt
