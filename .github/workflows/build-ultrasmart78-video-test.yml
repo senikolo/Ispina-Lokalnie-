@@ -1,0 +1,114 @@
+name: Build Ispina Lokalnie UltraSmart 78 Wideo TEST
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - codex/il-ultrasmart78-video-20261028
+    paths:
+      - tools/ultrasmart78-video-test/**
+      - tools/ultrasmart78-video-tab/**
+      - .github/workflows/build-ultrasmart78-video-test.yml
+
+permissions:
+  contents: read
+
+jobs:
+  test-app:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      - name: Test exact UltraSmart 77 base and isolated TEST variant
+        run: |
+          set -euo pipefail
+          python3 tools/ultrasmart78-video-tab/test_patch.py
+          python3 tools/ultrasmart78-video-test/test_variant.py
+      - name: Build separate TEST package
+        run: |
+          set -euo pipefail
+          python3 tools/ultrasmart78-video-test/make_test_variant.py \
+            downloads/Ispina-Lokalnie-UltraSmart-77-Drogowskaz.apk \
+            Ispina-Lokalnie-UltraSmart-78-WIDEO-TEST-UNSIGNED.apk
+          python3 - <<'PY'
+          import zipfile
+          from pathlib import Path
+          with zipfile.ZipFile('Ispina-Lokalnie-UltraSmart-78-WIDEO-TEST-UNSIGNED.apk') as apk:
+              Path('main_ui_test.js').write_bytes(apk.read('assets/main_ui.js'))
+          PY
+      - name: Verify complete TEST UI
+        run: |
+          set -euo pipefail
+          npm install --prefix "$RUNNER_TEMP/il-test" --no-save --ignore-scripts --no-audit --no-fund playwright@1.56.1
+          node "$RUNNER_TEMP/il-test/node_modules/playwright/cli.js" install --with-deps chromium
+          NODE_PATH="$RUNNER_TEMP/il-test/node_modules" node tools/ultrasmart78-video-tab/test_ui.cjs main_ui_test.js
+      - name: Install Android build tools and check test manifest
+        run: |
+          set -euo pipefail
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "build-tools;35.0.0"
+          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging Ispina-Lokalnie-UltraSmart-78-WIDEO-TEST-UNSIGNED.apk > test-package.txt
+          python3 - <<'PY'
+          from pathlib import Path
+          line = Path('test-package.txt').read_text().splitlines()[0]
+          for value in ("name='com.ispina.mldcheck.smartai78test'", "versionCode='20349'", "versionName='2.0.0-smart.78-test'"):
+              assert value in line, value
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: IL-UltraSmart-78-WIDEO-TEST-UNSIGNED
+          path: Ispina-Lokalnie-UltraSmart-78-WIDEO-TEST-UNSIGNED.apk
+          if-no-files-found: error
+          retention-days: 14
+      - name: Check availability of the dedicated TEST key
+        id: key
+        env:
+          TEST_KEY: ${{ secrets.IL_ULTRASMART78_TEST_KEYSTORE_B64 }}
+          TEST_PASS: ${{ secrets.IL_ULTRASMART78_TEST_KEYSTORE_PASS }}
+        run: |
+          if [ -n "$TEST_KEY" ] && [ -n "$TEST_PASS" ]; then
+            echo 'ready=true' >> "$GITHUB_OUTPUT"
+          else
+            echo 'ready=false' >> "$GITHUB_OUTPUT"
+            echo '::warning::This run only produced UNSIGNED TEST APK. Add the dedicated UltraSmart 78 TEST keystore and password secrets to enable signing future test builds.'
+            echo '### TEST: wynik tego uruchomienia nie jest instalacyjny' >> "$GITHUB_STEP_SUMMARY"
+            echo 'Brak IL_ULTRASMART78_TEST_KEYSTORE_B64 lub IL_ULTRASMART78_TEST_KEYSTORE_PASS. Artefakt UNSIGNED nie nadaje się do instalacji. Użyć tego samego nowego klucza TEST, którego publiczny certyfikat zapisano w tools/ultrasmart78-video-test/test-certificate.json. Nie używać klucza innej wersji.' >> "$GITHUB_STEP_SUMMARY"
+          fi
+      - name: Sign exclusively the separate TEST package
+        if: ${{ steps.key.outputs.ready == 'true' }}
+        id: sign
+        env:
+          IL_ULTRASMART78_TEST_KEYSTORE_B64: ${{ secrets.IL_ULTRASMART78_TEST_KEYSTORE_B64 }}
+          IL_ULTRASMART78_TEST_KEYSTORE_PASS: ${{ secrets.IL_ULTRASMART78_TEST_KEYSTORE_PASS }}
+          IL_ULTRASMART78_TEST_KEY_PASS: ${{ secrets.IL_ULTRASMART78_TEST_KEY_PASS }}
+        run: |
+          set -euo pipefail
+          umask 077
+          printf '%s' "$IL_ULTRASMART78_TEST_KEYSTORE_B64" | base64 -d > "$RUNNER_TEMP/il78-test.p12"
+          python3 tools/ultrasmart78-video-test/sign_test_apk.py \
+            Ispina-Lokalnie-UltraSmart-78-WIDEO-TEST-UNSIGNED.apk \
+            Ispina-Lokalnie-UltraSmart-78-WIDEO-TEST.apk \
+            --build-tools "$ANDROID_HOME/build-tools/35.0.0" \
+            --keystore "$RUNNER_TEMP/il78-test.p12"
+          sha256sum Ispina-Lokalnie-UltraSmart-78-WIDEO-TEST.apk > SHA256SUMS-TEST.txt
+          echo '### Podpisany APK TEST — instalacja obok UltraSmart 77' >> "$GITHUB_STEP_SUMMARY"
+          echo 'Pakiet com.ispina.mldcheck.smartai78test, wersja 2.0.0-smart.78-test, kod 20349. Nie jest aktualizacją pakietu UltraSmart 77.' >> "$GITHUB_STEP_SUMMARY"
+      - name: Remove temporary private TEST key
+        if: ${{ always() }}
+        run: rm -f "$RUNNER_TEMP/il78-test.p12"
+      - uses: actions/upload-artifact@v4
+        if: ${{ steps.sign.outcome == 'success' }}
+        with:
+          name: IL-UltraSmart-78-WIDEO-TEST-SIGNED
+          path: |
+            Ispina-Lokalnie-UltraSmart-78-WIDEO-TEST.apk
+            Ispina-Lokalnie-UltraSmart-78-WIDEO-TEST.apk.verify.txt
+            SHA256SUMS-TEST.txt
+            test-package.txt
+          if-no-files-found: error
+          retention-days: 30
