@@ -42,7 +42,7 @@ class VideoPatchTests(unittest.TestCase):
                 self.assertEqual(struct.unpack_from('<I', new_dex, 8)[0], zlib.adler32(new_dex[12:]) & 0xffffffff)
                 info = json.loads(result.read("assets/il-build.json"))
                 self.assertEqual((info["packageName"], info["versionName"], info["versionCode"]),
-                                 (patch.PACKAGE, "2.0.0-smart.78", 20349))
+                                 (patch.PACKAGE, "2.0.0-smart.79", 20350))
                 # Reversing the manifest edit yields exactly the original binary.
                 old_manifest = original.read("AndroidManifest.xml")
                 patch.OLD_NAME, patch.NEW_NAME = patch.NEW_NAME, patch.OLD_NAME
