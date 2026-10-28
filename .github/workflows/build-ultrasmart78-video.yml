@@ -1,6 +1,7 @@
 name: Build Ispina Lokalnie UltraSmart 78 Wideo
 
 on:
+  workflow_dispatch:
   push:
     branches:
       - codex/il-ultrasmart78-video-20261028
