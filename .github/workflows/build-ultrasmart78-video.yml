@@ -35,10 +35,9 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     env:
-      IL_STABLE_KEYSTORE_B64: ${{ secrets.IL_STABLE_KEYSTORE_B64 }}
-      IL_STABLE_KEYSTORE_PASS: ${{ secrets.IL_STABLE_KEYSTORE_PASS }}
-      EXPECTED_CERT_SHA256: "6D:75:BA:F7:F4:40:2F:F9:3C:93:50:5F:D6:D7:A5:C0:EA:B3:D1:C7:C2:AA:2A:39:EE:B5:E4:AE:16:6F:62:5F"
-      KEY_ALIAS: ispina-lokalnie-stable
+      IL_ULTRASMART77_KEYSTORE_B64: ${{ secrets.IL_ULTRASMART77_KEYSTORE_B64 }}
+      IL_ULTRASMART77_KEYSTORE_PASS: ${{ secrets.IL_ULTRASMART77_KEYSTORE_PASS }}
+      EXPECTED_CERT_SHA256: "E1:71:05:F5:C6:6B:EE:C0:85:08:AC:2E:7D:60:F9:F2:7B:85:B8:0E:F0:F6:E2:31:83:A7:06:42:C6:DA:E8:A3"
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-java@v4
@@ -62,38 +61,35 @@ jobs:
           echo "UltraSmart 77 certificate SHA-256: $SOURCE_CERT"
           EXPECTED_COMPACT="$(printf '%s' "$EXPECTED_CERT_SHA256" | tr -d ':' | tr 'A-F' 'a-f')"
           SOURCE_COMPACT="$(printf '%s' "$SOURCE_CERT" | tr -d ' ' | tr 'A-F' 'a-f')"
-          if [ "$SOURCE_COMPACT" = "$EXPECTED_COMPACT" ]; then
-            echo "The source APK matches the configured IL stable signing certificate."
-          else
-            echo "The source APK uses a different signing certificate."
-          fi
+          test "$SOURCE_COMPACT" = "$EXPECTED_COMPACT"
       - uses: actions/download-artifact@v4
         with:
           name: IL-UltraSmart-78-WIDEO-UNSIGNED
           path: unsigned-artifact
-      - name: Report missing signing key
-        if: ${{ env.IL_STABLE_KEYSTORE_B64 == '' || env.IL_STABLE_KEYSTORE_PASS == '' }}
+      - name: Report missing UltraSmart 77 signing key
+        if: ${{ env.IL_ULTRASMART77_KEYSTORE_B64 == '' || env.IL_ULTRASMART77_KEYSTORE_PASS == '' }}
         run: |
-          echo "::warning::Signing skipped: IL_STABLE_KEYSTORE_B64 or IL_STABLE_KEYSTORE_PASS is missing in this repository."
-      - name: Sign only when the stable key is available
+          echo "::warning::Signing skipped. Add the original UltraSmart 77 signing keystore as IL_ULTRASMART77_KEYSTORE_B64 and IL_ULTRASMART77_KEYSTORE_PASS repository secrets."
+      - name: Sign only with the matching UltraSmart 77 key
         id: sign
-        if: ${{ env.IL_STABLE_KEYSTORE_B64 != '' && env.IL_STABLE_KEYSTORE_PASS != '' }}
+        if: ${{ env.IL_ULTRASMART77_KEYSTORE_B64 != '' && env.IL_ULTRASMART77_KEYSTORE_PASS != '' }}
         run: |
           set -euo pipefail
-          printf '%s' "$IL_STABLE_KEYSTORE_B64" | base64 -d > stable-signing.p12
-          ACTUAL="$(keytool -list -v -storetype PKCS12 -keystore stable-signing.p12 -storepass "$IL_STABLE_KEYSTORE_PASS" -alias "$KEY_ALIAS" | awk -F': ' '/SHA256:/{print $2; exit}')"
-          test "$ACTUAL" = "$EXPECTED_CERT_SHA256"
-          BT="$ANDROID_HOME/build-tools/35.0.0"
-          BASE_CERT="$("$BT/apksigner" verify --print-certs downloads/Ispina-Lokalnie-UltraSmart-77-Drogowskaz.apk | awk -F': ' '/Signer #1 certificate SHA-256 digest:/{print $2; exit}')"
+          printf '%s' "$IL_ULTRASMART77_KEYSTORE_B64" | base64 -d > ultrasmart77-signing.p12
           EXPECTED_COMPACT="$(printf '%s' "$EXPECTED_CERT_SHA256" | tr -d ':' | tr 'A-F' 'a-f')"
-          test "$(printf '%s' "$BASE_CERT" | tr -d ' ' | tr 'A-F' 'a-f')" = "$EXPECTED_COMPACT"
+          KEY_ALIAS="$(keytool -list -v -storetype PKCS12 -keystore ultrasmart77-signing.p12 -storepass "$IL_ULTRASMART77_KEYSTORE_PASS" | awk -F': ' '/Alias name:/{alias=$2} /SHA256:/{print alias "|" $2}' | awk -F'|' -v expected="$EXPECTED_COMPACT" '{cert=tolower($2); gsub(/:/, "", cert); if (cert == expected) { print $1; exit }}')"
+          test -n "$KEY_ALIAS"
+          ACTUAL_CERT="$(keytool -list -v -storetype PKCS12 -keystore ultrasmart77-signing.p12 -storepass "$IL_ULTRASMART77_KEYSTORE_PASS" -alias "$KEY_ALIAS" | awk -F': ' '/SHA256:/{print $2; exit}')"
+          ACTUAL_COMPACT="$(printf '%s' "$ACTUAL_CERT" | tr -d ':' | tr 'A-F' 'a-f')"
+          test "$ACTUAL_COMPACT" = "$EXPECTED_COMPACT"
+          BT="$ANDROID_HOME/build-tools/35.0.0"
           "$BT/zipalign" -p -f 4 unsigned-artifact/Ispina-Lokalnie-UltraSmart-78-WIDEO-UNSIGNED.apk aligned.apk
           "$BT/apksigner" sign \
-            --ks stable-signing.p12 \
+            --ks ultrasmart77-signing.p12 \
             --ks-type PKCS12 \
             --ks-key-alias "$KEY_ALIAS" \
-            --ks-pass env:IL_STABLE_KEYSTORE_PASS \
-            --key-pass env:IL_STABLE_KEYSTORE_PASS \
+            --ks-pass env:IL_ULTRASMART77_KEYSTORE_PASS \
+            --key-pass env:IL_ULTRASMART77_KEYSTORE_PASS \
             --v1-signing-enabled true \
             --v2-signing-enabled true \
             --v3-signing-enabled true \
