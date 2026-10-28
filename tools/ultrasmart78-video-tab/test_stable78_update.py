@@ -31,7 +31,7 @@ class Stable78UpdateTests(unittest.TestCase):
                 self.assertNotIn('startPlayers',js)
                 self.assertEqual(js.count('new window.YT.Player('),1)
                 self.assertIn('https://' + patch.PACKAGE + '/',js)
-                self.assertIn('Automatyczna lista oczekuje na uruchomienie usługi.',js)
+                self.assertIn('Wybierz film z listy, aby rozpocząć odtwarzanie.',js)
                 script = Path(tmp) / 'main_ui.js'
                 script.write_text(js)
                 subprocess.run(['node','--check',str(script)],check=True)

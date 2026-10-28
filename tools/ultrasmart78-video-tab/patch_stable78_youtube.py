@@ -61,11 +61,11 @@ def patch_apk(source: Path, output: Path, native_tools=None):
         module = base.JS_PATCH.replace(base.PACKAGE, PACKAGE)
         js += '\n;/* ' + base.MARKER + ' */\n' + module
         js += '\n;window.IL_RELEASE_CHANNEL="test";\n'
-        js += "(function(){var v=document.getElementById('ilWideoViewSmart78');if(v){var p=document.createElement('p');p.textContent='Wersja testowa YouTube. Automatyczna lista oczekuje na uruchomienie usługi.';p.style.cssText='padding:12px;background:#fff0d4;color:#684d13';v.insertBefore(p,v.firstChild);}})();\n"
+        js += "(function(){var v=document.getElementById('ilWideoViewSmart78');if(v){var p=document.createElement('p');p.textContent='Wersja testowa YouTube. Wybierz film z listy, aby rozpocząć odtwarzanie.';p.style.cssText='padding:12px;background:#fff0d4;color:#684d13';v.insertBefore(p,v.firstChild);}})();\n"
         meta = json.loads(original.read('assets/il-build.json'))
         if (meta.get('packageName'), meta.get('versionName'), meta.get('versionCode')) != (PACKAGE, '2.0.0-smart.78', 20351):
             raise ValueError('Unexpected stable 78 metadata')
-        meta.update(versionName=VERSION, versionCode=CODE, channel='test', variant='ULTRASMART-79-YOUTUBE-TEST', label=LABEL)
+        meta.update(versionName=VERSION, versionCode=CODE, channel='test', variant='ULTRASMART-80-YOUTUBE-TEST', label=LABEL)
         from patch_native_video import patch_native_dex
         native_tools = native_tools or os.environ.get('IL_SMALI_TOOLS')
         if not native_tools:

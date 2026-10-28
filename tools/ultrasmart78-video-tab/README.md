@@ -1,6 +1,6 @@
 # Wideo — kanał YouTube i jeden odtwarzacz
 
-**Bieżący status odbioru: zablokowany przez nieprawidłowy klucz API.** Usługę `/api/youtube-videos` wdrożono po potwierdzeniu konfiguracji przez właściciela. Hosting widzi sekret produkcyjny, ale Google zwraca HTTP 400 z powodami `badRequest` i `API_KEY_INVALID`; publiczna odpowiedź aplikacji to 503. Wartości sekretu nie odczytywano. Bez poprawnej wartości klucza nie da się sprawdzić pełnej listy ani uznać funkcji za gotową. Wcześniej przekazany APK 79 TEST nie realizuje tego celu.
+**Status 28.10.2026: usługa działa, APK 80 TEST jest podpisany.** Po wyraźnej zgodzie właściciela utworzono w jego projekcie Google Cloud klucz ograniczony do YouTube Data API v3 i przekazano go przez TinyFish do produkcyjnego sekretu Vercel `IL_YOUTUBE_API_KEY`. Klucza nie zapisano w repozytorium, APK ani opisie PR. Wdrożenie `dpl_8jFWPNd4auUZmgjjWWXY2tVCxe37` ma stan READY. Rzeczywisty test endpointu zwrócił HTTP 200, właściwy kanał i pełną listę: 1 publiczny film, 1 z dozwolonym osadzaniem, brak następnej strony. To stan kanału w chwili sprawdzenia, a nie limit listy. Odtwarzania na fizycznym Androidzie jeszcze nie potwierdzono.
 
 Ekran Wideo nie ma już własnych odnośników „Otwórz w YouTube”, odnośników do kanału ani komunikatów kierujących do zewnętrznej strony. Wybór dostępnego filmu steruje wyłącznie osadzonym odtwarzaczem. Oryginalne logo i kontrolki YouTube pozostają zgodne z wymaganiami dostawcy. Film z zabronionym osadzaniem pokazuje przyczynę w aplikacji; nie obchodzimy tej blokady.
 
@@ -32,7 +32,7 @@ Kolejność odpowiada playliście przesłanych filmów zwracanej przez YouTube. 
 
 ## Uruchomienie endpointu — wymagane przed odbiorem na urządzeniu
 
-**PR sam nie uruchamia usługi.** Usługę uruchomiono osobnym wdrożeniem po potwierdzeniu właściciela; pozostał opisany wyżej błąd klucza. Istniejący projekt serwera Next.js znajduje się w `ispina-rozklady/tablica-site`, hosting: `ispina-most-odjazdy`. Według dokumentacji repozytorium nie ma podłączonego automatycznego wdrażania z GitHub. Wdrożono serwer listy; aplikacji nie publikowano ani PR nie scalono.
+**PR sam nie uruchamia usługi.** Usługę uruchomiono osobnym wdrożeniem po potwierdzeniu właściciela; poprawny klucz jest już skonfigurowany. Istniejący projekt serwera Next.js znajduje się w `ispina-rozklady/tablica-site`, hosting: `ispina-most-odjazdy`. Według dokumentacji repozytorium nie ma podłączonego automatycznego wdrażania z GitHub. Wdrożono serwer listy; aplikacji nie publikowano ani PR nie scalono.
 
 Najprostsza konfiguracja do wykonania po decyzji właściciela:
 
@@ -68,11 +68,11 @@ Dodatkowy generator `patch_stable78_youtube.py` przyjmuje dokładny [publiczny A
 
 Wynik: **2.0.0-smart.79, kod 20352**, ten sam pakiet, etykieta **Ispina Lokalnie YouTube TEST**. Zmieniono tylko manifest i dwa pliki assets; DEX i zasoby pozostają identyczne ze stabilną 78. Stary moduł trzech odtwarzaczy jest usuwany przed dopisaniem nowego. Do podpisania użyto zachowanego klucza, po sprawdzeniu zgodności certyfikatu. Zweryfikowano podpisy v1/v2/v3, wyrównanie ZIP i integralność APK. Ten plik może aktualizować wskazaną stabilną 78 bez jej odinstalowania; nie aktualizuje oryginalnego pakietu 77.
 
-Wcześniejszy podpisany `Ispina-Lokalnie-79-YouTube-TEST.apk` przekazano prywatnie właścicielowi; nie jest on działającym rozwiązaniem pełnego Wideo, ponieważ usługa nie została uruchomiona. Rozmiar: 7 981 056 bajtów, SHA-256 `8977c73696ad2db35c9325400437f1f47b8bd9bebcd037aa8c63f1aaaf364986`. Klucz i hasło nie zostały dodane do repozytorium. **To wersja testowa: lista nadal wymaga konfiguracji klucza Data API i wdrożenia endpointu.** W aplikacji jest widoczna ta informacja. Nie twierdzimy, że potwierdzono streaming lub instalację na fizycznym Androidzie.
+Wcześniejszy podpisany `Ispina-Lokalnie-79-YouTube-TEST.apk` przekazano prywatnie właścicielowi przed uruchomieniem usługi. Zastępuje go wersja 80 z poprawką natywnego WebView. Rozmiar: 7 981 056 bajtów, SHA-256 `8977c73696ad2db35c9325400437f1f47b8bd9bebcd037aa8c63f1aaaf364986`. Klucz i hasło nie zostały dodane do repozytorium. Wersja 79 miała komunikat o brakującej usłudze; wersja 80 zastępuje go instrukcją wyboru filmu. Nie twierdzimy, że potwierdzono streaming lub instalację na fizycznym Androidzie.
 
 ```sh
 python3 tools/ultrasmart78-video-tab/test_stable78_update.py /path/to/stable78.apk
-python3 tools/ultrasmart78-video-tab/patch_stable78_youtube.py /path/to/stable78.apk /tmp/youtube79-unsigned.apk
+python3 tools/ultrasmart78-video-tab/patch_stable78_youtube.py /path/to/stable78.apk /tmp/youtube80-unsigned.apk
 ```
 
 Sam generator nadal wytwarza UNSIGNED i nie zawiera klucza. Nie dodano workflow podpisującego ani publikującego; CI pobiera dokładną publiczną bazę 78 i sprawdza dodatkowo tę ścieżkę oraz jej pełny interfejs. Nie łączono PR #6 ani #7.
@@ -93,7 +93,7 @@ export IL_SMALI_TOOLS=/tmp/il-smali
 python3 tools/ultrasmart78-video-tab/test_stable78_update.py /path/to/stable78.apk
 ```
 
-W aktualizacji 80 zmieniają się manifest, `classes3.dex` i dwa pliki assets. Nie przebudowujemy innych plików DEX ani zasobów. To nie jest jeszcze potwierdzenie rzeczywistego streamingu na urządzeniu — jego próba czeka na poprawną odpowiedź listy.
+W aktualizacji 80 zmieniają się manifest, `classes3.dex` i dwa pliki assets. Nie przebudowujemy innych plików DEX ani zasobów. Rzeczywista lista działa. Streaming na urządzeniu pozostaje do sprawdzenia przez właściciela.
 
 ## Sprawdzenie
 
@@ -126,7 +126,9 @@ Odbiór ręczny **po konfiguracji usługi i uzgodnieniu podpisanej wersji testow
 5. Wyjść do Pulpitu, nacisnąć Wstecz, ukryć aplikację — dźwięk ustaje. Powrót nie wznawia dźwięku.
 6. Sprawdzić nagranie z wyłączonym osadzaniem, błąd 153, obrót ekranu i Tryb Senior. Aplikacja nie przekierowuje do zewnętrznej strony w celu odtwarzania.
 
-Nie wykonano testu prawdziwej listy przez Data API (brak skonfigurowanego klucza), rzeczywistego odtwarzania ani instalacji na fizycznym Androidzie. Podpisano i sprawdzono opisany powyżej APK TEST. To pozostaje warunkiem odbioru, nie deklarowanym wynikiem testów.
+Wykonano test prawdziwej pełnej listy przez Data API: HTTP 200, wskazany kanał, jeden publiczny film z dozwolonym osadzaniem. Testy pełnego UI z atrapą Player API przeszły dla wygenerowanego APK 80. Nie wykonano instalacji ani odtwarzania na fizycznym Androidzie. Testy z atrapami nie potwierdzają streamingu.
+
+Podpisany prywatny APK 80: `Ispina-Lokalnie-80-YouTube-TEST.apk`, 7 981 056 bajtów, SHA-256 `19e98ea645f8bb454d2a16ac4f668415bdde652c44ed1ee6d62af625ec4e5fd0`. Wersja `2.0.0-smart.80`, kod 20353, Android od API 23, pakiet i certyfikat zgodne z opublikowaną 78 oraz prywatną 79. Podpisy v1/v2/v3 i wyrównanie ZIP zweryfikowano. Nie publikowano wydania GitHub ani nie scalano PR.
 
 ## Oficjalna dokumentacja
 
