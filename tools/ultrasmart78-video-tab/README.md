@@ -23,7 +23,7 @@ W **Settings → Secrets and variables → Actions → Repository secrets** wła
 
 Nie dodawać keystore ani haseł do kodu, załączników zgłoszenia ani logów. Workflow nie tworzy klucza zastępczego i nie próbuje odzyskiwać haseł. Alias wybiera na podstawie certyfikatu. Certyfikat jest sprawdzany na oryginalnym APK, ponownie na kluczu przed podpisaniem oraz na gotowym APK po podpisaniu. Hasła przekazywane są przez zmienne środowiskowe, a pliki tymczasowe są usuwane zawsze.
 
-Następnie uruchomić **Actions → Build Ispina Lokalnie UltraSmart 79 Wideo → Run workflow** dla gałęzi `codex/il-video-sync-from-site-20261028`. Workflow uruchamia się również po zmianach tego narzędzia na tej gałęzi.
+Następnie uruchomić **Actions → Build Ispina Lokalnie UltraSmart 79 Wideo → Run workflow** dla gałęzi `codex/il-video-sync-from-site-20261028`. Workflow uruchamia się ręcznie po wybraniu tej gałęzi w akcji „Run workflow”.
 
 - `IL-UltraSmart-79-WIDEO-SIGNED`: podpisany APK oraz raport certyfikatu, metadane i suma kontrolna.
 - `IL-UltraSmart-79-WIDEO-UNSIGNED`: wyłącznie plik roboczy; **nie nadaje się do instalacji ani aktualizacji**.
@@ -31,6 +31,6 @@ Następnie uruchomić **Actions → Build Ispina Lokalnie UltraSmart 79 Wideo �
 
 ## Weryfikacja
 
-`test_patch.py` sprawdza tożsamość bazy, manifest, metadane, integralność ZIP, zachowanie wszystkich pozostałych plików i poprawne uruchomienie dopisanego JavaScript. `test_ui.cjs` uruchamia pełny interfejs z wynikowego APK w Chromium z rzeczywistym HTML/CSP wyciągniętym z APK. Odtwarza błąd na starej polityce, sprawdza działanie trzech osadzeń po poprawce, utrzymanie blokady obcych ramek, usunięcie wskazanych treści galerii, Referer, rozmiary ekranu, powrót i zatrzymanie odtwarzaczy. W teście odpowiedzi YouTube są zastąpione atrapami; nie jest to test rzeczywistego strumienia ani instalacji na Androidzie.
+`test_patch.py` sprawdza tożsamość bazy, manifest, metadane, integralność ZIP, zachowanie wszystkich pozostałych plików i poprawne uruchomienie dopisanego JavaScript. `test_ui.cjs` uruchamia interfejs w Chromium z HTML/CSP wyciągniętym z APK. Sprawdza trzy nagrania awaryjne oraz dotychczasowe zachowanie galerii, Referer, rozmiary ekranu, powrót i zatrzymywanie odtwarzaczy. Odpowiedzi YouTube są atrapami. Sprawdzenia odczytu aktualnej sekcji Wideo z WordPressa, rzeczywistego odtwarzania i instalacji na Androidzie nie wykonano.
 
 Po uzyskaniu właściwego klucza końcowy test na urządzeniu obejmuje instalację APK jako aktualizacji UltraSmart 78 (bez odinstalowywania) i ręczne odtworzenie każdego filmu. Dostępność materiałów, zgoda właścicieli na osadzanie i odtwarzanie w danym WebView pozostają zależne od YouTube; testy atrap tego nie potwierdzają.
