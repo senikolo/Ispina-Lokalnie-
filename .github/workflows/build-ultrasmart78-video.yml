@@ -17,7 +17,7 @@ jobs:
           persist-credentials: false
       - name: Test exact UltraSmart 77 base and patch
         run: python3 tools/ultrasmart78-video-tab/test_patch.py
-      - name: Patch UltraSmart 77 into version 78
+      - name: Patch UltraSmart 77 into version 79
         run: |
           set -euo pipefail
           python3 tools/ultrasmart78-video-tab/patch_ultrasmart78_video.py \
