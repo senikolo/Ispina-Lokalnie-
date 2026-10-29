@@ -32,6 +32,7 @@ function isPlayable(video: Video) {
 
 export default function VideoPage() {
   const [videos, setVideos] = useState<Video[]>([]);
+  const [thumbnailsReady, setThumbnailsReady] = useState(false);
   const [selectedId, setSelectedId] = useState('');
   const [nextPageToken, setNextPageToken] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -56,6 +57,7 @@ export default function VideoPage() {
         const playable = data.items.filter(isPlayable);
         if (!active) return;
         setVideos(playable);
+        setThumbnailsReady(true);
         setNextPageToken(data.nextPageToken || null);
         const query = new URLSearchParams(window.location.search);
         const requestedId = query.get('v') || '';
@@ -194,7 +196,7 @@ export default function VideoPage() {
                     >
                       <span className={styles.thumbnail}>
                         <img
-                          src={'https://i.ytimg.com/vi/' + video.id + '/hqdefault.jpg'}
+                          src={thumbnailsReady ? 'https://i.ytimg.com/vi/' + video.id + '/hqdefault.jpg' : undefined}
                           alt=""
                           onError={event => { event.currentTarget.hidden = true; }}
                         />
