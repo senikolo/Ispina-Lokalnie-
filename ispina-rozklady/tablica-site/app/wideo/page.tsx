@@ -17,6 +17,13 @@ type VideoFeed = {
 };
 const VIDEO_API = 'https://ispina-most-odjazdy.vercel.app/api/youtube-videos';
 
+function videoCountLabel(count: number) {
+  if (count === 1) return 'film';
+  const last = count % 10;
+  const lastTwo = count % 100;
+  return last >= 2 && last <= 4 && (lastTwo < 12 || lastTwo > 14) ? 'filmy' : 'filmów';
+}
+
 function isPlayable(video: Video) {
   return /^[A-Za-z0-9_-]{11}$/.test(video.id)
     && typeof video.title === 'string'
@@ -157,7 +164,7 @@ export default function VideoPage() {
               <p className={styles.kicker}>Biblioteka filmów</p>
               <h2 id="playlist-title">Wybierz film</h2>
             </div>
-            {!loading && !error && <span className={styles.count}>{videos.length} {videos.length === 1 ? 'film' : 'filmów'}</span>}
+            {!loading && !error && <span className={styles.count}>{videos.length} {videoCountLabel(videos.length)}</span>}
           </div>
 
           {error && (
@@ -182,7 +189,7 @@ export default function VideoPage() {
                     <button
                       type="button"
                       className={[styles.tile, selected ? styles.tileSelected : ''].join(' ')}
-                      aria-pressed={selected}
+                      aria-current={selected ? 'true' : undefined}
                       onClick={() => chooseVideo(video)}
                     >
                       <span className={styles.thumbnail}>
