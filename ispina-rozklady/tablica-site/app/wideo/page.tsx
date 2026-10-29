@@ -15,6 +15,7 @@ type VideoFeed = {
   nextPageToken: string | null;
   items: Video[];
 };
+const VIDEO_API = 'https://ispina-most-odjazdy.vercel.app/api/youtube-videos';
 
 function isPlayable(video: Video) {
   return /^[A-Za-z0-9_-]{11}$/.test(video.id)
@@ -40,7 +41,7 @@ export default function VideoPage() {
       setLoading(true);
       setError('');
       try {
-        const response = await fetch('/api/youtube-videos', {cache: 'no-store'});
+        const response = await fetch(VIDEO_API, {cache: 'no-store'});
         const data = await response.json() as VideoFeed & {error?: string};
         if (!response.ok || data.error || !Array.isArray(data.items)) {
           throw new Error('feed_unavailable');
@@ -84,7 +85,7 @@ export default function VideoPage() {
     setLoadingMore(true);
     setMoreError('');
     try {
-      const response = await fetch('/api/youtube-videos?pageToken=' + encodeURIComponent(nextPageToken), {cache: 'no-store'});
+      const response = await fetch(VIDEO_API + '?pageToken=' + encodeURIComponent(nextPageToken), {cache: 'no-store'});
       const data = await response.json() as VideoFeed & {error?: string};
       if (!response.ok || data.error || !Array.isArray(data.items)) {
         throw new Error('next_page_unavailable');
