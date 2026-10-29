@@ -198,7 +198,7 @@ export default function VideoPage() {
                         <img
                           src={thumbnailsReady ? 'https://i.ytimg.com/vi/' + video.id + '/hqdefault.jpg' : undefined}
                           alt=""
-                          onError={event => { event.currentTarget.hidden = true; }}
+                          onError={event => { event.currentTarget.style.display = 'none'; }}
                         />
                         <span className={styles.thumbnailPlay} aria-hidden="true">▶</span>
                       </span>
