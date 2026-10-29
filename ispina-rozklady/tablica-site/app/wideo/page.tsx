@@ -193,7 +193,11 @@ export default function VideoPage() {
                       onClick={() => chooseVideo(video)}
                     >
                       <span className={styles.thumbnail}>
-                        <img src={'https://i.ytimg.com/vi/' + video.id + '/hqdefault.jpg'} alt="" />
+                        <img
+                          src={'https://i.ytimg.com/vi/' + video.id + '/hqdefault.jpg'}
+                          alt=""
+                          onError={event => { event.currentTarget.hidden = true; }}
+                        />
                         <span className={styles.thumbnailPlay} aria-hidden="true">▶</span>
                       </span>
                       <span className={styles.tileText}>
