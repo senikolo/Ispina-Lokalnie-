@@ -111,7 +111,7 @@ export default function VideoPage() {
     <div className={styles.page}>
       <header className={styles.header}>
         <a className={styles.brand} href="/" aria-label="Ispina Lokalnie — strona główna">
-          <span className={styles.brandMark} aria-hidden="true">IL</span>
+          <img className={styles.brandMark} src="/ispina-lokalnie-monogram.png" alt="" aria-hidden="true" width="38" height="38" />
           <span>Ispina <strong>Lokalnie</strong></span>
         </a>
         <a className={styles.backLink} href="https://ispinalokalnie.com/galeria/#wideo">
@@ -213,7 +213,7 @@ export default function VideoPage() {
       </main>
 
       <footer className={styles.footer}>
-        <span className={styles.footerBrand}><span className={styles.brandMark} aria-hidden="true">IL</span> Ispina Lokalnie</span>
+        <span className={styles.footerBrand}><img className={styles.brandMark} src="/ispina-lokalnie-monogram.png" alt="" aria-hidden="true" width="38" height="38" /> Ispina Lokalnie</span>
         <span>Filmy z kanału Ispina Lokalnie</span>
       </footer>
     </div>
