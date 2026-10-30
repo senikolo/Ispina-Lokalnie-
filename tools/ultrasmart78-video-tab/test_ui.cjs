@@ -59,6 +59,15 @@ const fs = require('node:fs');
     assert.equal(new URL(page.url()).hostname, 'ispinalokalnie.wordpress.com');
     const urls = await page.locator(video + ' iframe').evaluateAll(frames => frames.map(f => f.src));
     assert.deepEqual(urls.map(u => new URL(u).pathname.split('/').pop()).sort(), ['ZG7I26z3nZs', 'uH6bZTGhFdE', 'uY9qCLdLzuY'].sort());
+    const cards = await page.locator(video + ' article.ilv-card').evaluateAll(items => items.map(card => ({
+      title: card.querySelector('h3').textContent.trim(),
+      id: new URL(card.querySelector('iframe').getAttribute('data-src')).pathname.split('/').pop()
+    })));
+    assert.deepEqual(cards, [
+      {title: 'Pacyfikacja Ispiny - materiał TVP Kraków', id: 'ZG7I26z3nZs'},
+      {title: 'Most w Ispinie - materiał TVP Kraków', id: 'uH6bZTGhFdE'},
+      {title: 'Szykany przy moście w Ispinie - materiał TVN Turbo', id: 'uY9qCLdLzuY'}
+    ], 'each video card title must match its selected YouTube video');
     for (const width of [320, 360, 800]) {
       await page.setViewportSize({width, height: 740});
       for (const frame of await page.locator(video + ' iframe').all()) {
