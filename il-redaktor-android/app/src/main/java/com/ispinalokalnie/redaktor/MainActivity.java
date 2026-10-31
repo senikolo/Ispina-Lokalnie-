@@ -2,6 +2,9 @@ package com.ispinalokalnie.redaktor;
 
 import android.app.Activity;
 import android.app.Dialog;
+import android.app.AlertDialog;
+import android.webkit.WebChromeClient;
+import android.webkit.JsResult;
 import android.media.AudioManager;
 import android.media.ToneGenerator;
 import android.os.Vibrator;
@@ -67,6 +70,7 @@ public class MainActivity extends Activity {
     private final Handler ui = new Handler(Looper.getMainLooper());
     private WebView editor;
     private Dialog publishedDialog;
+    private AlertDialog editorConfirmation;
     private volatile boolean verified = false;
     private boolean loginInProgress = false;
     private boolean webPageReady = false;
@@ -99,6 +103,36 @@ public class MainActivity extends Activity {
             }
             @Override public boolean shouldOverrideUrlLoading(WebView v, String url) {
                 return !url.startsWith("file:///android_asset/");
+            }
+        });
+        // Without a WebChromeClient Android silently cancels JavaScript confirm().
+        // Every confirmed write must wait for the user's real native response.
+        editor.setWebChromeClient(new WebChromeClient() {
+            @Override public boolean onJsConfirm(WebView view, String url, String message, JsResult result) {
+                if (view != editor || !"file:///android_asset/index.html".equals(url) || isFinishing()) {
+                    result.cancel();
+                    return true;
+                }
+                if (editorConfirmation != null) editorConfirmation.dismiss();
+                final boolean[] answered = {false};
+                AlertDialog dialog = new AlertDialog.Builder(MainActivity.this)
+                    .setTitle("Potwierdź w Redaktorze IL")
+                    .setMessage(message)
+                    .setPositiveButton("Potwierdzam", (d, which) -> {
+                        answered[0] = true;
+                        result.confirm();
+                    })
+                    .setNegativeButton("Anuluj", (d, which) -> {
+                        answered[0] = true;
+                        result.cancel();
+                    }).create();
+                editorConfirmation = dialog;
+                dialog.setOnDismissListener(d -> {
+                    if (!answered[0]) { answered[0] = true; result.cancel(); }
+                    if (editorConfirmation == dialog) editorConfirmation = null;
+                });
+                dialog.show();
+                return true;
             }
         });
         editor.addJavascriptInterface(new Bridge(), "IL");
@@ -831,6 +865,7 @@ public class MainActivity extends Activity {
     }
 
     @Override protected void onDestroy() {
+        if (editorConfirmation != null) editorConfirmation.dismiss();
         work.shutdownNow();
         if (publishedDialog != null && publishedDialog.isShowing()) publishedDialog.dismiss();
         if (editor != null) editor.destroy();

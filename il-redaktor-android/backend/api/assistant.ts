@@ -134,7 +134,7 @@ async function verifyWordPressAccess(token: string): Promise<boolean> {
     params: {
       protocolVersion: '2025-11-25',
       capabilities: {},
-      clientInfo: { name: 'IL Redaktor Smart Assistant', version: '1.12.0' },
+      clientInfo: { name: 'IL Redaktor Smart Assistant', version: '1.13.0' },
     },
   });
   if (initialized.response.status === 401 || initialized.response.status === 403) return false;

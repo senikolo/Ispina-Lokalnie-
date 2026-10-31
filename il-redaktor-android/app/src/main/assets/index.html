@@ -287,7 +287,7 @@ a{color:#1767a8}:root[data-theme="dark"] a{color:#9ecfff}
       <p>Zatwierdź dostęp w przeglądarce i wybierz otwarcie Redaktora IL, gdy Android o to zapyta. Jeśli jesteś już z powrotem w aplikacji, ale nadal widzisz krok 3/4, skorzystaj z opcji poniżej.</p>
       <div class="actions"><button class="secondary" onclick="checkLoginState()">Sprawdź stan</button><button class="secondary" onclick="cancelLoginFlow()">Anuluj i spróbuj ponownie</button></div>
       <details><summary>Zaawansowane: ręczne dokończenie logowania</summary>
-        <p>Jeśli przeglądarka pokazuje pełny adres rozpoczynający się od <code>com.ispinalokalnie.redaktorsmart.publish193:/callback</code>, możesz wkleić go poniżej. Nie wpisuj tu hasła, kodu z SMS ani zwykłego adresu WordPressa. Nie udostępniaj nikomu tego adresu.</p>
+        <p>Jeśli przeglądarka pokazuje pełny adres rozpoczynający się od <code>com.ispinalokalnie.redaktorsmart.publish194:/callback</code>, możesz wkleić go poniżej. Nie wpisuj tu hasła, kodu z SMS ani zwykłego adresu WordPressa. Nie udostępniaj nikomu tego adresu.</p>
         <label for="oauth-return">Adres powrotu (poufny)</label><input id="oauth-return" type="password" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Wklej pełny adres powrotu z przeglądarki">
         <div class="actions"><button onclick="finishManualLogin()">Dokończ logowanie</button></div>
       </details>
@@ -313,7 +313,7 @@ a{color:#1767a8}:root[data-theme="dark"] a{color:#9ecfff}
     <label class="setting-row"><input type="checkbox" id="battery-saving" onchange="applyUiPreferences(true)"><span>Tryb oszczędzania baterii</span></label>
     <p id="ui-preferences-status" class="setting-caption" role="status" aria-live="polite">Ustawienia zapisują się na tym telefonie. Systemowe ograniczenie ruchu zawsze ma pierwszeństwo.</p>
   </div>
-  <div class="card"><h2>O programie</h2><p class="muted">IL Redaktor Smart 1.12.0-test · Niezależna aplikacja Android 8 i nowszy. WordPress.com MCP. Publikacja wymaga potwierdzenia i ponownego odczytu wpisu.</p></div>
+  <div class="card"><h2>O programie</h2><p class="muted">IL Redaktor Smart 1.13.0-test · Niezależna aplikacja Android 8 i nowszy. WordPress.com MCP. Publikacja wymaga potwierdzenia i ponownego odczytu wpisu.</p></div>
 </section>
 </main>
 <div id="publication-progress" class="finish-dialog hidden" role="dialog" aria-modal="true" aria-labelledby="progress-title"><div class="finish-panel"><h2 id="progress-title">Publikuję — poczekaj chwilę</h2><p id="progress-step" role="status" aria-live="polite">Przygotowuję artykuł…</p><p class="muted">Poczekaj na potwierdzenie z WordPressa. Przy wolnym połączeniu odpowiedź może potrwać dłużej. Nie wysyłaj wpisu ponownie.</p></div></div>
@@ -352,12 +352,13 @@ function operationBanner(kind,label){
 function startOperation(label){operationBanner("busy","Trwa: "+label);}
 function endOperation(){if($("working-state").classList.contains("busy"))$("working-state").classList.add("hidden");}
 function operationFinished(ok,title,detail=""){
-  operationBanner(ok?"done":"failed",(ok?"SUKCES: ":"BŁĄD: ")+title);
+  operationBanner(ok?"done":"failed",(ok?"Gotowe: ":"BŁĄD: ")+title);
   recordAction(ok?"done":"failed",title,detail);
   if(window.IL && typeof IL.haptic==="function")IL.haptic(ok?"success":"error");
 }
 function showOutcome(kind,headline,detail,link="",linkLabel="Otwórz w WordPressie",isPublishedArticle=false){
   operationFinished(kind==="success",headline,detail.slice(0,260));
+  if(kind==="success"&&isPublishedArticle)operationBanner("done","✓ SUKCES! Artykuł jest opublikowany na WordPressie.");
   finishUrl=link;
   $("finish-panel").classList.toggle("error",kind==="error");
   $("finish-panel").classList.toggle("published",kind==="success"&&isPublishedArticle);
@@ -776,7 +777,7 @@ async function testDraftWrite(){
   if(!confirm("Utworzyć w WordPressie prywatny szkic diagnostyczny? Nie będzie publiczny i pozostanie na liście szkiców do ręcznego usunięcia."))return;
   const testButton=$("test-draft-write");
   diagnosticWriteBusy=true;testButton.disabled=true;
-  const title="[TEST IL Redaktor Smart 1.12.0] Sprawdzenie zapisu "+new Date().toLocaleString("pl-PL");
+  const title="[TEST IL Redaktor Smart 1.13.0] Sprawdzenie zapisu "+new Date().toLocaleString("pl-PL");
   const body={title,content:"<p>Test techniczny zapisu z aplikacji IL Redaktor Smart. Ten szkic nie jest przeznaczony do publikacji.</p>",status:"draft",excerpt:"Test techniczny. Nie publikować."};
   let createdId=null;
   startOperation("Test: zapisuję szkic w WordPressie…");
@@ -868,7 +869,10 @@ async function savePost(status){
     if(!confirm("Zaplanować publikację artykułu na "+new Date(timestamp).toLocaleString("pl-PL")+"? WordPress opublikuje go automatycznie w tym terminie."))return;
     if(postId&&postStatus==="publish"&&!confirm("Ten artykuł jest już publiczny. Zaplanowanie go ponownie zdejmie obecną wersję ze strony do nowego terminu. Kontynuować?"))return;
   }
-  if(status==="publish"&&!confirm("Opublikować artykuł na żywo w Ispina Lokalnie? WordPress może również powiadomić subskrybentów."))return;
+  if(status==="publish"&&!confirm("Opublikować artykuł na żywo w Ispina Lokalnie? WordPress może również powiadomić subskrybentów.")){
+    publicationPhase("Anulowano publikację. Artykuł nie został wysłany.");
+    operationBanner("pending","Anulowano publikację — niczego nie wysłano.");return;
+  }
   if(status==="draft" && postId && postStatus==="publish"){
     if(!confirm("Ten artykuł jest już opublikowany. Zapisać zmiany BEZ wycofywania publikacji?"))return;
     status="publish";

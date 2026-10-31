@@ -156,6 +156,20 @@ test("missing schedule date shows the actionable error in the visible banner wit
   assert.doesNotMatch(a.node("working-state").textContent,/post-output/);
 });
 
+test("related-reading completion is not labeled as publication success",async()=>{
+  const a=setup();a.c.rpc=async()=>[{id:8,status:'publish',title:'Testowy tekst'}];
+  await a.run("suggestRelatedReading()");
+  assert.match(a.node("working-state").textContent,/Gotowe:/);
+  assert.doesNotMatch(a.node("working-state").textContent,/SUKCES/);
+});
+
+test("native host wires real confirmation before loading the editor and supports both user decisions",()=>{
+  const activity=fs.readFileSync(path.join(__dirname,'../app/src/main/java/com/ispinalokalnie/redaktor/MainActivity.java'),'utf8');
+  assert.ok(activity.indexOf('editor.setWebChromeClient(new WebChromeClient()')<activity.indexOf('editor.loadUrl('));
+  assert.match(activity,/onJsConfirm/);assert.match(activity,/result\.confirm\(\)/);assert.match(activity,/result\.cancel\(\)/);
+  assert.match(activity,/setPositiveButton\("Potwierdzam"/);assert.match(activity,/setNegativeButton\("Anuluj"/);
+});
+
 test("immediate publish ignores the optional schedule and shows success only after readback",async()=>{
   const a=setup();let releaseWrite;let signals=0;
   a.node("post-schedule").value="2000-01-01T12:00";
@@ -563,9 +577,9 @@ test("AI context exposes published posts only for reader recommendations",()=>{
 test("new build metadata and the PR APK workflow agree",()=>{
   const gradle=fs.readFileSync(path.join(__dirname,"../app/build.gradle"),"utf8");
   const workflow=fs.readFileSync(path.join(__dirname,"../../.github/workflows/il-redaktor-apk.yml"),"utf8");
-  assert.match(gradle,/versionCode 18/);assert.match(gradle,/versionName '1\.12\.0-test'/);
-  assert.match(gradle,/applicationId 'com\.ispinalokalnie\.redaktorsmart\.publish193\.test'/);
-  assert.match(workflow,/versionCode='18' versionName='1\.12\.0-test'/);
+  assert.match(gradle,/versionCode 19/);assert.match(gradle,/versionName '1\.13\.0-test'/);
+  assert.match(gradle,/applicationId 'com\.ispinalokalnie\.redaktorsmart\.publish194\.test'/);
+  assert.match(workflow,/versionCode='19' versionName='1\.13\.0-test'/);
 });
 
 test("AI editor shortcut copies current title and text into a reviewable prompt without sending it",()=>{
@@ -622,7 +636,7 @@ test("OAuth DCR, PKCE, deep-link scheme and manifest callback match without a cl
   const wp=fs.readFileSync(path.join(root,"java/com/ispinalokalnie/redaktor/WpMcp.java"),"utf8");
   const manifest=fs.readFileSync(path.join(root,"AndroidManifest.xml"),"utf8");
   assert.match(oauth,/scope=global/);assert.match(oauth,/code_challenge_method=S256/);
-  assert.match(oauth,/publish193:\/callback/);assert.match(manifest,/com\.ispinalokalnie\.redaktorsmart\.publish193/);
+  assert.match(oauth,/publish194:\/callback/);assert.match(manifest,/com\.ispinalokalnie\.redaktorsmart\.publish194/);
   assert.match(wp,/token_endpoint_auth_method", "none"/);assert.match(wp,/code_verifier/);
   assert.doesNotMatch(wp,/put\("client_secret"/);
 });
