@@ -67,6 +67,16 @@ jobs:
           java=pathlib.Path('il-redaktor-android/app/src/main/java/com/ispinalokalnie/redaktor/MainActivity.java').read_text()
           assert 'void verifyConnection' in java
           assert 'AndroidKeyStore' in java
+          oauth=pathlib.Path('il-redaktor-android/app/src/main/java/com/ispinalokalnie/redaktor/OAuthBrowserLogin.java').read_text()
+          mcp=pathlib.Path('il-redaktor-android/app/src/main/java/com/ispinalokalnie/redaktor/WpMcp.java').read_text()
+          manifest=pathlib.Path('il-redaktor-android/app/src/main/AndroidManifest.xml').read_text()
+          for expected in ['http://localhost:38477/callback','code_challenge_method=S256','Wróć do Redaktora IL','CountDownLatch']:
+              assert expected in oauth, 'OAuth return missing: '+expected
+          assert 'response_types' in mcp and 'authorization_code' in mcp
+          assert 'android:scheme="ilredaktor"' in manifest
+          for required in ['SUKCES!','NIE POWIODŁO SIĘ','function showOutcome','id="finish-dialog"']:
+              assert required in src, 'Feedback UI missing: '+required
+          assert 'client_secret' not in oauth and 'client_secret' not in src.lower()
           print('Required features and official IL branding confirmed')
           PY
           node --check /tmp/ilredaktor-ui.js
