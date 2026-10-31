@@ -11,7 +11,7 @@ Utwórz osobny projekt Vercel z Root Directory ustawionym na `il-redaktor-androi
 
 Endpoint weryfikuje sesję, wykonując tylko odczyt `posts.list` dla `ispinalokalnie.wordpress.com`. Token WordPressa nie jest zapisywany ani przekazywany do modelu; jest używany wyłącznie do tego sprawdzenia. Prompt i przekazany kontekst artykułów trafiają do Google Gemini API. Backend nie ma żadnego narzędzia publikowania.
 
-Po wdrożeniu ustaw `IL_ASSISTANT_ENDPOINT` w środowisku kompilacji APK na HTTPS URL endpointu `/api/assistant`. Bez tej zmiennej aplikacja pozostaje w trybie podstawowym i nie wysyła tekstu do modelu.
+Aplikacja domyślnie korzysta z `https://il-redaktor-assistant.vercel.app/api/assistant`. Podczas kompilacji można nadpisać ten adres przez `IL_ASSISTANT_ENDPOINT` albo właściwość Gradle `ilAssistantEndpoint`. Sam adres endpointu nie jest sekretem; każde żądanie sprawdza sesję WordPress, a backend ogranicza liczbę zapytań.
 
 Panel „Wyszukiwanie internetowe” korzysta z trybu `research` tego samego endpointu. Gemini używa wbudowanego narzędzia Google Search grounding, a aplikacja pokazuje źródła URL zwrócone przez AI SDK i użyte frazy, jeśli są dostępne. To wyszukiwanie tylko do odczytu; nie zapisuje ani nie publikuje artykułów. Limit wyszukiwania wynosi 3 raporty na godzinę na konto i adres IP. Wyniki wymagają ręcznego sprawdzenia w oryginalnych dokumentach. Każde wyszukiwanie wymaga potwierdzenia w aplikacji, bo korzystanie z Google Search grounding może generować osobne koszty API, niezależne od planu Gemini używanego w aplikacji.
 
