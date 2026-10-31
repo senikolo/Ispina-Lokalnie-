@@ -1,12 +1,12 @@
 # IL Redaktor Smart
 
-Niezależna aplikacja Android do redagowania portalu Ispina Lokalnie. Nie zmienia aplikacji dla mieszkańców. Aktualna wersja robocza: **1.11.0-test**, pakiet `com.ispinalokalnie.redaktorsmart.publish192.test` (versionCode 17), Android 8 i nowszy.
+Niezależna aplikacja Android do redagowania portalu Ispina Lokalnie. Nie zmienia aplikacji dla mieszkańców. Aktualna wersja robocza: **1.12.0-test**, pakiet `com.ispinalokalnie.redaktorsmart.publish193.test` (versionCode 18), Android 8 i nowszy.
 
 Przed kolejnym wydaniem użyj [Master Prompt QA](QA_MASTER_PROMPT.md) i zapisz wyniki według [raportu audytu 1.10.0](QA_AUDIT_1.10.0_2026-10-31.md). Testy kodu nie zastępują logowania na urządzeniu ani testu na koncie WordPress.com.
 
 ## Logowanie WordPress.com
 
-Aplikacja używa oficjalnego OAuth 2.1 WordPress.com: dynamicznie rejestruje publicznego klienta, używa Authorization Code + PKCE, otwiera przeglądarkę systemową i odbiera kod przez adres `com.ispinalokalnie.redaktorsmart.publish192:/callback`. Nie ma Client Secret ani hasła w APK. Użytkownik loguje się do WordPress.com i może wybrać Google, jeśli ta metoda jest skonfigurowana dla jego konta. Osobny identyfikator aplikacji pozwala zainstalować tę wersję obok poprzedniej bez usuwania jej szkiców; do nowej instalacji należy zalogować się ponownie.
+Aplikacja używa oficjalnego OAuth 2.1 WordPress.com: dynamicznie rejestruje publicznego klienta, używa Authorization Code + PKCE, otwiera przeglądarkę systemową i odbiera kod przez adres `com.ispinalokalnie.redaktorsmart.publish193:/callback`. Nie ma Client Secret ani hasła w APK. Użytkownik loguje się do WordPress.com i może wybrać Google, jeśli ta metoda jest skonfigurowana dla jego konta. Osobny identyfikator aplikacji pozwala zainstalować tę wersję obok poprzedniej bez usuwania jej szkiców; do nowej instalacji należy zalogować się ponownie.
 
 Po wymianie kodu aplikacja szyfruje token dostępu i token odświeżający kluczem Android Keystore. Zalogowanie jest potwierdzone dopiero, gdy aplikacja odczyta co najmniej jeden istniejący, opublikowany wpis przez WordPress.com MCP. Odmowa lub błąd API jest pokazywany wraz z odpowiedzią serwera. Token odświeżający nie jest gwarantowany przez WordPress.com; przy jego braku aplikacja prosi o ponowne logowanie po wygaśnięciu tokenu.
 
@@ -14,6 +14,7 @@ W ustawieniach konta WordPress.com trzeba włączyć dostęp MCP i zatwierdzić 
 
 ## Funkcje
 
+- Główny przycisk „Opublikuj teraz” działa bez daty. Harmonogram jest domyślnie schowany pod „Zaplanuj na później”. Podczas zapisu okno pokazuje etap i blokuje ponowne kliknięcie. Potwierdzona publikacja kończy się zielonym napisem „SUKCES!”, wibracją i opcjonalnym sygnałem dźwiękowym (z uwzględnieniem trybu cichego), a przycisk „Zobacz artykuł na WordPressie” otwiera właściwy wpis w aplikacji.
 - Pulpit redakcyjny, lista opublikowanych wpisów, szkiców i wpisów zaplanowanych; edycja wpisu, zapis szkicu, harmonogram i publikacja po dodatkowym potwierdzeniu. Zapis jest sukcesem dopiero po ponownym odczycie wpisu z WordPress.com. Po publikacji aplikacja wyświetla rzeczywistą stronę artykułu we własnym, bezpiecznym widoku WebView.
 - Propozycje „Przeczytaj także” dobierane spośród istniejących, publicznych wpisów Ispina Lokalnie; pokazują prawdziwy tytuł, zajawkę i adres, pozwalają skopiować zachętę lub po potwierdzeniu wstawić link do redagowanego artykułu. Asystent AI może przygotować krótką promocję na podstawie przekazanych artykułów. Podpowiedzi nie dopisują się do wpisu samodzielnie.
 - Lokalna kopia robocza, podgląd, formatowanie HTML, kategorie, tagi, zajawka i zdjęcie wyróżniające.
@@ -23,7 +24,7 @@ W ustawieniach konta WordPress.com trzeba włączyć dostęp MCP i zatwierdzić 
 
 ## Kompilacja i podpis
 
-Workflow **IL Redaktor Smart - Android APK** sprawdza JavaScript, testy kontraktowe, asercje integracji i zawartość APK, buduje APK debug oraz przechowuje artefakt przez 30 dni. APK z versionCode 17 używa osobnego pakietu `com.ispinalokalnie.redaktorsmart.publish192.test`, więc można go zainstalować obok poprzedniej wersji bez usuwania jej lokalnych szkiców. Zaloguj się raz w nowej instalacji. Aktualizacje tej nowej instalacji zachowujące dane wymagają podpisu stałym kluczem release.
+Workflow **IL Redaktor Smart - Android APK** sprawdza JavaScript, testy kontraktowe, asercje integracji i zawartość APK, buduje APK debug oraz przechowuje artefakt przez 30 dni. APK z versionCode 18 używa osobnego pakietu `com.ispinalokalnie.redaktorsmart.publish193.test`, więc można go zainstalować obok poprzedniej wersji bez usuwania jej lokalnych szkiców. Zaloguj się raz w nowej instalacji. Aktualizacje tej nowej instalacji zachowujące dane wymagają podpisu stałym kluczem release.
 
 Aby workflow budował aktualizowalny APK release, skonfiguruj w GitHub Actions secrets:
 

@@ -121,6 +121,11 @@ nav{background:#fffffff5;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur
 nav button.active{color:var(--il-blue);background:#e6f0f8}
 .operation-status{margin:0 12px;border-radius:0 0 13px 13px;padding:9px 12px;font-size:12px;line-height:1.45;text-align:left;box-shadow:0 3px 12px #17487518}
 .operation-status.pending{background:#336588}
+.publish-now-card{margin-top:18px;padding:18px;border:2px solid #174875;border-radius:16px;background:#edf5fb}
+.publish-now-card p{font-size:14px;line-height:1.5}.publish-now-card button{font-size:20px;min-height:60px}
+.finish-panel{max-height:90vh;overflow:auto}.finish-panel.published{border:4px solid #16834b}
+.finish-panel.published .finish-symbol{font-size:38px;font-weight:900;color:#13743f}
+.finish-panel.published #finish-preview{width:100%;font-size:18px;min-height:56px;background:#13743f}
 .operation-status:before{vertical-align:middle}
 .finish-panel{border:1px solid #dbe7ef}
 @keyframes ilGleam{0%,100%{opacity:.75}50%{opacity:1}}
@@ -215,7 +220,6 @@ a{color:#1767a8}:root[data-theme="dark"] a{color:#9ecfff}
     <label style="flex:1">Format<select id="post-mode"><option value="text">Tekst → HTML</option><option value="html">HTML / bloki WordPress</option></select></label></div>
     <label for="post-excerpt">Krótki opis / zajawka SEO</label><textarea id="post-excerpt" style="min-height:80px" placeholder="Opis wyświetlany na liście wpisów..."></textarea>
     <label for="post-tags">Tagi (oddziel przecinkami)</label><input id="post-tags" placeholder="Ispina, historia Ispiny">
-    <label for="post-schedule">Termin publikacji</label><div class="row"><input id="post-schedule" type="datetime-local" style="flex:1"><button onclick="savePost('future')" id="save-schedule">Zaplanuj publikację</button></div><p class="muted small">Wybierz datę i godzinę według strefy czasowej telefonu. WordPress musi potwierdzić status „zaplanowany”.</p>
     <label for="post-media">Zdjęcie wyróżniające</label>
     <div class="row"><input id="post-media" type="number" min="0" value="0" style="flex:1"><button class="secondary" onclick="IL.chooseImage()">Z telefonu</button><button class="secondary" onclick="showScreen('media');loadMedia()">Z galerii IL</button></div>
     <div class="actions"><button class="secondary" onclick="suggest()">Korekta i SEO</button><button class="secondary" onclick="assistantFromEditor('Popraw język polski, śródtytuły i zajawkę. Zachowaj sens i wszystkie potwierdzone fakty; nie dopowiadaj informacji o Ispinie.')">Korekta AI</button><button class="secondary" onclick="suggestRelatedReading()">📖 Poleć czytelnikom powiązane teksty IL</button><button class="secondary" onclick="preview()">Podgląd</button><button class="secondary" onclick="showTemplates()">Szablony</button></div>
@@ -223,7 +227,10 @@ a{color:#1767a8}:root[data-theme="dark"] a{color:#9ecfff}
     <div id="editor-metrics" class="note">Napisz tekst, aby zobaczyć wskazówki redakcyjne.</div>
     <div id="reading-suggestions" aria-live="polite" role="region" aria-label="Propozycje lektury dla czytelników"></div>
     <div class="actions"><button class="secondary" onclick="restoreLocal()">Przywróć lokalny szkic</button><button class="secondary" onclick="downloadText()">Kopia tekstu</button></div>
-    <div class="actions save-actions"><button onclick="savePost('draft')" id="save-draft">Zapisz szkic / zmiany</button><button onclick="savePost('publish')" id="save-publish">Opublikuj po zatwierdzeniu</button><button class="secondary" onclick="resetEditor()">Nowy wpis</button></div><div class="actions"><button class="secondary" onclick="verifyLastPublication()">🔎 Sprawdź ostatni zapis</button></div><div class="actions"><button id="view-published-post" class="secondary hidden" onclick="openPublishedPost()">📖 Zobacz opublikowany wpis w aplikacji</button></div><p id="publication-phase" class="note" role="status" aria-live="polite">Gotowy do redagowania. Publikacja wymaga potwierdzenia.</p>
+    <div class="publish-now-card"><h3>Gotowy artykuł?</h3><p>Opublikuj go teraz na Ispina Lokalnie. Nie musisz wybierać daty. Najpierw poproszę Cię o potwierdzenie.</p><button class="wide" onclick="savePost('publish')" id="save-publish">Opublikuj teraz</button><p class="small">Po potwierdzeniu przez WordPress zobaczysz duży napis SUKCES i przycisk do swojego artykułu.</p></div>
+    <div class="actions save-actions"><button class="secondary" onclick="savePost('draft')" id="save-draft">Zapisz szkic / zmiany</button><button class="secondary" onclick="resetEditor()" id="new-post">Nowy wpis</button></div>
+    <details class="note"><summary>Zaplanuj na później (opcjonalnie)</summary><p>Użyj tej opcji tylko wtedy, gdy artykuł ma ukazać się w przyszłości.</p><label for="post-schedule">Termin publikacji</label><input id="post-schedule" type="datetime-local"><p class="muted small">Wybierz datę i godzinę według strefy czasowej telefonu. WordPress musi potwierdzić status „zaplanowany”.</p><button class="secondary wide" onclick="savePost('future')" id="save-schedule">Zaplanuj na wybrany termin</button></details>
+    <div class="actions"><button class="secondary" onclick="verifyLastPublication()">🔎 Sprawdź ostatni zapis</button></div><div class="actions"><button id="view-published-post" class="secondary hidden" onclick="openPublishedPost()">📖 Zobacz opublikowany wpis w aplikacji</button></div><p id="publication-phase" class="note" role="status" aria-live="polite">Gotowy do redagowania. Publikacja wymaga potwierdzenia.</p>
     <div id="post-output" aria-live="polite"></div>
   </div>
   <div id="preview-box" class="card hidden"><h2>Podgląd artykułu</h2><iframe sandbox="" id="post-preview" title="Podgląd artykułu"></iframe></div>
@@ -280,7 +287,7 @@ a{color:#1767a8}:root[data-theme="dark"] a{color:#9ecfff}
       <p>Zatwierdź dostęp w przeglądarce i wybierz otwarcie Redaktora IL, gdy Android o to zapyta. Jeśli jesteś już z powrotem w aplikacji, ale nadal widzisz krok 3/4, skorzystaj z opcji poniżej.</p>
       <div class="actions"><button class="secondary" onclick="checkLoginState()">Sprawdź stan</button><button class="secondary" onclick="cancelLoginFlow()">Anuluj i spróbuj ponownie</button></div>
       <details><summary>Zaawansowane: ręczne dokończenie logowania</summary>
-        <p>Jeśli przeglądarka pokazuje pełny adres rozpoczynający się od <code>com.ispinalokalnie.redaktorsmart.publish192:/callback</code>, możesz wkleić go poniżej. Nie wpisuj tu hasła, kodu z SMS ani zwykłego adresu WordPressa. Nie udostępniaj nikomu tego adresu.</p>
+        <p>Jeśli przeglądarka pokazuje pełny adres rozpoczynający się od <code>com.ispinalokalnie.redaktorsmart.publish193:/callback</code>, możesz wkleić go poniżej. Nie wpisuj tu hasła, kodu z SMS ani zwykłego adresu WordPressa. Nie udostępniaj nikomu tego adresu.</p>
         <label for="oauth-return">Adres powrotu (poufny)</label><input id="oauth-return" type="password" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Wklej pełny adres powrotu z przeglądarki">
         <div class="actions"><button onclick="finishManualLogin()">Dokończ logowanie</button></div>
       </details>
@@ -298,7 +305,7 @@ a{color:#1767a8}:root[data-theme="dark"] a{color:#9ecfff}
       <div id="test-write-result" role="status" aria-live="polite"></div>
     </div>
   </div>
-  <div class="card settings-soft"><h2>Wibracje i odczucia dotykowe</h2><p class="setting-caption">Subtelna reakcja przy zmianie ustawienia, zakończeniu ważnej operacji lub błędzie. Nie wibruje przy każdym dotknięciu.</p><label for="haptics-select">Intensywność wibracji</label><select id="haptics-select" onchange="setHapticsMode(this.value)"><option value="0">Wyłączone</option><option value="1" selected>Delikatne</option><option value="2">Normalne</option><option value="3">Mocniejsze</option></select><div class="actions"><button class="secondary" onclick="testHaptics()">Sprawdź wibrację</button></div><div id="haptics-status" class="setting-caption" aria-live="polite">Ustawienie zostanie zapamiętane na telefonie.</div></div>
+  <div class="card settings-soft"><h2>Sygnały i wibracje</h2><label class="setting-row"><input type="checkbox" id="publication-sound" checked onchange="localStorage.setItem('il_publication_sound',String(this.checked))"><span>Sygnał dźwiękowy po potwierdzonej publikacji (z uwzględnieniem trybu cichego telefonu)</span></label><p class="setting-caption">Subtelna reakcja przy zmianie ustawienia, zakończeniu ważnej operacji lub błędzie. Nie wibruje przy każdym dotknięciu.</p><label for="haptics-select">Intensywność wibracji</label><select id="haptics-select" onchange="setHapticsMode(this.value)"><option value="0">Wyłączone</option><option value="1" selected>Delikatne</option><option value="2">Normalne</option><option value="3">Mocniejsze</option></select><div class="actions"><button class="secondary" onclick="testHaptics()">Sprawdź wibrację</button></div><div id="haptics-status" class="setting-caption" aria-live="polite">Ustawienie zostanie zapamiętane na telefonie.</div></div>
   <div class="card settings-soft"><h2>Wygląd i czytelność</h2>
     <label for="theme-select">Motyw</label><select id="theme-select" onchange="applyUiPreferences(true)"><option value="system">Jak w telefonie</option><option value="light">Jasny</option><option value="dark">Ciemny</option></select>
     <label for="text-zoom-select">Rozmiar tekstu</label><select id="text-zoom-select" onchange="applyUiPreferences(true)"><option value="80">80% · mniejszy</option><option value="90">90%</option><option value="100" selected>100% · domyślny</option><option value="115">115%</option><option value="130">130%</option><option value="150">150% · większy</option><option value="160">160% · największy</option></select>
@@ -306,15 +313,16 @@ a{color:#1767a8}:root[data-theme="dark"] a{color:#9ecfff}
     <label class="setting-row"><input type="checkbox" id="battery-saving" onchange="applyUiPreferences(true)"><span>Tryb oszczędzania baterii</span></label>
     <p id="ui-preferences-status" class="setting-caption" role="status" aria-live="polite">Ustawienia zapisują się na tym telefonie. Systemowe ograniczenie ruchu zawsze ma pierwszeństwo.</p>
   </div>
-  <div class="card"><h2>O programie</h2><p class="muted">IL Redaktor Smart 1.11.0-test · Niezależna aplikacja Android 8 i nowszy. WordPress.com MCP. Publikacja wymaga potwierdzenia i ponownego odczytu wpisu.</p></div>
+  <div class="card"><h2>O programie</h2><p class="muted">IL Redaktor Smart 1.12.0-test · Niezależna aplikacja Android 8 i nowszy. WordPress.com MCP. Publikacja wymaga potwierdzenia i ponownego odczytu wpisu.</p></div>
 </section>
 </main>
+<div id="publication-progress" class="finish-dialog hidden" role="dialog" aria-modal="true" aria-labelledby="progress-title"><div class="finish-panel"><h2 id="progress-title">Publikuję — poczekaj chwilę</h2><p id="progress-step" role="status" aria-live="polite">Przygotowuję artykuł…</p><p class="muted">Poczekaj na potwierdzenie z WordPressa. Przy wolnym połączeniu odpowiedź może potrwać dłużej. Nie wysyłaj wpisu ponownie.</p></div></div>
 <div id="finish-dialog" class="finish-dialog hidden" role="alertdialog" aria-modal="true" aria-labelledby="finish-title">
 <div id="finish-panel" class="finish-panel">
 <div id="finish-symbol" class="finish-symbol">✓</div>
 <h2 id="finish-title" class="finish-title">SUKCES!</h2>
 <p id="finish-detail" class="finish-detail"></p>
-<div class="finish-actions"><button id="finish-preview" class="publication-action hidden" onclick="openPublishedPreview()">📖 Zobacz treść w aplikacji</button><button id="finish-open" class="secondary hidden" onclick="openFinishUrl()">Otwórz w przeglądarce</button><button id="finish-edit" class="publication-action secondary hidden" onclick="editPublishedAgain()">Edytuj ponownie</button><button id="finish-home" class="publication-action secondary hidden" onclick="returnToDashboard()">Wróć do pulpitu</button><button class="secondary" onclick="closeFinish()">Zamknij</button></div>
+<div class="finish-actions"><button id="finish-preview" class="publication-action hidden" onclick="openPublishedPreview()">📖 Zobacz artykuł na WordPressie</button><button id="finish-open" class="secondary hidden" onclick="openFinishUrl()">Otwórz w przeglądarce</button><button id="finish-edit" class="publication-action secondary hidden" onclick="editPublishedAgain()">Edytuj ponownie</button><button id="finish-home" class="publication-action secondary hidden" onclick="returnToDashboard()">Wróć do pulpitu</button><button class="secondary" onclick="closeFinish()">Zamknij</button></div>
 </div></div>
 <nav aria-label="Główne zakładki">
 <button id="nav-home" class="active" onclick="showScreen('home')"><span class="sym">⌂</span>Pulpit</button>
@@ -352,14 +360,16 @@ function showOutcome(kind,headline,detail,link="",linkLabel="Otwórz w WordPress
   operationFinished(kind==="success",headline,detail.slice(0,260));
   finishUrl=link;
   $("finish-panel").classList.toggle("error",kind==="error");
-  $("finish-symbol").textContent=kind==="success"?"✓":"!";
+  $("finish-panel").classList.toggle("published",kind==="success"&&isPublishedArticle);
+  $("finish-symbol").textContent=kind==="success"?(isPublishedArticle?"✓ SUKCES!":"✓"):"!";
   $("finish-title").textContent=headline;
   $("finish-detail").textContent=detail;
   $("finish-open").classList.toggle("hidden",!link);
   $("finish-open").textContent=kind==="success"&&isPublishedArticle?"Otwórz w przeglądarce":linkLabel;
-  $("finish-preview").textContent="📖 Zobacz treść w aplikacji";
+  $("finish-preview").textContent="📖 Zobacz artykuł na WordPressie";
   ["finish-preview","finish-edit","finish-home"].forEach(id=>$(id).classList.toggle("hidden",!(kind==="success"&&isPublishedArticle)));
   $("finish-dialog").classList.remove("hidden");
+  if(kind==="success"&&isPublishedArticle&&localStorage.getItem("il_publication_sound")!=="false"&&typeof IL.publicationSuccess==="function")IL.publicationSuccess();
 }
 function closeFinish(){$("finish-dialog").classList.add("hidden");}
 function openFinishUrl(){if(finishUrl)IL.openSite(finishUrl);}
@@ -379,11 +389,16 @@ function returnToDashboard(){closeFinish();showScreen("home");}
 let publishedPageUrl="";
 function openPublishedPost(){openPublishedPreview();}
 function setPublishedUrl(url){publishedPageUrl=url||"";$("view-published-post").classList.toggle("hidden",!publishedPageUrl);}
-function publicationPhase(text,kind=""){$("publication-phase").className="note "+kind;$("publication-phase").textContent=text;}
+function publicationPhase(text,kind=""){$("publication-phase").className="note "+kind;$("publication-phase").textContent=text;$("progress-step").textContent=text;}
 let publicationBusy=false;
 let lastPublicationAttempt=null, serviceBusy=false;
 let publicationStep="przygotowanie wpisu";
-function publicationButtons(busy){publicationBusy=busy;["save-draft","save-publish","save-schedule"].forEach(id=>{$(id).disabled=busy;$(id).setAttribute("aria-busy",String(busy))})}
+function publicationButtons(busy){
+  publicationBusy=busy;
+  ["save-draft","save-publish","save-schedule","new-post"].forEach(id=>{$(id).disabled=busy;$(id).setAttribute("aria-busy",String(busy))});
+  $("save-publish").textContent=busy?"Trwa zapis — poczekaj…":"Opublikuj teraz";
+  $("publication-progress").classList.toggle("hidden",!busy);
+}
 function explainPublicationFailure(error,stage,id){
   const raw=trim(error?.message||error||"Nieznany błąd WordPressa.");
   const lower=raw.toLocaleLowerCase("pl");
@@ -402,7 +417,10 @@ const localKey="il_redaktor_draft_v2";let restoring=false, saveTimer=0;
 const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 function message(id,msg,kind=""){
   $(id).innerHTML='<div class="note '+kind+'">'+esc(msg)+'</div>';
-  if(kind==="ok"||kind==="error")operationFinished(kind==="ok",(kind==="ok"?"Potwierdzono: ":"Nie powiodło się: ")+id,msg.slice(0,190));
+  if(kind==="ok"||kind==="error"){
+    const summary=String(msg).replace(/\s+/g," ").trim();
+    operationFinished(kind==="ok",summary.length>190?summary.slice(0,187)+"…":summary,String(msg));
+  }
 }
 function trim(s){return String(s||"").trim()}
 function showScreen(key){
@@ -758,7 +776,7 @@ async function testDraftWrite(){
   if(!confirm("Utworzyć w WordPressie prywatny szkic diagnostyczny? Nie będzie publiczny i pozostanie na liście szkiców do ręcznego usunięcia."))return;
   const testButton=$("test-draft-write");
   diagnosticWriteBusy=true;testButton.disabled=true;
-  const title="[TEST IL Redaktor Smart 1.11.0] Sprawdzenie zapisu "+new Date().toLocaleString("pl-PL");
+  const title="[TEST IL Redaktor Smart 1.12.0] Sprawdzenie zapisu "+new Date().toLocaleString("pl-PL");
   const body={title,content:"<p>Test techniczny zapisu z aplikacji IL Redaktor Smart. Ten szkic nie jest przeznaczony do publikacji.</p>",status:"draft",excerpt:"Test techniczny. Nie publikować."};
   let createdId=null;
   startOperation("Test: zapisuję szkic w WordPressie…");
@@ -845,7 +863,7 @@ async function savePost(status){
   if(status==="future"){
     const rawDate=$("post-schedule").value;
     const timestamp=rawDate?new Date(rawDate).getTime():NaN;
-    if(!Number.isFinite(timestamp)||timestamp<Date.now()+120000){message("post-output","Wybierz termin co najmniej 2 minuty w przyszłości.","error");return}
+    if(!Number.isFinite(timestamp)||timestamp<Date.now()+120000){message("post-output","Wybierz termin co najmniej 2 minuty w przyszłości. Aby opublikować od razu, wybierz „Opublikuj teraz” — data nie jest potrzebna.","error");return}
     scheduledDate=new Date(timestamp).toISOString();
     if(!confirm("Zaplanować publikację artykułu na "+new Date(timestamp).toLocaleString("pl-PL")+"? WordPress opublikuje go automatycznie w tym terminie."))return;
     if(postId&&postStatus==="publish"&&!confirm("Ten artykuł jest już publiczny. Zaplanowanie go ponownie zdejmie obecną wersję ze strony do nowego terminu. Kontynuować?"))return;
@@ -864,6 +882,7 @@ async function savePost(status){
     scheduledDate=new Date(timestamp).toISOString();
   }
   publicationButtons(true);
+  $("progress-title").textContent=status==="publish"?"Publikuję — poczekaj chwilę":status==="future"?"Planuję publikację…":"Zapisuję szkic…";
   lastPublicationAttempt={title,status,id:postId,started:Date.now()};
   publicationStep="przygotowanie wpisu";
   setPublishedUrl("");
@@ -938,14 +957,14 @@ async function savePost(status){
     lastPublicationAttempt=null;
     const summary=status==="publish"?"✓ Sukces! Artykuł został opublikowany na Ispina Lokalnie.":status==="future"?"✓ Sukces! Publikacja artykułu została zaplanowana.":"SUKCES! Szkic zapisany.";
     const detail="WordPress zapisał wpis, a ponowny odczyt potwierdził jego status. Tytuł: "+title+
-      ". Numer wpisu: "+postId+". Status: "+verified.status+"."+(status==="publish"?" Wybierz „Zobacz treść w aplikacji”, aby od razu ją wyświetlić.":"");
+      ". Numer wpisu: "+postId+". Status: "+verified.status+"."+(status==="publish"?" Wybierz „Zobacz artykuł na WordPressie”, aby od razu ją wyświetlić.":"");
     message("post-output",summary+" "+detail,"ok");
     const canonical=verified.link&&/^https:\/\/ispinalokalnie\.wordpress\.com\//.test(verified.link)?verified.link:"";
     const published=status==="publish";
     const link=published?(canonical||"https://ispinalokalnie.wordpress.com/?p="+postId):
       "https://wordpress.com/post/ispinalokalnie.wordpress.com/"+postId;
     if(published)setPublishedUrl(link);
-    publicationPhase(published?"SUKCES! WordPress potwierdził publikację. Wybierz „Zobacz treść w aplikacji”, aby przeczytać wpis.":status==="future"?"SUKCES! WordPress potwierdził zaplanowaną datę publikacji.":"SUKCES! WordPress potwierdził zapis szkicu.","ok");
+    publicationPhase(published?"SUKCES! WordPress potwierdził publikację. Wybierz „Zobacz artykuł na WordPressie”, aby przeczytać wpis.":status==="future"?"SUKCES! WordPress potwierdził zaplanowaną datę publikacji.":"SUKCES! WordPress potwierdził zapis szkicu.","ok");
     showOutcome("success",summary,detail,link,
       published?"Otwórz w przeglądarce":status==="future"?"Edytuj zaplanowany wpis":"Otwórz szkic w WordPressie",published);
   }catch(e){
@@ -953,7 +972,7 @@ async function savePost(status){
     publicationPhase("Nie udało się dokończyć publikacji. Zobacz niżej, na którym kroku zatrzymała się operacja.","error");
     message("post-output",detail,"error");
     showOutcome("error","PUBLIKACJA NIEZAKOŃCZONA",detail);
-  }finally{publicationButtons(false);}
+  }finally{publicationButtons(false);endOperation();}
 }
 async function verifyLastPublication(){
   if(!connected){message("post-output","Połącz najpierw konto WordPress.","error");return}
@@ -989,6 +1008,7 @@ async function verifyLastPublication(){
   }catch(e){message("post-output","Nie udało się sprawdzić ostatniego zapisu: "+e.message,"error")}
 }
 function resetEditor(){
+  if(publicationBusy)return;
   setPublishedUrl("");publicationPhase("Gotowy do redagowania. Publikacja wymaga potwierdzenia.");
   postId=null;postStatus="";
   ["post-title","post-body","post-excerpt","post-tags","post-schedule"].forEach(id=>$(id).value="");
@@ -1307,6 +1327,7 @@ if(actionHistory.length){
   $("activity-feed").innerHTML=actionHistory.map(a=>'<div class="activity-entry '+esc(a.kind)+'"><strong>'+esc(a.at+" · "+a.title)+'</strong><small>'+esc(a.detail)+'</small></div>').join("");
 }
 loadUiPreferences();
+$("publication-sound").checked=localStorage.getItem("il_publication_sound")!=="false";
 if(window.IL){IL.status();if(IL.getHaptics)IL.getHaptics();if(IL.getTextZoom)IL.getTextZoom();if(IL.loginState)IL.loginState()}else{message("auth-output","Brak mostu Android. Otwórz ten panel wewnątrz APK.","error");}
 </script>
 </body></html>

@@ -136,7 +136,7 @@ test("confirmed publication opens the live article inside the app and keeps brow
     {id:67,status:"publish"}:
     {id:67,status:"publish",link:expected};
   await a.run("savePost('publish')");
-  assert.equal(a.node("finish-preview").textContent,"📖 Zobacz treść w aplikacji");
+  assert.equal(a.node("finish-preview").textContent,"📖 Zobacz artykuł na WordPressie");
   assert.equal(a.node("finish-open").textContent,"Otwórz w przeglądarce");
   assert.equal(a.node("view-published-post").classList.contains("hidden"),false);
   assert.match(a.node("publication-phase").textContent,/SUKCES/);
@@ -145,6 +145,53 @@ test("confirmed publication opens the live article inside the app and keeps brow
   a.run("openPublishedPost()");
   assert.deepEqual(openedInBrowser,[expected]);
   assert.deepEqual(openedInApp,[expected,expected]);
+});
+
+test("missing schedule date shows the actionable error in the visible banner without internal field IDs",async()=>{
+  const a=setup();let writes=0;
+  a.c.rpc=async()=>{writes++;throw Error("Unexpected request")};
+  await a.run("savePost('future')");
+  assert.equal(writes,0);
+  assert.match(a.node("working-state").textContent,/Wybierz termin/);
+  assert.doesNotMatch(a.node("working-state").textContent,/post-output/);
+});
+
+test("immediate publish ignores the optional schedule and shows success only after readback",async()=>{
+  const a=setup();let releaseWrite;let signals=0;
+  a.node("post-schedule").value="2000-01-01T12:00";
+  a.c.IL.publicationSuccess=()=>signals++;
+  a.c.rpc=(method,p,body)=>{
+    if(method==="POST"){
+      assert.equal(body.status,"publish");assert.equal(body.date,undefined);
+      return new Promise(resolve=>{releaseWrite=resolve});
+    }
+    return Promise.resolve({id:801,status:"publish",link:"https://ispinalokalnie.wordpress.com/?p=801"});
+  };
+  const pending=a.run("savePost('publish')");
+  assert.equal(a.node("publication-progress").classList.contains("hidden"),false);
+  assert.equal(a.node("save-publish").disabled,true);assert.equal(signals,0);
+  releaseWrite({id:801,status:"publish"});await pending;
+  assert.equal(a.node("publication-progress").classList.contains("hidden"),true);
+  assert.equal(a.node("save-publish").disabled,false);
+  assert.equal(a.node("finish-symbol").textContent,"✓ SUKCES!");assert.equal(signals,1);
+  assert.equal(a.node("finish-preview").textContent,"📖 Zobacz artykuł na WordPressie");
+});
+
+test("publication failure closes the waiting window and never plays the success signal",async()=>{
+  const a=setup();let signals=0;a.c.IL.publicationSuccess=()=>signals++;
+  a.c.rpc=async()=>{throw Error("HTTP 403")};
+  await a.run("savePost('publish')");
+  assert.equal(a.node("publication-progress").classList.contains("hidden"),true);
+  assert.equal(a.node("finish-dialog").classList.contains("hidden"),false);
+  assert.equal(signals,0);assert.equal(a.node("save-publish").disabled,false);
+});
+
+test("publication sound preference can disable sound without hiding success",async()=>{
+  const a=setup();let signals=0;a.storage.set("il_publication_sound","false");
+  a.c.IL.publicationSuccess=()=>signals++;
+  a.c.rpc=async()=>({id:802,status:"publish"});
+  await a.run("savePost('publish')");
+  assert.equal(a.node("finish-symbol").textContent,"✓ SUKCES!");assert.equal(signals,0);
 });
 
 test("reader recommendations use published IL articles and insert a confirmed internal link",async()=>{
@@ -516,9 +563,9 @@ test("AI context exposes published posts only for reader recommendations",()=>{
 test("new build metadata and the PR APK workflow agree",()=>{
   const gradle=fs.readFileSync(path.join(__dirname,"../app/build.gradle"),"utf8");
   const workflow=fs.readFileSync(path.join(__dirname,"../../.github/workflows/il-redaktor-apk.yml"),"utf8");
-  assert.match(gradle,/versionCode 17/);assert.match(gradle,/versionName '1\.11\.0-test'/);
-  assert.match(gradle,/applicationId 'com\.ispinalokalnie\.redaktorsmart\.publish192\.test'/);
-  assert.match(workflow,/versionCode='17' versionName='1\.11\.0-test'/);
+  assert.match(gradle,/versionCode 18/);assert.match(gradle,/versionName '1\.12\.0-test'/);
+  assert.match(gradle,/applicationId 'com\.ispinalokalnie\.redaktorsmart\.publish193\.test'/);
+  assert.match(workflow,/versionCode='18' versionName='1\.12\.0-test'/);
 });
 
 test("AI editor shortcut copies current title and text into a reviewable prompt without sending it",()=>{
@@ -575,7 +622,7 @@ test("OAuth DCR, PKCE, deep-link scheme and manifest callback match without a cl
   const wp=fs.readFileSync(path.join(root,"java/com/ispinalokalnie/redaktor/WpMcp.java"),"utf8");
   const manifest=fs.readFileSync(path.join(root,"AndroidManifest.xml"),"utf8");
   assert.match(oauth,/scope=global/);assert.match(oauth,/code_challenge_method=S256/);
-  assert.match(oauth,/publish192:\/callback/);assert.match(manifest,/com\.ispinalokalnie\.redaktorsmart\.publish192/);
+  assert.match(oauth,/publish193:\/callback/);assert.match(manifest,/com\.ispinalokalnie\.redaktorsmart\.publish193/);
   assert.match(wp,/token_endpoint_auth_method", "none"/);assert.match(wp,/code_verifier/);
   assert.doesNotMatch(wp,/put\("client_secret"/);
 });

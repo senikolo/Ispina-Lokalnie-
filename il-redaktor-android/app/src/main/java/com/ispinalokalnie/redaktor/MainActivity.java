@@ -2,6 +2,8 @@ package com.ispinalokalnie.redaktor;
 
 import android.app.Activity;
 import android.app.Dialog;
+import android.media.AudioManager;
+import android.media.ToneGenerator;
 import android.os.Vibrator;
 import android.os.VibrationEffect;
 import android.webkit.WebViewClient;
@@ -354,6 +356,18 @@ public class MainActivity extends Activity {
         @JavascriptInterface public void haptic(String kind) {
             if (!("tap".equals(kind) || "success".equals(kind) || "error".equals(kind))) return;
             ui.post(() -> vibrateFeedback(kind));
+        }
+
+        @JavascriptInterface public void publicationSuccess() {
+            ui.post(() -> {
+                try {
+                    AudioManager audio = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
+                    if (audio == null || audio.getRingerMode() != AudioManager.RINGER_MODE_NORMAL) return;
+                    ToneGenerator tone = new ToneGenerator(AudioManager.STREAM_NOTIFICATION, 65);
+                    tone.startTone(ToneGenerator.TONE_PROP_ACK, 350);
+                    ui.postDelayed(tone::release, 700);
+                } catch (RuntimeException ignored) { /* Visual confirmation remains available. */ }
+            });
         }
 
         @JavascriptInterface public void loginState() {
