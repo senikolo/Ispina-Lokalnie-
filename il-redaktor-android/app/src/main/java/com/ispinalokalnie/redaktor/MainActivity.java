@@ -150,6 +150,7 @@ public class MainActivity extends Activity {
     private void clearSession() {
         prefs().edit().remove("token").remove("refresh_token").remove("expiry").apply();
         verified = false;
+        WpMcp.resetSession();
     }
 
     private boolean connected() {
@@ -232,6 +233,7 @@ public class MainActivity extends Activity {
                 loginInProgress = false;
                 try {
                     putTokens(access, expires, refresh, true);
+                    WpMcp.resetSession();
                     if (!prefs().edit().putString("oauth21_client_id", clientId).commit())
                         throw new Exception("Android nie zapisał identyfikatora połączenia.");
                     verified = false;
