@@ -1,6 +1,6 @@
 # IL Redaktor Smart – niezależna aplikacja Android
 
-Wersja testowa 1.1.0-test. Android 8 i nowsze. Odrębny pakiet com.ispinalokalnie.redaktor.
+Wersja testowa 1.1.0-test. Android 8 i nowsze. Odrębny pakiet testowy com.ispinalokalnie.redaktorsmart.test. Nie koliduje ze starszym testowym wydaniem, ale do aktualizacji tego samego pakietu między kompilacjami konieczny jest stały prywatny klucz podpisujący; standardowy klucz debug w GitHub Actions jest jednorazowy.
 
 ## Audyt i poprawki
 - Zastąpiono fikcyjny monogram tekstowy oficjalną grafiką IL z WordPressa; ikona aplikacji jest generowana z tego samego źródła.
