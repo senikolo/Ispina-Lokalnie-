@@ -101,10 +101,10 @@ jobs:
           assert 'android:scheme="com.ispinalokalnie.redaktorsmart.publish190"' in manifest
           import re
           redirect=re.search(r'public static final String REDIRECT = "([^"]+)"',oauth)
-          checked=re.search(r'"(com\\.ispinalokalnie\\.redaktorsmart\\.publish\\d+)"\\.equals\\(uri\\.getScheme\\(\\)\\)',oauth)
-          assert redirect and checked, 'OAuth REDIRECT and callback scheme must be statically inspectable'
-          assert redirect.group(1).split(':')[0] == checked.group(1), 'Critical regression: OAuth callback scheme mismatch'
-          assert 'android:scheme="' + checked.group(1) + '"' in manifest, 'Android manifest callback scheme mismatch'
+          assert redirect, 'OAuth REDIRECT must be defined'
+          callback_scheme=redirect.group(1).split(':')[0]
+          assert '"' + callback_scheme + '".equals(uri.getScheme())' in oauth, 'Critical regression: OAuth callback scheme mismatch'
+          assert 'android:scheme="' + callback_scheme + '"' in manifest, 'Android manifest callback scheme mismatch'
           assert 'void finishLoginWithUrl' in main and 'void cancelLogin' in main, 'OAuth fallback controls missing'
           assert 'android.permission.VIBRATE' in manifest, 'Vibration permission missing'
           assert 'function setHapticsMode' in src and 'haptics-select' in src, 'Adjustable haptics controls missing'
