@@ -184,6 +184,8 @@ header{animation:ilHeader .38s cubic-bezier(.2,.7,.2,1) both}.brand .logo{animat
 .tile-icon{width:42px;height:42px;display:grid;place-items:center;background:var(--ui-note);border:1px solid var(--ui-line);border-radius:14px;color:var(--ui-heading);font-size:25px}.tile b{font-size:16px;margin-top:7px}.tile small{font-size:12px;line-height:1.4;color:var(--ui-muted)}.tile:active{transform:scale(.975)}
 .hero-card{border-radius:24px;background:linear-gradient(135deg,var(--ui-surface),var(--ui-note));padding:16px}.card{border-radius:21px}.finish-panel{animation:ilOpen .24s ease-out both}.preview-stage{overflow:auto;max-width:100%;border:1px solid var(--ui-line);border-radius:16px;background:var(--ui-note);padding:10px}#post-preview{max-width:none;display:block;background:white;border:0;min-height:420px}
 .calendar-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:5px;margin-top:15px}.calendar-day{padding:6px 0;min-width:0;min-height:54px;font-size:13px;background:var(--ui-note);color:var(--ui-heading);border:1px solid var(--ui-line);box-shadow:none}.calendar-day small{display:block;font-size:10px}.calendar-day.selected{outline:3px solid #318ab6;outline-offset:0}.calendar-weekday{text-align:center;font-size:11px;color:var(--ui-muted);padding:6px 0}.calendar-item{border:1px solid var(--ui-line);border-radius:16px;padding:13px;margin-top:10px;background:var(--ui-surface)}.calendar-item h3{margin-top:0}.source-item{border:1px solid var(--ui-line);border-radius:15px;padding:12px;margin:10px 0}.source-item p{white-space:pre-wrap;overflow-wrap:anywhere}.source-item a{overflow-wrap:anywhere}
+.research-summary{white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.65}.research-source-title{display:block;line-height:1.45}.research-query{margin:4px 0;overflow-wrap:anywhere}
+
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
 </style>
 </head>
@@ -227,6 +229,17 @@ header{animation:ilHeader .38s cubic-bezier(.2,.7,.2,1) both}.brand .logo{animat
     <div class="actions"><button onclick="runAssistant()">Przygotuj lokalnie — bez opłat</button><button id="assistant-online-button" class="secondary hidden" onclick="runAssistantWithConfiguredAI()">Użyj AI online (może być płatne)</button></div>
     <div id="assistant-output" aria-live="polite" role="log"></div>
     <p class="muted small">Tryb lokalny jest domyślny i nie korzysta z API. Jeśli dostępne jest skonfigurowane AI online, możesz wybrać je osobno; przed wysłaniem poproszę o zgodę. ChatGPT/Gemini w telefonie nie wymaga klucza API — odpowiedź wraca przez schowek do porównania.</p>
+  </div>
+  <div class="card" id="research-card">
+    <div class="eyebrow">WYSZUKIWANIE INTERNETOWE</div>
+    <h2>Informacje o Ispinie</h2>
+    <p class="muted">Szerokie wyszukiwanie z pomocą AI. Sprawdzam przetargi i zamówienia, lokalne serwisy informacyjne oraz strony urzędowe i BIP. Biorę pod uwagę poprawne formy nazwy, częste warianty pisowni oraz pobliskie nazwy tylko wtedy, gdy wiążą się z Ispiną.</p>
+    <label for="research-query">Temat i dodatkowe wskazówki</label>
+    <textarea id="research-query" maxlength="1800" style="min-height:115px">Wyszukaj szeroko i aktualnie informacje o Ispinie. Sprawdź przetargi i zamówienia obejmujące Ispinę, także takie dotyczące dróg, mostów, transportu i usług. Przejrzyj lokalne serwisy informacyjne, stronę Gminy Drwinia, BIP oraz inne właściwe źródła urzędowe. Uwzględnij poprawne formy „Ispina”, „w Ispinie”, „do Ispiny”, „z Ispiny” oraz częste błędne warianty pisowni, a informacje o okolicy podaj tylko wtedy, gdy wyraźnie dotyczą Ispiny.</textarea>
+    <div class="note small">Wyszukiwanie używa Google Search przez skonfigurowany Gemini API. Za model AI i wyszukiwanie mogą być naliczane osobne opłaty API. Wyniki są propozycją do sprawdzenia. Zobaczysz listę znalezionych źródeł i fraz wyszukiwania.</div>
+    <div class="actions"><button id="research-button" type="button" disabled onclick="runDeepIspinaResearch()">🔎 Wyszukaj w internecie informacje o Ispinie</button><button class="secondary" type="button" onclick="clearResearchResults()">Wyczyść wyniki</button></div>
+    <p id="research-status" class="small muted" role="status" aria-live="polite">Sprawdzam dostępność wyszukiwania AI…</p>
+    <div id="research-results" aria-live="polite" role="region" aria-label="Wyniki wyszukiwania o Ispinie"></div>
   </div>
 </section>
 <section id="screen-editor" class="panel">
@@ -517,6 +530,11 @@ window.onNativeResult=function(id,ok,payload){
     try{
       assistantEnabled=!!JSON.parse(payload).enabled;
       $("assistant-online-button").classList.toggle("hidden",!assistantEnabled);
+      $("research-button").disabled=!assistantEnabled;
+      $("research-status").textContent=assistantEnabled
+        ?"Wyszukiwanie Google Search jest dostępne po połączeniu konta WordPress. Każde wyszukiwanie wymaga potwierdzenia."
+        :"Wyszukiwanie AI wymaga skonfigurowanego backendu Gemini z Google Search.";
+      $("research-status").className=assistantEnabled?"small muted":"small error";
       message("assistant-mode",assistantEnabled?
         "Domyślnie działam lokalnie. Skonfigurowane AI online jest opcjonalne i może korzystać z płatnego limitu. ChatGPT/Gemini z telefonu uruchamiasz osobnym przyciskiem.":
         "Tryb lokalny jest gotowy. Możesz też bez klucza API przekazać polecenie do zainstalowanej aplikacji ChatGPT, a w razie potrzeby do Gemini.");
@@ -786,6 +804,79 @@ function requestAssistant(prompt,context){
     IL.askAssistant(id,prompt,JSON.stringify(context));
   });
 }
+function requestResearch(prompt){
+  return new Promise((resolve,reject)=>{
+    const id="w"+(++reqNo),timeout=setTimeout(()=>{requests.delete(id);reject(new Error("Wyszukiwanie przekroczyło limit czasu. Spróbuj ponownie później."))},65000);
+    requests.set(id,{resolve,reject,timeout});
+    IL.askResearch(id,prompt);
+  });
+}
+function clearResearchResults(){
+  $("research-results").innerHTML="";
+  $("research-status").textContent="Wyniki wyczyszczono. Możesz rozpocząć nowe wyszukiwanie.";
+  $("research-status").className="small muted";
+}
+function renderResearchResult(result){
+  const report=String(result?.text||"").trim();
+  const sources=Array.isArray(result?.sources)?result.sources.slice(0,30):[];
+  const queries=Array.isArray(result?.queries)?result.queries.filter(q=>typeof q==="string").slice(0,20):[];
+  const safeSources=sources.flatMap(source=>{
+    try{
+      const url=new URL(String(source?.url||""));
+      if(!["http:","https:"].includes(url.protocol)||url.username||url.password)return [];
+      return [{url:url.href,title:String(source?.title||url.hostname).slice(0,180),host:url.hostname}];
+    }catch(e){return [];}
+  });
+  if(!report||!safeSources.length)throw new Error("Raport nie zawiera znalezionych źródeł. Nie pokazuję niepotwierdzonych wyników.");
+  const searchedAt=new Date(result.searchedAt||Date.now());
+  const dateLabel=Number.isNaN(searchedAt.getTime())?"":searchedAt.toLocaleString("pl-PL",{dateStyle:"medium",timeStyle:"short"});
+  const queryBlock=queries.length?'<div class="source-item"><b>Frazy wykorzystane w wyszukiwaniu</b><ul>'+queries.map(q=>'<li class="research-query">'+esc(q)+'</li>').join("")+'</ul></div>':"";
+  const sourceBlock=safeSources.map(source=>'<div class="source-item"><b class="research-source-title">'+esc(source.title)+'</b><small>'+esc(source.host)+'</small><div class="actions"><button class="secondary" type="button" data-research-link="'+esc(source.url)+'">Otwórz źródło</button></div></div>').join("");
+  $("research-results").innerHTML='<div class="note ok"><b>Raport gotowy</b>'+(dateLabel?'<p class="small">Wyszukano: '+esc(dateLabel)+'</p>':"")+'</div><div class="source-item research-summary">'+esc(report)+'</div>'+queryBlock+'<h3>Źródła znalezione w wyszukiwarce ('+safeSources.length+')</h3>'+sourceBlock+'<p class="muted small">Sprawdź datę, treść i aktualność każdego materiału w oryginalnej witrynie. Wynik AI nie zastępuje dokumentu źródłowego.</p>';
+  $("research-status").textContent="Wyszukiwanie zakończone. Znaleziono "+safeSources.length+" źródeł"+(queries.length?" i wykorzystano "+queries.length+" fraz.":".");
+  $("research-status").className="small ok";
+}
+function openResearchSource(url){
+  try{
+    const parsed=new URL(String(url));
+    if(!["https:","http:"].includes(parsed.protocol)||parsed.username||parsed.password)return;
+    if(window.IL&&typeof IL.openResearchLink==="function")IL.openResearchLink(parsed.href);
+    else window.open(parsed.href,"_blank","noopener");
+  }catch(e){}
+}
+$("research-results").addEventListener("click",event=>{
+  const button=event.target.closest("[data-research-link]");
+  if(button)openResearchSource(button.getAttribute("data-research-link"));
+});
+let researchInProgress=false;
+async function runDeepIspinaResearch(){
+  if(researchInProgress)return false;
+  const prompt=trim($("research-query").value);
+  if(!prompt){$("research-status").textContent="Wpisz temat do wyszukania.";return false;}
+  if(!assistantEnabled){$("research-status").textContent="Wyszukiwanie wymaga skonfigurowanego backendu Gemini z Google Search.";return false;}
+  if(!connected){$("research-status").textContent="Najpierw połącz Redaktora z kontem WordPress.";return false;}
+  if(!confirm("Rozpocząć szerokie wyszukiwanie w Google Search? Treść pytania trafi do skonfigurowanego Gemini API. Mogą być naliczane osobne opłaty za AI i zapytania do wyszukiwarki. Każdy raport pokaże linki do znalezionych źródeł; przed użyciem sprawdź je samodzielnie."))return false;
+  researchInProgress=true;
+  $("research-button").disabled=true;
+  $("research-status").textContent="Wyszukuję informacje i weryfikuję źródła. To może chwilę potrwać.";
+  $("research-status").className="small muted";
+  startOperation("Trwa głębokie wyszukiwanie internetowe…");
+  try{
+    const result=await requestResearch(prompt);
+    renderResearchResult(result);
+    endOperation();
+    return result;
+  }catch(error){
+    endOperation();
+    $("research-status").textContent="Wyszukiwanie nie zostało zakończone: "+(error?.message||"nieznany błąd");
+    $("research-status").className="small error";
+    return false;
+  }finally{
+    researchInProgress=false;
+    $("research-button").disabled=!assistantEnabled;
+  }
+}
+
 function localAssistant(prompt){
   const text=prompt.toLocaleLowerCase("pl");
   if(/facebook|post na fb|wersj.{0,12}facebook/.test(text)){
