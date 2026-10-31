@@ -101,9 +101,13 @@ jobs:
         run: gradle --no-daemon :app:assembleDebug
       - name: Confirm APK and actual monogram
         run: |
-          test -s il-redaktor-android/app/build/outputs/apk/debug/app-debug.apk
+          SDK_ROOT="${ANDROID_HOME:-/usr/local/lib/android/sdk}"
+          APK="il-redaktor-android/app/build/outputs/apk/debug/app-debug.apk"
+          test -s "$APK"
           test -s il-redaktor-android/app/src/main/assets/il-monogram.png
-          unzip -l il-redaktor-android/app/build/outputs/apk/debug/app-debug.apk | grep 'assets/il-monogram.png'
+          "$SDK_ROOT/build-tools/35.0.0/apksigner" verify --verbose "$APK"
+          "$SDK_ROOT/build-tools/35.0.0/aapt" dump badging "$APK" | grep -F "package: name='com.ispinalokalnie.redaktorsmart.loginfix.test' versionCode='5' versionName='1.4.0-test'"
+          unzip -l "$APK" | grep 'assets/il-monogram.png'
       - name: Upload installable APK
         uses: actions/upload-artifact@v4
         with:
