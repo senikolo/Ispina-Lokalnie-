@@ -30,6 +30,29 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.9'
+      - name: Embed official Ispina Lokalnie monogram and launcher icons
+        run: |
+          python -m pip install --quiet Pillow
+          python - <<'PY'
+          import urllib.request, io, pathlib
+          from PIL import Image
+          url = 'https://ispinalokalnie.wordpress.com/wp-content/uploads/2026/10/ispina-lokalnie-monogram-il.png'
+          raw = urllib.request.urlopen(urllib.request.Request(url, headers={'User-Agent': 'ILRedaktorSmart/1.1'}),timeout=30).read()
+          if len(raw)>2_000_000: raise ValueError('Logo is unexpectedly large')
+          im=Image.open(io.BytesIO(raw)).convert('RGBA')
+          if im.width!=640 or im.height!=640: raise ValueError('Unexpected brand logo geometry')
+          base=pathlib.Path('il-redaktor-android/app/src/main')
+          assets=base/'assets'
+          assets.mkdir(parents=True,exist_ok=True)
+          (assets/'il-monogram.png').write_bytes(raw)
+          for density,size in [('mdpi',48),('hdpi',72),('xhdpi',96),('xxhdpi',144),('xxxhdpi',192)]:
+              p=base/'res'/('mipmap-'+density)
+              p.mkdir(parents=True,exist_ok=True)
+              icon=im.resize((size,size),Image.Resampling.LANCZOS)
+              icon.save(p/'ic_launcher.png')
+              icon.save(p/'ic_launcher_round.png')
+          print('Embedded official IL logo:',len(raw),'bytes')
+          PY
       - name: Compile Android APK
         working-directory: il-redaktor-android
         run: gradle --no-daemon :app:assembleDebug
