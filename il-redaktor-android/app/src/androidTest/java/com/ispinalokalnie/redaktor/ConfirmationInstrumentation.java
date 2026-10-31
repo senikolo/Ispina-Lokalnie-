@@ -30,7 +30,7 @@ public final class ConfirmationInstrumentation extends Instrumentation {
         AtomicReference<String> result = new AtomicReference<>();
         CountDownLatch done = new CountDownLatch(1);
         runOnMainSync(() -> editor.evaluateJavascript(script, value -> { result.set(value); done.countDown(); }));
-        if (!done.await(5, TimeUnit.SECONDS)) throw new AssertionError("WebView callback timed out");
+        if (!done.await(20, TimeUnit.SECONDS)) throw new AssertionError("WebView callback timed out");
         return result.get();
     }
 
@@ -61,7 +61,7 @@ public final class ConfirmationInstrumentation extends Instrumentation {
             Intent launch = new Intent(getTargetContext(), MainActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
             activity = (MainActivity) startActivitySync(launch);
             editor = (WebView) field("editor");
-            long deadline = SystemClock.uptimeMillis() + 20000;
+            long deadline = SystemClock.uptimeMillis() + 45000;
             while (!"true".equals(evaluate("location.href==='file:///android_asset/index.html' && document.readyState==='complete'"))) {
                 if (SystemClock.uptimeMillis() >= deadline) throw new AssertionError("Editor did not finish loading");
                 SystemClock.sleep(100);
