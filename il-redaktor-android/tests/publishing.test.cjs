@@ -635,9 +635,9 @@ test("AI context exposes published posts only for reader recommendations",()=>{
 test("new build metadata and the PR APK workflow agree",()=>{
   const gradle=fs.readFileSync(path.join(__dirname,"../app/build.gradle"),"utf8");
   const workflow=fs.readFileSync(path.join(__dirname,"../../.github/workflows/il-redaktor-apk.yml"),"utf8");
-  assert.match(gradle,/versionCode 28/);assert.match(gradle,/versionName '1\.22\.0'/);
+  assert.match(gradle,/versionCode 29/);assert.match(gradle,/versionName '1\\.22\\.1'/);assert.match(gradle,/https:\/\/il-redaktor-assistant\.vercel\.app\/api\/assistant/);
   assert.match(gradle,/applicationId 'com\.ispinalokalnie\.redaktorsmart\.stable'/);
-  assert.match(workflow,/versionCode='28' versionName='1\.22\.0'/);
+  assert.match(workflow,/versionCode='29' versionName='1\\.22\\.1'/);
 });
 
 test("AI editor shortcut copies current title and text into a reviewable prompt without sending it",()=>{
