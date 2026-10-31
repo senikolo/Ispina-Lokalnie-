@@ -32,7 +32,7 @@ public final class OAuthBrowserLogin {
         void failure(String message);
     }
 
-    public static final String REDIRECT = "com.ispinalokalnie.redaktorsmart.mcp152:/callback";
+    public static final String REDIRECT = "com.ispinalokalnie.redaktorsmart.mcp153:/callback";
     private static final String PREFS = "il_redaktor_settings";
     private static final String PENDING_STATE = "oauth21_pending_state";
     private static final String PENDING_VERIFIER = "oauth21_pending_verifier";
@@ -64,7 +64,7 @@ public final class OAuthBrowserLogin {
 
     public static boolean isCallback(Uri uri) {
         return uri != null &&
-            "com.ispinalokalnie.redaktorsmart.mcp152".equals(uri.getScheme()) &&
+            "com.ispinalokalnie.redaktorsmart.mcp153".equals(uri.getScheme()) &&
             "/callback".equals(uri.getPath());
     }
 
@@ -113,10 +113,10 @@ public final class OAuthBrowserLogin {
                 "&redirect_uri=" + Uri.encode(REDIRECT) +
                 "&code_challenge=" + Uri.encode(challenge) +
                 "&code_challenge_method=S256" +
-                "&scope=auth" +
+                "&scope=global" +
                 "&state=" + Uri.encode(state);
 
-            note("Krok 2/4: otwieram WordPress.com. Zatwierdź dostęp do Ispina Lokalnie…");
+            note("Krok 2/4: otwieram WordPress.com. Zatwierdź dostęp wymagany do zarządzania treściami. Zakres global obejmuje konto WordPress.com; aplikacja pracuje na Ispina Lokalnie.");
             main.post(() -> {
                 try {
                     Intent browser = new Intent(Intent.ACTION_VIEW, Uri.parse(loginUrl));
