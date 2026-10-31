@@ -112,6 +112,7 @@ public final class WpMcp {
         request.put("client_name", "IL Redaktor Smart – Ispina Lokalnie");
         request.put("redirect_uris", new JSONArray().put(redirectUri));
         request.put("grant_types", new JSONArray().put("authorization_code").put("refresh_token"));
+        request.put("response_types", new JSONArray().put("code"));
         request.put("token_endpoint_auth_method", "none");
         JSONObject response = sendJson(REGISTER, request, null);
         String id = response.optString("client_id", "");
