@@ -1,6 +1,9 @@
 package com.ispinalokalnie.redaktor;
 
 import android.app.Activity;
+import android.os.Vibrator;
+import android.os.VibrationEffect;
+import android.webkit.WebViewClient;
 import android.content.Context;
 import android.content.Intent;
 import android.graphics.Bitmap;
@@ -50,6 +53,10 @@ public class MainActivity extends Activity {
     private WebView editor;
     private volatile boolean verified = false;
     private boolean loginInProgress = false;
+    private boolean webPageReady = false;
+    private final java.util.ArrayList<String> waitingJs = new java.util.ArrayList<>();
+    private static final String HAPTICS_KEY = "haptics_intensity";
+    private long lastHapticAt = 0;
 
     @Override public void onCreate(Bundle state) {
         super.onCreate(state);
@@ -62,7 +69,13 @@ public class MainActivity extends Activity {
         settings.setAllowFileAccessFromFileURLs(false);
         settings.setAllowUniversalAccessFromFileURLs(false);
         settings.setMixedContentMode(WebSettings.MIXED_CONTENT_NEVER_ALLOW);
-        editor.setWebViewClient(new android.webkit.WebViewClient() {
+        editor.setWebViewClient(new WebViewClient() {
+            @Override public void onPageFinished(WebView view, String url) {
+                super.onPageFinished(view, url);
+                webPageReady = true;
+                for (String code : waitingJs) view.evaluateJavascript(code, null);
+                waitingJs.clear();
+            }
             @Override public boolean shouldOverrideUrlLoading(WebView v, android.webkit.WebResourceRequest r) {
                 return !r.getUrl().toString().startsWith("file:///android_asset/");
             }
@@ -87,7 +100,8 @@ public class MainActivity extends Activity {
             if (editor != null) {
                 String js = "window.onNativeResult(" + JSONObject.quote(id) + "," + success + ","
                     + JSONObject.quote(payload) + ")";
-                editor.evaluateJavascript(js, null);
+                if (webPageReady) editor.evaluateJavascript(js, null);
+                else waitingJs.add(js);
             }
         });
     }
@@ -253,7 +267,85 @@ public class MainActivity extends Activity {
         newOAuthLogin().handleRedirect(intent.getData());
     }
 
+    private int hapticMode() {
+        return Math.max(0, Math.min(3, prefs().getInt(HAPTICS_KEY, 1)));
+    }
+
+    private void vibrateFeedback(String kind) {
+        int mode = hapticMode();
+        if (mode == 0) return;
+        long now = android.os.SystemClock.elapsedRealtime();
+        if (now - lastHapticAt < 90L && "tap".equals(kind)) return;
+        lastHapticAt = now;
+        Vibrator vibrator = (Vibrator) getSystemService(VIBRATOR_SERVICE);
+        if (vibrator == null || !vibrator.hasVibrator()) return;
+        int duration = mode == 1 ? 12 : mode == 2 ? 22 : 36;
+        int amplitude = mode == 1 ? 55 : mode == 2 ? 120 : 200;
+        try {
+            if (android.os.Build.VERSION.SDK_INT >= 26) {
+                if ("success".equals(kind)) {
+                    vibrator.vibrate(VibrationEffect.createWaveform(
+                        new long[]{0,duration,75,duration * 2L},
+                        new int[]{0,amplitude,0,amplitude}, -1));
+                } else if ("error".equals(kind)) {
+                    vibrator.vibrate(VibrationEffect.createWaveform(
+                        new long[]{0,duration * 2L,85,duration * 2L},
+                        new int[]{0,amplitude,0,amplitude}, -1));
+                } else vibrator.vibrate(VibrationEffect.createOneShot(duration, amplitude));
+            }
+        } catch (RuntimeException ignored) { /* Vibration may be disabled by the device. */ }
+    }
+
     public class Bridge {
+        @JavascriptInterface public void getHaptics() {
+            callback("haptics", true, "{\"mode\":" + hapticMode() + "}");
+        }
+
+        @JavascriptInterface public void setHaptics(int mode) {
+            if (mode < 0 || mode > 3) { callback("haptics", false, "Nieprawidłowe ustawienie."); return; }
+            if (!prefs().edit().putInt(HAPTICS_KEY, mode).commit()) {
+                callback("haptics", false, "Nie udało się zapisać ustawienia."); return;
+            }
+            callback("haptics", true, "{\"mode\":" + mode + "}");
+            ui.post(() -> vibrateFeedback("tap"));
+        }
+
+        @JavascriptInterface public void haptic(String kind) {
+            if (!("tap".equals(kind) || "success".equals(kind) || "error".equals(kind))) return;
+            ui.post(() -> vibrateFeedback(kind));
+        }
+
+        @JavascriptInterface public void loginState() {
+            boolean pending = newOAuthLogin().hasPendingLogin();
+            callback("login-state", true, "{\"pending\":" + pending + "}");
+        }
+
+        @JavascriptInterface public void finishLoginWithUrl(String raw) {
+            if (raw == null || raw.length() > 4096) {
+                callback("auth-progress", false, "Nieprawidłowy adres powrotu."); return;
+            }
+            try {
+                Uri uri = Uri.parse(raw.trim());
+                if (!OAuthBrowserLogin.isCallback(uri)) {
+                    callback("auth-progress", false,
+                        "Ten adres nie jest adresem powrotu Redaktora IL. Nie wklejaj tu hasła ani zwykłego linku WordPress.");
+                    return;
+                }
+                if (!newOAuthLogin().hasPendingLogin()) {
+                    callback("auth-progress", false, "Sesja logowania wygasła. Uruchom logowanie od nowa."); return;
+                }
+                ui.post(() -> newOAuthLogin().handleRedirect(uri));
+            } catch (Exception ex) {
+                callback("auth-progress", false, "Nie można odczytać adresu powrotu."); 
+            }
+        }
+
+        @JavascriptInterface public void cancelLogin() {
+            newOAuthLogin().cancelLogin();
+            loginInProgress = false;
+            callback("auth-cancel", true, "Anulowano oczekiwanie. Możesz rozpocząć logowanie ponownie.");
+        }
+
         @JavascriptInterface public void copyText(String value) {
             ui.post(() -> {
                 android.content.ClipboardManager clipboard =
@@ -275,6 +367,10 @@ public class MainActivity extends Activity {
 
         @JavascriptInterface public void signInGoogle() {
             ui.post(() -> {
+                if (newOAuthLogin().hasPendingLogin()) {
+                    callback("auth-progress", true, "Oczekuję na zakończenie poprzedniego logowania. Użyj przycisku Anuluj i spróbuj ponownie, jeśli poprzednia próba utknęła.");
+                    return;
+                }
                 if(loginInProgress) { callback("auth-progress",true,"Logowanie jest już w toku.");return; }
                 loginInProgress=true;
                 newOAuthLogin().start();
