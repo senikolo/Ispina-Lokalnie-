@@ -697,3 +697,16 @@ test('startup restores the last local draft without requiring WordPress login',(
  const a=setup([['il_redaktor_drafts_v3',JSON.stringify({version:1,activeId:'offline',drafts:[draft]})]]);
  assert.equal(a.run('activeDraftId'),'offline');assert.equal(a.run('readDraftStore().drafts[0].title'),'Tekst offline');
 });
+
+
+test('restoring oldest revision from a full history selects the requested version',()=>{
+ const a=setup();a.run("persistDraft(true);for(let i=0;i<13;i++){$('post-body').value='Version '+i;persistDraft(true)}");
+ const selected=a.run('readDraftStore().drafts[0].revisions[0].snapshot.body');a.node('post-body').value='Unsaved current text';
+ a.run('restoreDraftVersion(activeDraftId,0)');assert.equal(a.node('post-body').value,selected);
+});
+test('uploaded featured photo appears in review and survives local reopening',()=>{
+ const a=setup();a.run('window.onNativeResult("upload",true,JSON.stringify({id:99,source_url:"https://ispinalokalnie.wordpress.com/wp-content/uploads/photo.jpg"}));persistDraft()');
+ assert.equal(a.run('readDraftStore().drafts[0].mediaUrl'),'https://ispinalokalnie.wordpress.com/wp-content/uploads/photo.jpg');
+ a.run('reviewPublication()');assert.match(a.node('review-summary').innerHTML,/<img[^>]+photo.jpg/);
+ a.run('closeReview();mediaById.clear();applyDraft(readDraftStore().drafts[0]);reviewPublication()');assert.match(a.node('review-summary').innerHTML,/<img[^>]+photo.jpg/);
+});

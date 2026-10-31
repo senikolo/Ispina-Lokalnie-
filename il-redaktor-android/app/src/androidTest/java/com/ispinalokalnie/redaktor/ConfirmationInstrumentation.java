@@ -46,7 +46,7 @@ public final class ConfirmationInstrumentation extends Instrumentation {
             });
             if (found.get() == null) SystemClock.sleep(50);
         }
-        if (found.get() == null) throw new AssertionError("Native confirmation was not displayed");
+        if (found.get() == null) throw new AssertionError("Native confirmation was not displayed: "+evaluate("JSON.stringify({ready:document.readyState,focused:document.hasFocus(),probe:window.__confirmationProbe,count:window.__submissionCount})"));
         runOnMainSync(() -> {
             if (dismiss) found.get().dismiss();
             else found.get().getButton(button).performClick();
@@ -66,6 +66,8 @@ public final class ConfirmationInstrumentation extends Instrumentation {
                 if (SystemClock.uptimeMillis() >= deadline) throw new AssertionError("Editor did not finish loading");
                 SystemClock.sleep(100);
             }
+            runOnMainSync(() -> editor.requestFocus());
+            waitForIdleSync();
             if ("seed".equals(mode)) {
                 String seeded=evaluate("localStorage.removeItem(draftKey);draftStore=null;activeDraftId=null;$('post-title').value='Pierwszy szkic';$('post-body').value='Pierwsza wersja';persistDraft(true);$('post-body').value='Druga wersja';persistDraft(true);resetEditor();$('post-title').value='Drugi szkic';$('post-body').value='Drugi tekst';persistDraft(true);String(readDraftStore().drafts.length)");
                 if(!"\"2\"".equals(seeded))throw new AssertionError("Draft seeding failed: "+seeded);

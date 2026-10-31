@@ -538,6 +538,7 @@ window.onNativeResult=function(id,ok,payload){
           message("services-output","Zdjęcie przesłano do biblioteki WordPress i przypisano do formularza firmy. Zapisz ofertę, aby dodać je do katalogu.","ok");
           mediaSelectionTarget="post";
         }else{
+          mediaById.set(Number(media.id),{id:Number(media.id),url:safeMediaUrl(media.source_url||media.url||""),name:"Zdjęcie wyróżniające"});
           $("post-media").value=media.id;
           showScreen("editor");updateMetrics();scheduleLocalSave();
           message("post-output","Zdjęcie przesłane do WordPressa. Media ID: "+media.id,"ok");
@@ -1267,8 +1268,8 @@ const draftKey="il_redaktor_drafts_v3";
 const draftFields={title:"post-title",body:"post-body",excerpt:"post-excerpt",tags:"post-tags",category:"post-category",mode:"post-mode",media:"post-media",schedule:"post-schedule"};
 let activeDraftId=null,draftStore=null,draftStorageBroken=false,reviewSnapshot=null;
 function draftId(){return "d"+Date.now().toString(36)+Math.random().toString(36).slice(2,10)}
-function captureDraft(){const s={postId,postStatus};for(const [k,id] of Object.entries(draftFields))s[k]=$(id).value;return s}
-function draftSignature(s){return JSON.stringify(Object.fromEntries([...Object.keys(draftFields),"postId","postStatus"].map(k=>[k,s[k]??""])))}
+function captureDraft(){const s={postId,postStatus};for(const [k,id] of Object.entries(draftFields))s[k]=$(id).value;s.mediaUrl=safeMediaUrl(mediaById.get(Number(s.media))?.url||"");return s}
+function draftSignature(s){return JSON.stringify(Object.fromEntries([...Object.keys(draftFields),"postId","postStatus","mediaUrl"].map(k=>[k,s[k]??""])))}
 function readDraftStore(){
   if(draftStore)return draftStore;
   try{
@@ -1286,7 +1287,7 @@ function persistDraft(checkpoint=false,synced=false){
   if(!d){d={id:draftId(),created:Date.now(),updated:Date.now(),revisions:[],dirty:true};next.drafts.push(d);}
   const changed=draftSignature(d)!==draftSignature(snapshot);
   if(changed&&("title" in d||"body" in d)&&(checkpoint||!d.revisions.length||Date.now()-d.revisions[d.revisions.length-1].at>=30000)){
-    const previous={};for(const k of [...Object.keys(draftFields),"postId","postStatus"])previous[k]=d[k]??"";
+    const previous={};for(const k of [...Object.keys(draftFields),"postId","postStatus","mediaUrl"])previous[k]=d[k]??"";
     d.revisions.push({at:d.updated||Date.now(),snapshot:previous});d.revisions=d.revisions.slice(-12);
   }
   if(changed||synced){Object.assign(d,snapshot);d.updated=Date.now();d.dirty=!synced;}
@@ -1295,13 +1296,13 @@ function persistDraft(checkpoint=false,synced=false){
   catch(e){$("local-save-status").textContent="Nie udało się zapisać na telefonie — możliwy brak miejsca. Skopiuj tekst. Bieżący tekst pozostaje w edytorze.";return false}
 }
 function scheduleLocalSave(){if(restoring)return;clearTimeout(saveTimer);$("local-save-status").textContent="Zapisuję na telefonie…";saveTimer=setTimeout(()=>persistDraft(),450)}
-function applyDraft(s){restoring=true;try{for(const [k,id] of Object.entries(draftFields))$(id).value=s[k]??({category:"10543",mode:"text",media:"0"}[k]||"");postId=s.postId||null;postStatus=s.postStatus||"";setPublishedUrl(postStatus==="publish"&&postId?"https://ispinalokalnie.wordpress.com/?p="+Number(postId):"");$("editor-heading").textContent=postId?"Edycja wpisu #"+postId:"Lokalny szkic";$("edit-status").textContent="Kopia na telefonie";$("post-output").innerHTML="";$("preview-box").classList.add("hidden");updateMetrics();}finally{restoring=false}}
+function applyDraft(s){restoring=true;try{if(s.mediaUrl&&safeMediaUrl(s.mediaUrl))mediaById.set(Number(s.media),{id:Number(s.media),url:safeMediaUrl(s.mediaUrl),name:"Zdjęcie wyróżniające"});for(const [k,id] of Object.entries(draftFields))$(id).value=s[k]??({category:"10543",mode:"text",media:"0"}[k]||"");postId=s.postId||null;postStatus=s.postStatus||"";setPublishedUrl(postStatus==="publish"&&postId?"https://ispinalokalnie.wordpress.com/?p="+Number(postId):"");$("editor-heading").textContent=postId?"Edycja wpisu #"+postId:"Lokalny szkic";$("edit-status").textContent="Kopia na telefonie";$("post-output").innerHTML="";$("preview-box").classList.add("hidden");updateMetrics();}finally{restoring=false}}
 function openLocalDraft(id){if(publicationBusy||!persistDraft(true))return;const d=readDraftStore()?.drafts.find(x=>x.id===id);if(!d)return;activeDraftId=d.id;applyDraft(d);persistDraft();showScreen("editor")}
 function restoreLocal(silent=false){if(trim($("post-title").value)||trim($("post-body").value)){if(!silent)showDraftLibrary();return}const store=readDraftStore();if(!store)return;const d=store.drafts.find(x=>x.id===store.activeId)||store.drafts[store.drafts.length-1];if(d){activeDraftId=d.id;applyDraft(d)}}
 function showDraftLibrary(){if(publicationBusy||!persistDraft(true))return;renderDrafts();showScreen("drafts")}
 function renderDrafts(){const q=trim($("draft-search").value).toLocaleLowerCase("pl");const ds=(readDraftStore()?.drafts||[]).slice().sort((a,b)=>b.updated-a.updated).filter(d=>(d.title+" "+d.body).toLocaleLowerCase("pl").includes(q));$("draft-list").innerHTML=ds.map(d=>'<div class="note"><h3>'+esc(d.title||"Bez tytułu")+'</h3><p>'+esc(new Date(d.updated).toLocaleString("pl-PL"))+' · '+(d.postId?'WordPress #'+Number(d.postId)+' · ':'')+(d.dirty?'Zmiany lokalne':'Zsynchronizowany')+'</p><div class="actions"><button onclick="openLocalDraft(\''+esc(d.id)+'\')">Otwórz</button><button class="secondary" onclick="showDraftHistory(\''+esc(d.id)+'\')">Historia ('+d.revisions.length+')</button></div></div>').join("")||'<p>Brak szkiców pasujących do wyszukiwania.</p>';$("draft-history").innerHTML=""}
 function showDraftHistory(id){const d=readDraftStore()?.drafts.find(x=>x.id===id);if(!d)return;$("draft-history").innerHTML='<h3>Historia: '+esc(d.title||"Bez tytułu")+'</h3><p>Przywrócenie zachowa obecną wersję. Nie zmieni artykułu w WordPressie.</p>'+d.revisions.map((v,i)=>'<div class="note"><b>'+esc(new Date(v.at).toLocaleString("pl-PL"))+'</b><p>'+esc(String(v.snapshot.body||"").slice(0,180))+'</p><button class="secondary" onclick="restoreDraftVersion(\''+esc(id)+'\','+i+')">Przywróć tę wersję</button></div>').reverse().join("")+(d.revisions.length?'':'<p>Historia pojawi się po kolejnych zmianach tekstu.</p>')}
-function restoreDraftVersion(id,index){if(publicationBusy||!persistDraft(true))return false;const d=readDraftStore()?.drafts.find(x=>x.id===id),v=d?.revisions[index];if(!v)return false;const snapshot=JSON.parse(JSON.stringify(v.snapshot));snapshot.postId=d.postId;snapshot.postStatus=d.postStatus;activeDraftId=id;applyDraft(snapshot);if(!persistDraft(true))return false;showScreen("editor");return true}
+function restoreDraftVersion(id,index){if(publicationBusy)return false;const selected=readDraftStore()?.drafts.find(x=>x.id===id)?.revisions[index];if(!selected)return false;const snapshot=JSON.parse(JSON.stringify(selected.snapshot));if(!persistDraft(true))return false;const d=readDraftStore().drafts.find(x=>x.id===id);snapshot.postId=d.postId;snapshot.postStatus=d.postStatus;activeDraftId=id;applyDraft(snapshot);if(!persistDraft(true))return false;showScreen("editor");return true}
 function closeReview(){$("publish-review").classList.add("hidden");reviewSnapshot=null}
 function reviewPublication(){
   if(publicationBusy)return;if(!persistDraft(true))return;
