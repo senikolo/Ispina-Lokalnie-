@@ -242,7 +242,7 @@ public class MainActivity extends Activity {
                     callback("auth", false, "Wpisz numeryczny Client ID z WordPress.com Applications.");
                     return;
                 }
-                prefs().edit().putString("oauth_client_id", id).apply();
+                prefs().edit().putString("oauth_client_id", id).remove("auth_mode").apply();
                 verified = false;
                 startOAuth(id);
             });
