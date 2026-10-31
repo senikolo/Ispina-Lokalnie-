@@ -147,6 +147,9 @@ public final class ConfirmationInstrumentation extends Instrumentation {
             diagnosticStage="editor ready";
             runOnMainSync(() -> editor.requestFocus());
             waitForIdleSync();
+            // Complete the first rendered frame before opening another native window.
+            // document.readyState alone only confirms DOM loading on older WebView.
+            captureUi("startup");
             if ("seed".equals(mode)) {
                 if(getTargetContext().getPackageManager().getPackageInfo(getTargetContext().getPackageName(),0).versionCode!=21)throw new AssertionError("Seed must run on previous 1.15 versionCode 21");
                 String seeded=evaluate("localStorage.removeItem(draftKey);draftStore=null;activeDraftId=null;$('post-title').value='Pierwszy szkic';$('post-body').value='Pierwsza wersja';persistDraft(true);$('post-body').value='Druga wersja';persistDraft(true);resetEditor();$('post-title').value='Drugi szkic';$('post-body').value='Drugi tekst';persistDraft(true);String(readDraftStore().drafts.length)");
