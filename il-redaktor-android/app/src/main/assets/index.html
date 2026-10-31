@@ -176,13 +176,13 @@ nav button.active{color:#174875;background:#edf5fb}
     <p class="muted">Portal: <b>ispinalokalnie.wordpress.com</b><br>Identyfikator witryny: <b>252442125</b></p>
     <div id="settings-state" class="note">Sprawdzanie autoryzacji...</div>
     <button class="wide primary-login" onclick="signInGoogle()"><span style="display:inline-block;background:#fff;color:#4285f4;border-radius:7px;padding:4px 9px;margin-right:8px;font-weight:900">G</span> Zaloguj przez Google / WordPress.com</button>
-    <p class="muted">Autoryzacja odbywa się bezpośrednio w WordPress.com. Na ekranie logowania wybierz Google, jeśli ta metoda jest dostępna dla Twojego konta, a następnie zatwierdź dostęp Redaktora do Ispina Lokalnie. Aplikacja sama rejestruje publiczny klient OAuth; nie wpisujesz Client ID, sekretu ani hasła.</p>
+    <p class="muted">Autoryzacja odbywa się bezpośrednio w WordPress.com. Na ekranie logowania wybierz Google, jeśli ta metoda jest dostępna dla Twojego konta. Do korzystania z MCP WordPress wymaga uprawnienia <strong>global</strong>, obejmującego potencjalnie całe konto WordPress.com i inne witryny. Redaktor wykonuje żądania tylko dla Ispina Lokalnie. Zatwierdzaj dostęp wyłącznie jeśli zgadzasz się na tak szeroki zakres. Aplikacja nie prosi o hasło, Client ID ani sekret.</p>
     <div class="note">Po zaakceptowaniu dostępu wybierz <b>Wróć do Redaktora IL</b> na stronie przeglądarki. Aplikacja pokaże <b>SUKCES</b> dopiero po pobraniu istniejących artykułów z WordPressa. Jeśli połączenie się nie powiedzie, pokaże otrzymany kod HTTP i komunikat WordPressa.</div>
     <div id="auth-output" aria-live="polite"></div>
     <p class="muted">Jeżeli WordPress odmawia dostępu, sprawdź, czy w ustawieniach konta WordPress.com jest włączony dostęp MCP i czy wybrane zgody pozwalają czytać oraz edytować treść.</p>
     <div class="actions"><button class="secondary" onclick="verifyNow()">Sprawdź dostęp do wpisów</button><button class="danger" onclick="disconnect()">Wyloguj</button></div>
   </div>
-  <div class="card"><h2>O programie</h2><p class="muted">IL Redaktor Smart 1.4.0-test · Niezależna aplikacja Android 8 i nowszy. WordPress.com MCP. Publikacja wymaga potwierdzenia. Zapis jest uznawany za udany dopiero po otrzymaniu identyfikatora WordPress.</p></div>
+  <div class="card"><h2>O programie</h2><p class="muted">IL Redaktor Smart 1.5.3-test · Niezależna aplikacja Android 8 i nowszy. WordPress.com MCP. Publikacja wymaga potwierdzenia. Zapis jest uznawany za udany dopiero po otrzymaniu identyfikatora WordPress.</p></div>
 </section>
 </main>
 <div id="finish-dialog" class="finish-dialog hidden" role="alertdialog" aria-modal="true" aria-labelledby="finish-title">
