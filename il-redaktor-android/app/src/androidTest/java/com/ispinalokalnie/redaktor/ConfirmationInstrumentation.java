@@ -157,7 +157,7 @@ public final class ConfirmationInstrumentation extends Instrumentation {
                 if(!getTargetContext().getSharedPreferences("il_update_probe",0).edit().putString("marker","preserved").commit())throw new AssertionError("Preferences seeding failed");
                 result.putString("stream","IL_UPDATE_SEED=PASS\n");
             } else if ("verify".equals(mode)) {
-                if(getTargetContext().getPackageManager().getPackageInfo(getTargetContext().getPackageName(),0).versionCode!=22)throw new AssertionError("Verification must run after upgrade to versionCode 22");
+                if(getTargetContext().getPackageManager().getPackageInfo(getTargetContext().getPackageName(),0).versionCode!=23)throw new AssertionError("Verification must run after upgrade to versionCode 23");
                 String restored=evaluate("JSON.stringify(readDraftStore().drafts.map(d=>[d.title,d.body,d.revisions.length]))");
                 if(!restored.contains("Pierwszy szkic")||!restored.contains("Druga wersja")||!restored.contains("Drugi szkic"))throw new AssertionError("Drafts lost after reinstall: "+restored);
                 if(!"preserved".equals(getTargetContext().getSharedPreferences("il_update_probe",0).getString("marker","")))throw new AssertionError("Preferences lost after reinstall");
@@ -166,6 +166,14 @@ public final class ConfirmationInstrumentation extends Instrumentation {
             } else {
             diagnosticStage="photo crop";verifyEditorFeatures();
             verifyWorkspaceFeatures();
+            diagnosticStage="vibration feedback";
+            if(!"true".equals(evaluate("$('haptics-select').value='2';setHapticsMode('2');true")))throw new AssertionError("Could not select normal vibration mode");
+            waitForScript("$('haptics-select').value==='2'");
+            evaluate("testHaptics()");waitForScript("$('haptics-status').textContent.includes('Wysłano sygnał testowy') || $('haptics-status').textContent.includes('nie zgłasza silnika')");
+            if(!"true".equals(evaluate("IL.setHaptics(0);true")))throw new AssertionError("Could not disable vibration");
+            waitForScript("$('haptics-select').value==='0'");evaluate("testHaptics()");waitForScript("$('haptics-status').textContent.includes('wyłączone')");
+            evaluate("IL.setHaptics(1)");waitForScript("$('haptics-select').value==='1'");
+            result.putString("haptics", "IL_HAPTICS_TEST=PASS (motor detection, adjustable intensity, test signal, disabled-mode message)\n");
             diagnosticStage="publication review";
             String review=evaluate("$('post-title').value='Podgląd testowy';$('post-body').value='Treść bez publikacji';$('post-category').value='10543';reviewPublication();!$('publish-review').classList.contains('hidden') && !$('review-confirm').disabled && $('review-preview').getAttribute('sandbox')===''");
             if(!"true".equals(review))throw new AssertionError("Publication review failed: "+review);
@@ -175,7 +183,7 @@ public final class ConfirmationInstrumentation extends Instrumentation {
             probe(AlertDialog.BUTTON_NEGATIVE, "\"false:0\"", false);
             probe(AlertDialog.BUTTON_POSITIVE, "\"true:1\"", false);
             probe(AlertDialog.BUTTON_NEGATIVE, "\"false:0\"", true);
-            result.putString("stream", "IL_WEBVIEW_CONFIRM_TEST=PASS (cancel, confirm once, dismiss)\nIL_EDITOR_FEATURES_TEST=PASS (comparison, undo, backup file streams, photo crop, EXIF, cancel)\nIL_WORKSPACE_FEATURES_TEST=PASS (sources/photos backup, literal replacement, viewport, calendar, remote conflict)\n");
+            result.putString("stream", "IL_WEBVIEW_CONFIRM_TEST=PASS (cancel, confirm once, dismiss)\nIL_EDITOR_FEATURES_TEST=PASS (comparison, undo, backup file streams, photo crop, EXIF, cancel)\nIL_WORKSPACE_FEATURES_TEST=PASS (sources/photos backup, literal replacement, viewport, calendar, remote conflict)\nIL_HAPTICS_TEST=PASS (motor detection, adjustable intensity, test signal, disabled-mode message)\n");
             }
             runOnMainSync(() -> activity.finish());waitForIdleSync();
             finish(Activity.RESULT_OK, result);

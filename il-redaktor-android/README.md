@@ -1,6 +1,8 @@
-# IL Redaktor Smart 1.16.0
+# IL Redaktor Smart 1.17.0
 
-Stały applicationId `com.ispinalokalnie.redaktorsmart.stable`, versionCode 22. Podpisuj tym samym kluczem co 1.14/1.15; nie odinstalowuj przy aktualizacji.
+Stały applicationId `com.ispinalokalnie.redaktorsmart.stable`, versionCode 23. Podpisuj tym samym kluczem co 1.14/1.15/1.16; nie odinstalowuj przy aktualizacji.
+
+Wersja 1.17 dodaje lokalne generowanie i edycję krótkiej zajawki na Facebooka z tytułu oraz zajawki artykułu. Dla zmian rozkładów aplikacja proponuje CTA „Zobacz, co się zmieni.” Kopiowanie i systemowe Udostępnij wymagają działania użytkownika; aplikacja nie publikuje na Facebooku. Ustawienia wibracji pokazują, czy Android wykrywa silnik, a test podaje czytelny wynik dla trybu wyłączonego, telefonu bez wibracji i wysłanego sygnału.
 
 ## Zmiany
 

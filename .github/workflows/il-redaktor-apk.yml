@@ -108,6 +108,8 @@ jobs:
           assert 'void finishLoginWithUrl' in main and 'void cancelLogin' in main, 'OAuth fallback controls missing'
           assert 'android.permission.VIBRATE' in manifest, 'Vibration permission missing'
           assert 'function setHapticsMode' in src and 'haptics-select' in src, 'Adjustable haptics controls missing'
+          assert 'function openFacebookTeaser' in src and 'Wygeneruj zajawkę na Facebooka' in src, 'Facebook teaser generator missing'
+          assert 'void testHaptics' in main and 'hasVibrationMotor' in main, 'Native vibration check missing'
           assert 'function finishManualLogin' in src and 'login-recovery' in src, 'Manual OAuth recovery missing'
           assert 'function testDraftWrite' in src and 'test-draft-write' in src, 'In-app write diagnostic missing'
           assert 'status:"draft"' in src, 'Diagnostic must create a draft, not a public post'
@@ -221,6 +223,7 @@ jobs:
             grep -F 'IL_WEBVIEW_CONFIRM_TEST=PASS' /tmp/il-confirmation-test.txt || { adb logcat -d -s chromium AndroidRuntime ILEditorProbe ActivityManager; exit 1; }
             grep -F 'IL_EDITOR_FEATURES_TEST=PASS' /tmp/il-confirmation-test.txt
             grep -F 'IL_WORKSPACE_FEATURES_TEST=PASS' /tmp/il-confirmation-test.txt
+            grep -F 'IL_HAPTICS_TEST=PASS' /tmp/il-confirmation-test.txt
             mkdir -p /tmp/il-editor-ui
             adb exec-out run-as com.ispinalokalnie.redaktorsmart.stable tar -C files/qa -cf - . > /tmp/il-editor-ui.tar
             tar -xf /tmp/il-editor-ui.tar -C /tmp/il-editor-ui
@@ -238,7 +241,7 @@ jobs:
           test -s "$APK"
           test -s il-redaktor-android/app/src/main/assets/il-monogram.png
           "$SDK_ROOT/build-tools/35.0.0/apksigner" verify --verbose "$APK"
-          "$SDK_ROOT/build-tools/35.0.0/aapt" dump badging "$APK" | grep -F "package: name='com.ispinalokalnie.redaktorsmart.stable' versionCode='22' versionName='1.16.0'"
+          "$SDK_ROOT/build-tools/35.0.0/aapt" dump badging "$APK" | grep -F "package: name='com.ispinalokalnie.redaktorsmart.stable' versionCode='23' versionName='1.17.0'"
           unzip -l "$APK" | grep 'assets/il-monogram.png'
       - name: Upload installable APK
         uses: actions/upload-artifact@v4

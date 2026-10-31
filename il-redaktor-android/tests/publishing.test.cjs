@@ -316,6 +316,10 @@ test("OAuth recovery and adjustable haptics controls are present in editor UI",(
   assert.equal(a.c.hapticValue,0);
   a.run("setHapticsMode('3')");
   assert.equal(a.c.hapticValue,3);
+  a.c.IL.testHaptics=()=>a.run("window.onNativeResult('haptics-test',true,'Wysłano sygnał testowy.')");
+  a.run("testHaptics()");
+  assert.match(a.node("haptics-status").textContent,/Wysłano sygnał testowy/);
+  assert.ok(a.node("facebook-teaser-dialog"));
 });
 
 test("OAuth waiting indicator is pending, not a forever-spinning progress state",()=>{
@@ -573,9 +577,9 @@ test("AI context exposes published posts only for reader recommendations",()=>{
 test("new build metadata and the PR APK workflow agree",()=>{
   const gradle=fs.readFileSync(path.join(__dirname,"../app/build.gradle"),"utf8");
   const workflow=fs.readFileSync(path.join(__dirname,"../../.github/workflows/il-redaktor-apk.yml"),"utf8");
-  assert.match(gradle,/versionCode 22/);assert.match(gradle,/versionName '1\.16\.0'/);
+  assert.match(gradle,/versionCode 23/);assert.match(gradle,/versionName '1\.17\.0'/);
   assert.match(gradle,/applicationId 'com\.ispinalokalnie\.redaktorsmart\.stable'/);
-  assert.match(workflow,/versionCode='22' versionName='1\.16\.0'/);
+  assert.match(workflow,/versionCode='23' versionName='1\.17\.0'/);
 });
 
 test("AI editor shortcut copies current title and text into a reviewable prompt without sending it",()=>{
@@ -785,6 +789,19 @@ test('promotion snapshot remains tied to published article while editing a new d
 });
 test('promotion rejects external links and copying shares no data automatically',()=>{
  const a=setup();a.run("rememberPublishedArticle({id:64,title:'Bad'},'https://example.com/x')");assert.equal(a.run('promotionArticle'),null);let copied='';a.c.IL.copyText=t=>{copied=t};a.run("rememberPublishedArticle({id:64,title:'W Ispinie',body:'Tekst'},'https://ispinalokalnie.wordpress.com/?p=64');openPromotion();copyPromotion()");assert.match(copied,/W Ispinie/);
+});
+
+test("Facebook teaser is generated from the current draft and can be edited locally",()=>{
+ const a=setup();a.node("post-title").value="Zmiany w rozkładach MLD";a.node("post-excerpt").value="Nowe godziny kursów zaczną obowiązywać w listopadzie.";
+ assert.equal(a.run("openFacebookTeaser()"),true);
+ assert.equal(a.node("facebook-teaser-text").value,"Zmiany w rozkładach MLD.\n\nNowe godziny kursów zaczną obowiązywać w listopadzie.\n\nZobacz, co się zmieni.");
+ assert.equal(a.storage.has("il_last_verified_promotion_v1"),false);
+ a.node("facebook-teaser-text").value="Moja wersja posta";let shared="";a.c.IL.shareText=t=>{shared=t};a.run("shareFacebookTeaser()");assert.equal(shared,"Moja wersja posta");
+});
+
+test("Facebook teaser gives useful missing-content feedback and generic titles get a neutral CTA",()=>{
+ const a=setup();a.run("$('post-title').value='';$('post-excerpt').value='';$('post-body').value=''");assert.equal(a.run("openFacebookTeaser()"),false);assert.match(a.node("post-output").innerHTML,/Dodaj tytuł/);
+ a.node("post-title").value="Nowa galeria zdjęć";a.node("post-body").value="Opis galerii.";assert.equal(a.run("openFacebookTeaser()"),true);assert.match(a.node("facebook-teaser-text").value,/Przeczytaj więcej na Ispina Lokalnie/);
 });
 
 test('storage failure while accepting correction is visible inside comparison and changes nothing',()=>{

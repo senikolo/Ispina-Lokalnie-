@@ -356,6 +356,11 @@ public class MainActivity extends Activity {
         } catch (RuntimeException ignored) { /* Vibration may be disabled by the device. */ }
     }
 
+    private boolean hasVibrationMotor() {
+        Vibrator vibrator = (Vibrator) getSystemService(VIBRATOR_SERVICE);
+        return vibrator != null && vibrator.hasVibrator();
+    }
+
     private boolean backupPickerBusy=false;
     private PhotoEditor photoEditor;
     private DurableDraftStore durableDraftStore;
@@ -381,7 +386,18 @@ public class MainActivity extends Activity {
         @JavascriptInterface public void shareText(String text){if(text==null||text.length()>12000)return;ui.post(()->{try{Intent i=new Intent(Intent.ACTION_SEND);i.setType("text/plain");i.putExtra(Intent.EXTRA_TEXT,text);startActivity(Intent.createChooser(i,"Udostępnij zapowiedź artykułu"));}catch(Exception ex){callback("copy",false,"Nie znaleziono aplikacji do udostępnienia. Użyj Kopiuj.");}});}
 
         @JavascriptInterface public void getHaptics() {
-            callback("haptics", true, "{\"mode\":" + hapticMode() + "}");
+            callback("haptics", true, "{\"mode\":" + hapticMode()
+                + ",\"available\":" + hasVibrationMotor() + "}");
+        }
+
+        @JavascriptInterface public void testHaptics() {
+            int mode = hapticMode();
+            if (mode == 0) { callback("haptics-test", false, "Wibracje są wyłączone. Wybierz Delikatne, Normalne lub Mocniejsze."); return; }
+            if (!hasVibrationMotor()) { callback("haptics-test", false, "Ten telefon nie zgłasza silnika wibracyjnego."); return; }
+            ui.post(() -> {
+                vibrateFeedback("success");
+                callback("haptics-test", true, "Wysłano sygnał testowy. Jeśli go nie czujesz, sprawdź systemowe ustawienia wibracji telefonu.");
+            });
         }
 
         @JavascriptInterface public void getTextZoom() {

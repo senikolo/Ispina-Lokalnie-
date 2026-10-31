@@ -241,7 +241,7 @@ header{animation:ilHeader .38s cubic-bezier(.2,.7,.2,1) both}.brand .logo{animat
     <label for="post-tags">Tagi (oddziel przecinkami)</label><input id="post-tags" placeholder="Ispina, historia Ispiny">
     <label for="post-media">Zdjęcie wyróżniające</label>
     <div class="row"><input id="post-media" type="number" min="0" value="0" style="flex:1"><button class="secondary" onclick="IL.chooseImage()">Z telefonu</button><button class="secondary" onclick="showScreen('media');loadMedia()">Z galerii IL</button></div>
-    <div class="actions"><button class="secondary" onclick="suggest()">Porównaj korektę i SEO</button><button class="secondary" onclick="auditEditorial()">Sprawdź nazwy i fakty</button><button id="undo-edit" class="secondary hidden" onclick="undoEditorialChange()">Cofnij przyjętą korektę</button><button class="secondary" onclick="assistantFromEditor('Popraw język polski, śródtytuły i zajawkę. Zachowaj sens i wszystkie potwierdzone fakty; nie dopowiadaj informacji o Ispinie.')">Korekta AI</button><button class="secondary" onclick="suggestRelatedReading()">📖 Poleć czytelnikom powiązane teksty IL</button><button class="secondary" onclick="preview()">Podgląd</button><button class="secondary" onclick="showTemplates()">Szablony</button></div>
+    <div class="actions"><button class="secondary" onclick="suggest()">Porównaj korektę i SEO</button><button class="secondary" onclick="auditEditorial()">Sprawdź nazwy i fakty</button><button id="undo-edit" class="secondary hidden" onclick="undoEditorialChange()">Cofnij przyjętą korektę</button><button class="secondary" onclick="assistantFromEditor('Popraw język polski, śródtytuły i zajawkę. Zachowaj sens i wszystkie potwierdzone fakty; nie dopowiadaj informacji o Ispinie.')">Korekta AI</button><button class="secondary" onclick="openFacebookTeaser()">📣 Wygeneruj zajawkę na Facebooka</button><button class="secondary" onclick="suggestRelatedReading()">📖 Poleć czytelnikom powiązane teksty IL</button><button class="secondary" onclick="preview()">Podgląd</button><button class="secondary" onclick="showTemplates()">Szablony</button></div>
     <div id="templates-box" class="note hidden"></div>
     <div class="actions"><button class="secondary" onclick="openSources()">Źródła i dokumenty</button><button class="secondary" onclick="openFindReplace()">Szukaj i zamień</button><button class="secondary" onclick="checkRemoteManually()">Porównaj z WordPressem</button></div><input type="hidden" id="post-sources" value="[]"><div id="editor-audit" role="status" aria-live="polite"></div><div id="editor-metrics" class="note">Napisz tekst, aby zobaczyć wskazówki redakcyjne.</div>
     <div id="reading-suggestions" aria-live="polite" role="region" aria-label="Propozycje lektury dla czytelników"></div>
@@ -334,7 +334,7 @@ header{animation:ilHeader .38s cubic-bezier(.2,.7,.2,1) both}.brand .logo{animat
     <label class="setting-row"><input type="checkbox" id="battery-saving" onchange="applyUiPreferences(true)"><span>Tryb oszczędzania baterii</span></label>
     <p id="ui-preferences-status" class="setting-caption" role="status" aria-live="polite">Ustawienia zapisują się na tym telefonie. Systemowe ograniczenie ruchu zawsze ma pierwszeństwo.</p>
   </div>
-  <div class="card"><h2>O programie</h2><p class="muted">IL Redaktor Smart 1.16.0 · Niezależna aplikacja Android 8 i nowszy. WordPress.com MCP. Publikacja wymaga potwierdzenia i ponownego odczytu wpisu.</p></div>
+  <div class="card"><h2>O programie</h2><p class="muted">IL Redaktor Smart 1.17.0 · Niezależna aplikacja Android 8 i nowszy. WordPress.com MCP. Publikacja wymaga potwierdzenia i ponownego odczytu wpisu.</p></div>
 </section>
 </main>
 <div id="conflict-dialog" class="finish-dialog hidden" role="dialog" aria-modal="true" aria-labelledby="conflict-title"><div class="finish-panel"><h2 id="conflict-title">Wersja na WordPressie wymaga porównania</h2><p id="conflict-message"></p><p>Nie wysłano zmian artykułu. Twoja praca pozostaje w szkicach na telefonie.</p><button class="secondary" onclick="showConflictComparison()">Porównaj wersje</button><div id="conflict-comparison" class="hidden"></div><p id="conflict-feedback" role="status"></p><div class="actions"><button onclick="resolveRemoteConflict(false)">Wczytaj wersję ze strony</button><button class="secondary" onclick="resolveRemoteConflict(true)">Zachowaj obie kopie</button><button class="secondary" onclick="closeRemoteConflict()">Wróć do tekstu</button></div><p class="small">Wczytanie nie usuwa Twojego szkicu. Zachowaj obie kopie odłączy lokalną wersję od wpisu na stronie.</p></div></div>
@@ -343,6 +343,7 @@ header{animation:ilHeader .38s cubic-bezier(.2,.7,.2,1) both}.brand .logo{animat
 <div id="correction-dialog" class="finish-dialog hidden" role="dialog" aria-modal="true" aria-labelledby="correction-title"><div class="finish-panel"><h2 id="correction-title">Porównaj propozycję</h2><p id="correction-reason"></p><p class="small">Wybierz zmiany, które chcesz przyjąć. Usunięcia są przekreślone, dodatki podkreślone. Tekst nie zostanie opublikowany.</p><div id="correction-fields"></div><p id="correction-feedback" role="status"></p><div class="actions"><button class="secondary" onclick="dismissCorrection()">Odrzuć</button><button onclick="acceptCorrection()">Zaakceptuj wybrane zmiany</button></div></div></div>
 <div id="backup-dialog" class="finish-dialog hidden" role="dialog" aria-modal="true" aria-labelledby="backup-title"><div class="finish-panel"><h2 id="backup-title">Wczytaj szkice</h2><p id="backup-summary"></p><p id="backup-feedback" role="status" aria-live="polite"></p><p>Obecne szkice pozostaną. Identyczne kopie pominę. Niczego nie wyślę do WordPressa.</p><div class="actions"><button class="secondary" onclick="cancelBackupImport()">Anuluj</button><button onclick="mergeDraftBackup()">Dołącz szkice</button></div></div></div>
 <div id="promotion-dialog" class="finish-dialog hidden" role="dialog" aria-modal="true" aria-labelledby="promotion-title"><div class="finish-panel"><h2 id="promotion-title">Promocja artykułu</h2><p id="promotion-source"></p><label for="promotion-kind">Wybierz wersję</label><select id="promotion-kind" onchange="renderPromotion()"><option value="facebook">Facebook</option><option value="short">Krótka wiadomość</option><option value="invitation">Zaproszenie do czytania</option></select><label for="promotion-text">Tekst do sprawdzenia i skopiowania</label><textarea id="promotion-text" style="min-height:200px"></textarea><p id="promotion-output" role="status"></p><div class="actions"><button onclick="copyPromotion()">Kopiuj</button><button class="secondary" onclick="sharePromotion()">Udostępnij…</button><button class="secondary" onclick="closePromotion()">Zamknij</button></div></div></div>
+<div id="facebook-teaser-dialog" class="finish-dialog hidden" role="dialog" aria-modal="true" aria-labelledby="facebook-teaser-title"><div class="finish-panel"><h2 id="facebook-teaser-title">Zajawka na Facebooka</h2><p class="muted">Przygotowałem krótką propozycję z tytułu i treści szkicu. Możesz ją poprawić przed skopiowaniem.</p><label for="facebook-teaser-text">Propozycja posta</label><textarea id="facebook-teaser-text" maxlength="1200" style="min-height:150px"></textarea><p id="facebook-teaser-status" role="status" aria-live="polite">Tekst nie zostanie opublikowany automatycznie.</p><div class="actions"><button onclick="copyFacebookTeaser()">Kopiuj zajawkę</button><button class="secondary" onclick="shareFacebookTeaser()">Udostępnij…</button><button class="secondary" onclick="closeFacebookTeaser()">Zamknij</button></div></div></div>
 <div id="publish-review" class="finish-dialog hidden" role="dialog" aria-modal="true" aria-labelledby="review-title"><div class="finish-panel" style="max-height:90vh;overflow:auto"><h2 id="review-title">Przed publikacją</h2><div id="review-summary"></div><iframe id="review-preview" sandbox="" title="Podgląd przed publikacją"></iframe><p id="review-feedback" role="status"></p><div class="actions"><button class="secondary" onclick="closeReview()">Wróć do poprawiania</button><button id="review-confirm" onclick="confirmReviewPublication()">Potwierdzam — opublikuj</button></div></div></div>
 <div id="publication-progress" class="finish-dialog hidden" role="dialog" aria-modal="true" aria-labelledby="progress-title"><div class="finish-panel"><h2 id="progress-title">Publikuję — poczekaj chwilę</h2><p id="progress-step" role="status" aria-live="polite">Przygotowuję artykuł…</p><p class="muted">Poczekaj na potwierdzenie z WordPressa. Przy wolnym połączeniu odpowiedź może potrwać dłużej. Nie wysyłaj wpisu ponownie.</p></div></div>
 <div id="finish-dialog" class="finish-dialog hidden" role="alertdialog" aria-modal="true" aria-labelledby="finish-title">
@@ -520,10 +521,11 @@ window.onNativeResult=function(id,ok,payload){
     showLoginRecovery(false);endOperation();message("auth-output",payload,"ok");return;
   }
   if(id==="haptics"){
-    if(ok){try{const s=JSON.parse(payload);$("haptics-select").value=String(s.mode);$("haptics-status").textContent="Ustawienie zapisane: "+["Wyłączone","Delikatne","Normalne","Mocniejsze"][s.mode]+ "."}catch(e){}}
+    if(ok){try{const s=JSON.parse(payload);$("haptics-select").value=String(s.mode);$("haptics-status").textContent=s.available?"Ustawienie: "+["Wyłączone","Delikatne","Normalne","Mocniejsze"][s.mode]+". Telefon zgłasza silnik wibracyjny.":"Ustawienie: "+["Wyłączone","Delikatne","Normalne","Mocniejsze"][s.mode]+". Telefon nie zgłasza silnika wibracyjnego."}catch(e){}}
     else $("haptics-status").textContent=payload;
     return;
   }
+  if(id==="haptics-test"){$("haptics-status").textContent=payload;$("haptics-status").className="setting-caption "+(ok?"ok":"error");return;}
   if(id==="text-zoom"){
     if(ok){try{const s=JSON.parse(payload);const value=String(s.value);if(["80","90","100","115","130","150","160"].includes(value))$("text-zoom-select").value=value;$("ui-preferences-status").textContent="Rozmiar tekstu zapisany: "+value+"%."}catch(e){}}
     else $("ui-preferences-status").textContent=payload;
@@ -592,7 +594,7 @@ function checkLoginState(){if(IL.loginState)IL.loginState()}
 function cancelLoginFlow(){if(IL.cancelLogin)IL.cancelLogin()}
 function finishManualLogin(){const el=$("oauth-return");const url=trim(el.value);el.value="";if(!url){message("auth-output","Wklej pełny adres powrotu (jeżeli jest dostępny w przeglądarce).","error");return}IL.finishLoginWithUrl(url);startOperation("Odbieram potwierdzenie WordPress.com")}
 function setHapticsMode(value){if(IL.setHaptics)IL.setHaptics(Number(value))}
-function testHaptics(){if(IL.haptic)IL.haptic("success")}
+function testHaptics(){$("haptics-status").textContent="Sprawdzam ustawienie i silnik wibracyjny…";if(IL.testHaptics)IL.testHaptics();else $("haptics-status").textContent="Test wibracji jest dostępny w aplikacji na Androida."}
 const uiPreferencesKey="il_redaktor_ui_preferences_v1";
 function applyUiPreferences(save=true){
   const root=document.documentElement;
@@ -813,7 +815,7 @@ async function testDraftWrite(){
   if(!confirm("Utworzyć w WordPressie prywatny szkic diagnostyczny? Nie będzie publiczny i pozostanie na liście szkiców do ręcznego usunięcia."))return;
   const testButton=$("test-draft-write");
   diagnosticWriteBusy=true;testButton.disabled=true;
-  const title="[TEST IL Redaktor Smart 1.16.0] Sprawdzenie zapisu "+new Date().toLocaleString("pl-PL");
+  const title="[TEST IL Redaktor Smart 1.17.0] Sprawdzenie zapisu "+new Date().toLocaleString("pl-PL");
   const body={title,content:"<p>Test techniczny zapisu z aplikacji IL Redaktor Smart. Ten szkic nie jest przeznaczony do publikacji.</p>",status:"draft",excerpt:"Test techniczny. Nie publikować."};
   let createdId=null;
   startOperation("Test: zapisuję szkic w WordPressie…");
@@ -1473,6 +1475,28 @@ function renderPromotion(){if(promotionArticle)$("promotion-text").value=promoti
 function closePromotion(){$("promotion-dialog").classList.add("hidden")}
 function copyPromotion(){const text=trim($("promotion-text").value);if(text&&IL.copyText){IL.copyText(text);$("promotion-output").textContent="Przekazano tekst do skopiowania. Wklej go do wybranej publikacji."}}
 function sharePromotion(){const text=trim($("promotion-text").value);if(text&&typeof IL.shareText==="function")IL.shareText(text);else $("promotion-output").textContent="Użyj Kopiuj, aby przenieść tekst do wybranej aplikacji."}
+function facebookCallToAction(title){
+  if(/rozkład|kurs|komunikac|autobus|linia|zmian/i.test(title))return "Zobacz, co się zmieni.";
+  if(/histori|dawniej|wspomnieni|archiwal/i.test(title))return "Poznaj historię Ispiny.";
+  if(/zaprasz|spotkani|szkoleni|wydarzeni|festyn|uroczystości/i.test(title))return "Sprawdź szczegóły i dołącz.";
+  return "Przeczytaj więcej na Ispina Lokalnie.";
+}
+function openFacebookTeaser(){
+  const title=plainEditorialText($("post-title").value),excerpt=plainEditorialText($("post-excerpt").value),body=plainEditorialText($("post-body").value);
+  if(!title&&!excerpt&&!body){message("post-output","Dodaj tytuł albo treść szkicu, aby przygotować zajawkę.","error");return false}
+  const headline=title||shortEditorialText(excerpt||body,100),summary=shortEditorialText(excerpt,190);
+  const parts=[headline.replace(/[.!?…]+$/,"" )+"."];
+  if(summary&&summary.toLocaleLowerCase("pl")!==headline.toLocaleLowerCase("pl"))parts.push(summary);
+  parts.push(facebookCallToAction(headline));
+  const articleUrl=promotionArticle&&Number(promotionArticle.id)===Number(postId)?validPromotionUrl(promotionArticle.url,postId):"";
+  if(articleUrl)parts.push("Czytaj: "+articleUrl);
+  $("facebook-teaser-text").value=parts.join("\n\n");
+  $("facebook-teaser-status").textContent="Propozycja powstała lokalnie z obecnego szkicu. Sprawdź ją i popraw, jeśli trzeba. Nic nie opublikowałem.";
+  $("facebook-teaser-dialog").classList.remove("hidden");return true;
+}
+function closeFacebookTeaser(){$("facebook-teaser-dialog").classList.add("hidden")}
+function copyFacebookTeaser(){const text=trim($("facebook-teaser-text").value);if(!text)return;if(IL.copyText)IL.copyText(text);$("facebook-teaser-status").textContent="Zajawka skopiowana. Wklej ją na Facebooku po sprawdzeniu."}
+function shareFacebookTeaser(){const text=trim($("facebook-teaser-text").value);if(text&&IL.shareText)IL.shareText(text);else $("facebook-teaser-status").textContent="Użyj Kopiuj zajawkę, aby przenieść tekst do Facebooka."}
 
 // Preflight checks detect edits already present at read time. MCP has no compare-and-set option.
 let remoteBaseline=null,pendingRemoteConflict=null,remoteResolving=false;
