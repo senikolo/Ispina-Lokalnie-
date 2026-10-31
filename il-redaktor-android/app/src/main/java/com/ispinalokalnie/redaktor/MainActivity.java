@@ -60,11 +60,12 @@ public class MainActivity extends Activity {
     private WebView editor;
     private AlertDialog loginDialog;
     private String oauthState = "";
+    private volatile boolean verified = false;
 
     @Override public void onCreate(Bundle state) {
         super.onCreate(state);
         editor = new WebView(this);
-        editor.setBackgroundColor(0xfff4f7fb);
+        editor.setBackgroundColor(0xfff3f7fc);
         WebSettings settings = editor.getSettings();
         settings.setJavaScriptEnabled(true);
         settings.setDomStorageEnabled(true);
@@ -143,11 +144,37 @@ public class MainActivity extends Activity {
         return expiry() > System.currentTimeMillis() && !getToken().isEmpty();
     }
 
+    private void verifyConnection() {
+        if (!connected()) { callback("verify", false, "Brak aktywnej sesji WordPressa."); return; }
+        work.execute(() -> {
+            HttpURLConnection c = null;
+            try {
+                c = (HttpURLConnection) new URL(API + "posts?context=edit&per_page=1").openConnection();
+                c.setRequestProperty("Authorization", "Bearer " + getToken());
+                c.setConnectTimeout(15000); c.setReadTimeout(18000);
+                int code = c.getResponseCode();
+                String reply = readReply(c, code);
+                if (code >= 200 && code < 300 && reply.trim().startsWith("[")) {
+                    verified = true;
+                    callback("verify", true, "{\\\"connected\\\":true}");
+                } else {
+                    verified = false;
+                    if (code == 401 || code == 403) {
+                        prefs().edit().remove("token").remove("expiry").apply();
+                    }
+                    callback("verify", false, "WordPress nie potwierdził dostępu: HTTP " + code + ". " + friendlyError(reply));
+                }
+            } catch (Exception ex) { verified=false; callback("verify",false,"Nie udało się sprawdzić konta: "+ex.getMessage()); }
+            finally { if (c != null) c.disconnect(); }
+        });
+    }
+
     public class Bridge {
         @JavascriptInterface public void status() {
             JSONObject obj = new JSONObject();
             try {
                 obj.put("connected", connected());
+                obj.put("verified", verified);
                 obj.put("clientId", clientId());
                 obj.put("siteId", SITE);
             } catch (Exception ignored) {}
@@ -162,11 +189,15 @@ public class MainActivity extends Activity {
                     return;
                 }
                 prefs().edit().putString("oauth_client_id", id).apply();
+                verified = false;
                 startOAuth(id);
             });
         }
 
+        @JavascriptInterface public void verify() { verifyConnection(); }
+
         @JavascriptInterface public void disconnect() {
+            verified = false;
             prefs().edit().remove("token").remove("expiry").apply();
             callback("auth", true, "{\"connected\":false}");
         }
@@ -196,9 +227,11 @@ public class MainActivity extends Activity {
         }
 
         @JavascriptInterface public void openSite(String target) {
-            if (!target.startsWith("https://ispinalokalnie.wordpress.com/")
-                    && !target.startsWith("https://wordpress.com/")
-                    && !target.startsWith("https://developer.wordpress.com/")) return;
+            Uri safe = Uri.parse(target);
+            String host = safe.getHost();
+            if (!"https".equals(safe.getScheme()) || host == null || !(
+                    host.equals("ispinalokalnie.wordpress.com") || host.equals("wordpress.com")
+                    || host.endsWith(".wordpress.com") || host.equals("developer.wordpress.com"))) return;
             ui.post(() -> {
                 try { startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(target))); }
                 catch (Exception e) { callback("external", false, "Nie można otworzyć przeglądarki."); }
@@ -211,7 +244,7 @@ public class MainActivity extends Activity {
         String auth = "https://public-api.wordpress.com/oauth2/authorize" +
             "?client_id=" + Uri.encode(id) +
             "&redirect_uri=" + Uri.encode(REDIRECT) +
-            "&response_type=token&scope=" + Uri.encode("posts media") +
+            "&response_type=token&scope=" + Uri.encode("posts media taxonomy") +
             "&blog=" + Uri.encode("ispinalokalnie.wordpress.com") +
             "&state=" + Uri.encode(oauthState);
         WebView login = new WebView(this);
@@ -305,6 +338,10 @@ public class MainActivity extends Activity {
             if (status >= 200 && status < 300) {
                 callback(rid, true, result);
             } else {
+                if (status == 401 || status == 403) {
+                    verified = false;
+                    if (status == 401) prefs().edit().remove("token").remove("expiry").apply();
+                }
                 callback(rid, false, "WordPress HTTP " + status + ": " + friendlyError(result));
             }
         } catch (Exception ex) {
