@@ -189,3 +189,40 @@ jobs:
           name: IL-Redaktor-Smart-Release-APK
           path: il-redaktor-android/app/build/outputs/apk/release/app-release.apk
           retention-days: 30
+
+  # Publish a clearly marked PRERELEASE so Android users can download the APK
+  # directly, without having to sign in to GitHub for Actions artifacts.
+  # Only this job gets write permission; build/test jobs remain read-only.
+  direct-download:
+    if: github.ref == 'refs/heads/codex/il-redaktor-native-android-20261031'
+    needs: apk
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Retrieve verified debug APK
+        uses: actions/download-artifact@v4
+        with:
+          name: IL-Redaktor-Smart-APK
+          path: android-package
+      - name: Publish GitHub pre-release for direct Android download
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          TAG="il-redaktor-smart-1.5.2-test"
+          FILE="IL-Redaktor-Smart-1.5.2-TEST.apk"
+          test -s android-package/app-debug.apk
+          cp android-package/app-debug.apk "$FILE"
+          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release upload "$TAG" "$FILE" --clobber --repo "$GITHUB_REPOSITORY"
+          else
+            gh release create "$TAG" "$FILE" \
+              --repo "$GITHUB_REPOSITORY" \
+              --target "$GITHUB_SHA" \
+              --title "IL Redaktor Smart 1.5.2 TEST (czerwona kropka)" \
+              --notes "Wersja testowa Android 8+. Ikona Redaktora z czerwoną kropką. Poprawiona obsługa logowania WordPress.com i sesji MCP. Test na telefonie jest wymagany; nie scalać z main bez weryfikacji." \
+              --prerelease
+          fi
+          gh release view "$TAG" --repo "$GITHUB_REPOSITORY" \
+            --json assets --jq '.assets[].name' | grep -Fx "$FILE"
