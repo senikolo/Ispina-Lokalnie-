@@ -75,7 +75,7 @@ jobs:
               assert expected in oauth, 'OAuth return missing: '+expected
           assert 'response_types' in mcp and 'authorization_code' in mcp
           assert 'refresh_token' in mcp and 'refresh_token' in main, 'Token refresh is not wired end to end'
-          assert 'putTokens(access,expires,refresh,true)' in main, 'Refresh token is not stored after consent'
+          assert 'putTokens(access, expires, refresh, true)' in main, 'Refresh token is not stored after consent'
           assert 'AndroidKeyStore' in main and 'encryptSecret' in main, 'Tokens are not encrypted at rest'
           assert 'JSONArray)data).length() == 0' in main, 'Login must confirm at least one existing article'
           assert 'response_type=token' not in main and 'response_type=token' not in oauth, 'Implicit OAuth flow must not be used'
@@ -86,6 +86,29 @@ jobs:
           print('Required features and official IL branding confirmed')
           PY
           node --check /tmp/ilredaktor-ui.js
+      - name: Verify WordPress.com supports the Android deep-link redirect
+        run: |
+          python - <<'PY'
+          import json, urllib.request, urllib.error
+          url='https://public-api.wordpress.com/oauth2-1/register'
+          payload={'client_name':'IL Redaktor Smart Android Redirect CI',
+                   'redirect_uris':['com.ispinalokalnie.redaktorsmart.oauth:/callback'],
+                   'grant_types':['authorization_code','refresh_token'],
+                   'response_types':['code'],
+                   'token_endpoint_auth_method':'none'}
+          req=urllib.request.Request(url, data=json.dumps(payload).encode('utf-8'),
+                 headers={'Content-Type':'application/json','Accept':'application/json'},
+                 method='POST')
+          try:
+              with urllib.request.urlopen(req,timeout=25) as response:
+                  out=json.load(response)
+              if not out.get('client_id'):
+                  raise AssertionError('Registration returned no client_id')
+              print('Android deep-link registration accepted by WordPress.com')
+          except urllib.error.HTTPError as e:
+              body=e.read(1000).decode('utf-8','replace')
+              raise AssertionError(f'WordPress.com rejected native OAuth redirect: HTTP {e.code}, {body}')
+          PY
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
