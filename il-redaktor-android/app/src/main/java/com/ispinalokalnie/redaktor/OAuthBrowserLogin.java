@@ -31,8 +31,9 @@ public final class OAuthBrowserLogin {
         void failure(String message);
     }
 
-    private static final String REDIRECT="http://127.0.0.1:38477/callback";
+    private static final String REDIRECT="http://localhost:38477/callback";
     private static final SecureRandom RANDOM = new SecureRandom();
+    private static final int PORT=38477;
     private final Activity activity;
     private final Listener listener;
     private final Handler main = new Handler(Looper.getMainLooper());
@@ -56,15 +57,17 @@ public final class OAuthBrowserLogin {
     }
 
     private void run() {
-        try (ServerSocket server=new ServerSocket(38477,1,InetAddress.getByName("127.0.0.1"))) {
+        try (ServerSocket server=new ServerSocket(PORT,1,InetAddress.getByName("127.0.0.1"))) {
             server.setSoTimeout(180000);
-            note("Konfiguruję bezpieczne połączenie z WordPress.com...");
-            String clientId = activity.getSharedPreferences("il_redaktor_settings", Activity.MODE_PRIVATE)
-                .getString("oauth21_client_id","");
+            note("Krok 1/4: Rejestruję bezpieczne połączenie WordPress…");
+            android.content.SharedPreferences prefs =
+                activity.getSharedPreferences("il_redaktor_settings", Activity.MODE_PRIVATE);
+            String clientId=prefs.getString("oauth21_client_id","");
+            if(!REDIRECT.equals(prefs.getString("oauth21_redirect","")))clientId="";
             if (clientId.isEmpty()) {
                 clientId=WpMcp.registerClient(REDIRECT);
-                activity.getSharedPreferences("il_redaktor_settings",Activity.MODE_PRIVATE)
-                    .edit().putString("oauth21_client_id",clientId).apply();
+                prefs.edit().putString("oauth21_client_id",clientId)
+                    .putString("oauth21_redirect",REDIRECT).apply();
             }
             final String actualClientId=clientId;
             final String state=random(24);
@@ -79,17 +82,25 @@ public final class OAuthBrowserLogin {
                 "&code_challenge_method=S256" +
                 "&scope=auth"+
                 "&state="+Uri.encode(state);
-            note("Wybierz konto Google na ekranie WordPress.com i zatwierdź dostęp.");
+            note("Krok 2/4: Otwieram WordPress.com. Wybierz konto Google i zatwierdź dostęp…");
+            java.util.concurrent.CountDownLatch browserOpened=new java.util.concurrent.CountDownLatch(1);
+            final String[] browserError={null};
             main.post(()->{
                 try {
                     Intent browser=new Intent(Intent.ACTION_VIEW,Uri.parse(login));
                     browser.addCategory(Intent.CATEGORY_BROWSABLE);
                     activity.startActivity(browser);
-                } catch(Exception ex) { listener.failure("Nie można otworzyć przeglądarki: "+ex.getMessage()); }
+                } catch(Exception ex) {
+                    browserError[0]="Telefon nie mógł otworzyć przeglądarki: "+ex.getMessage();
+                } finally {browserOpened.countDown();}
             });
+            if(!browserOpened.await(10,java.util.concurrent.TimeUnit.SECONDS))
+                throw new Exception("Nie udało się uruchomić przeglądarki telefonu.");
+            if(browserError[0]!=null)throw new Exception(browserError[0]);
             String receivedCode=null;
             String error=null;
             long expiresAt=System.currentTimeMillis()+180000;
+            note("Krok 3/4: Czekam na potwierdzenie logowania z przeglądarki…");
             while(System.currentTimeMillis()<expiresAt) {
                 try(Socket socket=server.accept()) {
                     socket.setSoTimeout(8000);
@@ -98,7 +109,7 @@ public final class OAuthBrowserLogin {
                     if(first==null)continue;
                     String[] firstParts=first.split(" ");
                     String path=firstParts.length>=2?firstParts[1]:"/";
-                    Uri request=Uri.parse("http://127.0.0.1:38477"+path);
+                    Uri request=Uri.parse("http://localhost:38477"+path);
                     boolean callback="/callback".equals(request.getPath());
                     String remoteState=request.getQueryParameter("state");
                     boolean correctState=callback&&state.equals(remoteState);
@@ -107,17 +118,17 @@ public final class OAuthBrowserLogin {
                         error=request.getQueryParameter("error");
                     }
                     String page=correctState&&receivedCode!=null?
-                        "<h2>Logowanie WordPress zakończone</h2><p>Wróć do aplikacji IL Redaktor Smart. Możesz zamknąć tę kartę.</p>":
-                        "<h2>IL Redaktor Smart</h2><p>Wróć do aplikacji i spróbuj ponownie, jeśli logowanie nie działa.</p>";
+                        "<h2>Odebrano odpowiedź WordPress</h2><p>Redaktor sprawdza teraz uprawnienia do strony. Kliknij poniżej, aby wrócić do aplikacji.</p><p><a style='padding:13px;background:#174875;color:white;border-radius:9px;text-decoration:none;display:inline-block' href='ilredaktor://resume'>Wróć do Redaktora IL</a></p>":
+                        "<h2>Nie udało się potwierdzić logowania</h2><p>Wróć do Redaktora i spróbuj ponownie. Sprawdź, czy wybrano właściwe konto WordPress.com.</p>";
                     byte[] bytes=("<!DOCTYPE html><html lang=\"pl\"><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width\"><body style=\"font:18px system-ui;padding:22px;color:#174875\">"+page+"</body></html>").getBytes(StandardCharsets.UTF_8);
-                    String header="HTTP/1.1 200 OK\r\nContent-Type: text/html; charset=utf-8\r\nCache-Control: no-store\r\nReferrer-Policy: no-referrer\r\nContent-Length: "+bytes.length+"\r\nConnection: close\r\n\r\n";
+                    String header="HTTP/1.1 200 OK\r\nContent-Type: text/html; charset=utf-8\r\nCache-Control: no-store\r\nReferrer-Policy: no-referrer\r\nX-Content-Type-Options: nosniff\r\nContent-Security-Policy: default-src 'none'; style-src 'unsafe-inline'\r\nContent-Length: "+bytes.length+"\r\nConnection: close\r\n\r\n";
                     OutputStream out=socket.getOutputStream();
                     out.write(header.getBytes(StandardCharsets.US_ASCII));out.write(bytes);out.flush();
                     if(correctState)break;
                 }
             }
             if(receivedCode==null)throw new Exception(error!=null?"WordPress odrzucił logowanie: "+error:"Nie otrzymano potwierdzenia z przeglądarki.");
-            note("WordPress potwierdził logowanie. Weryfikuję uprawnienia do Ispina Lokalnie...");
+            note("Krok 4/4: Wymieniam kod i sprawdzam dostęp do Ispina Lokalnie…");
             JSONObject tokens=WpMcp.exchangeCode(actualClientId,REDIRECT,receivedCode,verifier);
             String token=tokens.optString("access_token","");
             if(token.isEmpty())throw new Exception("Nie otrzymano tokenu dostępu WordPress.");
@@ -125,7 +136,12 @@ public final class OAuthBrowserLogin {
             long seconds=tokens.optLong("expires_in",3600);
             main.post(()->listener.success(token,Math.max(120,seconds),refresh,actualClientId));
         } catch(Exception ex) {
-            fail("Nie udało się zalogować przez WordPress.com: "+ex.getMessage());
+            String message=ex.getMessage()==null?"Nieznany błąd połączenia.":ex.getMessage();
+            if(message.contains("SocketTimeoutException")||message.contains("timed out"))
+                message="Przeglądarka nie wróciła do aplikacji. Spróbuj ponownie i dokończ zatwierdzanie w WordPress.com.";
+            if(message.contains("invalid_client"))
+                message="WordPress nie uznaje zapisanej rejestracji klienta. Zamknij okno i spróbuj ponownie.";
+            fail("Nie udało się zalogować przez WordPress.com: "+message);
         }
     }
 }
