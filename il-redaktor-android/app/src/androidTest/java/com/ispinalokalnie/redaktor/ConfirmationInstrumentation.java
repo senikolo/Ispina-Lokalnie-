@@ -162,7 +162,7 @@ public final class ConfirmationInstrumentation extends Instrumentation {
                 if(!restored.contains("Pierwszy szkic")||!restored.contains("Druga wersja")||!restored.contains("Drugi szkic"))throw new AssertionError("Drafts lost after reinstall: "+restored);
                 if(!"preserved".equals(getTargetContext().getSharedPreferences("il_update_probe",0).getString("marker","")))throw new AssertionError("Preferences lost after reinstall");
                 if(!"true".equals(evaluate("readDraftStore().drafts.some(d=>d.revisions.some(v=>v.snapshot.body==='Pierwsza wersja'))")))throw new AssertionError("Revision history lost");
-                result.putString("stream","IL_UPDATE_DATA_TEST=PASS (1.15 to 1.16 upgrade: drafts, history, preferences)\n");
+                result.putString("stream","IL_UPDATE_DATA_TEST=PASS (1.15 to 1.17 upgrade: drafts, history, preferences)\n");
             } else {
             diagnosticStage="photo crop";verifyEditorFeatures();
             verifyWorkspaceFeatures();
