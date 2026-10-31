@@ -156,7 +156,7 @@ public class MainActivity extends Activity {
                 String reply = readReply(c, code);
                 if (code >= 200 && code < 300 && reply.trim().startsWith("[")) {
                     verified = true;
-                    callback("verify", true, "{\\\"connected\\\":true}");
+                    callback("verify", true, "{\"connected\":true}");
                 } else {
                     verified = false;
                     if (code == 401 || code == 403) {
@@ -170,6 +170,15 @@ public class MainActivity extends Activity {
     }
 
     public class Bridge {
+        @JavascriptInterface public void copyText(String value) {
+            ui.post(() -> {
+                android.content.ClipboardManager clipboard =
+                    (android.content.ClipboardManager) getSystemService(CLIPBOARD_SERVICE);
+                clipboard.setPrimaryClip(android.content.ClipData.newPlainText("IL Redaktor Smart", value));
+                callback("copy", true, "Skopiowano tekst.");
+            });
+        }
+
         @JavascriptInterface public void status() {
             JSONObject obj = new JSONObject();
             try {
