@@ -28,6 +28,7 @@ function setup() {
           toggle(x,force){if(force===undefined? !classes.has(x):force)classes.add(x);else classes.delete(x)}
         },
         addEventListener(){},
+        setAttribute(){},removeAttribute(){},
       });
     }
     return dom.get(id);
@@ -168,4 +169,33 @@ test("publish guard prevents second parallel request even if user taps twice",as
   assert.match(a.node("publication-phase").textContent,/już trwa/);
   release();await first;
   assert.equal(a.node("save-publish").disabled,false);
+});
+
+
+test("last publication check verifies an existing ID without writing again",async()=>{
+  const a=setup(),calls=[];
+  a.run("postId=19;postStatus='publish';");
+  a.c.rpc=async(method,p)=>{calls.push({method,p});return {id:19,status:"publish",link:"https://ispinalokalnie.wordpress.com/?p=19"};};
+  await a.run("verifyLastPublication()");
+  assert.equal(calls.length,1);
+  assert.equal(calls[0].method,"GET");
+  assert.match(a.node("finish-title").textContent,/STATUS ZWERYFIKOWANY/);
+});
+
+test("services need read-after-write confirmation and do not retry an uncertain write",async()=>{
+  const a=setup(),calls=[];
+  a.run("servicesLoaded=true;servicesRaw='<!-- existing -->';services=[];");
+  a.node("service-name").value="Firma próbna";
+  a.node("service-description").value="Opis usługi";
+  a.node("service-category").value="Budowa domów";
+  a.c.rpc=async(method,p,body)=>{
+    calls.push({method,p,body});
+    if(method==="POST")return {id:818};
+    if(calls.length===1)return {id:818,content:{raw:"<!-- existing -->"}};
+    throw new Error("Błąd kontrolnego odczytu strony");
+  };
+  await a.run("saveService()");
+  assert.equal(calls.filter(c=>c.method==="POST").length,1);
+  assert.match(a.node("finish-title").textContent,/NIEPOTWIERDZONY/);
+  assert.equal(a.node("save-service").disabled,false);
 });
