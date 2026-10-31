@@ -1,0 +1,19 @@
+{
+  "name": "il-redaktor-assistant-backend",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@ai-sdk/google": "^4.0.0",
+    "@upstash/ratelimit": "^2.0.0",
+    "@upstash/redis": "^1.36.0",
+    "ai": "^7.0.0",
+    "zod": "^4.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.15.0",
+    "typescript": "^5.9.3"
+  }
+}

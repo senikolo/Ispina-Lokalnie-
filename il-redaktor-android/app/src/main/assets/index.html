@@ -1,0 +1,1003 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>IL Redaktor Smart</title>
+<style>
+:root{font-family:system-ui,-apple-system,"Roboto",sans-serif;color:#17304e;background:#f3f7fc}
+*{box-sizing:border-box}body{margin:0;padding-bottom:95px}
+header{background:linear-gradient(135deg,#0751a4,#187bc2);color:white;padding:24px 17px 20px;border-radius:0 0 23px 23px}
+.brand{display:flex;align-items:center;gap:13px}.logo{width:52px;height:52px;background:#fff;color:#0755ad;border-radius:15px;display:grid;place-items:center;font-weight:900;font-size:25px;letter-spacing:-3px;box-shadow:0 6px 20px #002c6266}
+h1{font-size:21px;margin:0;font-weight:800}header p{margin:5px 0 0;color:#ddf0ff;font-size:13px}
+main{max-width:760px;margin:auto;padding:15px}
+.panel{display:none}.panel.active{display:block}
+.card{background:white;border:1px solid #e2eaf4;border-radius:17px;padding:16px;margin:0 0 13px;box-shadow:0 2px 7px #2039580b}
+h2{font-size:18px;margin:0 0 12px}h3{font-size:15px;margin:8px 0}
+label{display:block;font-size:13px;font-weight:700;margin:12px 0 6px;color:#365a7f}
+input,select,textarea{width:100%;min-height:44px;border:1px solid #cbd9e9;border-radius:10px;background:white;color:#1a3047;padding:11px 12px;font-family:inherit;font-size:15px}
+textarea{min-height:205px;resize:vertical;line-height:1.55}
+button{background:#116ac0;border:0;border-radius:11px;padding:11px 15px;color:white;font-weight:750;font-size:14px;min-height:43px;cursor:pointer}
+button:disabled{opacity:.5}button.secondary{background:#e7f2fc;color:#14538f}button.danger{background:#fff2ef;color:#a03027}
+.actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
+.muted{color:#5b718a;font-size:13px;line-height:1.6}
+.small{font-size:12px}.status{display:flex;align-items:center;gap:8px;font-weight:700;font-size:13px}
+.dot{height:10px;width:10px;background:#e9a32c;border-radius:100%}.dot.on{background:#16a879}
+.note{padding:10px 13px;border-radius:12px;background:#eaf5ff;color:#215482;font-size:13px;margin:11px 0;line-height:1.6}
+.note.error{background:#ffefed;color:#982a26}.note.ok{background:#e6f8ee;color:#166842}
+.row{display:flex;gap:10px;align-items:center}.row>*{min-width:0}
+.post{padding:12px 0;border-bottom:1px solid #e6ebf3}.post:last-child{border:0}
+.post b{display:block;line-height:1.45}.post span{display:block;font-size:12px;color:#637894;margin:3px 0 7px}
+nav{position:fixed;z-index:5;bottom:0;left:0;right:0;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));background:white;border-top:1px solid #e0e9f5;box-shadow:0 -5px 20px #153f6810;padding:8px 4px max(9px,env(safe-area-inset-bottom))}
+nav button{background:none;color:#627b99;border-radius:12px;font-weight:700;font-size:10px;padding:7px 1px;min-width:0}
+nav button.active{color:#095eb6;background:#edf6ff}nav button .sym{display:block;font-size:22px;margin-bottom:3px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+.badge{display:inline-block;background:#eaf4ff;color:#1758a1;border-radius:50px;padding:3px 10px;font-size:12px}
+iframe{width:100%;min-height:320px;background:white;border:1px solid #cad6e6;border-radius:12px}
+.hidden{display:none!important}a{color:#075eb1}hr{border:0;border-top:1px solid #e1e9f2;margin:20px 0}
+
+/* Ispina Lokalnie official palette: #174875, #2d6d98, #f3f7fc, #dbe5ef */
+:root{font-family:Inter,system-ui,-apple-system,"Roboto",sans-serif;color:#23415f;background:#f3f7fc}
+header{background:#174875;border-radius:0 0 16px 16px;padding:20px 17px 18px}
+.logo{width:58px;height:58px;object-fit:contain;background:transparent;border-radius:13px;box-shadow:none;display:block}
+header h1{font-family:Cardo,Georgia,serif;font-size:25px;letter-spacing:.1px;color:white}
+header p{font-family:Cardo,Georgia,serif;font-style:italic;font-size:14px;color:#e7f2fa}
+.eyebrow{font-size:10px;letter-spacing:1.8px;font-weight:750;color:#a7d3f4;margin-bottom:2px}
+.card{border-color:#dbe5ef;border-radius:16px;box-shadow:0 2px 6px #1748750a}
+h2{font-family:Cardo,Georgia,serif;font-size:23px;color:#174875}
+h3{font-family:Cardo,Georgia,serif;color:#174875}
+input:focus,textarea:focus,select:focus{outline:2px solid #7daacb;outline-offset:1px}
+button{background:#174875;border-radius:10px}
+button.secondary{background:#e7f0f7;color:#174875}
+nav button.active{color:#174875;background:#edf5fb}
+.note{background:#edf5fb;color:#23415f}
+.hero-card{background:#fff}.hero-card .home-mark{width:74px;height:74px;object-fit:contain;flex-shrink:0;border-radius:12px}
+.hero-card .eyebrow{color:#2d6d98}.hero-card h2{font-size:22px;margin:4px 0}
+.quick-grid{margin:0 0 14px}.tile{min-height:126px;text-align:left;background:#fff;color:#174875;border:1px solid #dbe5ef;border-radius:16px;display:flex;align-items:flex-start;flex-direction:column;gap:4px;padding:15px;box-shadow:0 2px 6px #1748750c}
+.tile-icon{font-size:26px}.tile b{font-size:17px;font-family:Cardo,Georgia,serif}.tile small{color:#526477;font-size:12px}
+.primary-login{display:block;width:100%;font-size:16px;min-height:53px;margin:12px 0;background:#174875}
+.media-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:11px;margin-top:15px}
+.media-card{border:1px solid #dbe5ef;border-radius:14px;overflow:hidden;background:white}
+.media-card img{width:100%;height:120px;object-fit:contain;background:#f3f7fc}
+.media-card .media-info{padding:9px}.media-card b{font-size:12px;display:block;word-break:break-word;line-height:1.4}
+.media-card button{width:100%;font-size:12px;margin-top:8px}
+#editor-metrics{font-size:12px}
+.wide{width:100%}
+@media(max-width:370px){.actions button{flex:1}header h1{font-size:22px}nav button{font-size:10px}}
+.finish-dialog{position:fixed;inset:0;background:#112e4db5;z-index:20;display:flex;align-items:center;justify-content:center;padding:20px}
+.finish-panel{width:100%;max-width:470px;background:#fff;border-radius:22px;padding:24px;box-shadow:0 20px 60px #001b3650}
+.finish-symbol{font-size:35px;line-height:1;color:#148450}.finish-panel.error .finish-symbol{color:#b03f3a}
+.finish-title{font-size:26px;font-weight:800;color:#174875;margin:10px 0;font-family:Cardo,Georgia,serif}
+.finish-panel.error .finish-title{color:#923e3a}
+.finish-detail{color:#36506b;line-height:1.55;font-size:15px;overflow-wrap:anywhere}
+.finish-panel button{margin-top:12px}
+.finish-actions{display:flex;flex-wrap:wrap;gap:10px}
+.operation-status{position:sticky;top:0;z-index:8;background:#174875;color:white;padding:12px 14px;border-radius:0 0 12px 12px;font-size:14px;font-weight:750;text-align:center}
+.operation-status.busy:before{content:"";display:inline-block;width:12px;height:12px;margin-right:9px;border:2px solid #ffffff6b;border-top-color:#fff;border-radius:50%;vertical-align:-2px;animation:turn .8s linear infinite}
+.operation-status.done{background:#1a7550}.operation-status.failed{background:#9e3835}
+@keyframes turn{to{transform:rotate(360deg)}}
+.activity-entry{border-bottom:1px solid #e2eaf3;padding:10px 0;font-size:13px;line-height:1.5}
+.activity-entry:last-child{border:0}.activity-entry strong{color:#174875}.activity-entry small{display:block;color:#637894}
+.activity-entry.failed strong{color:#a03027}
+/* Responsive polish, gentle feedback and accessibility */
+@keyframes ilRise{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+@keyframes ilPop{from{opacity:0;transform:scale(.97)}to{opacity:1;transform:scale(1)}}
+@keyframes ilPulse{50%{box-shadow:0 0 0 7px #20a07426}}
+.panel.active{animation:ilRise .24s ease-out both}
+.finish-panel{animation:ilPop .2s ease-out both}
+button,.tile,.card{transition:background-color .18s ease,border-color .18s ease,transform .18s ease}
+button:active:not(:disabled),.tile:active{transform:scale(.98)}
+button:focus-visible,.tile:focus-visible{outline:3px solid #61b3ed;outline-offset:2px}
+button{min-height:48px}nav button{min-height:54px}
+.dot.on{animation:ilPulse 2s ease-in-out infinite}
+#publication-phase{font-size:14px;font-weight:650;border-left:4px solid #2d6d98}
+#publication-phase.ok{border-color:#198451}
+#publication-phase.error{border-color:#b33835}
+.save-actions>button{flex:1 1 170px}
+@media(max-width:480px){.actions>button{flex:1 1 auto}.save-actions>button{flex:1 1 100%}.row{flex-wrap:wrap}.row>label{flex:1 1 145px!important}}
+@media(prefers-reduced-motion:reduce){*,*:before,*:after{animation-duration:.001ms!important;transition-duration:.001ms!important}}
+
+/* IL Redaktor 1.9 — minimalistyczna estetyka IL i oszczędne animacje */
+:root{--il-blue:#174875;--il-accent:#2d6d98;--il-pale:#eef5fb}
+body{background:linear-gradient(180deg,#eff5fb 0,#f5f8fc 45%,#f5f8fc 100%);color:#203e5c}
+header{background:linear-gradient(120deg,#143c63,#174875 65%,#22658d);padding:17px 18px 18px;border-radius:0 0 20px 20px;box-shadow:0 7px 24px #153b6317}
+.brand{gap:12px;max-width:760px;margin:auto}
+.logo{width:50px;height:50px;border-radius:12px;box-shadow:0 3px 16px #0a28472a}
+header h1{font-size:23px;line-height:1.15;letter-spacing:0}
+header p{font-size:12px;line-height:1.35;margin-top:4px}
+.eyebrow{font-size:10px;letter-spacing:1.3px}
+main{padding:13px 13px 20px}
+.card{padding:16px;border-radius:18px;box-shadow:0 5px 20px #1748750c;border-color:#dde8f2}
+h2{font-size:22px;letter-spacing:-.3px;line-height:1.18}
+.note{border:1px solid #dbe7f0;padding:10px 12px;border-radius:13px}
+.note.error{border-color:#f4d7d3}.note.ok{border-color:#cdebd8}
+input,select,textarea{font-size:16px;border-radius:12px;border-color:#c5d7e6}
+button{border-radius:12px;font-size:14px;box-shadow:0 2px 7px #17487510}
+button.secondary{box-shadow:none;border:1px solid #d9e7f0}
+.primary-login{box-shadow:0 5px 16px #17487525;letter-spacing:.15px}
+.tile{box-shadow:0 4px 14px #1748750c;min-height:122px;gap:5px}
+.tile:active{background:#edf5fa;box-shadow:0 1px 5px #17487515}
+nav{background:#fffffff5;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-color:#e0e9f3}
+nav button.active{color:var(--il-blue);background:#e6f0f8}
+.operation-status{margin:0 12px;border-radius:0 0 13px 13px;padding:9px 12px;font-size:12px;line-height:1.45;text-align:left;box-shadow:0 3px 12px #17487518}
+.operation-status.pending{background:#336588}
+.operation-status:before{vertical-align:middle}
+.finish-panel{border:1px solid #dbe7ef}
+@keyframes ilGleam{0%,100%{opacity:.75}50%{opacity:1}}
+.brand .logo{animation:ilGleam 4.2s ease-in-out infinite}
+.settings-group{margin-top:15px}
+.settings-title{display:flex;align-items:center;gap:8px}
+.setting-caption{color:#62778a;font-size:12px;line-height:1.55}
+.recovery-card{padding:14px;background:#f1f7fd;border:1px solid #c8e0f0;border-radius:15px;margin:14px 0;animation:ilRise .27s ease both}
+.recovery-card h3{font-size:19px;margin-bottom:7px}
+.recovery-card p{font-size:13px;line-height:1.6;color:#35536e}
+.recovery-card details{padding:8px 0}
+.recovery-card summary{cursor:pointer;font-size:13px;font-weight:700;color:#174875}
+.recovery-card .actions{margin-top:7px}
+.recovery-card input{font-size:14px}
+.settings-soft{background:#fafcff}
+.mini-label{display:inline-flex;align-items:center;gap:7px;font-size:13px;font-weight:700;color:#174875}
+@media(max-width:370px){header h1{font-size:20px}.logo{width:46px;height:46px}.brand{gap:9px}main{padding:10px}.card{padding:13px}}
+@media(prefers-reduced-motion:reduce){.brand .logo{animation:none!important}}
+</style>
+</head>
+<body>
+<header><div class="brand"><img class="logo" src="il-monogram.png" alt="Oryginalny monogram IL"><div><div class="eyebrow">ISPINA LOKALNIE</div><h1>Redaktor Smart</h1><p>Łączy nas Ispina · panel redakcyjny</p></div></div></header>
+<div id="working-state" class="operation-status hidden" role="status" aria-live="polite">Trwa wykonywanie operacji…</div>
+<main>
+<section id="screen-home" class="panel active">
+  <div class="card hero-card">
+    <div class="row" style="align-items:flex-start"><img class="home-mark" src="il-monogram.png" alt="Monogram Ispina Lokalnie"><div><div class="eyebrow">TWOJA REDAKCJA</div><h2>Witaj w Ispina Lokalnie!</h2><p class="muted" style="margin:2px 0">Wszystko, czego potrzebujesz do prowadzenia portalu, w jednym miejscu.</p></div></div>
+    <div id="home-connection" class="note">Sprawdzam połączenie z WordPressem...</div>
+    <div class="actions"><button onclick="resetEditor();showScreen('editor')">+ Nowy artykuł</button><button class="secondary" onclick="showScreen('posts');loadPosts()">Moje artykuły</button></div>
+  </div>
+  <div class="grid quick-grid">
+    <button class="tile" onclick="showScreen('assistant')"><span class="tile-icon">✦</span><b>Asystent</b><small>Opisz zadanie</small></button>
+    <button class="tile" onclick="showScreen('posts');loadPosts()"><span class="tile-icon">▤</span><b>Artykuły</b><small>Wpisy i szkice</small></button>
+    <button class="tile" onclick="showScreen('services');loadServices()"><span class="tile-icon">▦</span><b>Usługi</b><small>Katalog firm</small></button>
+    <button class="tile" onclick="showScreen('media');loadMedia()"><span class="tile-icon">▣</span><b>Galeria</b><small>Zdjęcia wpisów</small></button>
+    <button class="tile" onclick="showScreen('editor');showTemplates()"><span class="tile-icon">✦</span><b>Szablony</b><small>Szybki start</small></button>
+  </div>
+  <div class="card"><h2>Ostatnie działania</h2><p class="muted">Tutaj sprawdzisz, czy Redaktor pracuje, zakończył zadanie, czy zgłosił błąd. Wynik publikowania wymaga potwierdzenia z WordPressa.</p><div id="activity-feed" role="log" aria-live="polite"><p class="muted">Nie wykonano jeszcze operacji.</p></div></div>
+  <div class="card"><h2>Wskazówki redakcyjne</h2><p class="muted">Przygotowuj szkice, poprawiaj teksty i publikuj dopiero po sprawdzeniu podglądu. Redaktor zachowa wersję lokalną w tym telefonie, nawet jeśli chwilowo zabraknie Internetu.</p>
+  <div class="actions"><button class="secondary" onclick="showScreen('settings')">Połącz z WordPressem</button><button class="secondary" onclick="IL.openSite('https://ispinalokalnie.wordpress.com/')">Otwórz portal</button></div></div>
+</section>
+<section id="screen-assistant" class="panel">
+  <div class="card">
+    <h2>Asystent redakcyjny IL</h2>
+    <p class="muted">Opisz, co chcesz przygotować. Asystent tworzy propozycję; sam nie zapisuje i nie publikuje treści. Przed użyciem podpowiedzi AI aplikacja może odczytać tytuły artykułów i nazwy usług do sprawdzenia kontekstu.</p>
+    <div id="assistant-mode" class="note">Sprawdzam dostępny tryb asystenta…</div>
+    <label for="assistant-prompt">Twoje zadanie</label>
+    <textarea id="assistant-prompt" style="min-height:125px" placeholder="Np. Przygotuj szkic o historii Ispiny. Nie dopisuj niepotwierdzonych dat ani nazwisk."></textarea>
+    <div class="actions">
+      <button class="secondary" onclick="assistantExample('Dodaj artykuł o historii Ispiny, wybierz kategorię Historia i popraw język. Nie wymyślaj faktów.')">Historia Ispiny</button>
+      <button class="secondary" onclick="assistantExample('Dodaj do Usług nową firmę, sprawdź, czy nie ma jej już w katalogu, i przygotuj kartę. Zostaw nieznane dane puste.')">Nowa usługa</button>
+      <button class="secondary" onclick="assistantExample('Przejrzyj ostatnie wpisy i zaproponuj poprawki SEO oraz linkowanie wewnętrzne.')">Przegląd SEO</button>
+    </div>
+    <div class="actions"><button onclick="runAssistant()">Przygotuj propozycję</button></div>
+    <div id="assistant-output" aria-live="polite" role="log"></div>
+    <p class="muted small">W trybie podstawowym dostępne są szablony i lokalne wskazówki. Generatywny model wymaga osobnego backendu i klucza Gemini API; sama subskrypcja Gemini Pro go nie udostępnia.</p>
+  </div>
+</section>
+<section id="screen-editor" class="panel">
+  <div class="card">
+    <div class="row" style="justify-content:space-between"><h2 id="editor-heading">Nowy artykuł</h2><span class="badge" id="edit-status">Nowy</span></div>
+    <div class="status"><span id="editor-dot" class="dot"></span><span id="editor-auth">Sprawdzanie połączenia...</span></div>
+    <label for="post-title">Tytuł artykułu</label><input id="post-title" placeholder="Np. 10 ciekawostek o Ispinie">
+    <label for="post-body">Treść artykułu</label><div class="actions"><button class="secondary" onclick="IL.dictate()">🎙 Dyktuj tekst po polsku</button></div><textarea id="post-body" placeholder="Napisz tekst. Pusta linia oddziela akapity. ## oznacza nagłówek."></textarea>
+    <div class="row"><label style="flex:1">Kategoria<select id="post-category"><option value="10543">Aktualności</option><option value="3503">Historia</option><option value="21188">Technologia</option></select></label>
+    <label style="flex:1">Format<select id="post-mode"><option value="text">Tekst → HTML</option><option value="html">HTML / bloki WordPress</option></select></label></div>
+    <label for="post-excerpt">Krótki opis / zajawka SEO</label><textarea id="post-excerpt" style="min-height:80px" placeholder="Opis wyświetlany na liście wpisów..."></textarea>
+    <label for="post-tags">Tagi (oddziel przecinkami)</label><input id="post-tags" placeholder="Ispina, historia Ispiny">
+    <label for="post-media">Zdjęcie wyróżniające</label>
+    <div class="row"><input id="post-media" type="number" min="0" value="0" style="flex:1"><button class="secondary" onclick="IL.chooseImage()">Z telefonu</button><button class="secondary" onclick="showScreen('media');loadMedia()">Z galerii IL</button></div>
+    <div class="actions"><button class="secondary" onclick="suggest()">Korekta i SEO</button><button class="secondary" onclick="preview()">Podgląd</button><button class="secondary" onclick="showTemplates()">Szablony</button></div>
+    <div id="templates-box" class="note hidden"></div>
+    <div id="editor-metrics" class="note">Napisz tekst, aby zobaczyć wskazówki redakcyjne.</div>
+    <div class="actions"><button class="secondary" onclick="restoreLocal()">Przywróć lokalny szkic</button><button class="secondary" onclick="downloadText()">Kopia tekstu</button></div>
+    <div class="actions save-actions"><button onclick="savePost('draft')" id="save-draft">Zapisz szkic / zmiany</button><button onclick="savePost('publish')" id="save-publish">Opublikuj po zatwierdzeniu</button><button class="secondary" onclick="resetEditor()">Nowy wpis</button></div><div class="actions"><button class="secondary" onclick="verifyLastPublication()">🔎 Sprawdź ostatni zapis</button></div><div class="actions"><button id="view-published-post" class="secondary hidden" onclick="openPublishedPost()">🌐 Zobacz artykuł na stronie IL</button></div><p id="publication-phase" class="note" role="status" aria-live="polite">Gotowy do redagowania. Publikacja wymaga potwierdzenia.</p>
+    <div id="post-output" aria-live="polite"></div>
+  </div>
+  <div id="preview-box" class="card hidden"><h2>Podgląd artykułu</h2><iframe sandbox="" id="post-preview" title="Podgląd artykułu"></iframe></div>
+</section>
+
+<section id="screen-posts" class="panel">
+  <div class="card"><h2>Artykuły na portalu</h2><p class="muted">Pobierz listę, wybierz istniejący wpis i edytuj go bez utraty numeru ID.</p>
+  <label for="posts-search">Wyszukaj tytuł lub fragment</label><input id="posts-search" placeholder="Szukaj wpisów..." oninput="renderPosts()">
+  <div class="actions"><button onclick="loadPosts()">Odśwież wpisy</button><button class="secondary" onclick="resetEditor();showScreen('editor')">Nowy artykuł</button></div>
+  <div id="posts-output" aria-live="polite"></div></div>
+</section>
+
+<section id="screen-media" class="panel">
+  <div class="card">
+    <h2>Biblioteka zdjęć IL</h2><p class="muted">Wybierz istniejące zdjęcie z WordPressa do artykułu. Nie trzeba ręcznie wpisywać identyfikatora zdjęcia.</p>
+    <label>Wyszukaj zdjęcie w bibliotece</label><input id="media-search" placeholder="Np. most, Ispina, OSP">
+    <div class="actions"><button onclick="loadMedia()">Pokaż zdjęcia</button><button class="secondary" onclick="IL.chooseImage()">Prześlij nowe</button></div>
+    <div id="media-output" aria-live="polite"></div>
+  </div>
+</section>
+<section id="screen-services" class="panel">
+  <div class="card">
+    <h2>Katalog „Usługi”</h2>
+    <p class="muted">Dodatkowe oferty będą zapisywane na istniejącej stronie „Usługi w okolicy” (ID 818). Pozostała treść strony zostanie zachowana.</p>
+    <div class="actions"><button class="secondary" onclick="loadServices()">Odczytaj usługi z WordPressa</button><button class="secondary" onclick="IL.openSite('https://ispinalokalnie.wordpress.com/uslugi-w-okolicy/')">Pokaż katalog</button></div>
+    <div class="note"><b>Istniejące firmy na stronie</b><div id="legacy-services-list" class="muted" style="padding-top:6px">Odczytaj katalog, aby zobaczyć aktualne oferty.</div></div>
+    <div class="actions"><button class="secondary" onclick="IL.openSite('https://wordpress.com/page/ispinalokalnie.wordpress.com/818')">Edytuj istniejące oferty w WordPressie</button></div>
+    <h3>Oferty dodane przez Redaktora</h3><div id="services-list"></div><hr>
+    <h3 id="service-heading">Dodaj usługodawcę</h3>
+    <input type="hidden" id="service-id">
+    <label>Nazwa firmy</label><input id="service-name" placeholder="Np. Usługi budowlane...">
+    <label>Rodzaj usługi</label>
+    <select id="service-category"><option>Remonty i wykończenia</option><option>Budowa domów</option><option>Motoryzacja</option><option>Ogrodnictwo</option><option>Usługi domowe</option><option>Inne usługi lokalne</option></select>
+    <label>Opis działalności</label><textarea id="service-description" style="min-height:105px"></textarea>
+    <label>Telefon</label><input id="service-phone" type="tel" placeholder="Nr telefonu">
+    <label>Strona internetowa (opcjonalnie)</label><input id="service-url" placeholder="https://">
+    <div class="actions"><button id="save-service" onclick="saveService()">Zapisz w katalogu</button><button class="secondary" onclick="clearService()">Wyczyść</button></div>
+    <div id="services-output" aria-live="polite"></div>
+  </div>
+</section>
+
+<section id="screen-settings" class="panel">
+  <div class="card">
+    <h2>Logowanie do WordPressa</h2>
+    <p class="muted">Portal: <b>ispinalokalnie.wordpress.com</b><br>Identyfikator witryny: <b>252442125</b></p>
+    <div id="settings-state" class="note">Sprawdzanie autoryzacji...</div>
+    <button class="wide primary-login" onclick="signInGoogle()"><span style="display:inline-block;background:#fff;color:#4285f4;border-radius:7px;padding:4px 9px;margin-right:8px;font-weight:900">G</span> Zaloguj przez Google / WordPress.com</button>
+    <p class="setting-caption">Bezpieczne logowanie otwiera WordPress.com w przeglądarce. Wybierz Google, jeśli Twoje konto korzysta z tej metody.</p>
+    <div id="login-recovery" class="recovery-card hidden" role="region" aria-label="Pomoc przy logowaniu">
+      <h3>🔑 Czekam na zakończenie logowania</h3>
+      <p>Zatwierdź dostęp w przeglądarce i wybierz otwarcie Redaktora IL, gdy Android o to zapyta. Jeśli jesteś już z powrotem w aplikacji, ale nadal widzisz krok 3/4, skorzystaj z opcji poniżej.</p>
+      <div class="actions"><button class="secondary" onclick="checkLoginState()">Sprawdź stan</button><button class="secondary" onclick="cancelLoginFlow()">Anuluj i spróbuj ponownie</button></div>
+      <details><summary>Zaawansowane: ręczne dokończenie logowania</summary>
+        <p>Jeśli przeglądarka pokazuje pełny adres rozpoczynający się od <code>com.ispinalokalnie.redaktorsmart.publish191:/callback</code>, możesz wkleić go poniżej. Nie wpisuj tu hasła, kodu z SMS ani zwykłego adresu WordPressa. Nie udostępniaj nikomu tego adresu.</p>
+        <label for="oauth-return">Adres powrotu (poufny)</label><input id="oauth-return" type="password" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Wklej pełny adres powrotu z przeglądarki">
+        <div class="actions"><button onclick="finishManualLogin()">Dokończ logowanie</button></div>
+      </details>
+    </div>
+    <details class="settings-group"><summary class="mini-label">O bezpieczeństwie połączenia i uprawnieniach</summary>
+      <p class="muted">Aplikacja korzysta z WordPress.com OAuth i MCP. Uprawnienie <strong>global</strong> może obejmować całe konto WordPress.com, a nie tylko witrynę Ispina Lokalnie. Redaktor ogranicza swoje operacje do portalu IL. Zatwierdzaj zgodę tylko wtedy, gdy akceptujesz ten zakres. Aplikacja nie potrzebuje Twojego hasła.</p>
+    </details>
+    <div id="auth-output" aria-live="polite"></div>
+    <p class="muted">Jeżeli WordPress odmawia dostępu, sprawdź, czy w ustawieniach konta WordPress.com jest włączony dostęp MCP i czy wybrane zgody pozwalają czytać oraz edytować treść.</p>
+    <div class="actions"><button class="secondary" onclick="verifyNow()">Sprawdź dostęp do wpisów</button><button class="danger" onclick="disconnect()">Wyloguj</button></div>
+    <div class="card settings-soft" style="margin-top:18px">
+      <h3>Diagnostyka zapisu WordPress</h3>
+      <p class="setting-caption">Sprawdza prawdziwy zapis przez aplikację: po zatwierdzeniu powstanie <strong>tylko szkic</strong>, który nie jest publiczny i nie powinien wysyłać powiadomień czytelnikom. Po zapisie Redaktor ponownie odczyta jego status. Szkic pozostanie na koncie do samodzielnego usunięcia.</p>
+      <button id="test-draft-write" class="wide secondary" onclick="testDraftWrite()">🧪 Test zapisu szkicu w WordPressie</button>
+      <div id="test-write-result" role="status" aria-live="polite"></div>
+    </div>
+  </div>
+  <div class="card settings-soft"><h2>Wibracje i odczucia dotykowe</h2><p class="setting-caption">Subtelna reakcja na dotknięcie przycisku, pomyślny zapis lub błąd. Szanuje ustawienia telefonu i można ją wyłączyć.</p><label for="haptics-select">Intensywność wibracji</label><select id="haptics-select" onchange="setHapticsMode(this.value)"><option value="0">Wyłączone</option><option value="1" selected>Delikatne</option><option value="2">Normalne</option><option value="3">Mocniejsze</option></select><div class="actions"><button class="secondary" onclick="testHaptics()">Sprawdź wibrację</button></div><div id="haptics-status" class="setting-caption" aria-live="polite">Ustawienie zostanie zapamiętane na telefonie.</div></div>
+  <div class="card"><h2>O programie</h2><p class="muted">IL Redaktor Smart 1.9.1-test · Niezależna aplikacja Android 8 i nowszy. WordPress.com MCP. Publikacja wymaga potwierdzenia. Zapis jest uznawany za udany dopiero po otrzymaniu identyfikatora WordPress.</p></div>
+</section>
+</main>
+<div id="finish-dialog" class="finish-dialog hidden" role="alertdialog" aria-modal="true" aria-labelledby="finish-title">
+<div id="finish-panel" class="finish-panel">
+<div id="finish-symbol" class="finish-symbol">✓</div>
+<h2 id="finish-title" class="finish-title">SUKCES!</h2>
+<p id="finish-detail" class="finish-detail"></p>
+<div class="finish-actions"><button id="finish-open" class="hidden" onclick="openFinishUrl()">Zobacz artykuł na stronie</button><button class="secondary" onclick="closeFinish()">OK, zamknij</button></div>
+</div></div>
+<nav aria-label="Główne zakładki">
+<button id="nav-home" class="active" onclick="showScreen('home')"><span class="sym">⌂</span>Pulpit</button>
+<button id="nav-editor" onclick="showScreen('editor')"><span class="sym">✎</span>Redaktor</button>
+<button id="nav-posts" onclick="showScreen('posts')"><span class="sym">▤</span>Artykuły</button>
+<button id="nav-services" onclick="showScreen('services')"><span class="sym">▦</span>Usługi</button>
+<button id="nav-settings" onclick="showScreen('settings')"><span class="sym">⚙</span>Połączenie</button>
+</nav>
+<script>
+"use strict";
+const $=id=>document.getElementById(id);
+const SITE="252442125", PAGE=818;
+const requests=new Map();
+let finishUrl="";
+const actionHistory=[];
+try{const old=JSON.parse(localStorage.getItem("il_redaktor_actions_v1")||"[]");if(Array.isArray(old))actionHistory.push(...old.slice(0,10));}catch(e){}
+function recordAction(kind,title,detail=""){
+  const item={kind,title,detail,at:new Date().toLocaleTimeString("pl-PL",{hour:"2-digit",minute:"2-digit"})};
+  actionHistory.unshift(item);if(actionHistory.length>10)actionHistory.pop();
+  try{localStorage.setItem("il_redaktor_actions_v1",JSON.stringify(actionHistory));}catch(e){}
+  $("activity-feed").innerHTML=actionHistory.map(a=>'<div class="activity-entry '+esc(a.kind)+'"><strong>'+esc(a.at+" · "+a.title)+'</strong><small>'+esc(a.detail)+'</small></div>').join("");
+}
+function operationBanner(kind,label){
+  const bar=$("working-state");bar.className="operation-status "+kind;
+  bar.textContent=(kind==="busy"?"⏳ ":kind==="done"?"✓ ":"✕ ")+label;
+}
+function startOperation(label){operationBanner("busy","Trwa: "+label);}
+function endOperation(){if($("working-state").classList.contains("busy"))$("working-state").classList.add("hidden");}
+function operationFinished(ok,title,detail=""){
+  operationBanner(ok?"done":"failed",(ok?"SUKCES: ":"BŁĄD: ")+title);
+  recordAction(ok?"done":"failed",title,detail);
+  if(window.IL && typeof IL.haptic==="function")IL.haptic(ok?"success":"error");
+}
+function showOutcome(kind,headline,detail,link="",linkLabel="Otwórz w WordPressie"){
+  operationFinished(kind==="success",headline,detail.slice(0,260));
+  finishUrl=link;
+  $("finish-panel").classList.toggle("error",kind==="error");
+  $("finish-symbol").textContent=kind==="success"?"✓":"!";
+  $("finish-title").textContent=headline;
+  $("finish-detail").textContent=detail;
+  $("finish-open").classList.toggle("hidden",!link);
+  $("finish-open").textContent=linkLabel;
+  $("finish-dialog").classList.remove("hidden");
+}
+function closeFinish(){$("finish-dialog").classList.add("hidden");}
+function openFinishUrl(){if(finishUrl)IL.openSite(finishUrl);}
+let publishedPageUrl="";
+function openPublishedPost(){if(publishedPageUrl)IL.openSite(publishedPageUrl);}
+function setPublishedUrl(url){publishedPageUrl=url||"";$("view-published-post").classList.toggle("hidden",!publishedPageUrl);}
+function publicationPhase(text,kind=""){$("publication-phase").className="note "+kind;$("publication-phase").textContent=text;}
+let publicationBusy=false;
+let lastPublicationAttempt=null, serviceBusy=false;
+function publicationButtons(busy){publicationBusy=busy;$("save-draft").disabled=busy;$("save-publish").disabled=busy;$("save-draft").setAttribute("aria-busy",String(busy));$("save-publish").setAttribute("aria-busy",String(busy));}
+
+let reqNo=0, connected=false, postId=null, postStatus="", services=[], servicesLoaded=false, servicesRaw="", legacyServices=[], allPosts=[], assistantEnabled=false, assistantDraft=null;
+const localKey="il_redaktor_draft_v2";let restoring=false, saveTimer=0;
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+function message(id,msg,kind=""){
+  $(id).innerHTML='<div class="note '+kind+'">'+esc(msg)+'</div>';
+  if(kind==="ok"||kind==="error")operationFinished(kind==="ok",(kind==="ok"?"Potwierdzono: ":"Nie powiodło się: ")+id,msg.slice(0,190));
+}
+function trim(s){return String(s||"").trim()}
+function showScreen(key){
+  document.querySelectorAll(".panel").forEach(n=>n.classList.toggle("active",n.id==="screen-"+key));
+  document.querySelectorAll("nav button").forEach(n=>{const active=n.id==="nav-"+key;n.classList.toggle("active",active);if(active)n.setAttribute("aria-current","page");else n.removeAttribute("aria-current");});
+  window.scrollTo(0,0);
+}
+function rpc(method,path,body) {
+  return new Promise((resolve,reject)=>{
+    const id="r"+(++reqNo);
+    const timeout=setTimeout(()=>{requests.delete(id);reject(new Error("Przekroczono czas odpowiedzi WordPressa."))},90000);
+    requests.set(id,{resolve,reject,timeout});
+    IL.request(id,method,path,body?JSON.stringify(body):"");
+  });
+}
+window.onNativeResult=function(id,ok,payload){
+  if(requests.has(id)) {
+    const r=requests.get(id);requests.delete(id);clearTimeout(r.timeout);
+    if(!ok){r.reject(new Error(payload));return;}
+    try{r.resolve(JSON.parse(payload));}catch(e){r.reject(new Error("Nieprawidłowa odpowiedź WordPressa."));}
+    return;
+  }
+  if(id==="auth-progress"){
+    if(ok){
+      message("auth-output",payload);
+      if(payload.includes("Krok 3/4")){operationBanner("pending","Oczekuję na powrót z WordPress.com");showLoginRecovery(true)}
+      else{startOperation("Autoryzacja WordPress.com");if(payload.includes("Krok 4/4"))showLoginRecovery(false)}
+    }
+    else{
+      message("auth-output",payload,"error");
+      showLoginRecovery(true);
+      showOutcome("error","NIE POWIODŁO SIĘ","Logowanie przez Google / WordPress nie zostało zakończone. "+payload);
+    }
+    return;
+  }
+  if(id==="status"){
+    try{
+      const s=JSON.parse(payload); connected=false;
+      reflectAuth();
+      IL.assistantStatus();
+      if(s.connected){message("settings-state","Weryfikuję dostęp do wpisów...");IL.verify();}
+      else message("home-connection","Połącz konto WordPress.com, aby odczytać i publikować artykuły.");
+      restoreLocal(true);
+    }catch(e){message("auth-output","Błąd odczytu stanu autoryzacji.","error")}
+  }
+  if(id==="assistant-ready"){
+    try{
+      assistantEnabled=!!JSON.parse(payload).enabled;
+      message("assistant-mode",assistantEnabled?
+        "Asystent AI jest skonfigurowany. Tekst zadania i odczytany kontekst trafią do backendu oraz Google Gemini API. Asystent przygotowuje tylko propozycję; nie zapisuje jej w WordPressie.":
+        "Tryb podstawowy. AI nie jest skonfigurowane; możesz przygotować lokalny szkielet artykułu i korzystać z korekty oraz SEO.");
+    }catch(e){assistantEnabled=false;message("assistant-mode","Nie udało się sprawdzić trybu asystenta.","error")}
+    return;
+  }
+  if(id==="login-state"){
+    try{const s=JSON.parse(payload);showLoginRecovery(!!s.pending);if(!s.pending)endOperation()}catch(e){}
+    return;
+  }
+  if(id==="auth-cancel"){
+    showLoginRecovery(false);endOperation();message("auth-output",payload,"ok");return;
+  }
+  if(id==="haptics"){
+    if(ok){try{const s=JSON.parse(payload);$("haptics-select").value=String(s.mode);$("haptics-status").textContent="Ustawienie zapisane: "+["Wyłączone","Delikatne","Normalne","Mocniejsze"][s.mode]+ "."}catch(e){}}
+    else $("haptics-status").textContent=payload;
+    return;
+  }
+  if(id==="auth"){
+    if(ok){
+      let tokenSaved=false;try{tokenSaved=!!JSON.parse(payload).connected}catch(e){}
+      connected=false;reflectAuth();
+      if(tokenSaved){showLoginRecovery(false);message("auth-output","WordPress zatwierdził logowanie. Sprawdzam dostęp do wpisów...");}
+      else message("auth-output","Konto rozłączone.","ok");
+    } else message("auth-output",payload,"error");
+  }
+  if(id==="verify"){
+    connected=!!ok;
+    reflectAuth();
+    if(ok){
+      showLoginRecovery(false);
+      message("auth-output","SUKCES! Połączenie potwierdzone przez WordPress.","ok");
+      showOutcome("success","POŁĄCZONO","Potwierdzono odczyt artykułów Ispina Lokalnie. Możliwość publikowania weryfikujemy osobno.");
+      message("home-connection","Konto WordPress połączone i zweryfikowane. Możesz pracować nad portalem.","ok");
+      loadCategories();
+    }else{
+      message("auth-output",payload,"error");
+      showOutcome("error","NIE POWIODŁO SIĘ","WordPress nie potwierdził połączenia: "+payload);
+      message("home-connection","Nie udało się potwierdzić dostępu do wpisów. Sprawdź zgodę i ustawienia MCP na koncie WordPress.","error");
+    }
+  }
+  if(id==="copy"){message("post-output",payload,"ok");return;}
+  if(id==="dictate"){
+    if(ok){$("post-body").value+=($("post-body").value?" ":"")+payload;updateMetrics();scheduleLocalSave();message("post-output","Dodano podyktowaną treść.","ok");}
+    else message("post-output",payload,"error");
+    return;
+  }
+  if(id==="upload"){
+    if(ok){
+      try{
+        const media=JSON.parse(payload);
+        if(!media.id)throw Error("Brak ID");
+        $("post-media").value=media.id;
+        showScreen("editor");updateMetrics();scheduleLocalSave();
+        message("post-output","Zdjęcie przesłane do WordPressa. Media ID: "+media.id,"ok");
+      }catch(e){message("post-output","Zdjęcie zostało przesłane, ale nie udało się odczytać Media ID.","error")}
+    }else message("post-output",payload,"error");
+  }
+};
+function reflectAuth(){
+  $("editor-dot").classList.toggle("on",connected);
+  $("editor-auth").textContent=connected?"Połączono z WordPressem":"Niepołączono · Otwórz zakładkę Połączenie";
+  $("settings-state").className="note "+(connected?"ok":"error");
+  $("settings-state").textContent=connected?"Połączenie przez WordPress MCP potwierdzone (odczyt). Publikacja wymaga własnej kontroli.":"Nie masz zweryfikowanej sesji. Zaloguj się lub sprawdź połączenie.";
+  if(connected)message("home-connection","Połączono z WordPressem: Ispina Lokalnie.","ok");
+}
+function showLoginRecovery(show){$("login-recovery").classList.toggle("hidden",!show)}
+function checkLoginState(){if(IL.loginState)IL.loginState()}
+function cancelLoginFlow(){if(IL.cancelLogin)IL.cancelLogin()}
+function finishManualLogin(){const el=$("oauth-return");const url=trim(el.value);el.value="";if(!url){message("auth-output","Wklej pełny adres powrotu (jeżeli jest dostępny w przeglądarce).","error");return}IL.finishLoginWithUrl(url);startOperation("Odbieram potwierdzenie WordPress.com")}
+function setHapticsMode(value){if(IL.setHaptics)IL.setHaptics(Number(value))}
+function testHaptics(){if(IL.haptic)IL.haptic("success")}
+function signInGoogle(){
+  if(connected){showOutcome("success","POŁĄCZONO","Odczyt wpisów przez WordPress MCP działa. Możliwość zapisu zostanie sprawdzona przy publikacji.");return}
+  message("auth-output","Krok 1/4: rozpoczynam połączenie WordPress.com. Na stronie wybierz swoje konto Google, jeśli jest dostępne.");
+  startOperation("Logowanie przez WordPress.com / Google…");
+  IL.signInGoogle();
+}
+function oneTapConnect(){signInGoogle();}
+function assistantExample(value){$("assistant-prompt").value=value}
+function assistantContext(){
+  const posts=allPosts.slice(0,30).map(p=>({id:Number(p.id),title:p.title?.rendered||"",excerpt:String(p.excerpt?.rendered||"").replace(/<[^>]+>/g," ").slice(0,500),status:p.status||""}));
+  const legacy=Array.from(document.querySelectorAll("#legacy-services-list div")).map(n=>n.textContent.replace(/^✓\s*/,"").trim()).filter(Boolean);
+  const owned=services.map(s=>s.name).filter(Boolean);
+  return {posts,services:Array.from(new Set([...legacy,...owned])).slice(0,50)};
+}
+function requestAssistant(prompt,context){
+  return new Promise((resolve,reject)=>{
+    const id="a"+(++reqNo),timeout=setTimeout(()=>{requests.delete(id);reject(new Error("Asystent nie odpowiedział w wyznaczonym czasie."))},65000);
+    requests.set(id,{resolve,reject,timeout});
+    IL.askAssistant(id,prompt,JSON.stringify(context));
+  });
+}
+function localAssistant(prompt){
+  const text=prompt.toLocaleLowerCase("pl");
+  if(/seo|pozycjon|optymaliz/.test(text)){
+    const examples=allPosts.slice(0,5).map(p=>p.title?.rendered||"").filter(Boolean);
+    return {intent:"seo_review",message:examples.length?"Tryb podstawowy nie wysyła treści do modelu. Wczytane wpisy: "+examples.join(" · ")+". Sprawdź dla każdego: jasny tytuł z lokalnym tematem, unikalną zajawkę, śródtytuły, opis zdjęcia i 1–2 pasujące linki wewnętrzne.":"Tryb podstawowy. Najpierw pobierz artykuły, a następnie użyj lokalnej listy SEO w edytorze.",title:"",content:"",excerpt:"",category:"",tags:[],internalLinks:[],factsToVerify:[],service:null};
+  }
+  if(/usług|firm|działalnoś/.test(text)){
+    return {intent:"service_draft",message:"Przygotowałem formularz lokalnie. Wpisz nazwę, opis i dane kontaktowe firmy. Odczytaj katalog i sprawdź podobne nazwy przed zapisem.",title:"",content:"",excerpt:"",category:"",tags:[],internalLinks:[],factsToVerify:["Potwierdź nazwę, zakres usług i zgodę firmy na publikację danych."],service:{name:"",category:"Inne usługi lokalne",description:"",phone:"",url:""}};
+  }
+  if(/histori|artykuł|szkic|wpis/.test(text)){
+    const topic=trim(prompt.replace(/^.*?\bo\s+/i,"").split(/[,.!?]/)[0]);
+    const title=topic?"Historia Ispiny: "+topic:"Historia Ispiny – szkic do uzupełnienia";
+    return {intent:"article_draft",message:"Utworzyłem bezpieczny szkielet. W tym trybie nie generuję faktów historycznych; uzupełnij go na podstawie źródeł i wyraźnie oznacz niepewne informacje.",title,content:"<h2>Temat i kontekst</h2><p>Uzupełnij, czego dotyczy artykuł, korzystając ze sprawdzonych źródeł.</p><h2>Potwierdzone informacje</h2><p>Dodaj wyłącznie fakty potwierdzone w źródłach. Wskaż źródło i datę jego sprawdzenia.</p><h2>Pamięć mieszkańców</h2><p>Jeśli temat opiera się na wspomnieniach, zaznacz to i poproś czytelników o uzupełnienia.</p>",excerpt:"Szkic artykułu o historii Ispiny. Uzupełnij potwierdzone informacje i źródła.",category:"Historia",tags:["Ispina","historia Ispiny"],internalLinks:[],factsToVerify:["Uzupełnij daty, nazwiska i wydarzenia na podstawie źródeł."],service:null};
+  }
+  return {intent:"question",message:"Tryb podstawowy nie korzysta z generatywnego modelu. Wybierz przykład albo opisz szkic artykułu, usługę lub przegląd SEO.",title:"",content:"",excerpt:"",category:"",tags:[],internalLinks:[],factsToVerify:[],service:null};
+}
+function renderAssistantResult(result){
+  assistantDraft=result;
+  const links=(result.internalLinks||[]).map(x=>esc(x.title)+" (ID "+Number(x.postId)+")").join(", ");
+  const checks=(result.factsToVerify||[]).map(x=>"<li>"+esc(x)+"</li>").join("");
+  let action="";
+  if(result.intent==="article_draft"&&result.title)action='<button class="secondary" onclick="acceptAssistantArticle()">Przenieś propozycję do artykułu</button>';
+  if(result.intent==="service_draft"&&result.service)action='<button class="secondary" onclick="acceptAssistantService()">Przenieś propozycję do formularza</button>';
+  const body=result.content?'<div class="note" style="white-space:pre-wrap;overflow-wrap:anywhere">'+esc(result.content.slice(0,1200))+'</div>':'';
+  const service=result.service&&result.service.name?'<p><b>Firma:</b> '+esc(result.service.name)+'</p>':'';
+  $("assistant-output").innerHTML='<div class="card"><h3>Propozycja · '+esc(result.intent||"odpowiedź")+'</h3><p>'+esc(result.message||"")+'</p>'+(result.title?'<p><b>Tytuł:</b> '+esc(result.title)+'</p>':'')+service+body+(links?'<p><b>Linkowanie wewnętrzne:</b> '+links+'</p>':'')+(checks?'<p><b>Do sprawdzenia:</b></p><ul>'+checks+'</ul>':'')+'<div class="actions">'+action+'</div></div>';
+}
+async function runAssistant(){
+  const prompt=trim($("assistant-prompt").value);
+  if(!prompt){message("assistant-output","Opisz zadanie, zanim poprosisz o propozycję.","error");return}
+  startOperation("Przygotowuję redakcyjną propozycję…");
+  message("assistant-output","Sprawdzam kontekst i przygotowuję odpowiedź…");
+  try{
+    if(assistantEnabled&&connected){
+      if(!allPosts.length)await loadPosts();
+      if(!servicesLoaded)await loadServices();
+      const result=await requestAssistant(prompt,assistantContext());
+      endOperation();renderAssistantResult(result);
+    }else{
+      const result=localAssistant(prompt);endOperation();renderAssistantResult(result);
+    }
+  }catch(e){
+    endOperation();message("assistant-output","Nie udało się przygotować propozycji: "+e.message,"error");
+  }
+}
+function acceptAssistantArticle(){
+  const d=assistantDraft;if(!d||d.intent!=="article_draft")return;
+  if(trim($("post-body").value)&&!confirm("Zastąpić aktualny tekst propozycją Asystenta?"))return;
+  resetEditor();$("post-title").value=d.title||"";$("post-body").value=d.content||"";$("post-mode").value="html";
+  $("post-excerpt").value=d.excerpt||"";$("post-tags").value=(d.tags||[]).join(", ");
+  if(/histori/i.test(d.category||""))$("post-category").value="3503";
+  updateMetrics();scheduleLocalSave();showScreen("editor");
+  message("post-output","Propozycję przeniesiono do edytora. Sprawdź treść i źródła, a zapis zatwierdź osobno.","ok");
+}
+function acceptAssistantService(){
+  const s=assistantDraft?.service;if(!s)return;
+  if(!servicesLoaded&&connected){loadServices();}
+  $("service-name").value=s.name||"";$("service-description").value=s.description||"";
+  $("service-phone").value=s.phone||"";$("service-url").value=s.url||"";
+  if(s.category)$("service-category").value=s.category;
+  showScreen("services");
+  message("services-output","Propozycję przeniesiono do formularza. Sprawdź duplikaty i dane przed zatwierdzeniem zapisu.","ok");
+}
+let diagnosticWriteBusy=false;
+async function testDraftWrite(){
+  if(!connected){
+    message("test-write-result","Najpierw połącz konto z WordPressem.","error");
+    return;
+  }
+  if(diagnosticWriteBusy){message("test-write-result","Test jest już wykonywany.");return}
+  if(!confirm("Utworzyć w WordPressie prywatny szkic diagnostyczny? Nie będzie publiczny i pozostanie na liście szkiców do ręcznego usunięcia."))return;
+  const testButton=$("test-draft-write");
+  diagnosticWriteBusy=true;testButton.disabled=true;
+  const title="[TEST IL Redaktor Smart 1.9.1] Sprawdzenie zapisu "+new Date().toLocaleString("pl-PL");
+  const body={title,content:"<p>Test techniczny zapisu z aplikacji IL Redaktor Smart. Ten szkic nie jest przeznaczony do publikacji.</p>",status:"draft",excerpt:"Test techniczny. Nie publikować."};
+  let createdId=null;
+  startOperation("Test: zapisuję szkic w WordPressie…");
+  message("test-write-result","Etap 1/2: wysyłam szkic do WordPressa. Nie ponawiaj ręcznie.");
+  try{
+    const created=await rpc("POST","posts",body);
+    createdId=Number(created.id);
+    if(!Number.isSafeInteger(createdId)||createdId<=0)throw Error("WordPress nie zwrócił numeru wpisu. Sprawdź listę szkiców.");
+    operationBanner("busy","Test: sprawdzam utworzony szkic #"+createdId);
+    message("test-write-result","Etap 2/2: szkic #"+createdId+" zapisany; sprawdzam jego status ponownym odczytem.");
+    const confirmed=await rpc("GET","posts/"+createdId+"?context=edit");
+    if(Number(confirmed.id)!==createdId||confirmed.status!=="draft")
+      throw Error("WordPress zwrócił nieoczekiwany status: "+String(confirmed.status||"brak"));
+    const link="https://wordpress.com/post/ispinalokalnie.wordpress.com/"+createdId;
+    const detail="WordPress potwierdził utworzenie i ponowny odczyt szkicu #"+createdId+". Status: draft. Szkic nie został opublikowany; możesz otworzyć go i usunąć w WordPressie.";
+    message("test-write-result","SUKCES! "+detail,"ok");
+    showOutcome("success","TEST ZAPISU: SUKCES",detail,link,"Zobacz szkic w WordPressie");
+  }catch(error){
+    const detail="Nie potwierdzono operacji: "+error.message+
+      (createdId?". Zapis mógł nastąpić: sprawdź szkic #"+createdId+" przed ponowieniem.":". Sprawdź listę szkiców, zanim uruchomisz test ponownie.");
+    message("test-write-result",detail,"error");
+    showOutcome("error",createdId?"TEST: ZAPIS NIEZWERYFIKOWANY":"TEST ZAPISU: BŁĄD",detail);
+  }finally{diagnosticWriteBusy=false;testButton.disabled=false;}
+}
+function verifyNow(){message("auth-output","Sprawdzam połączenie z WordPressem...");IL.verify();}
+async function loadCategories(){
+  try{
+    const categories=await rpc("GET","categories?per_page=100");
+    if(!Array.isArray(categories))return;
+    const previous=$("post-category").value;
+    $("post-category").innerHTML=categories.map(t=>'<option value="'+Number(t.id)+'">'+esc(t.name)+'</option>').join("");
+    if(categories.some(t=>String(t.id)===previous))$("post-category").value=previous;
+  }catch(e){ /* Existing verified category IDs remain usable. */ }
+}
+function disconnect(){
+  if(confirm("Usunąć lokalnie zapisaną sesję WordPress z tego telefonu? Aby cofnąć zgodę aplikacji, zrób to w ustawieniach dostępu MCP na WordPress.com.")){IL.disconnect();connected=false;reflectAuth()}
+}
+function asHtml(input){
+  return input.split(/\n\s*\n/g).map(chunk=>{
+    const lines=chunk.trim().split("\n");
+    if(!lines[0])return "";
+    if(lines[0].startsWith("### "))return "<h3>"+esc(lines[0].slice(4))+"</h3>"+(lines.length>1?"<p>"+lines.slice(1).map(esc).join("<br>")+"</p>":"");
+    if(lines[0].startsWith("## "))return "<h2>"+esc(lines[0].slice(3))+"</h2>"+(lines.length>1?"<p>"+lines.slice(1).map(esc).join("<br>")+"</p>":"");
+    return "<p>"+lines.map(esc).join("<br>")+"</p>";
+  }).join("\n");
+}
+function editorHtml(){return $("post-mode").value==="html"?$("post-body").value:asHtml($("post-body").value)}
+function preview(){
+  const title=esc(trim($("post-title").value)||"Bez tytułu");
+  $("post-preview").srcdoc='<!doctype html><html lang="pl"><meta name="viewport" content="width=device-width"><style>body{font:17px/1.7 system-ui;padding:15px;color:#243a4c}h1{color:#074d9b;font-size:27px}h2{font-size:22px}img{max-width:100%}</style><h1>'+title+'</h1>'+editorHtml()+'</html>';
+  $("preview-box").classList.remove("hidden");
+}
+function suggest(){
+  let body=$("post-body").value;
+  const replacements=[[/\bIspinii\b/gi,"Ispiny"],[/\bIspini\b/gi,"Ispiny"],[/\bdo Ispina\b/gi,"do Ispiny"],[/\bw Ispina\b/gi,"w Ispinie"],[/ {2,}/g," "]];
+  replacements.forEach(([rx,newValue])=>body=body.replace(rx,newValue));
+  $("post-body").value=body;
+  updateMetrics();scheduleLocalSave();
+  let title=trim($("post-title").value);
+  if(title&&!/[.!?]$/.test(title)) $("post-title").value=title;
+  const plain=body.replace(/<[^>]+>/g," ").replace(/[#*_]/g,"").replace(/\s+/g," ").trim();
+  if(!$("post-excerpt").value)$("post-excerpt").value=plain.slice(0,155).replace(/\s+\S*$/,"")+(plain.length>155?"…":"");
+  if(!$("post-tags").value)$("post-tags").value="Ispina, gmina Drwinia";
+  if(/190[0-9]|19[0-9]{2}|histori|archiw|dawni|wspomn/i.test(body+" "+title))$("post-category").value="3503";
+  else if(/aplikacj|telefon|technolog|internet/i.test(body+" "+title))$("post-category").value="21188";
+  message("post-output","Wykonano lokalną korektę nazw, przygotowano opis i zasugerowano kategorię. Fakty wymagają osobnej weryfikacji.","ok");
+}
+async function ensureTags(list){
+  const result=[];
+  for(const name of list.slice(0,6)){
+    let found=await rpc("GET","tags?search="+encodeURIComponent(name)+"&per_page=50");
+    let tag=Array.isArray(found)?found.find(t=>t.name.toLowerCase()===name.toLowerCase()):null;
+    if(!tag)tag=await rpc("POST","tags",{name});
+    if(tag.id)result.push(tag.id);
+  }
+  return result;
+}
+async function savePost(status){
+  if(!connected){message("post-output","Najpierw połącz konto WordPress.","error");showScreen("settings");return}
+  const title=trim($("post-title").value),body=trim($("post-body").value);
+  if(!title||!body){message("post-output","Wpisz tytuł i treść.","error");return}
+  if(publicationBusy){publicationPhase("Zapisywanie już trwa. Nie wysyłaj artykułu ponownie.");return}
+  if(status==="publish"&&!confirm("Opublikować artykuł na żywo w Ispina Lokalnie? WordPress może również powiadomić subskrybentów."))return;
+  if(status==="draft" && postId && postStatus==="publish"){
+    if(!confirm("Ten artykuł jest już opublikowany. Zapisać zmiany BEZ wycofywania publikacji?"))return;
+    status="publish";
+  }
+  publicationButtons(true);
+  lastPublicationAttempt={title,status,id:postId,started:Date.now()};
+  setPublishedUrl("");
+  publicationPhase(status==="publish"?"Etap 1/3: przygotowuję publikację…":"Etap 1/3: przygotowuję szkic…");
+  startOperation(status==="publish"?"Publikuję artykuł…":"Zapisuję szkic…");
+  message("post-output","Trwa wysyłanie. Czekamy na potwierdzenie numeru ID od WordPressa.");
+  try{
+    const mediaId=Number($("post-media").value)||0;
+    const data={title,content:editorHtml(),status,excerpt:trim($("post-excerpt").value),categories:[Number($("post-category").value)]};
+    if(mediaId>0)data.featured_media=mediaId;
+    const tagNames=trim($("post-tags").value).split(",").map(trim).filter(Boolean);
+    if(tagNames.length){
+      try{publicationPhase("Etap 1/3: sprawdzam tagi i kategorie…");data.tags=await ensureTags(tagNames);}
+      catch(tagErr){
+        if(!confirm("Nie udało się przygotować tagów ("+tagErr.message+"). Czy kontynuować zapis BEZ tagów?")) {
+          publicationPhase("Anulowano publikowanie, niczego nie zapisano w WordPressie.","error");return;
+        }
+        delete data.tags;
+        recordAction("failed","Nie dodano tagów",tagErr.message);
+      }
+    }
+    publicationPhase("Etap 2/3: wysyłam wpis do WordPress.com. Nie zamykaj aplikacji.");
+    const path=postId?"posts/"+postId:"posts";
+    // POST is issued exactly once: an automatic retry after network timeout could
+    // publish a duplicate. Save the ID immediately, then verify persistence by GET.
+    const result=await rpc("POST",path,data);
+    if(!Number.isSafeInteger(Number(result.id))||Number(result.id)<=0)
+      throw new Error("Odpowiedź zapisu nie zawiera numeru ID. Sprawdź listę artykułów przed ponowieniem.");
+    postId=Number(result.id);
+    lastPublicationAttempt.id=postId;
+    postStatus=result.status||status;
+    $("editor-heading").textContent="Edytuj artykuł #"+postId;
+    $("edit-status").textContent="Sprawdzam zapis…";
+    message("post-output","WordPress zwrócił ID "+postId+". Sprawdzam, czy zmiany są widoczne po ponownym odczycie.");
+    publicationPhase("Etap 3/3: sprawdzam zapisany wpis #"+postId+" w WordPress.com…");
+    startOperation("Weryfikacja zapisu wpisu #"+postId+"…");
+    let verified;
+    try {
+      verified=await rpc("GET","posts/"+postId+"?context=edit");
+    }catch(readError){
+      $("edit-status").textContent="Do sprawdzenia";
+      publicationPhase("WordPress zwrócił numer wpisu, ale nie udało się zweryfikować statusu. Sprawdź listę wpisów.","error");
+      showOutcome("error","ZAPIS NIEZWERYFIKOWANY",
+        "WordPress zwrócił ID "+postId+", ale ponowny odczyt nie powiódł się: "+readError.message+
+        ". Nie klikaj ponownie Publikuj. Sprawdź wpis o tym numerze na stronie WordPress.");
+      return;
+    }
+    if(Number(verified.id)!==postId || verified.status!==status){
+      $("edit-status").textContent="Do sprawdzenia";
+      publicationPhase("Artykuł istnieje, ale jego status jest inny niż oczekiwano.","error");
+      showOutcome("error","STATUS NIEPOTWIERDZONY",
+        "Wpis #"+postId+" istnieje, lecz odczytany status to „"+String(verified.status||"brak")+
+        "”, zamiast „"+status+"”. Sprawdź wpis przed ponowieniem.");
+      return;
+    }
+    postStatus=verified.status;
+    $("edit-status").textContent=status==="publish"?"Opublikowany":"Szkic zapisany";
+    localStorage.removeItem(localKey);
+    lastPublicationAttempt=null;
+    const summary=status==="publish"?"SUKCES! Artykuł opublikowany.":"SUKCES! Szkic zapisany.";
+    const detail="Zapis i ponowny odczyt potwierdzone przez WordPress. Tytuł: "+title+
+      ". Numer wpisu: "+postId+". Status: "+verified.status+".";
+    message("post-output",summary+" "+detail,"ok");
+    const canonical=verified.link&&/^https:\/\/ispinalokalnie\.wordpress\.com\//.test(verified.link)?verified.link:"";
+    const published=status==="publish";
+    const link=published?(canonical||"https://ispinalokalnie.wordpress.com/?p="+postId):
+      "https://wordpress.com/post/ispinalokalnie.wordpress.com/"+postId;
+    if(published)setPublishedUrl(link);
+    publicationPhase(published?"SUKCES! Artykuł jest opublikowany. Możesz otworzyć jego prawdziwy widok na stronie IL.":"SUKCES! Szkic zapisany w WordPressie.","ok");
+    showOutcome("success",summary,detail,link,
+      published?"🌐 Zobacz opublikowany artykuł na stronie IL":"Otwórz szkic w WordPressie");
+  }catch(e){
+    publicationPhase("NIE POWIODŁO SIĘ: "+e.message,"error");
+    message("post-output","Nie potwierdzono zapisu: "+e.message,"error");
+    showOutcome("error","NIE POWIODŁO SIĘ","Nie uzyskano potwierdzenia zapisu z WordPressa. "+e.message+" Jeśli połączenie zostało przerwane, sprawdź listę wpisów przed ponowną próbą, aby uniknąć duplikatu.");
+  }finally{publicationButtons(false);}
+}
+async function verifyLastPublication(){
+  if(!connected){message("post-output","Połącz najpierw konto WordPress.","error");return}
+  const attempted=lastPublicationAttempt;
+  const id=Number(attempted?.id||postId)||0;
+  startOperation("Sprawdzam ostatni zapis na WordPress.com…");
+  try{
+    if(id){
+      const p=await rpc("GET","posts/"+id+"?context=edit");
+      if(Number(p.id)!==id)throw Error("WordPress zwrócił nieprawidłowy numer wpisu.");
+      postId=id;postStatus=p.status||"";
+      $("edit-status").textContent="Sprawdzono: "+postStatus;
+      const link=p.link&&p.link.startsWith("https://ispinalokalnie.wordpress.com/")?p.link:"https://ispinalokalnie.wordpress.com/?p="+id;
+      if(p.status==="publish")setPublishedUrl(link);
+      publicationPhase("Odczyt wpisu #"+id+" zakończony. Status: "+postStatus+".","ok");
+      showOutcome("success","STATUS ZWERYFIKOWANY","WordPress zwrócił wpis #"+id+". Status: "+postStatus+".",link,"Otwórz artykuł");
+      lastPublicationAttempt=null;
+      return;
+    }
+    const title=trim(attempted?.title||$("post-title").value);
+    if(!title)throw Error("Nie znam tytułu ani numeru wpisu do sprawdzenia.");
+    const status=attempted?.status||"publish";
+    const found=await rpc("GET","posts?status="+status+"&per_page=40&search="+encodeURIComponent(title));
+    const titles=(Array.isArray(found)?found:[]).filter(p=>String(p.title?.raw||p.title?.rendered||"").replace(/&nbsp;/g," ").trim().toLocaleLowerCase("pl")===title.toLocaleLowerCase("pl"));
+    if(titles.length===1){
+      const foundId=Number(titles[0].id);
+      message("post-output","Znaleziono artykuł o tym tytule (ID "+foundId+"). Otwórz go z listy artykułów, aby upewnić się, że to ostatni zapis. Nie wysyłaj ponownie automatycznie.","ok");
+    } else {
+      message("post-output",titles.length>1?"Znaleziono kilka artykułów o tym tytule. Sprawdź listę, aby nie utworzyć duplikatu.":"Nie znaleziono identycznego tytułu. Przy błędzie sieci wynik może być niepewny.");
+    }
+    operationFinished(true,"Zakończono wyszukiwanie","Wynik wymaga potwierdzenia redaktora.");
+  }catch(e){message("post-output","Nie udało się sprawdzić ostatniego zapisu: "+e.message,"error")}
+}
+function resetEditor(){
+  setPublishedUrl("");publicationPhase("Gotowy do redagowania. Publikacja wymaga potwierdzenia.");
+  postId=null;postStatus="";
+  ["post-title","post-body","post-excerpt","post-tags"].forEach(id=>$(id).value="");
+  $("post-category").value="10543";$("post-media").value="0";$("post-mode").value="text";
+  $("editor-heading").textContent="Nowy artykuł";$("edit-status").textContent="Nowy";
+  $("post-output").innerHTML="";$("preview-box").classList.add("hidden");
+  localStorage.removeItem(localKey);
+  updateMetrics();
+}
+async function loadPosts(){
+  if(!connected){message("posts-output","Połącz konto w ustawieniach.","error");return}
+  startOperation("Pobieram artykuły i szkice…");
+  message("posts-output","Pobieram listę wpisów z WordPressa...");
+  try{
+    const published=await rpc("GET","posts?context=edit&status=publish&per_page=60&orderby=modified&order=desc");
+    let drafts=[];
+    try{drafts=await rpc("GET","posts?context=edit&status=draft&per_page=60&orderby=modified&order=desc");}
+    catch(err){message("posts-output","Lista szkiców jest chwilowo niedostępna: "+err.message,"error");}
+    const data=[...published,...drafts].sort((a,b)=>String(b.modified||"").localeCompare(String(a.modified||"")));
+    if(!Array.isArray(data))throw Error("Nie rozpoznano listy artykułów.");
+    if(!data.length){message("posts-output","WordPress potwierdził pustą listę.");return}
+    allPosts=data;
+    renderPosts();
+    operationFinished(true,"Pobrano listę artykułów",data.length+" wpisów i szkiców.");
+    /* original mapping removed */
+    // The list is filtered client-side by renderPosts().
+  }catch(e){message("posts-output","Nie udało się pobrać wpisów: "+e.message,"error")}
+}
+async function editPost(id){
+  startOperation("Wczytuję artykuł #"+id+"…");
+  message("posts-output","Wczytuję artykuł #"+id+"...");
+  try{
+    const p=await rpc("GET","posts/"+id+"?context=edit");
+    if(!p.id||!p.content||typeof p.content.raw!=="string")throw Error("Brak pełnej treści do edycji.");
+    resetEditor();postId=p.id;postStatus=p.status;
+    $("post-title").value=p.title?.raw||p.title?.rendered||"";
+    $("post-body").value=p.content.raw;
+    $("post-mode").value="html";
+    $("post-excerpt").value=p.excerpt?.raw||"";
+    $("post-category").value=(p.categories||[])[0]||"10543";
+    $("post-media").value=p.featured_media||0;
+    $("post-tags").value="";
+    $("editor-heading").textContent="Edytuj artykuł #"+p.id;
+    $("edit-status").textContent=p.status;
+    if(p.status==="publish")setPublishedUrl(p.link&&/^https:\/\/ispinalokalnie\.wordpress\.com\//.test(p.link)?p.link:"https://ispinalokalnie.wordpress.com/?p="+Number(p.id));
+    showScreen("editor");
+    operationFinished(true,"Wczytano artykuł #"+id,"Można rozpocząć edycję.");
+  }catch(e){message("posts-output","Nie można edytować wpisu: "+e.message,"error")}
+}
+function utf8Base64(v){return btoa(Array.from(new TextEncoder().encode(v),c=>String.fromCharCode(c)).join(""))}
+function base64Utf8(v){const b=atob(v);return new TextDecoder().decode(Uint8Array.from(b,c=>c.charCodeAt(0)))}
+const START="<!-- IL_REDAKTOR_SMART_START -->",END="<!-- IL_REDAKTOR_SMART_END -->";
+async function loadServices(){
+  if(!connected){message("services-output","Najpierw połącz konto WordPress.","error");return}
+  startOperation("Pobieram katalog Usługi…");
+  message("services-output","Pobieram zawartość strony katalogu...");
+  try{
+    const page=await rpc("GET","pages/"+PAGE+"?context=edit");
+    if(!page.id||typeof page.content?.raw!=="string")throw Error("API nie udostępnia edytowalnej zawartości strony. Nie nadpisuję jej.");
+    servicesRaw=page.content.raw;services=[];servicesLoaded=true;
+    renderLegacyServices(servicesRaw);
+    const match=servicesRaw.match(/<!-- ILRS_JSON:([A-Za-z0-9+/=]+) -->/);
+    if(match){const parsed=JSON.parse(base64Utf8(match[1]));if(!Array.isArray(parsed))throw Error("Nieprawidłowy format danych usług.");services=parsed;}
+    drawServices();
+    message("services-output","Wczytano stronę WordPress. Liczba ofert zarządzanych przez Redaktora: "+services.length,"ok");
+  }catch(e){servicesLoaded=false;message("services-output","Nie odczytano katalogu: "+e.message,"error")}
+}
+function renderLegacyServices(raw){
+  const re=/"metadata":\{"name":"Usługodawca[^"]*"\}/g;
+  let m, names=[];
+  while((m=re.exec(raw))!==null){
+    const fragment=raw.slice(m.index,m.index+1400);
+    const h=fragment.match(/<h3[^>]*>([^<]+)<\/h3>/);
+    if(h)names.push(h[1]);
+    if(names.length>=40)break;
+  }
+  legacyServices=names;
+  $("legacy-services-list").innerHTML=names.length?
+    names.map(n=>'<div style="padding:6px 0">✓ '+esc(n)+'</div>').join(""):
+    '<div>Nie znaleziono oznaczonych ofert historycznych.</div>';
+}
+function drawServices(){
+  $("services-list").innerHTML=services.map((s,i)=>'<div class="post"><b>'+esc(s.name)+'</b><span>'+esc(s.phone||"Bez numeru telefonu")+'</span><button class="secondary" onclick="editService('+i+')">Edytuj ofertę</button></div>').join("")||'<p class="muted">Brak ofert zapisanych przez tę aplikację. Istniejące ręczne wpisy na stronie pozostaną nienaruszone.</p>';
+}
+function clearService(){
+  ["service-name","service-description","service-phone","service-url","service-id"].forEach(id=>$(id).value="");
+  $("service-heading").textContent="Dodaj usługodawcę";
+  $("service-category").value="Remonty i wykończenia";
+}
+function editService(i){
+  const s=services[i];if(!s)return;
+  $("service-id").value=s.id;
+  $("service-name").value=s.name;$("service-description").value=s.description;
+  $("service-category").value=s.category||"Inne usługi lokalne";
+  $("service-phone").value=s.phone||"";$("service-url").value=s.url||"";
+  $("service-heading").textContent="Edytuj ofertę · "+s.name;
+}
+function serviceMarkup(list){
+  const cards=list.map(s=>{
+    const phone=trim(s.phone).replace(/[^\d+]/g,"");
+    const category=trim(s.category||"Inne usługi lokalne");
+    const url=/^https:\/\/[a-z0-9.-]+(?:\/[^\s]*)?$/i.test(s.url)?s.url:"";
+    return '<article style="border:1px solid #dce8f2;border-radius:12px;padding:16px;margin:12px 0;background:#fff">'+
+      '<p style="margin:0 0 5px;font-size:13px;color:#2d6d98">'+esc(category)+'</p>'+ 
+      '<h3 style="color:#174875;margin:0 0 8px">'+esc(s.name)+'</h3>'+
+      '<p>'+esc(s.description).replace(/\n/g,"<br>")+'</p>'+
+      (phone?'<p>☎ <a href="tel:'+esc(phone)+'">'+esc(s.phone)+'</a></p>':"")+
+      (url?'<p><a href="'+esc(url)+'" rel="noopener nofollow">Strona firmy</a></p>':"")+'</article>';
+  }).join("");
+  return START+"\n<!-- ILRS_JSON:"+utf8Base64(JSON.stringify(list))+" -->\n<!-- wp:html -->\n"+
+    '<div class="il-redaktor-uslugi" aria-label="Lokalne usługi dodane przez IL Redaktor Smart">'+
+    '<h2>Usługi zgłoszone do Ispina Lokalnie</h2>'+cards+'</div>\n<!-- /wp:html -->\n'+END;
+}
+async function saveService(){
+  if(serviceBusy){message("services-output","Zapis oferty już trwa. Nie klikaj ponownie.","error");return}
+  if(!servicesLoaded){message("services-output","Najpierw kliknij „Odczytaj usługi z WordPressa”.","error");return}
+  const id=trim($("service-id").value)||("il_"+Date.now());
+  const name=trim($("service-name").value),description=trim($("service-description").value);
+  const phone=trim($("service-phone").value),url=trim($("service-url").value),category=trim($("service-category").value);
+  if(!name||!description){message("services-output","Wpisz nazwę firmy i opis.","error");return}
+  if(url&&!/^https:\/\/[a-z0-9.-]+(?:\/[^\s]*)?$/i.test(url)){message("services-output","Adres strony musi zaczynać się od https://","error");return}
+  const normalizedName=s=>String(s||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLocaleLowerCase("pl").replace(/[^a-z0-9]+/g," ").trim();
+  const targetName=normalizedName(name);
+  const existing=[...services.filter(s=>s.id!==id).map(s=>s.name),...legacyServices];
+  const duplicate=existing.find(s=>{const candidate=normalizedName(s);return candidate===targetName||(candidate.length>=5&&targetName.length>=5&&(candidate.includes(targetName)||targetName.includes(candidate)))});
+  if(duplicate&&!confirm("Możliwy duplikat: „"+duplicate+"”. Sprawdź istniejącą kartę przed dodaniem kolejnej. Czy mimo to chcesz kontynuować?"))return;
+  if(!confirm("Zapisać ofertę „"+name+"” na publicznej stronie Usługi w okolicy?"))return;
+  serviceBusy=true;$("save-service").disabled=true;
+  startOperation("Zapisuję ofertę w katalogu…");
+  message("services-output","Przygotowuję zapis i potwierdzenie WordPressa...");
+  try{
+    // Refetch just before write, to minimize risk of overwriting other edits.
+    const fresh=await rpc("GET","pages/"+PAGE+"?context=edit");
+    const raw=fresh.content?.raw;
+    if(typeof raw!=="string")throw Error("Brak treści źródłowej strony.");
+    if(servicesRaw!==raw)throw Error("Strona zmieniła się od odczytu. Wczytaj katalog ponownie, aby nie nadpisać cudzych zmian.");
+    const next=services.filter(s=>s.id!==id);
+    next.push({id,name,description,phone,url,category});
+    const rendered=serviceMarkup(next);
+    let content;
+    const a=raw.indexOf(START),b=raw.indexOf(END);
+    if((a>=0)!==(b>=0))throw Error("Wykryto niekompletne znaczniki katalogu.");
+    if(a>=0)content=raw.slice(0,a)+rendered+raw.slice(b+END.length);
+    else content=raw+"\n\n"+rendered;
+    const result=await rpc("POST","pages/"+PAGE,{content});
+    if(Number(result.id)!==PAGE)throw Error("WordPress nie potwierdził poprawnej strony.");
+    const check=await rpc("GET","pages/"+PAGE+"?context=edit");
+    if(Number(check.id)!==PAGE || typeof check.content?.raw!=="string" || !check.content.raw.includes("ILRS_JSON:"+utf8Base64(JSON.stringify(next))))throw Error("Zapisu oferty nie potwierdził ponowny odczyt strony. Nie zapisuj drugi raz bez sprawdzenia katalogu.");
+    servicesRaw=check.content.raw;services=next;drawServices();clearService();
+    const detail="Firma: "+name+". WordPress potwierdził aktualizację strony Usługi w okolicy (ID "+PAGE+").";
+    message("services-output","SUKCES! "+detail,"ok");
+    showOutcome("success","SUKCES! Oferta zapisana.",detail,"https://ispinalokalnie.wordpress.com/uslugi-w-okolicy/");
+  }catch(e){
+    message("services-output","Nie potwierdzono zapisu oferty: "+e.message,"error");
+    showOutcome("error","ZAPIS NIEPOTWIERDZONY","Nie udało się potwierdzić zmiany na stronie Usługi. Sprawdź katalog przed ponowną próbą. "+e.message);
+  }finally{serviceBusy=false;$("save-service").disabled=false;}
+}
+const templates=[
+ {name:"Aktualność",title:"Co nowego w Ispinie?",body:"## Najważniejsze informacje\n\nOpisz krótko, co się wydarzyło i dlaczego jest to ważne dla mieszkańców.\n\n## Szczegóły\n\nPodaj miejsce, datę, organizatora oraz źródło informacji.\n\n## Co dalej?\n\nDodaj przydatny link lub kontakt.",cat:"10543"},
+ {name:"Historia",title:"Z historii Ispiny: ",body:"## Ispina dawniej\n\nPrzedstaw temat i jego znaczenie dla historii miejscowości.\n\n## Co mówią źródła?\n\nPodaj daty i udokumentowane fakty.\n\n## Pamięć mieszkańców\n\nZachęć do podzielenia się wspomnieniami, unikaj niezweryfikowanych informacji.",cat:"3503"},
+ {name:"OSP i wydarzenia",title:"Wydarzenie w Ispinie: ",body:"## Zaproszenie\n\nKto organizuje wydarzenie?\n\n## Kiedy i gdzie?\n\nData, godzina, miejsce, zasady udziału.\n\n## Dlaczego warto?\n\nKilka serdecznych zdań dla mieszkańców.",cat:"10543"},
+ {name:"Komunikacja",title:"Komunikacja w Ispinie: ",body:"## Najważniejsza zmiana\n\nJakich linii dotyczy informacja?\n\n## Od kiedy?\n\nData wejścia w życie i przystanki.\n\n## Gdzie sprawdzić rozkład?\n\nOdesłanie do sekcji Odjazdy na Ispina Lokalnie.",cat:"10543"}
+];
+function showTemplates(){
+  const root=$("templates-box");root.classList.remove("hidden");
+  root.innerHTML='<b>Wybierz szablon artykułu</b><p class="muted">Szablon jest punktem wyjścia, nie zastępuje weryfikacji informacji.</p><div class="actions">'+templates.map((t,i)=>'<button class="secondary" onclick="insertTemplate('+i+')">'+esc(t.name)+'</button>').join("")+'</div>';
+}
+function insertTemplate(i){
+  const t=templates[i];if(!t)return;
+  if(trim($("post-body").value)&&!confirm("Zastąpić aktualną treść szablonem?"))return;
+  $("post-title").value=t.title;$("post-body").value=t.body;$("post-mode").value="text";$("post-category").value=t.cat;
+  $("templates-box").classList.add("hidden");updateMetrics();scheduleLocalSave();
+}
+function updateMetrics(){
+  const body=trim($("post-body").value);
+  const words=body?body.split(/\s+/).length:0;
+  const title=trim($("post-title").value),excerpt=trim($("post-excerpt").value);
+  const warnings=[];
+  if(title.length>65)warnings.push("Tytuł jest długi ("+title.length+" znaków)");
+  if(!excerpt)warnings.push("Brak opisu / zajawki");
+  if(!Number($("post-media").value))warnings.push("Brak zdjęcia wyróżniającego");
+  if(body&&!/## |<h2[ >]/.test(body))warnings.push("Rozważ dodanie śródtytułów");
+  $("editor-metrics").textContent=words+" słów · "+title.length+" znaków tytułu. "+(warnings.length?warnings.join(" · "):"Podstawowa lista redakcyjna kompletna.");
+}
+function scheduleLocalSave(){
+  if(restoring)return;
+  clearTimeout(saveTimer);
+  saveTimer=setTimeout(()=>{
+    const record={updated:Date.now(),postId,postStatus};
+    for(const [key,id] of Object.entries({title:"post-title",body:"post-body",excerpt:"post-excerpt",tags:"post-tags",category:"post-category",mode:"post-mode",media:"post-media"}))
+      record[key]=$(id).value;
+    localStorage.setItem(localKey,JSON.stringify(record));
+  },450);
+}
+function restoreLocal(silent=false){
+  const raw=localStorage.getItem(localKey);if(!raw)return;
+  try{
+    const s=JSON.parse(raw);if(!s.body&&!s.title)return;
+    if(!silent&&!confirm("Przywrócić szkic z pamięci telefonu?"))return;
+    if(silent&&(trim($("post-body").value)||trim($("post-title").value)))return;
+    restoring=true;
+    for(const [key,id] of Object.entries({title:"post-title",body:"post-body",excerpt:"post-excerpt",tags:"post-tags",category:"post-category",mode:"post-mode",media:"post-media"}))
+      if(s[key]!==undefined)$(id).value=s[key];
+    postId=s.postId||null;postStatus=s.postStatus||"";
+    $("editor-heading").textContent=postId?"Szkic lokalny dla wpisu #"+postId:"Lokalny szkic";
+    $("edit-status").textContent="Kopia lokalna";
+    updateMetrics();
+    restoring=false;
+  }catch(e){restoring=false;message("post-output","Nie udało się odtworzyć lokalnej kopii.","error")}
+}
+function downloadText(){
+  const content=trim($("post-title").value)+"\n\n"+trim($("post-body").value);
+  IL.copyText(content);
+}
+function renderPosts(){
+  const q=trim($("posts-search").value).toLocaleLowerCase("pl");
+  const filtered=allPosts.filter(p=>(p.title?.rendered||"").toLocaleLowerCase("pl").includes(q));
+  $("posts-output").innerHTML=filtered.map(p=>'<div class="post"><b>'+esc(p.title?.rendered||"Bez tytułu")+'</b><span>WP ID '+Number(p.id)+' · '+esc(p.status)+' · '+esc(p.modified?.slice(0,16)||"")+'</span><button class="secondary" onclick="editPost('+Number(p.id)+')">Edytuj</button></div>').join("")||'<p class="muted">Brak wyników wyszukiwania.</p>';
+}
+async function loadMedia(){
+  if(!connected){message("media-output","Najpierw połącz konto WordPress.","error");return}
+  startOperation("Pobieram zdjęcia…");
+  message("media-output","Pobieram zdjęcia z galerii IL...");
+  try{
+    const q=trim($("media-search").value);
+    const list=await rpc("GET","media?media_type=image&per_page=36&orderby=date&order=desc"+(q?"&search="+encodeURIComponent(q):""));
+    if(!Array.isArray(list))throw Error("Błąd biblioteki zdjęć.");
+    $("media-output").innerHTML='<div class="media-grid">'+list.map(m=>{
+      const src=m.media_details?.sizes?.thumbnail?.source_url||m.source_url||"";
+      return '<div class="media-card"><img loading="lazy" src="'+esc(src)+'" alt="'+esc(m.alt_text||"Zdjęcie IL")+'"><div class="media-info"><b>'+esc(m.title?.rendered||"Zdjęcie")+'</b><button onclick="chooseMedia('+Number(m.id)+')">Wybierz zdjęcie</button></div></div>';
+    }).join("")+'</div>';
+    if(!list.length)message("media-output","Nie znaleziono zdjęć.");
+    operationFinished(true,"Odczytano galerię",list.length+" fotografii na tej stronie.");
+  }catch(e){message("media-output","Nie udało się pobrać galerii: "+e.message,"error")}
+}
+function chooseMedia(id){
+  $("post-media").value=id;showScreen("editor");
+  message("post-output","Wybrano zdjęcie z biblioteki WordPress. ID "+id+".","ok");
+  updateMetrics();scheduleLocalSave();
+}
+["post-title","post-body","post-excerpt","post-tags","post-category","post-mode","post-media"].forEach(id=>{
+  $(id).addEventListener("input",()=>{updateMetrics();scheduleLocalSave()});
+  $(id).addEventListener("change",()=>{updateMetrics();scheduleLocalSave()});
+});
+updateMetrics();
+if(actionHistory.length){
+  $("activity-feed").innerHTML=actionHistory.map(a=>'<div class="activity-entry '+esc(a.kind)+'"><strong>'+esc(a.at+" · "+a.title)+'</strong><small>'+esc(a.detail)+'</small></div>').join("");
+}
+if(document.addEventListener){document.addEventListener("click",event=>{const button=event.target&&event.target.closest?event.target.closest("button"):null;if(button&&!button.disabled&&window.IL&&typeof IL.haptic==="function")IL.haptic("tap")},true)}
+if(window.IL){IL.status();if(IL.getHaptics)IL.getHaptics();if(IL.loginState)IL.loginState()}else{message("auth-output","Brak mostu Android. Otwórz ten panel wewnątrz APK.","error");}
+</script>
+</body></html>

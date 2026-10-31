@@ -1,0 +1,254 @@
+/*
+ * IL Redaktor Smart publication contract tests.
+ * Mock transport: NEVER writes to the live Ispina Lokalnie WordPress site.
+ * Validates the actual in-app JS, including confirmation, status and retry safety.
+ */
+"use strict";
+const test = require("node:test");
+const assert = require("node:assert/strict");
+const fs = require("node:fs");
+const vm = require("node:vm");
+const path = require("node:path");
+
+function setup() {
+  const html = fs.readFileSync(path.join(__dirname, "../app/src/main/assets/index.html"), "utf8");
+  const code = html.match(/<script>([\s\S]*?)<\/script>/)?.[1];
+  assert.ok(code, "Missing UI script");
+  const dom = new Map();
+  function node(id) {
+    if (!dom.has(id)) {
+      const classes = new Set(["hidden"]);
+      dom.set(id, {
+        id, value:"", textContent:"", innerHTML:"", className:"",
+        style:{}, srcdoc:"",
+        classList: {
+          add(...xs){xs.forEach(x=>classes.add(x))},
+          remove(...xs){xs.forEach(x=>classes.delete(x))},
+          contains(x){return classes.has(x)},
+          toggle(x,force){if(force===undefined? !classes.has(x):force)classes.add(x);else classes.delete(x)}
+        },
+        addEventListener(){},
+        setAttribute(){},removeAttribute(){},
+      });
+    }
+    return dom.get(id);
+  }
+  const storage = new Map();
+  const IL = {status(){},assistantStatus(){},openSite(){}};
+  const c = {
+    window:{IL, scrollTo(){}},IL,document:{
+      getElementById:node,querySelectorAll(){return []}
+    },setTimeout,clearTimeout,console,Date,TextEncoder,TextDecoder,
+    localStorage:{
+      getItem(k){return storage.get(k)||null},
+      setItem(k,v){storage.set(k,v)},
+      removeItem(k){storage.delete(k)}
+    },confirm(){return true},btoa,atob
+  };
+  vm.createContext(c);
+  vm.runInContext(code,c);
+  vm.runInContext("connected=true;document.getElementById('post-title').value='Testowy artykuł';document.getElementById('post-body').value='Treść testowa';document.getElementById('post-mode').value='text';document.getElementById('post-category').value='10543';document.getElementById('post-media').value='0';",c);
+  return {c,node,run:(script)=>vm.runInContext(script,c)};
+}
+
+test("publishing issues exactly one POST and verifies by GET before SUCCESS",async()=>{
+  const a=setup(),calls=[];
+  a.c.rpc=async(method,p,body)=>{
+    calls.push({method,path:p,body});
+    return method==="POST"?{id:987654,status:"publish"}:{id:987654,status:"publish",title:"Testowy artykuł"};
+  };
+  await a.run("savePost('publish')");
+  assert.equal(calls.filter(x=>x.method==="POST").length,1);
+  assert.equal(calls[0].path,"posts");
+  assert.equal(calls[0].body.status,"publish");
+  assert.equal(calls[1].method,"GET");
+  assert.equal(calls[1].path,"posts/987654?context=edit");
+  assert.match(a.node("finish-title").textContent,/SUKCES/);
+  assert.match(a.node("finish-detail").textContent,/ponowny odczyt/);
+  assert.match(a.node("edit-status").textContent,/Opublikowany/);
+});
+
+test("draft sends only draft, and confirms persisted draft status",async()=>{
+  const a=setup(),calls=[];
+  a.c.rpc=async(method,p,body)=>{
+    calls.push({method,p,body});
+    return method==="POST"?{id:41,status:"draft"}:{id:41,status:"draft"};
+  };
+  await a.run("savePost('draft')");
+  assert.equal(calls[0].body.status,"draft");
+  assert.match(a.node("finish-title").textContent,/Szkic zapisany/);
+});
+
+test("false success is prevented when WordPress returns a different status",async()=>{
+  const a=setup(),calls=[];
+  a.c.rpc=async(method,p,body)=>{
+    calls.push({method,p,body});
+    return method==="POST"?{id:42,status:"publish"}:{id:42,status:"draft"};
+  };
+  await a.run("savePost('publish')");
+  assert.equal(calls.filter(x=>x.method==="POST").length,1);
+  assert.equal(a.node("finish-title").textContent,"STATUS NIEPOTWIERDZONY");
+  assert.match(a.node("edit-status").textContent,/Do sprawdzenia/);
+});
+
+test("failed read after write never triggers duplicate publication",async()=>{
+  const a=setup(),calls=[];
+  a.c.rpc=async(method,p,body)=>{
+    calls.push({method,p,body});
+    if(method==="POST")return {id:51,status:"publish"};
+    throw new Error("brak odpowiedzi na GET");
+  };
+  await a.run("savePost('publish')");
+  assert.equal(calls.filter(x=>x.method==="POST").length,1);
+  assert.equal(a.node("finish-title").textContent,"ZAPIS NIEZWERYFIKOWANY");
+  assert.match(a.node("finish-detail").textContent,/Nie klikaj ponownie/);
+});
+
+test("rejected POST shows failure, never SUCCESS",async()=>{
+  const a=setup(),calls=[];
+  a.c.rpc=async(method,p,body)=>{calls.push({method,p,body});throw new Error("HTTP 403");};
+  await a.run("savePost('publish')");
+  assert.equal(calls.length,1);
+  assert.match(a.node("finish-title").textContent,/NIE POWIODŁO/);
+  assert.match(a.node("finish-detail").textContent,/HTTP 403/);
+});
+
+
+test("confirmed publication exposes real public permalink in a dialog and persistent editor button",async()=>{
+  const a=setup();
+  const expected="https://ispinalokalnie.wordpress.com/2026/10/31/probny-artykul/";
+  const opened=[];
+  a.c.IL.openSite=(url)=>opened.push(url);
+  a.c.rpc=async(method,p,body)=>method==="POST"?
+    {id:67,status:"publish"}:
+    {id:67,status:"publish",link:expected};
+  await a.run("savePost('publish')");
+  assert.equal(a.node("finish-open").textContent,"🌐 Zobacz opublikowany artykuł na stronie IL");
+  assert.equal(a.node("view-published-post").classList.contains("hidden"),false);
+  assert.match(a.node("publication-phase").textContent,/SUKCES/);
+  a.run("openFinishUrl()");
+  a.run("openPublishedPost()");
+  assert.deepEqual(opened,[expected,expected]);
+});
+
+test("published article without canonical link falls back to real public WordPress ?p URL, not admin",async()=>{
+  const a=setup(),opened=[];
+  a.c.IL.openSite=(url)=>opened.push(url);
+  a.c.rpc=async(method)=>method==="POST"?{id:69,status:"publish"}:{id:69,status:"publish"};
+  await a.run("savePost('publish')");
+  a.run("openFinishUrl()");
+  assert.equal(opened[0],"https://ispinalokalnie.wordpress.com/?p=69");
+});
+
+test("a failing tags lookup may be skipped after explicit confirmation so it does not block publishing",async()=>{
+  const a=setup(), calls=[];
+  a.node("post-tags").value="Ispina";
+  a.c.rpc=async(method,p,body)=>{
+    calls.push({method,p,body});
+    if(p.startsWith("tags"))throw new Error("Tag API disabled");
+    return method==="POST"?{id:70,status:"publish"}:{id:70,status:"publish"};
+  };
+  await a.run("savePost('publish')");
+  assert.equal(calls.filter(c=>c.p==="posts").length,1);
+  assert.equal(calls.find(c=>c.p==="posts").body.tags,undefined);
+  assert.match(a.node("finish-title").textContent,/SUKCES/);
+});
+
+test("publish guard prevents second parallel request even if user taps twice",async()=>{
+  const a=setup(),calls=[];
+  let release;
+  a.c.rpc=(method,p,body)=>{
+    calls.push({method,p,body});
+    if(method==="POST")return new Promise(resolve=>release=()=>resolve({id:71,status:"publish"}));
+    return Promise.resolve({id:71,status:"publish"});
+  };
+  const first=a.run("savePost('publish')");
+  const second=a.run("savePost('publish')");
+  await second;
+  assert.equal(calls.filter(c=>c.method==="POST").length,1);
+  assert.match(a.node("publication-phase").textContent,/już trwa/);
+  release();await first;
+  assert.equal(a.node("save-publish").disabled,false);
+});
+
+
+test("last publication check verifies an existing ID without writing again",async()=>{
+  const a=setup(),calls=[];
+  a.run("postId=19;postStatus='publish';");
+  a.c.rpc=async(method,p)=>{calls.push({method,p});return {id:19,status:"publish",link:"https://ispinalokalnie.wordpress.com/?p=19"};};
+  await a.run("verifyLastPublication()");
+  assert.equal(calls.length,1);
+  assert.equal(calls[0].method,"GET");
+  assert.match(a.node("finish-title").textContent,/STATUS ZWERYFIKOWANY/);
+});
+
+test("services need read-after-write confirmation and do not retry an uncertain write",async()=>{
+  const a=setup(),calls=[];
+  a.run("servicesLoaded=true;servicesRaw='<!-- existing -->';services=[];");
+  a.node("service-name").value="Firma próbna";
+  a.node("service-description").value="Opis usługi";
+  a.node("service-category").value="Budowa domów";
+  a.c.rpc=async(method,p,body)=>{
+    calls.push({method,p,body});
+    if(method==="POST")return {id:818};
+    if(calls.length===1)return {id:818,content:{raw:"<!-- existing -->"}};
+    throw new Error("Błąd kontrolnego odczytu strony");
+  };
+  await a.run("saveService()");
+  assert.equal(calls.filter(c=>c.method==="POST").length,1);
+  assert.match(a.node("finish-title").textContent,/NIEPOTWIERDZONY/);
+  assert.equal(a.node("save-service").disabled,false);
+});
+
+test("OAuth recovery and adjustable haptics controls are present in editor UI",()=>{
+  const a=setup();
+  assert.ok(a.node("haptics-select"));
+  assert.ok(a.node("login-recovery"));
+  a.c.IL.finishLoginWithUrl=(v)=>{a.c.resumeValue=v};
+  a.node("oauth-return").value="com.ispinalokalnie.redaktorsmart.publish190:/callback?code=TEST&state=TEST";
+  a.run("finishManualLogin()");
+  assert.match(a.c.resumeValue,/publish190:\/callback/);
+  assert.equal(a.node("oauth-return").value,"");
+  a.c.IL.setHaptics=(v)=>{a.c.hapticValue=v};
+  a.run("setHapticsMode('0')");
+  assert.equal(a.c.hapticValue,0);
+  a.run("setHapticsMode('3')");
+  assert.equal(a.c.hapticValue,3);
+});
+
+test("OAuth waiting indicator is pending, not a forever-spinning progress state",()=>{
+  const a=setup();
+  a.run('window.onNativeResult("auth-progress",true,"Krok 3/4: oczekuję na powrót.")');
+  assert.match(a.node("working-state").textContent,/Oczekuję/);
+  assert.match(a.node("working-state").className,/pending/);
+  assert.equal(a.node("login-recovery").classList.contains("hidden"),false);
+});
+
+test("diagnostic really creates a draft and verifies it via GET before success",async()=>{
+  const a=setup(),calls=[];
+  a.c.rpc=async(method,path,body)=>{
+    calls.push({method,path,body});
+    return method==="POST"?{id:8801,status:"draft"}:{id:8801,status:"draft"};
+  };
+  await a.run("testDraftWrite()");
+  assert.equal(calls.length,2);
+  assert.equal(calls[0].method,"POST");
+  assert.equal(calls[0].body.status,"draft");
+  assert.equal(calls[0].path,"posts");
+  assert.equal(calls[1].method,"GET");
+  assert.equal(calls[1].path,"posts/8801?context=edit");
+  assert.match(a.node("finish-title").textContent,/TEST ZAPISU: SUKCES/);
+  assert.equal(a.node("test-draft-write").disabled,false);
+});
+test("draft diagnostic never claims success if verification fails and never retries writes",async()=>{
+  const a=setup(),calls=[];
+  a.c.rpc=async(method,path)=>{
+    calls.push({method,path});
+    if(method==="POST")return {id:8802,status:"draft"};
+    throw Error("Serwer odmówił odczytu");
+  };
+  await a.run("testDraftWrite()");
+  assert.equal(calls.filter(x=>x.method==="POST").length,1);
+  assert.match(a.node("finish-title").textContent,/NIEZWERYFIKOWANY/);
+  assert.equal(a.node("test-draft-write").disabled,false);
+});
