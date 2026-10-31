@@ -334,7 +334,7 @@ header{animation:ilHeader .38s cubic-bezier(.2,.7,.2,1) both}.brand .logo{animat
     <label class="setting-row"><input type="checkbox" id="battery-saving" onchange="applyUiPreferences(true)"><span>Tryb oszczędzania baterii</span></label>
     <p id="ui-preferences-status" class="setting-caption" role="status" aria-live="polite">Ustawienia zapisują się na tym telefonie. Systemowe ograniczenie ruchu zawsze ma pierwszeństwo.</p>
   </div>
-  <div class="card"><h2>O programie</h2><p class="muted">IL Redaktor Smart 1.17.0 · Niezależna aplikacja Android 8 i nowszy. WordPress.com MCP. Publikacja wymaga potwierdzenia i ponownego odczytu wpisu.</p></div>
+  <div class="card"><h2>O programie</h2><p class="muted">IL Redaktor Smart 1.18.0 · Niezależna aplikacja Android 8 i nowszy. WordPress.com MCP. Publikacja wymaga potwierdzenia i ponownego odczytu wpisu.</p></div>
 </section>
 </main>
 <div id="conflict-dialog" class="finish-dialog hidden" role="dialog" aria-modal="true" aria-labelledby="conflict-title"><div class="finish-panel"><h2 id="conflict-title">Wersja na WordPressie wymaga porównania</h2><p id="conflict-message"></p><p>Nie wysłano zmian artykułu. Twoja praca pozostaje w szkicach na telefonie.</p><button class="secondary" onclick="showConflictComparison()">Porównaj wersje</button><div id="conflict-comparison" class="hidden"></div><p id="conflict-feedback" role="status"></p><div class="actions"><button onclick="resolveRemoteConflict(false)">Wczytaj wersję ze strony</button><button class="secondary" onclick="resolveRemoteConflict(true)">Zachowaj obie kopie</button><button class="secondary" onclick="closeRemoteConflict()">Wróć do tekstu</button></div><p class="small">Wczytanie nie usuwa Twojego szkicu. Zachowaj obie kopie odłączy lokalną wersję od wpisu na stronie.</p></div></div>
@@ -595,6 +595,12 @@ function cancelLoginFlow(){if(IL.cancelLogin)IL.cancelLogin()}
 function finishManualLogin(){const el=$("oauth-return");const url=trim(el.value);el.value="";if(!url){message("auth-output","Wklej pełny adres powrotu (jeżeli jest dostępny w przeglądarce).","error");return}IL.finishLoginWithUrl(url);startOperation("Odbieram potwierdzenie WordPress.com")}
 function setHapticsMode(value){if(IL.setHaptics)IL.setHaptics(Number(value))}
 function testHaptics(){$("haptics-status").textContent="Sprawdzam ustawienie i silnik wibracyjny…";if(IL.testHaptics)IL.testHaptics();else $("haptics-status").textContent="Test wibracji jest dostępny w aplikacji na Androida."}
+function hapticTileTap(event){
+  const target=event&&event.target;if(!target||typeof target.closest!=="function")return;
+  const tile=target.closest("button.tile, nav button, button.calendar-day");
+  if(tile&&!tile.disabled&&window.IL&&typeof IL.haptic==="function")IL.haptic("tap");
+}
+document.addEventListener("click",hapticTileTap,true);
 const uiPreferencesKey="il_redaktor_ui_preferences_v1";
 function applyUiPreferences(save=true){
   const root=document.documentElement;
@@ -815,7 +821,7 @@ async function testDraftWrite(){
   if(!confirm("Utworzyć w WordPressie prywatny szkic diagnostyczny? Nie będzie publiczny i pozostanie na liście szkiców do ręcznego usunięcia."))return;
   const testButton=$("test-draft-write");
   diagnosticWriteBusy=true;testButton.disabled=true;
-  const title="[TEST IL Redaktor Smart 1.17.0] Sprawdzenie zapisu "+new Date().toLocaleString("pl-PL");
+  const title="[TEST IL Redaktor Smart 1.18.0] Sprawdzenie zapisu "+new Date().toLocaleString("pl-PL");
   const body={title,content:"<p>Test techniczny zapisu z aplikacji IL Redaktor Smart. Ten szkic nie jest przeznaczony do publikacji.</p>",status:"draft",excerpt:"Test techniczny. Nie publikować."};
   let createdId=null;
   startOperation("Test: zapisuję szkic w WordPressie…");

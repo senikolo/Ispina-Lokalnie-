@@ -79,7 +79,6 @@ public class MainActivity extends Activity {
     private boolean webPageReady = false;
     private final java.util.ArrayList<String> waitingJs = new java.util.ArrayList<>();
     private static final String HAPTICS_KEY = "haptics_intensity";
-    private long lastTapHapticAt = 0;
     private long lastOutcomeHapticAt = 0;
 
     @Override public void onCreate(Bundle state) {
@@ -330,17 +329,14 @@ public class MainActivity extends Activity {
         int mode = hapticMode();
         if (mode == 0) return;
         long now = android.os.SystemClock.elapsedRealtime();
-        if ("tap".equals(kind)) {
-            if (now - lastTapHapticAt < 180L) return;
-            lastTapHapticAt = now;
-        } else {
+        if (!"tap".equals(kind)) {
             if (now - lastOutcomeHapticAt < 600L) return;
             lastOutcomeHapticAt = now;
         }
         Vibrator vibrator = (Vibrator) getSystemService(VIBRATOR_SERVICE);
         if (vibrator == null || !vibrator.hasVibrator()) return;
-        int duration = mode == 1 ? 12 : mode == 2 ? 22 : 36;
-        int amplitude = mode == 1 ? 55 : mode == 2 ? 120 : 200;
+        int duration = mode == 1 ? 22 : mode == 2 ? 32 : 45;
+        int amplitude = mode == 1 ? 100 : mode == 2 ? 180 : 255;
         try {
             if (android.os.Build.VERSION.SDK_INT >= 26) {
                 if ("success".equals(kind)) {

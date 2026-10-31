@@ -15,7 +15,7 @@ function setup(initialStorage=[],nativeData) {
   const html = fs.readFileSync(path.join(__dirname, "../app/src/main/assets/index.html"), "utf8");
   const code = html.match(/<script>([\s\S]*?)<\/script>/)?.[1];
   assert.ok(code, "Missing UI script");
-  const dom = new Map();
+  const dom = new Map(), documentListeners=new Map();
   function node(id) {
     if (!dom.has(id)) {
       const classes = new Set(["hidden"]);
@@ -40,7 +40,7 @@ function setup(initialStorage=[],nativeData) {
   if(nativeData!==undefined){let data=nativeData;IL.readDraftLibrary=()=>JSON.stringify({ok:true,exists:data!==null,data});IL.writeDraftLibrary=p=>{data=p;return JSON.stringify({ok:true})};}
   const c = {
     window:{IL, scrollTo(){}},IL,document:{
-      getElementById:node,querySelectorAll(){return []},documentElement:{setAttribute(){}}
+      getElementById:node,querySelectorAll(){return []},addEventListener(type,listener,capture){documentListeners.set(type,{listener,capture})},documentElement:{setAttribute(){}}
     },setTimeout,clearTimeout,console,Date,TextEncoder,TextDecoder,URL,
     localStorage:{
       getItem(k){return storage.get(k)||null},
@@ -51,7 +51,7 @@ function setup(initialStorage=[],nativeData) {
   vm.createContext(c);
   vm.runInContext(code,c);
   vm.runInContext("connected=true;document.getElementById('post-title').value='Testowy artykuł';document.getElementById('post-body').value='Treść testowa';document.getElementById('post-mode').value='text';document.getElementById('post-category').value='10543';document.getElementById('post-media').value='0';",c);
-  return {c,node,storage,run:(script)=>vm.runInContext(script,c)};
+  return {c,node,storage,documentListeners,run:(script)=>vm.runInContext(script,c)};
 }
 
 test("publishing issues exactly one POST and verifies by GET before SUCCESS",async()=>{
@@ -322,6 +322,15 @@ test("OAuth recovery and adjustable haptics controls are present in editor UI",(
   assert.ok(a.node("facebook-teaser-dialog"));
 });
 
+test("every dashboard, navigation and calendar tile tap requests haptic feedback",()=>{
+ const a=setup(),taps=[];a.c.IL.haptic=kind=>taps.push(kind);
+ const listener=a.documentListeners.get("click");assert.ok(listener);assert.equal(listener.capture,true);
+ const kinds="button.tile, nav button, button.calendar-day";
+ for(let i=0;i<12;i++)listener.listener({target:{closest(selector){assert.equal(selector,kinds);return {disabled:false}}}});
+ listener.listener({target:{closest(){return {disabled:true}}}});
+ assert.equal(taps.length,12);assert.ok(taps.every(kind=>kind==="tap"));
+});
+
 test("OAuth waiting indicator is pending, not a forever-spinning progress state",()=>{
   const a=setup();
   a.run('window.onNativeResult("auth-progress",true,"Krok 3/4: oczekuję na powrót.")');
@@ -577,9 +586,9 @@ test("AI context exposes published posts only for reader recommendations",()=>{
 test("new build metadata and the PR APK workflow agree",()=>{
   const gradle=fs.readFileSync(path.join(__dirname,"../app/build.gradle"),"utf8");
   const workflow=fs.readFileSync(path.join(__dirname,"../../.github/workflows/il-redaktor-apk.yml"),"utf8");
-  assert.match(gradle,/versionCode 23/);assert.match(gradle,/versionName '1\.17\.0'/);
+  assert.match(gradle,/versionCode 24/);assert.match(gradle,/versionName '1\.18\.0'/);
   assert.match(gradle,/applicationId 'com\.ispinalokalnie\.redaktorsmart\.stable'/);
-  assert.match(workflow,/versionCode='23' versionName='1\.17\.0'/);
+  assert.match(workflow,/versionCode='24' versionName='1\.18\.0'/);
 });
 
 test("AI editor shortcut copies current title and text into a reviewable prompt without sending it",()=>{

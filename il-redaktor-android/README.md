@@ -1,6 +1,8 @@
-# IL Redaktor Smart 1.17.0
+# IL Redaktor Smart 1.18.0
 
-Stały applicationId `com.ispinalokalnie.redaktorsmart.stable`, versionCode 23. Podpisuj tym samym kluczem co 1.14/1.15/1.16; nie odinstalowuj przy aktualizacji.
+Stały applicationId `com.ispinalokalnie.redaktorsmart.stable`, versionCode 24. Podpisuj tym samym kluczem co 1.14/1.15/1.16/1.17; nie odinstalowuj przy aktualizacji.
+
+Wersja 1.18 kieruje krótką wibrację do każdego dotkniętego kafelka pulpitu, zakładki dolnej nawigacji i dnia w kalendarzu. Usunięto ograniczenie tłumiące szybkie kolejne tapnięcia, a intensywności mają wyraźniejsze czasy i amplitudy. Wibracje nadal można wyłączyć lub regulować w ustawieniach. Test UI obejmuje wiele kolejnych tapnięć oraz natywny most Androida.
 
 Wersja 1.17 dodaje lokalne generowanie i edycję krótkiej zajawki na Facebooka z tytułu oraz zajawki artykułu. Dla zmian rozkładów aplikacja proponuje CTA „Zobacz, co się zmieni.” Kopiowanie i systemowe Udostępnij wymagają działania użytkownika; aplikacja nie publikuje na Facebooku. Ustawienia wibracji pokazują, czy Android wykrywa silnik, a test podaje czytelny wynik dla trybu wyłączonego, telefonu bez wibracji i wysłanego sygnału.
 
