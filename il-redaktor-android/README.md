@@ -1,10 +1,10 @@
 # IL Redaktor Smart
 
-Niezależna aplikacja Android do redagowania portalu Ispina Lokalnie. Nie zmienia aplikacji dla mieszkańców. Aktualna wersja robocza: **1.4.1-test**, pakiet `com.ispinalokalnie.redaktorsmart.ipv4fix.test`, Android 8 i nowszy.
+Niezależna aplikacja Android do redagowania portalu Ispina Lokalnie. Nie zmienia aplikacji dla mieszkańców. Aktualna wersja robocza: **1.5.0-test**, pakiet `com.ispinalokalnie.redaktorsmart.deeplink.test`, Android 8 i nowszy.
 
 ## Logowanie WordPress.com
 
-Aplikacja używa oficjalnego OAuth 2.1 WordPress.com: dynamicznie rejestruje publicznego klienta, używa Authorization Code + PKCE, otwiera przeglądarkę systemową i odbiera kod przez lokalny adres `http://127.0.0.1:38477/callback`. Nie ma Client Secret ani hasła w APK. Użytkownik loguje się do WordPress.com i może wybrać Google, jeśli ta metoda jest skonfigurowana dla jego konta.
+Aplikacja używa oficjalnego OAuth 2.1 WordPress.com: dynamicznie rejestruje publicznego klienta, używa Authorization Code + PKCE, otwiera przeglądarkę systemową i odbiera kod przez lokalny adres `com.ispinalokalnie.redaktorsmart.oauth:/callback`. Nie ma Client Secret ani hasła w APK. Użytkownik loguje się do WordPress.com i może wybrać Google, jeśli ta metoda jest skonfigurowana dla jego konta.
 
 Po wymianie kodu aplikacja szyfruje token dostępu i token odświeżający kluczem Android Keystore. Zalogowanie jest potwierdzone dopiero, gdy aplikacja odczyta co najmniej jeden istniejący, opublikowany wpis przez WordPress.com MCP. Odmowa lub błąd API jest pokazywany wraz z odpowiedzią serwera. Token odświeżający nie jest gwarantowany przez WordPress.com; przy jego braku aplikacja prosi o ponowne logowanie po wygaśnięciu tokenu.
 
@@ -44,3 +44,8 @@ Cennik Google dla `gemini-3.5-flash-lite` aktualnie podaje bezpłatny limit, a p
 ### Logowanie na Androidzie (1.4.1-test)
 
 Poprzednia wersja uzywala `localhost`, ktory na czesci telefonow jest rozwiazywany do adresu IPv6 `::1`, mimo ze aplikacja nasluchiwala wylacznie na IPv4 `127.0.0.1`. W tej wersji rejestracja OAuth, adres przekierowania i serwer lokalny uzywaja tego samego jawnego adresu IPv4. Zmiana adresu automatycznie wymusza nowa rejestracje klienta OAuth na urzadzeniu, nie trzeba czyscic danych aplikacji. Jesli pojawi sie blad po autoryzacji, prosimy o zrzut z ekranu aplikacji (bez kodow i tokenow). Weryfikacja na fizycznym telefonie nadal jest wymagana.
+
+
+## Diagnostyka logowania 1.5.0-test (31.10.2026)
+
+Po potwierdzeniu logowania przez WordPress na telefonie Oukitel WP15 pojawiał się komunikat Brave `ERR_CONNECTION_REFUSED` pod `127.0.0.1:38477/callback?code=...`. Oznacza to, że lokalny serwer nie nasłuchiwał, gdy przeglądarka wracała z kodem. To możliwe, gdy Android ubije proces w tle. Wersja 1.5 usuwa serwer lokalny i przekierowuje wprost do aplikacji, za pomocą `com.ispinalokalnie.redaktorsmart.oauth:/callback`, który obsługuje AndroidManifest i MainActivity (także po odtworzeniu procesu). Przechowuje stan i weryfikator PKCE na czas autoryzacji, sprawdza state i czas ważności, wymienia code na token poza WebView. Jeśli WordPress.com nie pozwoli zarejestrować niestandardowego schematu, program pokaże błąd rejestracji zamiast udawać udane logowanie. Działanie end-to-end wymaga sprawdzenia na telefonie. Nie udostępniaj pełnego URL callback zawierającego `code`.
