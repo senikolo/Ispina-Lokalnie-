@@ -71,7 +71,7 @@ jobs:
           mcp=pathlib.Path('il-redaktor-android/app/src/main/java/com/ispinalokalnie/redaktor/WpMcp.java').read_text()
           main=pathlib.Path('il-redaktor-android/app/src/main/java/com/ispinalokalnie/redaktor/MainActivity.java').read_text()
           manifest=pathlib.Path('il-redaktor-android/app/src/main/AndroidManifest.xml').read_text()
-          for expected in ['http://localhost:38477/callback','code_challenge_method=S256','Wróć do Redaktora IL','CountDownLatch']:
+          for expected in ['http://127.0.0.1:38477/callback','code_challenge_method=S256','Wróć do Redaktora IL','CountDownLatch']:
               assert expected in oauth, 'OAuth return missing: '+expected
           assert 'response_types' in mcp and 'authorization_code' in mcp
           assert 'refresh_token' in mcp and 'refresh_token' in main, 'Token refresh is not wired end to end'
@@ -106,7 +106,7 @@ jobs:
           test -s "$APK"
           test -s il-redaktor-android/app/src/main/assets/il-monogram.png
           "$SDK_ROOT/build-tools/35.0.0/apksigner" verify --verbose "$APK"
-          "$SDK_ROOT/build-tools/35.0.0/aapt" dump badging "$APK" | grep -F "package: name='com.ispinalokalnie.redaktorsmart.loginfix.test' versionCode='5' versionName='1.4.0-test'"
+          "$SDK_ROOT/build-tools/35.0.0/aapt" dump badging "$APK" | grep -F "package: name='com.ispinalokalnie.redaktorsmart.loginfix.test' versionCode='6' versionName='1.4.1-test'"
           unzip -l "$APK" | grep 'assets/il-monogram.png'
       - name: Upload installable APK
         uses: actions/upload-artifact@v4
