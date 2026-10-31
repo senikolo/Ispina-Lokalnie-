@@ -94,6 +94,7 @@ button{min-height:48px}nav button{min-height:54px}
 #publication-phase.ok{border-color:#198451}
 #publication-phase.error{border-color:#b33835}
 .save-actions>button{flex:1 1 170px}
+.format-toolbar{display:flex;flex-wrap:wrap;gap:7px;margin:8px 0}.format-toolbar button{min-height:40px;padding:8px 11px;font-size:13px}.format-link-row{display:flex;gap:8px;align-items:center}.format-link-row input{flex:1}.format-link-row button{flex:0 0 auto}.editor-rules{font-size:13px}.editor-rules li{margin:5px 0}
 @media(max-width:480px){.actions>button{flex:1 1 auto}.save-actions>button{flex:1 1 100%}.row{flex-wrap:wrap}.row>label{flex:1 1 145px!important}}
 @media(prefers-reduced-motion:reduce){*,*:before,*:after{animation-duration:.001ms!important;transition-duration:.001ms!important}}
 
@@ -235,7 +236,13 @@ header{animation:ilHeader .38s cubic-bezier(.2,.7,.2,1) both}.brand .logo{animat
     <div class="actions"><button class="secondary" onclick="showDraftLibrary()">📂 Moje szkice</button><button class="secondary" onclick="openPromotion()">Promuj opublikowany artykuł</button></div>
     <details class="note"><summary>💬 Pomoc przy tym tekście</summary><p id="editor-help-mode">Lokalne propozycje działają bez AI: korekta nazw, skrócenie pierwszego akapitu i zakończenie. Swobodne polecenia wymagają skonfigurowanego AI. Gdy jest włączone, takie polecenie wyśle do niego bieżący artykuł i Twoje zadanie.</p><div id="editor-chat-log" role="log" aria-live="polite"></div><label for="editor-command">Co mam zaproponować?</label><input id="editor-command" maxlength="1200" placeholder="Np. skróć początek"><div class="actions"><button class="secondary" onclick="editorHelp('Popraw nazwy')">Popraw nazwy</button><button class="secondary" onclick="editorHelp('Skróć początek')">Skróć początek</button><button class="secondary" onclick="editorHelp('Dodaj cieplejsze zakończenie')">Zakończenie</button><button onclick="editorHelp()">Przygotuj propozycję</button></div><p class="small">Po zatwierdzeniu zmian możesz je cofnąć. Pomoc nie publikuje tekstu.</p></details>
     <label for="post-title">Tytuł artykułu</label><input id="post-title" placeholder="Np. 10 ciekawostek o Ispinie">
-    <label for="post-body">Treść artykułu</label><div class="actions"><button class="secondary" onclick="IL.dictate()">🎙 Dyktuj tekst po polsku</button></div><textarea id="post-body" placeholder="Napisz tekst. Pusta linia oddziela akapity. ## oznacza nagłówek."></textarea>
+    <label for="post-body">Treść artykułu</label>
+    <div class="format-toolbar" role="toolbar" aria-label="Formatowanie artykułu">
+      <button type="button" class="secondary" onclick="formatEditor('bold')"><b>B</b> Pogrub</button><button type="button" class="secondary" onclick="formatEditor('italic')"><i>I</i> Kursywa</button><button type="button" class="secondary" onclick="formatEditor('h2')">Śródtytuł</button><button type="button" class="secondary" onclick="formatEditor('bullets')">Lista punktowana</button><button type="button" class="secondary" onclick="formatEditor('numbers')">Lista numerowana</button><button type="button" class="secondary" onclick="formatEditor('quote')">Cytat</button>
+    </div>
+    <div class="format-link-row"><input id="editor-link-url" type="url" inputmode="url" placeholder="https://adres-źródła.pl" aria-label="Adres linku"><button type="button" class="secondary" onclick="formatEditor('link')">Wstaw link</button></div>
+    <details class="note editor-rules"><summary>📐 Zasady profesjonalnego składu</summary><ul><li>Zacznij od krótkiego wprowadzenia: co się wydarzyło, gdzie i kiedy.</li><li>Dziel tekst na czytelne akapity; dłuższe artykuły porządkuj śródtytułami.</li><li>List używaj do konkretnych punktów, terminów i instrukcji.</li><li>Pogrubiaj oszczędnie najważniejsze informacje. Cytaty oznaczaj tylko wtedy, gdy są dosłowne i mają wskazane źródło.</li><li>Linkuj opisowy fragment tekstu i sprawdzaj, czy prowadzi do właściwego źródła.</li><li>Nie zmieniaj faktów dla samego formatowania. Daty, nazwiska i liczby sprawdź przed publikacją.</li></ul></details>
+    <div class="actions"><button class="secondary" onclick="IL.dictate()">🎙 Dyktuj tekst po polsku</button></div><textarea id="post-body" placeholder="Napisz tekst. Zaznacz fragment i użyj przycisków formatowania. Pusta linia oddziela akapity."></textarea>
     <div class="row"><label style="flex:1">Kategoria<select id="post-category"><option value="10543">Aktualności</option><option value="3503">Historia</option><option value="21188">Technologia</option></select></label>
     <label style="flex:1">Format<select id="post-mode"><option value="text">Tekst → HTML</option><option value="html">HTML / bloki WordPress</option></select></label></div>
     <label for="post-excerpt">Krótki opis / zajawka SEO</label><textarea id="post-excerpt" style="min-height:80px" placeholder="Opis wyświetlany na liście wpisów..."></textarea>
@@ -456,7 +463,7 @@ function message(id,msg,kind=""){
 }
 function trim(s){return String(s||"").trim()}
 function showScreen(key){
-  if(key!=="editor"&&typeof draftStore!=="undefined")persistDraft();
+  if(key!=="editor"&&typeof draftStore!=="undefined"&&!flushDraftOnExit())return false;
   document.querySelectorAll(".panel").forEach(n=>n.classList.toggle("active",n.id==="screen-"+key));
   const navKey=({drafts:"editor",calendar:"home",media:"editor"}[key]||key);
   document.querySelectorAll("nav button").forEach(n=>{const active=n.id==="nav-"+navKey;n.classList.toggle("active",active);if(active)n.setAttribute("aria-current","page");else n.removeAttribute("aria-current");});
@@ -867,7 +874,7 @@ async function testDraftWrite(){
   if(!confirm("Utworzyć w WordPressie prywatny szkic diagnostyczny? Nie będzie publiczny i pozostanie na liście szkiców do ręcznego usunięcia."))return;
   const testButton=$("test-draft-write");
   diagnosticWriteBusy=true;testButton.disabled=true;
-  const title="[TEST IL Redaktor Smart 1.19.0] Sprawdzenie zapisu "+new Date().toLocaleString("pl-PL");
+  const title="[TEST IL Redaktor Smart 1.20.0] Sprawdzenie zapisu "+new Date().toLocaleString("pl-PL");
   const body={title,content:"<p>Test techniczny zapisu z aplikacji IL Redaktor Smart. Ten szkic nie jest przeznaczony do publikacji.</p>",status:"draft",excerpt:"Test techniczny. Nie publikować."};
   let createdId=null;
   startOperation("Test: zapisuję szkic w WordPressie…");
@@ -905,14 +912,74 @@ async function loadCategories(){
 function disconnect(){
   if(confirm("Usunąć lokalnie zapisaną sesję WordPress z tego telefonu? Aby cofnąć zgodę aplikacji, zrób to w ustawieniach dostępu MCP na WordPress.com.")){IL.disconnect();connected=false;reflectAuth()}
 }
+function inlineEditorialHtml(input){
+  const source=String(input??""),pattern=/\[([^\]\n]+)\]\((https?:\/\/[^\s)]+)\)|\*\*([^*\n]+)\*\*|\*([^*\n]+)\*|_([^_\n]+)_/g;
+  let html="",last=0,match;
+  while((match=pattern.exec(source))){
+    html+=esc(source.slice(last,match.index));
+    if(match[1]!==undefined){
+      try{const url=new URL(match[2]);html+=(url.protocol==="https:"||url.protocol==="http:")?'<a href="'+esc(url.href)+'" rel="noopener noreferrer">'+esc(match[1])+'</a>':esc(match[0]);}
+      catch(e){html+=esc(match[0])}
+    }else if(match[3]!==undefined)html+="<strong>"+esc(match[3])+"</strong>";
+    else html+="<em>"+esc(match[4]??match[5])+'</em>';
+    last=pattern.lastIndex;
+  }
+  return html+esc(source.slice(last));
+}
 function asHtml(input){
-  return input.split(/\n\s*\n/g).map(chunk=>{
-    const lines=chunk.trim().split("\n");
-    if(!lines[0])return "";
-    if(lines[0].startsWith("### "))return "<h3>"+esc(lines[0].slice(4))+"</h3>"+(lines.length>1?"<p>"+lines.slice(1).map(esc).join("<br>")+"</p>":"");
-    if(lines[0].startsWith("## "))return "<h2>"+esc(lines[0].slice(3))+"</h2>"+(lines.length>1?"<p>"+lines.slice(1).map(esc).join("<br>")+"</p>":"");
-    return "<p>"+lines.map(esc).join("<br>")+"</p>";
-  }).join("\n");
+  const lines=String(input??"").replace(/\r/g,"").split("\n"),blocks=[];
+  let paragraph=[],listType="",listItems=[],quoteLines=[];
+  const flushParagraph=()=>{if(paragraph.length){blocks.push("<p>"+paragraph.map(inlineEditorialHtml).join("<br>")+"</p>");paragraph=[]}};
+  const flushList=()=>{if(listItems.length){blocks.push("<"+listType+">"+listItems.map(x=>"<li>"+inlineEditorialHtml(x)+"</li>").join("")+"</"+listType+">");listItems=[];listType=""}};
+  const flushQuote=()=>{if(quoteLines.length){blocks.push("<blockquote><p>"+quoteLines.map(inlineEditorialHtml).join("<br>")+"</p></blockquote>");quoteLines=[]}};
+  const flushAll=()=>{flushParagraph();flushList();flushQuote()};
+  for(const raw of lines){
+    const line=raw.trim();
+    if(!line){flushAll();continue}
+    const heading=line.match(/^(#{2,3})\s+(.+)$/);
+    if(heading){flushAll();const level=heading[1].length;blocks.push("<h"+level+">"+inlineEditorialHtml(heading[2])+"</h"+level+">");continue}
+    const bullet=line.match(/^[-*]\s+(.+)$/),numbered=line.match(/^\d+[.)]\s+(.+)$/),quote=line.match(/^>\s?(.*)$/);
+    if(bullet||numbered){flushParagraph();flushQuote();const type=bullet?"ul":"ol";if(listType&&listType!==type)flushList();listType=type;listItems.push((bullet||numbered)[1]);continue}
+    if(quote){flushParagraph();flushList();quoteLines.push(quote[1]);continue}
+    flushList();flushQuote();paragraph.push(line);
+  }
+  flushAll();return blocks.join("\n");
+}
+function formatEditor(action){
+  const field=$("post-body"),value=String(field.value||""),start=Math.max(0,Math.min(value.length,Number(field.selectionStart)||0)),end=Math.max(start,Math.min(value.length,Number(field.selectionEnd)||start)),htmlMode=$("post-mode").value==="html";
+  const selected=value.slice(start,end),wrap=(before,after,placeholder="zaznaczony tekst")=>{
+    const content=selected||placeholder;field.value=value.slice(0,start)+before+content+after+value.slice(end);const a=start+before.length,b=a+content.length;try{field.focus();field.setSelectionRange(a,b)}catch(e){};
+  };
+  const safeLink=()=>{const entered=trim($("editor-link-url").value);try{const url=new URL(entered);return (url.protocol==="https:"||url.protocol==="http:")?url.href:""}catch(e){return ""}};
+  if(["bold","italic","link"].includes(action)){
+    if(action==="bold")wrap(htmlMode?"<strong>":"**",htmlMode?"</strong>":"**");
+    if(action==="italic")wrap(htmlMode?"<em>":"_",htmlMode?"</em>":"_");
+    if(action==="link"){
+      const url=safeLink();if(!url){$("local-save-status").textContent="Wpisz bezpieczny adres linku zaczynający się od http:// lub https://.";return false}
+      const text=selected||"opis linku",replacement=htmlMode?'<a href="'+esc(url)+'" rel="noopener noreferrer">'+text+'</a>':'['+text+"]("+url+")";
+      field.value=value.slice(0,start)+replacement+value.slice(end);const a=start+(htmlMode?'<a href="'+esc(url)+'" rel="noopener noreferrer">'.length:1),b=a+text.length;try{field.focus();field.setSelectionRange(a,b)}catch(e){}
+    }
+  }else{
+    const lineStart=value.lastIndexOf("\n",Math.max(0,start-1))+1;let lineEnd=value.indexOf("\n",end);if(lineEnd<0)lineEnd=value.length;
+    const segment=value.slice(lineStart,lineEnd),lines=segment.split("\n");let replacement="";
+    if(htmlMode){
+      const content=selected||segment||"Tekst";
+      if(action==="h2")replacement="<h2>"+content.replace(/^#{2,3}\s+/,"")+"</h2>";
+      else if(action==="bullets"||action==="numbers")replacement="<"+(action==="bullets"?"ul":"ol")+">"+content.split(/\n+/).filter(Boolean).map(x=>"<li>"+x.replace(/^\s*(?:[-*]|\d+[.)])\s+/,"")+"</li>").join("")+"</"+(action==="bullets"?"ul":"ol")+">";
+      else replacement="<blockquote><p>"+content.replace(/\n/g,"<br>").replace(/^>\s?/gm,"")+"</p></blockquote>";
+      const replaceStart=selected?start:lineStart,replaceEnd=selected?end:lineEnd;
+      field.value=value.slice(0,replaceStart)+replacement+value.slice(replaceEnd);try{field.focus();field.setSelectionRange(replaceStart,replaceStart+replacement.length)}catch(e){}
+    }else{
+      replacement=lines.map(line=>{
+        if(!line)return line;
+        if(action==="h2")return "## "+line.replace(/^#{2,3}\s+/,"");
+        const prefix=action==="bullets"?"- ":action==="numbers"?"1. ":"> ";
+        return line.startsWith(prefix)?line.slice(prefix.length):prefix+line.replace(/^\s*(?:[-*]|\d+[.)]|>)\s+/,"");
+      }).join("\n");
+    }
+    if(!htmlMode){field.value=value.slice(0,lineStart)+replacement+value.slice(lineEnd);try{field.focus();field.setSelectionRange(lineStart,lineStart+replacement.length)}catch(e){}}
+  }
+  updateMetrics();scheduleLocalSave();$("local-save-status").textContent="Formatowanie dodano. Treść pozostaje szkicem — sprawdź podgląd.";return true;
 }
 function editorHtml(){return $("post-mode").value==="html"?$("post-body").value:asHtml($("post-body").value)}
 function preview(){
@@ -1413,7 +1480,8 @@ function persistDraft(checkpoint=false,synced=false){
   try{commitDraftStore(next);draftStore=next;activeDraftId=d.id;$("local-save-status").textContent=(synced?"Kopia na telefonie i zapis w WordPressie potwierdzone. ":"Zapisano na telefonie. ")+new Date(d.updated).toLocaleTimeString("pl-PL");return true}
   catch(e){$("local-save-status").textContent="Nie udało się zapisać na telefonie — możliwy brak miejsca. Skopiuj tekst. Bieżący tekst pozostaje w edytorze.";return false}
 }
-function scheduleLocalSave(){if(restoring)return;clearTimeout(saveTimer);$("local-save-status").textContent="Zapisuję na telefonie…";saveTimer=setTimeout(()=>persistDraft(),450)}
+function scheduleLocalSave(){if(restoring)return;clearTimeout(saveTimer);$("local-save-status").textContent="Zapisuję na telefonie…";saveTimer=setTimeout(()=>persistDraft(),250)}
+function flushDraftOnExit(){clearTimeout(saveTimer);if(restoring)return true;return persistDraft(true)}
 function applyDraft(s){clearEditorialContext();restoring=true;try{if(s.mediaUrl&&safeMediaUrl(s.mediaUrl))mediaById.set(Number(s.media),{id:Number(s.media),url:safeMediaUrl(s.mediaUrl),name:"Zdjęcie wyróżniające"});for(const [k,id] of Object.entries(draftFields))$(id).value=s[k]??({category:"10543",mode:"text",media:"0",sources:"[]"}[k]||"");postId=s.postId||null;postStatus=s.postStatus||"";remoteBaseline=validBaseline(s.remoteBaseline,postId);setPublishedUrl(postStatus==="publish"&&postId?"https://ispinalokalnie.wordpress.com/?p="+Number(postId):"");$("editor-heading").textContent=postId?"Edycja wpisu #"+postId:"Lokalny szkic";$("edit-status").textContent="Kopia na telefonie";$("post-output").innerHTML="";$("preview-box").classList.add("hidden");updateMetrics();}finally{restoring=false}}
 function openLocalDraft(id){if(publicationBusy||!persistDraft(true))return;const d=readDraftStore()?.drafts.find(x=>x.id===id);if(!d)return;activeDraftId=d.id;applyDraft(d);persistDraft();showScreen("editor")}
 function restoreLocal(silent=false){if(trim($("post-title").value)||trim($("post-body").value)){if(!silent)showDraftLibrary();return}const store=readDraftStore();if(!store)return;const d=store.drafts.find(x=>x.id===store.activeId)||store.drafts[store.drafts.length-1];if(d){activeDraftId=d.id;applyDraft(d)}}
@@ -1706,6 +1774,8 @@ function chooseMedia(id){
   $(id).addEventListener("input",()=>{updateMetrics();scheduleLocalSave()});
   $(id).addEventListener("change",()=>{updateMetrics();scheduleLocalSave()});
 });
+document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="hidden")flushDraftOnExit()});
+window.addEventListener("pagehide",flushDraftOnExit);
 updateMetrics();
 if(actionHistory.length){
   $("activity-feed").innerHTML=actionHistory.map(a=>'<div class="activity-entry '+esc(a.kind)+'"><strong>'+esc(a.at+" · "+a.title)+'</strong><small>'+esc(a.detail)+'</small></div>').join("");

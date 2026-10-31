@@ -1,6 +1,6 @@
 # IL Redaktor Smart 1.19.0
 
-Stały applicationId `com.ispinalokalnie.redaktorsmart.stable`, versionCode 25. Podpisuj tym samym kluczem co 1.14/1.15/1.16/1.17/1.18; nie odinstalowuj przy aktualizacji.
+Stały applicationId `com.ispinalokalnie.redaktorsmart.stable`, versionCode 26 (1.20.0). Podpisuj tym samym kluczem co poprzednie wydania; nie odinstalowuj przy aktualizacji.
 
 Wersja 1.19 domyślnie korzysta z lokalnych podpowiedzi i nie wywołuje skonfigurowanego modelu ani API. Polecenie można bez klucza API przekazać do aplikacji ChatGPT, a gdy Android nie znajdzie odbiorcy — spróbować Gemini. Wysłanie wymaga dotknięcia przycisku. Po powrocie odpowiedź można wkleić ze schowka i porównać z treścią, tytułem, zajawką lub tekstem na Facebooka. Zmiana artykułu wymaga zatwierdzenia w porównaniu. Skonfigurowane AI online jest opcjonalne, ma osobny przycisk oraz ostrzeżenie o możliwych opłatach. Przy braku aplikacji przyjmującej tekst pozostaje kopiowanie polecenia i ręczne wklejenie.
 

@@ -21,6 +21,7 @@ function setup(initialStorage=[],nativeData) {
       const classes = new Set(["hidden"]);
       dom.set(id, {
         id, value:"", textContent:"", innerHTML:"", className:"",
+        selectionStart:0,selectionEnd:0,selectionDirection:"none",
         style:{}, srcdoc:"",
         classList: {
           add(...xs){xs.forEach(x=>classes.add(x))},
@@ -29,7 +30,7 @@ function setup(initialStorage=[],nativeData) {
           toggle(x,force){if(force===undefined? !classes.has(x):force)classes.add(x);else classes.delete(x)}
         },
         checked:false,disabled:false,
-        addEventListener(){},
+        addEventListener(){},focus(){},setSelectionRange(a,b){this.selectionStart=a;this.selectionEnd=b},
         setAttribute(){},removeAttribute(){},
       });
     }
@@ -39,8 +40,8 @@ function setup(initialStorage=[],nativeData) {
   const IL = {status(){},assistantStatus(){},openSite(){},showPublishedPage(){}};
   if(nativeData!==undefined){let data=nativeData;IL.readDraftLibrary=()=>JSON.stringify({ok:true,exists:data!==null,data});IL.writeDraftLibrary=p=>{data=p;return JSON.stringify({ok:true})};}
   const c = {
-    window:{IL, scrollTo(){}},IL,document:{
-      getElementById:node,querySelectorAll(){return []},addEventListener(type,listener,capture){documentListeners.set(type,{listener,capture})},documentElement:{setAttribute(){}}
+    window:{IL, scrollTo(){},addEventListener(type,listener){documentListeners.set('window:'+type,{listener})}},IL,document:{
+      visibilityState:'visible',getElementById:node,querySelectorAll(){return []},addEventListener(type,listener,capture){documentListeners.set(type,{listener,capture})},documentElement:{setAttribute(){}}
     },setTimeout,clearTimeout,console,Date,TextEncoder,TextDecoder,URL,
     localStorage:{
       getItem(k){return storage.get(k)||null},
@@ -451,6 +452,30 @@ test("HTML mode preserves editor markup for WordPress",async()=>{
   await a.run("savePost('draft')");assert.equal(calls[0].body.content,"<h2>W Ispinie</h2><p>Tekst</p>");
 });
 
+test("professional article formatting converts headings, lists, quotes, emphasis and safe links",()=>{
+ const a=setup();
+ const html=a.run("asHtml('Wprowadzenie z **ważną informacją** i _szczegółem_.\\n\\n## Co się zmienia?\\n\\n- Pierwszy punkt\\n- Drugi punkt\\n\\n> Cytat ze wskazanym źródłem\\n\\n[Oficjalny komunikat](https://example.org/info)\\n\\n[Niebezpieczny](javascript:alert(1))')");
+ assert.ok(html.includes("<strong>ważną informacją</strong>"));assert.ok(html.includes("<em>szczegółem</em>"));
+ assert.ok(html.includes("<h2>Co się zmienia?</h2>"));assert.ok(html.includes("<ul><li>Pierwszy punkt</li><li>Drugi punkt</li></ul>"));
+ assert.ok(html.includes("<blockquote><p>Cytat ze wskazanym źródłem</p></blockquote>"));assert.match(html,/<a href="https:\/\/example\.org\/info"/);
+ assert.doesNotMatch(html,/<a href="javascript:/);
+});
+
+test("format toolbar preserves selected words and validates link destinations",()=>{
+ const a=setup();a.node("post-body").value="Ważny komunikat";a.node("post-body").selectionStart=0;a.node("post-body").selectionEnd=5;
+ assert.equal(a.run("formatEditor('bold')"),true);assert.equal(a.node("post-body").value,"**Ważny** komunikat");assert.ok(a.run("editorHtml()").includes("<strong>Ważny</strong>"));
+ a.node("post-body").value="Przeczytaj komunikat";a.node("post-body").selectionStart=11;a.node("post-body").selectionEnd=20;a.node("editor-link-url").value="https://example.org/komunikat";
+ assert.equal(a.run("formatEditor('link')"),true);assert.equal(a.node("post-body").value,"Przeczytaj [komunikat](https://example.org/komunikat)");
+ a.node("post-body").value="Zwykły tekst";a.node("post-body").selectionStart=0;a.node("post-body").selectionEnd=5;a.node("editor-link-url").value="javascript:alert(1)";
+ assert.equal(a.run("formatEditor('link')"),false);assert.equal(a.node("post-body").value,"Zwykły tekst");
+});
+
+test("headings and list toolbar actions keep article wording unchanged",()=>{
+ const a=setup();a.node("post-body").value="Co się zmienia?";a.node("post-body").selectionStart=0;a.node("post-body").selectionEnd=16;a.run("formatEditor('h2')");assert.equal(a.node("post-body").value,"## Co się zmienia?");
+ a.node("post-body").value="Pierwszy punkt\nDrugi punkt";a.node("post-body").selectionStart=0;a.node("post-body").selectionEnd=a.node("post-body").value.length;a.run("formatEditor('bullets')");
+ assert.equal(a.node("post-body").value,"- Pierwszy punkt\n- Drugi punkt");assert.ok(a.run("editorHtml()").includes("<ul><li>Pierwszy punkt</li><li>Drugi punkt</li></ul>"));
+});
+
 test("successful tag creation and lookup are attached to post",async()=>{
   const a=setup(),calls=[];a.node("post-tags").value="Historia Ispiny";
   a.c.rpc=async(method,path,body)=>{calls.push({method,path,body});if(path.startsWith("tags?"))return [];
@@ -586,9 +611,9 @@ test("AI context exposes published posts only for reader recommendations",()=>{
 test("new build metadata and the PR APK workflow agree",()=>{
   const gradle=fs.readFileSync(path.join(__dirname,"../app/build.gradle"),"utf8");
   const workflow=fs.readFileSync(path.join(__dirname,"../../.github/workflows/il-redaktor-apk.yml"),"utf8");
-  assert.match(gradle,/versionCode 25/);assert.match(gradle,/versionName '1\.19\.0'/);
+  assert.match(gradle,/versionCode 26/);assert.match(gradle,/versionName '1\.20\.0'/);
   assert.match(gradle,/applicationId 'com\.ispinalokalnie\.redaktorsmart\.stable'/);
-  assert.match(workflow,/versionCode='25' versionName='1\.19\.0'/);
+  assert.match(workflow,/versionCode='26' versionName='1\.20\.0'/);
 });
 
 test("AI editor shortcut copies current title and text into a reviewable prompt without sending it",()=>{
@@ -883,6 +908,15 @@ test('AI SEO correction also opens comparison without silently changing the arti
 
 test('native durable draft write succeeds even when the WebView cache has no space',()=>{
  const a=setup([],null);a.c.localStorage.setItem=()=>{throw Error('WebView quota')};assert.equal(a.run('persistDraft()'),true);const data=JSON.parse(JSON.parse(a.c.IL.readDraftLibrary()).data);assert.equal(data.drafts[0].title,'Testowy artykuł');
+});
+test('leaving the editor synchronously flushes the latest draft to native storage',()=>{
+ const a=setup([],null);a.node('post-title').value='Artykuł przed wyjściem';a.node('post-body').value='Ostatnie zdanie zapisane chwilę przed zmianą ekranu.';a.run('scheduleLocalSave();showScreen("home")');
+ const result=JSON.parse(a.c.IL.readDraftLibrary()),saved=JSON.parse(result.data).drafts[0];assert.equal(saved.title,'Artykuł przed wyjściem');assert.equal(saved.body,'Ostatnie zdanie zapisane chwilę przed zmianą ekranu.');assert.match(a.node('local-save-status').textContent,/Zapisano na telefonie/);
+});
+test('app background lifecycle flushes a pending draft and Android onPause calls the flush hook',()=>{
+ const a=setup([],null);a.node('post-body').value='Zapis przed przejściem do innej aplikacji.';a.run('scheduleLocalSave()');a.c.document.visibilityState='hidden';a.documentListeners.get('visibilitychange').listener();
+ const saved=JSON.parse(JSON.parse(a.c.IL.readDraftLibrary()).data).drafts[0];assert.equal(saved.body,'Zapis przed przejściem do innej aplikacji.');assert.ok(a.documentListeners.has('window:pagehide'));
+ const java=fs.readFileSync(path.join(__dirname,'../app/src/main/java/com/ispinalokalnie/redaktor/MainActivity.java'),'utf8');assert.match(java,/onPause\(\)[\s\S]{0,200}flushDraftOnExit/);
 });
 test('native storage failure blocks editor reset and preserves current text',()=>{
  const a=setup([],null);a.run('persistDraft()');a.c.IL.writeDraftLibrary=()=>JSON.stringify({ok:false,message:'Disk full'});a.node('post-body').value='Zachowaj ten tekst';assert.equal(a.run('resetEditor()'),false);assert.equal(a.node('post-body').value,'Zachowaj ten tekst');

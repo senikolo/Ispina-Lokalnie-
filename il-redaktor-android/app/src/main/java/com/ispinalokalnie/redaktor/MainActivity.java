@@ -941,7 +941,7 @@ public class MainActivity extends Activity {
     }
 
     @Override protected void onPause() {
-        if (editor != null && webPageReady) editor.evaluateJavascript("if(typeof persistDraft==='function')persistDraft()", null);
+        if (editor != null && webPageReady) editor.evaluateJavascript("if(typeof flushDraftOnExit==='function')flushDraftOnExit()", null);
         super.onPause();
     }
 
