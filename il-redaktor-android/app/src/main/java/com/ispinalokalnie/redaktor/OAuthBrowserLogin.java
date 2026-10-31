@@ -139,8 +139,11 @@ public final class OAuthBrowserLogin {
             String message=ex.getMessage()==null?"Nieznany błąd połączenia.":ex.getMessage();
             if(message.contains("SocketTimeoutException")||message.contains("timed out"))
                 message="Przeglądarka nie wróciła do aplikacji. Spróbuj ponownie i dokończ zatwierdzanie w WordPress.com.";
-            if(message.contains("invalid_client"))
-                message="WordPress nie uznaje zapisanej rejestracji klienta. Zamknij okno i spróbuj ponownie.";
+            if(message.contains("invalid_client") || message.contains("invalid_redirect_uri")) {
+                activity.getSharedPreferences("il_redaktor_settings", Activity.MODE_PRIVATE)
+                    .edit().remove("oauth21_client_id").remove("oauth21_redirect").apply();
+                message="WordPress odrzucił poprzednie połączenie. Zapisana konfiguracja została odświeżona. Spróbuj zalogować się ponownie.";
+            }
             fail("Nie udało się zalogować przez WordPress.com: "+message);
         }
     }
