@@ -64,7 +64,7 @@ nav button.active{color:#174875;background:#edf5fb}
 #editor-metrics{font-size:12px}
 .wide{width:100%}
 @media(max-width:370px){.actions button{flex:1}header h1{font-size:22px}nav button{font-size:10px}}
-.finish-dialog{position:fixed;inset:0;background:#112e4db5;z-index:20;display:flex;align-items:center;justify-content:center;padding:20px}
+.finish-dialog{position:fixed;top:0;right:0;bottom:0;left:0;inset:0;background:#112e4db5;z-index:20;display:flex;align-items:center;justify-content:center;padding:20px}
 .finish-panel{width:100%;max-width:470px;background:#fff;border-radius:22px;padding:24px;box-shadow:0 20px 60px #001b3650}
 .finish-symbol{font-size:35px;line-height:1;color:#148450}.finish-panel.error .finish-symbol{color:#b03f3a}
 .finish-title{font-size:26px;font-weight:800;color:#174875;margin:10px 0;font-family:Cardo,Georgia,serif}
@@ -170,6 +170,8 @@ a{color:#1767a8}:root[data-theme="dark"] a{color:#9ecfff}
 
 .correction-columns{display:grid;grid-template-columns:1fr 1fr;gap:12px}.correction-columns pre{white-space:pre-wrap;overflow-wrap:anywhere;font:inherit;margin:8px 0;max-height:280px;overflow:auto}.diff-added{background:#d9f1df;color:#153c25;text-decoration:underline}.diff-removed{background:#ffe0df;color:#7d2524;text-decoration:line-through}.correction-field{border-top:1px solid var(--ui-line,#dbe7ef);padding:14px 0}.chat-line{padding:8px 0;overflow-wrap:anywhere}.chat-line strong{display:block}#correction-fields label{display:flex;gap:10px;align-items:center}#correction-fields input[type=checkbox]{width:auto;min-height:24px}.finish-panel{max-height:90vh;overflow:auto}@media(max-width:500px){.correction-columns{grid-template-columns:1fr}}
 
+/* Explicit edges and button spacing also support older Android WebViews. */
+.actions{gap:0}.actions>button{margin-right:6px;margin-bottom:6px}.hero-card{padding:16px}.hero-card>.row{flex-wrap:nowrap;align-items:flex-start}.hero-card>.row>.home-mark{width:50px;height:50px;flex:0 0 50px}.hero-card>.row>div{flex:1 1 0;min-width:0}.hero-card h2{font-size:22px;margin-bottom:4px}.hero-card .eyebrow{font-size:9px}.hero-card .muted{font-size:12px}.hero-card .actions{margin-top:10px}#home-connection{padding:0;margin:9px 0;border:0;background:transparent}#home-connection>.note{margin:0;padding:9px 11px;font-size:12px}
 /* 1.16: one-shot opening motion, editorial tiles and accessible calendar */
 @keyframes ilOpen{from{opacity:0;transform:translateY(12px) scale(.99)}to{opacity:1;transform:none}}
 @keyframes ilHeader{from{opacity:0;transform:translateY(-10px)}to{opacity:1;transform:none}}
@@ -179,7 +181,7 @@ header{animation:ilHeader .38s cubic-bezier(.2,.7,.2,1) both}.brand .logo{animat
 .quick-grid .tile:nth-child(2n){background:linear-gradient(145deg,var(--ui-surface),#277a8620)}.quick-grid .tile:nth-child(3n){background:linear-gradient(145deg,var(--ui-surface),#8269a318)}
 .quick-grid .tile:nth-child(2){animation-delay:.04s}.quick-grid .tile:nth-child(3){animation-delay:.08s}.quick-grid .tile:nth-child(4){animation-delay:.12s}.quick-grid .tile:nth-child(n+5){animation-delay:.16s}
 .tile-icon{width:42px;height:42px;display:grid;place-items:center;background:var(--ui-note);border:1px solid var(--ui-line);border-radius:14px;color:var(--ui-heading);font-size:25px}.tile b{font-size:16px;margin-top:7px}.tile small{font-size:12px;line-height:1.4;color:var(--ui-muted)}.tile:active{transform:scale(.975)}
-.hero-card{border-radius:24px;background:linear-gradient(135deg,var(--ui-surface),var(--ui-note));padding:21px}.card{border-radius:21px}.finish-panel{animation:ilOpen .24s ease-out both}.preview-stage{overflow:auto;max-width:100%;border:1px solid var(--ui-line);border-radius:16px;background:var(--ui-note);padding:10px}#post-preview{max-width:none;display:block;background:white;border:0;min-height:420px}
+.hero-card{border-radius:24px;background:linear-gradient(135deg,var(--ui-surface),var(--ui-note));padding:16px}.card{border-radius:21px}.finish-panel{animation:ilOpen .24s ease-out both}.preview-stage{overflow:auto;max-width:100%;border:1px solid var(--ui-line);border-radius:16px;background:var(--ui-note);padding:10px}#post-preview{max-width:none;display:block;background:white;border:0;min-height:420px}
 .calendar-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:5px;margin-top:15px}.calendar-day{padding:6px 0;min-width:0;min-height:54px;font-size:13px;background:var(--ui-note);color:var(--ui-heading);border:1px solid var(--ui-line);box-shadow:none}.calendar-day small{display:block;font-size:10px}.calendar-day.selected{outline:3px solid #318ab6;outline-offset:0}.calendar-weekday{text-align:center;font-size:11px;color:var(--ui-muted);padding:6px 0}.calendar-item{border:1px solid var(--ui-line);border-radius:16px;padding:13px;margin-top:10px;background:var(--ui-surface)}.calendar-item h3{margin-top:0}.source-item{border:1px solid var(--ui-line);border-radius:15px;padding:12px;margin:10px 0}.source-item p{white-space:pre-wrap;overflow-wrap:anywhere}.source-item a{overflow-wrap:anywhere}
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
 </style>
@@ -190,7 +192,7 @@ header{animation:ilHeader .38s cubic-bezier(.2,.7,.2,1) both}.brand .logo{animat
 <main>
 <section id="screen-home" class="panel active">
   <div class="card hero-card">
-    <div class="row" style="align-items:flex-start"><img class="home-mark" src="il-monogram.png" alt="Monogram Ispina Lokalnie"><div><div class="eyebrow">TWOJA REDAKCJA</div><h2>Witaj w Ispina Lokalnie!</h2><p class="muted" style="margin:2px 0">Wszystko, czego potrzebujesz do prowadzenia portalu, w jednym miejscu.</p></div></div>
+    <div class="row" style="align-items:flex-start"><img class="home-mark" src="il-monogram.png" alt="Monogram Ispina Lokalnie"><div><div class="eyebrow">TWOJA REDAKCJA</div><h2>Witaj w redakcji IL!</h2><p class="muted" style="margin:2px 0">Co dziś przygotujemy?</p></div></div>
     <div id="home-connection" class="note">Sprawdzam połączenie z WordPressem...</div>
     <div class="actions"><button onclick="resetEditor();showScreen('editor')">+ Nowy artykuł</button><button class="secondary" onclick="showScreen('posts');loadPosts()">Moje artykuły</button></div>
   </div>
@@ -199,7 +201,7 @@ header{animation:ilHeader .38s cubic-bezier(.2,.7,.2,1) both}.brand .logo{animat
     <button class="tile" onclick="showScreen('posts');loadPosts()"><span class="tile-icon">▤</span><b>Artykuły</b><small>Wpisy i szkice</small></button>
     <button class="tile" onclick="showScreen('services');loadServices()"><span class="tile-icon">▦</span><b>Usługi</b><small>Katalog firm</small></button>
     <button class="tile" onclick="showScreen('media');loadMedia()"><span class="tile-icon">▣</span><b>Galeria</b><small>Zdjęcia wpisów</small></button>
-    <button class="tile" onclick="showScreen('editor');showTemplates()"><span class="tile-icon">✦</span><b>Szablony</b><small>Szybki start</small></button>
+    <button class="tile" onclick="showScreen('editor');openSources()"><span class="tile-icon">▧</span><b>Źródła</b><small>Materiały do artykułu</small></button><button class="tile" onclick="showScreen('editor');showTemplates()"><span class="tile-icon">✦</span><b>Szablony</b><small>Szybki start</small></button>
   </div>
   <div class="card"><h2>Ostatnie działania</h2><p class="muted">Tutaj sprawdzisz, czy Redaktor pracuje, zakończył zadanie, czy zgłosił błąd. Wynik publikowania wymaga potwierdzenia z WordPressa.</p><div id="activity-feed" role="log" aria-live="polite"><p class="muted">Nie wykonano jeszcze operacji.</p></div></div>
   <div class="card"><h2>Wskazówki redakcyjne</h2><p class="muted">Przygotowuj szkice, poprawiaj teksty i publikuj dopiero po sprawdzeniu podglądu. Redaktor zachowa wersję lokalną w tym telefonie, nawet jeśli chwilowo zabraknie Internetu.</p>

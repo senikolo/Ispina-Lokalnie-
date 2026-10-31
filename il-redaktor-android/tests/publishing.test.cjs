@@ -901,3 +901,7 @@ test('orphan research photos are removed only when no current or historical sour
 test('new portable backups use format version 2 to prevent old apps silently dropping research files',()=>{
  const a=setup();assert.equal(JSON.parse(a.run('makeDraftBackup()')).version,2);a.c.legacy=JSON.stringify({format:'IL_REDAKTOR_BACKUP',version:1,site:'ispinalokalnie.wordpress.com',drafts:[]});assert.equal(a.run('parseDraftBackup(legacy).length'),0);
 });
+
+test('dialogs have explicit viewport edges for Android WebViews without CSS inset support',()=>{
+ const html=fs.readFileSync(path.join(__dirname,'../app/src/main/assets/index.html'),'utf8');assert.match(html,/\.finish-dialog\{position:fixed;top:0;right:0;bottom:0;left:0;/);assert.match(html,/Witaj w redakcji IL!/);
+});
