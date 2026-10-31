@@ -127,7 +127,9 @@ nav button.active{color:#174875;background:#edf5fb}
     <h2>Katalog „Usługi”</h2>
     <p class="muted">Dodatkowe oferty będą zapisywane na istniejącej stronie „Usługi w okolicy” (ID 818). Pozostała treść strony zostanie zachowana.</p>
     <div class="actions"><button class="secondary" onclick="loadServices()">Odczytaj usługi z WordPressa</button><button class="secondary" onclick="IL.openSite('https://ispinalokalnie.wordpress.com/uslugi-w-okolicy/')">Pokaż katalog</button></div>
-    <div id="services-list"></div><hr>
+    <div class="note"><b>Istniejące firmy na stronie</b><div id="legacy-services-list" class="muted" style="padding-top:6px">Odczytaj katalog, aby zobaczyć aktualne oferty.</div></div>
+    <div class="actions"><button class="secondary" onclick="IL.openSite('https://wordpress.com/page/ispinalokalnie.wordpress.com/818')">Edytuj istniejące oferty w WordPressie</button></div>
+    <h3>Oferty dodane przez Redaktora</h3><div id="services-list"></div><hr>
     <h3 id="service-heading">Dodaj usługodawcę</h3>
     <input type="hidden" id="service-id">
     <label>Nazwa firmy</label><input id="service-name" placeholder="Np. Usługi budowlane...">
@@ -353,7 +355,11 @@ async function loadPosts(){
   if(!connected){message("posts-output","Połącz konto w ustawieniach.","error");return}
   message("posts-output","Pobieram listę wpisów z WordPressa...");
   try{
-    const data=await rpc("GET","posts?context=edit&per_page=60&orderby=modified&order=desc");
+    const published=await rpc("GET","posts?context=edit&status=publish&per_page=60&orderby=modified&order=desc");
+    let drafts=[];
+    try{drafts=await rpc("GET","posts?context=edit&status=draft&per_page=60&orderby=modified&order=desc");}
+    catch(err){message("posts-output","Lista szkiców jest chwilowo niedostępna: "+err.message,"error");}
+    const data=[...published,...drafts].sort((a,b)=>String(b.modified||"").localeCompare(String(a.modified||"")));
     if(!Array.isArray(data))throw Error("Nie rozpoznano listy artykułów.");
     if(!data.length){message("posts-output","WordPress potwierdził pustą listę.");return}
     allPosts=data;
@@ -390,11 +396,25 @@ async function loadServices(){
     const page=await rpc("GET","pages/"+PAGE+"?context=edit");
     if(!page.id||typeof page.content?.raw!=="string")throw Error("API nie udostępnia edytowalnej zawartości strony. Nie nadpisuję jej.");
     servicesRaw=page.content.raw;services=[];servicesLoaded=true;
+    renderLegacyServices(servicesRaw);
     const match=servicesRaw.match(/<!-- ILRS_JSON:([A-Za-z0-9+/=]+) -->/);
     if(match){const parsed=JSON.parse(base64Utf8(match[1]));if(!Array.isArray(parsed))throw Error("Nieprawidłowy format danych usług.");services=parsed;}
     drawServices();
     message("services-output","Wczytano stronę WordPress. Liczba ofert zarządzanych przez Redaktora: "+services.length,"ok");
   }catch(e){servicesLoaded=false;message("services-output","Nie odczytano katalogu: "+e.message,"error")}
+}
+function renderLegacyServices(raw){
+  const re=/"metadata":\{"name":"Usługodawca[^"]*"\}/g;
+  let m, names=[];
+  while((m=re.exec(raw))!==null){
+    const fragment=raw.slice(m.index,m.index+1400);
+    const h=fragment.match(/<h3[^>]*>([^<]+)<\/h3>/);
+    if(h)names.push(h[1]);
+    if(names.length>=40)break;
+  }
+  $("legacy-services-list").innerHTML=names.length?
+    names.map(n=>'<div style="padding:6px 0">✓ '+esc(n)+'</div>').join(""):
+    '<div>Nie znaleziono oznaczonych ofert historycznych.</div>';
 }
 function drawServices(){
   $("services-list").innerHTML=services.map((s,i)=>'<div class="post"><b>'+esc(s.name)+'</b><span>'+esc(s.phone||"Bez numeru telefonu")+'</span><button class="secondary" onclick="editService('+i+')">Edytuj ofertę</button></div>').join("")||'<p class="muted">Brak ofert zapisanych przez tę aplikację. Istniejące ręczne wpisy na stronie pozostaną nienaruszone.</p>';
