@@ -22,16 +22,16 @@ W ustawieniach konta WordPress.com trzeba włączyć dostęp MCP i zatwierdzić 
 
 ## Kompilacja i podpis
 
-Workflow **IL Redaktor Smart - Android APK** sprawdza JavaScript, testy kontraktowe, asercje integracji i zawartość APK, buduje APK debug oraz przechowuje artefakt przez 30 dni. APK z versionCode 16 używa pakietu `com.ispinalokalnie.redaktorsmart.publish191.test`. Instalacja obok starszego testowego pakietu jest możliwa. Aktualizacja istniejącej instalacji wymaga jednak zgodnego podpisu; samo zwiększenie versionCode nie wystarcza. Nie odinstalowuj poprzedniej aplikacji, jeśli są w niej lokalne szkice.
+Workflow **IL Redaktor Smart - Android APK** sprawdza JavaScript, testy kontraktowe, asercje integracji i zawartość APK, buduje APK debug oraz przechowuje artefakt przez 30 dni. APK z versionCode 16 używa pakietu `com.ispinalokalnie.redaktorsmart.publish191.test`. Porównanie certyfikatów APK 1.9.1 i 1.10.0 wykazało różne klucze debug. Android nie zainstaluje 1.10.0 jako aktualizacji 1.9.1, a ten sam package ID uniemożliwia równoległą instalację. Przed odinstalowaniem starszej wersji skopiuj potrzebne szkice z aplikacji — odinstalowanie usuwa jej lokalne dane. Aktualizacje wymagają podpisu istniejącym, stałym kluczem release.
 
-Aby workflow budował także aktualizowalny APK release, skonfiguruj w GitHub Actions secrets:
+Aby workflow budował aktualizowalny APK release, skonfiguruj w GitHub Actions secrets:
 
 - `IL_RELEASE_KEYSTORE_B64` – keystore w Base64.
 - `IL_RELEASE_KEY_ALIAS`.
 - `IL_RELEASE_KEYSTORE_PASSWORD`.
 - `IL_RELEASE_KEY_PASSWORD`.
 
-Te sekrety muszą pochodzić z prywatnego, bezpiecznie przechowywanego klucza podpisującego. Nie dodawaj keystore ani haseł do repozytorium. Bez właściwego klucza nie da się zainstalować nowego APK jako aktualizacji istniejącej instalacji.
+Te sekrety muszą pochodzić z **istniejącego** prywatnego klucza podpisującego, który odpowiada zainstalowanemu APK. Nie dodawaj keystore ani haseł do repozytorium. Nie twórz nowego klucza tylko po to, by ominąć ten błąd — Android nadal odrzuciłby go jako aktualizację starej instalacji.
 
 ## Zakres testów
 
