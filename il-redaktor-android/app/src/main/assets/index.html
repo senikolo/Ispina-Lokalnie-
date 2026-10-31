@@ -158,19 +158,20 @@ nav button.active{color:#174875;background:#edf5fb}
     <h2>Logowanie do WordPressa</h2>
     <p class="muted">Portal: <b>ispinalokalnie.wordpress.com</b><br>Identyfikator witryny: <b>252442125</b></p>
     <div id="settings-state" class="note">Sprawdzanie autoryzacji...</div>
-    <button class="wide primary-login" onclick="oneTapConnect()">Połącz z WordPress.com</button>
-    <p class="muted">Po jednorazowej konfiguracji wystarczy kliknąć przycisk powyżej. Nie zapisujemy Twojego hasła.</p>
-    <button class="secondary" onclick="toggleSetup()">Pierwsze połączenie / ustawienia zaawansowane</button>
+    <button class="wide primary-login" onclick="signInGoogle()"><span style="display:inline-block;background:#fff;color:#4285f4;border-radius:7px;padding:4px 9px;margin-right:8px;font-weight:900">G</span> Zaloguj przez Google</button>
+    <p class="muted">Otworzymy WordPress.com w przeglądarce telefonu. Wybierz Google (jeśli jest połączone z kontem WordPress), a następnie zatwierdź dostęp do Ispina Lokalnie. Nie trzeba wpisywać Client ID ani hasła w aplikacji.</p>
+    <div class="note">Po zatwierdzeniu logowania w przeglądarce wróć tutaj. Komunikat <b>SUKCES</b> pokaże się dopiero wtedy, gdy WordPress potwierdzi dostęp do wpisów.</div>
+    <button class="secondary" onclick="toggleSetup()">Alternatywne logowanie / ustawienia zaawansowane</button>
     <div id="oauth-setup" class="hidden">
     <label for="client-id">Publiczny Client ID WordPress.com (wymagany tylko za pierwszym razem)</label><input id="client-id" inputmode="numeric" placeholder="Numer aplikacji OAuth">
-    <p class="muted">Aby publikować z własnej aplikacji, zarejestruj ją w WordPress.com Apps. Adres przekierowania wpisz dokładnie jako:</p>
+    <p class="muted">Starsza metoda OAuth2 (alternatywa na wypadek niedostępności logowania przez przeglądarkę). Wymaga ręcznego Client ID i zgodnego adresu powrotnego:</p>
     <div class="note" style="overflow-wrap:anywhere">https://ispinalokalnie.wordpress.com/il-redaktor-auth/</div>
     <p class="muted">Nie wpisuj tutaj Client Secret ani hasła do konta. Aplikacja nie przechowuje sekretu OAuth; token jest szyfrowany w Android Keystore.</p>
     <div class="actions"><button onclick="connect()">Połącz konto WordPress</button><button class="secondary" onclick="IL.openSite('https://developer.wordpress.com/apps/')">Rejestracja aplikacji</button><button class="danger" onclick="disconnect()">Wyloguj</button></div>
     </div><div id="auth-output" aria-live="polite"></div>
     <div class="actions"><button class="secondary" onclick="verifyNow()">Sprawdź dostęp do wpisów</button></div>
   </div>
-  <div class="card"><h2>O programie</h2><p class="muted">IL Redaktor Smart 1.1.0-test · Niezależna aplikacja Android 8–16. WordPress.com REST API. Publikacja wymaga potwierdzenia. Zapis jest uznawany za udany dopiero po otrzymaniu identyfikatora WordPress.</p></div>
+  <div class="card"><h2>O programie</h2><p class="muted">IL Redaktor Smart 1.2.0-test · Niezależna aplikacja Android 8–16. WordPress.com REST API. Publikacja wymaga potwierdzenia. Zapis jest uznawany za udany dopiero po otrzymaniu identyfikatora WordPress.</p></div>
 </section>
 </main>
 <div id="finish-dialog" class="finish-dialog hidden" role="alertdialog" aria-modal="true" aria-labelledby="finish-title">
@@ -233,6 +234,14 @@ window.onNativeResult=function(id,ok,payload){
     try{r.resolve(JSON.parse(payload));}catch(e){r.reject(new Error("Nieprawidłowa odpowiedź WordPressa."));}
     return;
   }
+  if(id==="auth-progress"){
+    if(ok){message("auth-output",payload);startOperation(payload);}
+    else{
+      message("auth-output",payload,"error");
+      showOutcome("error","NIE POWIODŁO SIĘ","Logowanie przez Google / WordPress nie zostało zakończone. "+payload);
+    }
+    return;
+  }
   if(id==="status"){
     try{
       const s=JSON.parse(payload); connected=false;
@@ -291,14 +300,13 @@ function reflectAuth(){
   if(connected)message("home-connection","Połączono z WordPressem: Ispina Lokalnie.","ok");
 }
 function toggleSetup(){ $("oauth-setup").classList.toggle("hidden"); }
-function oneTapConnect(){
-  if(!trim($("client-id").value)){
-    $("oauth-setup").classList.remove("hidden");
-    message("auth-output","Pierwsze połączenie wymaga tylko jednorazowego wpisania Client ID aplikacji WordPress. Kolejne logowania to jedno dotknięcie.");
-    return;
-  }
-  connect();
+function signInGoogle(){
+  if(connected){showOutcome("success","SUKCES!","Połączenie z WordPressem zostało już potwierdzone.");return}
+  message("auth-output","Otwieram stronę WordPress.com. Wybierz swoje konto Google i zaakceptuj dostęp.");
+  startOperation("Logowanie przez WordPress.com / Google…");
+  IL.signInGoogle();
 }
+function oneTapConnect(){signInGoogle();}
 function verifyNow(){message("auth-output","Sprawdzam połączenie z WordPressem...");IL.verify();}
 async function loadCategories(){
   try{
