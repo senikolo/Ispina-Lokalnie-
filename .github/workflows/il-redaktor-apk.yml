@@ -237,13 +237,7 @@ jobs:
             # Screenshots are supplemental evidence; emulator may disconnect
             # after all instrumentation assertions have already passed.
             mkdir -p /tmp/il-editor-ui
-            if adb exec-out run-as com.ispinalokalnie.redaktorsmart.stable tar -C files/qa -cf - . > /tmp/il-editor-ui.tar; then
-              if ! tar -xf /tmp/il-editor-ui.tar -C /tmp/il-editor-ui; then
-                echo "Warning: could not unpack optional emulator screenshots."
-              fi
-            else
-              echo "Warning: emulator disconnected during optional screenshot export; instrumentation results above remain authoritative."
-            fi
+            if adb exec-out run-as com.ispinalokalnie.redaktorsmart.stable tar -C files/qa -cf - . > /tmp/il-editor-ui.tar; then tar -xf /tmp/il-editor-ui.tar -C /tmp/il-editor-ui || echo "Warning: could not unpack optional emulator screenshots."; else echo "Warning: emulator disconnected after successful instrumentation."; fi
       - name: Upload emulator UI checks
         uses: actions/upload-artifact@v4
         with:
