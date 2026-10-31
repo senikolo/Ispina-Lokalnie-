@@ -223,9 +223,9 @@ header{animation:ilHeader .38s cubic-bezier(.2,.7,.2,1) both}.brand .logo{animat
       <button class="secondary" onclick="assistantFromEditor('Skróć tekst poniżej, zachowaj sens, fakty i polską odmianę nazwy Ispina. Wypisz propozycję do sprawdzenia, niczego nie zapisuj.')">Skróć tekst</button>
       <button class="secondary" onclick="assistantFromEditor('Rozwiń tekst poniżej wyłącznie przez lepszą strukturę i pytania/pola do uzupełnienia. Nie wymyślaj faktów o Ispinie.')">Rozwiń tekst</button>
     </div>
-    <div class="actions"><button onclick="runAssistant()">Przygotuj propozycję</button></div>
+    <div class="actions"><button onclick="runAssistant()">Przygotuj lokalnie — bez opłat</button><button id="assistant-online-button" class="secondary hidden" onclick="runAssistantWithConfiguredAI()">Użyj AI online (może być płatne)</button></div>
     <div id="assistant-output" aria-live="polite" role="log"></div>
-    <p class="muted small">Przycisk „Przygotuj propozycję” korzysta z lokalnych podpowiedzi lub skonfigurowanego zaplecza. Udostępnienie tekstu do ChatGPT/Gemini odbywa się osobno, przez aplikację wybraną na telefonie. Odpowiedź wraca przez schowek i zawsze trafia najpierw do porównania.</p>
+    <p class="muted small">Tryb lokalny jest domyślny i nie korzysta z API. Jeśli dostępne jest skonfigurowane AI online, możesz wybrać je osobno; przed wysłaniem poproszę o zgodę. ChatGPT/Gemini w telefonie nie wymaga klucza API — odpowiedź wraca przez schowek do porównania.</p>
   </div>
 </section>
 <section id="screen-editor" class="panel">
@@ -508,8 +508,9 @@ window.onNativeResult=function(id,ok,payload){
   if(id==="assistant-ready"){
     try{
       assistantEnabled=!!JSON.parse(payload).enabled;
+      $("assistant-online-button").classList.toggle("hidden",!assistantEnabled);
       message("assistant-mode",assistantEnabled?
-        "Połączono lokalne podpowiedzi i skonfigurowany backend. ChatGPT/Gemini w telefonie możesz otworzyć osobno; sprawdź, co wysyłasz.":
+        "Domyślnie działam lokalnie. Skonfigurowane AI online jest opcjonalne i może korzystać z płatnego limitu. ChatGPT/Gemini z telefonu uruchamiasz osobnym przyciskiem.":
         "Tryb lokalny jest gotowy. Możesz też bez klucza API przekazać polecenie do zainstalowanej aplikacji ChatGPT, a w razie potrzeby do Gemini.");
     }catch(e){assistantEnabled=false;message("assistant-mode","Nie udało się sprawdzić trybu asystenta.","error")}
     return;
@@ -824,21 +825,22 @@ async function runAssistant(){
   const prompt=trim($("assistant-prompt").value);
   if(!prompt){message("assistant-output","Opisz zadanie, zanim poprosisz o propozycję.","error");return}
   if(!assistantEditorTarget)assistantEditorTarget={id:activeDraftId,snapshot:captureDraft(),signature:draftSignature(captureDraft())};
-  startOperation("Przygotowuję redakcyjną propozycję…");
-  message("assistant-output","Sprawdzam kontekst i przygotowuję odpowiedź…");
+  startOperation("Przygotowuję lokalną podpowiedź…");
+  const result=localAssistant(prompt);endOperation();renderAssistantResult(result);
+  return result;
+}
+async function runAssistantWithConfiguredAI(){
+  const prompt=trim($("assistant-prompt").value);
+  if(!prompt){message("assistant-output","Opisz zadanie, zanim poprosisz o propozycję.","error");return false;}
+  if(!assistantEnabled){message("assistant-output","AI online nie jest skonfigurowane. Skorzystaj z lokalnej podpowiedzi albo aplikacji ChatGPT/Gemini.","error");return false;}
+  if(!connected){message("assistant-output","Aby użyć AI online, najpierw połącz Redaktora z WordPressem. Polecenie w ChatGPT/Gemini na telefonie nie wymaga tego połączenia.","error");return false;}
+  if(!confirm("Wyślesz zadanie oraz wybrane dane z Redaktora do skonfigurowanego zaplecza AI. Mogą obowiązywać płatne limity. Kontynuować?"))return false;
+  if(!assistantEditorTarget)assistantEditorTarget={id:activeDraftId,snapshot:captureDraft(),signature:draftSignature(captureDraft())};
+  startOperation("Przygotowuję propozycję online…");message("assistant-output","Pobieram wyłącznie opublikowane teksty IL do podpowiedzi czytelniczych.");
   try{
-    if(assistantEnabled&&connected){
-      message("assistant-output","Pobieram opublikowane artykuły IL, aby podpowiedzieć prawdziwe materiały do dalszego czytania.");
-      await refreshPublishedPostsForReading();
-      if(!servicesLoaded)await loadServices();
-      const result=await requestAssistant(prompt,assistantContext());
-      endOperation();renderAssistantResult(result);
-    }else{
-      const result=localAssistant(prompt);endOperation();renderAssistantResult(result);
-    }
-  }catch(e){
-    endOperation();message("assistant-output","Nie udało się przygotować propozycji: "+e.message,"error");
-  }
+    await refreshPublishedPostsForReading();if(!servicesLoaded)await loadServices();
+    const result=await requestAssistant(prompt,assistantContext());endOperation();renderAssistantResult(result);return result;
+  }catch(e){endOperation();message("assistant-output","Nie udało się przygotować propozycji online: "+e.message,"error");return false;}
 }
 function acceptAssistantArticle(){
   const d=assistantDraft;if(!d||!["article_draft","seo_review"].includes(d.intent))return;

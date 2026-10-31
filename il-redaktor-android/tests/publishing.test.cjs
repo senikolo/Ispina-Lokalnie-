@@ -606,6 +606,16 @@ test("ChatGPT/Gemini handoff adds fact guardrails and sends only after the user 
   assert.equal(a.node("assistant-handoff-status").textContent,"Próbuję otworzyć ChatGPT. Jeśli nie będzie dostępny, spróbuję Gemini.");
 });
 
+test("configured AI backend is not used by the default free local button",async()=>{
+  const a=setup();let requests=0;a.run("assistantEnabled=true;connected=true");a.node("assistant-prompt").value="Skróć tekst";a.c.requestAssistant=async()=>{requests++;throw Error("must not run")};
+  await a.run("runAssistant()");assert.equal(requests,0);assert.match(a.node("assistant-output").innerHTML,/Propozycja/);
+});
+
+test("online AI backend requires separate user confirmation before sending",async()=>{
+  const a=setup();let requests=0,confirmation="";a.run("assistantEnabled=true;connected=true;servicesLoaded=true");a.node("assistant-prompt").value="Zredaguj tekst";a.c.refreshPublishedPostsForReading=async()=>{};a.c.requestAssistant=async()=>{requests++;return {intent:"question",message:"ok",internalLinks:[],readingPromotions:[],factsToVerify:[]}};a.c.confirm=text=>{confirmation=text;return false};
+  assert.equal(await a.run("runAssistantWithConfiguredAI()"),false);assert.equal(requests,0);assert.match(confirmation,/Mogą obowiązywać płatne limity/);
+});
+
 test("external assistant answer must be imported as a comparison before changing article text",()=>{
   const a=setup();a.node("assistant-return-text").value="Poprawiona treść z odpowiedzi AI";a.node("assistant-return-target").value="body";
   a.run("compareExternalAssistantResponse()");

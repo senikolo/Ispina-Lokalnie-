@@ -2,7 +2,7 @@
 
 Stały applicationId `com.ispinalokalnie.redaktorsmart.stable`, versionCode 25. Podpisuj tym samym kluczem co 1.14/1.15/1.16/1.17/1.18; nie odinstalowuj przy aktualizacji.
 
-Wersja 1.19 dodaje bezpłatne przekazanie polecenia do aplikacji ChatGPT, a gdy nie ma odbiorcy ChatGPT — próbę otwarcia Gemini. Nie używa klucza API ani nie wysyła tekstu bez dotknięcia przycisku. Po powrocie odpowiedź można wkleić ze schowka i porównać z treścią, tytułem, zajawką lub tekstem na Facebooka. Zmiana artykułu wymaga zatwierdzenia w porównaniu. Bez aplikacji przyjmującej tekst pozostaje kopiowanie polecenia i ręczne wklejenie.
+Wersja 1.19 domyślnie korzysta z lokalnych podpowiedzi i nie wywołuje skonfigurowanego modelu ani API. Polecenie można bez klucza API przekazać do aplikacji ChatGPT, a gdy Android nie znajdzie odbiorcy — spróbować Gemini. Wysłanie wymaga dotknięcia przycisku. Po powrocie odpowiedź można wkleić ze schowka i porównać z treścią, tytułem, zajawką lub tekstem na Facebooka. Zmiana artykułu wymaga zatwierdzenia w porównaniu. Skonfigurowane AI online jest opcjonalne, ma osobny przycisk oraz ostrzeżenie o możliwych opłatach. Przy braku aplikacji przyjmującej tekst pozostaje kopiowanie polecenia i ręczne wklejenie.
 
 Szablony krok po kroku obejmują MLD, wydarzenia i OSP, aktualności, historię oraz usługi lokalne. Puste informacje są oznaczane jako „DO UZUPEŁNIENIA”; lokalna kontrola pokazuje też brakujące źródło, daty i formy nazwy Ispina. Pakiet publikacyjny zbiera tytuł, zajawkę, propozycję na Facebooka i listę sprawdzeń.
 
