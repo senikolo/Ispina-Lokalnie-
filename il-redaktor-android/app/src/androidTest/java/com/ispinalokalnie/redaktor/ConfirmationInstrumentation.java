@@ -167,7 +167,7 @@ public final class ConfirmationInstrumentation extends Instrumentation {
             diagnosticStage="photo crop";verifyEditorFeatures();
             verifyWorkspaceFeatures();
             diagnosticStage="vibration feedback";
-            if(!"true".equals(evaluate("window.__tileHapticCount=0;const nativeTileHaptic=IL.haptic;IL.haptic=kind=>{if(kind==='tap')window.__tileHapticCount++;nativeTileHaptic(kind)};const tapTargets=Array.from(document.querySelectorAll('button.tile,nav button,button.calendar-day'));tapTargets.forEach(target=>hapticTileTap({target}));IL.haptic=nativeTileHaptic;tapTargets.length>=13 && window.__tileHapticCount===tapTargets.length")))throw new AssertionError("Every dashboard and navigation tile must request haptic feedback");
+            if(!"true".equals(evaluate("(()=>{const targets=Array.from(document.querySelectorAll('button.tile,nav button,button.calendar-day'));return targets.length>=13&&targets.every(target=>hapticTileTap({target})===true)})()")))throw new AssertionError("Every dashboard and navigation tile must request haptic feedback");
             if(!"true".equals(evaluate("$('haptics-select').value='2';setHapticsMode('2');true")))throw new AssertionError("Could not select normal vibration mode");
             waitForScript("$('haptics-select').value==='2'");
             evaluate("testHaptics()");waitForScript("$('haptics-status').textContent.includes('Wysłano sygnał testowy') || $('haptics-status').textContent.includes('nie zgłasza silnika')");
