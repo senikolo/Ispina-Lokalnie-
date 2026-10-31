@@ -790,3 +790,13 @@ test('promotion snapshot remains tied to published article while editing a new d
 test('promotion rejects external links and copying shares no data automatically',()=>{
  const a=setup();a.run("rememberPublishedArticle({id:64,title:'Bad'},'https://example.com/x')");assert.equal(a.run('promotionArticle'),null);let copied='';a.c.IL.copyText=t=>{copied=t};a.run("rememberPublishedArticle({id:64,title:'W Ispinie',body:'Tekst'},'https://ispinalokalnie.wordpress.com/?p=64');openPromotion();copyPromotion()");assert.match(copied,/W Ispinie/);
 });
+
+test('storage failure while accepting correction is visible inside comparison and changes nothing',()=>{
+ const a=setup();a.run("offerCorrection({body:'Inna'},'Test');$('accept-body').checked=true");a.c.localStorage.setItem=()=>{throw Error('quota')};assert.equal(a.run('acceptCorrection()'),false);assert.equal(a.node('post-body').value,'Treść testowa');assert.match(a.node('correction-feedback').textContent,/Zmiany nie zostały nałożone/);
+});
+test('import storage error is visible inside the confirmation dialog',()=>{
+ const a=setup();a.c.backup=a.run('makeDraftBackup()');a.run('previewDraftBackup(backup)');a.c.localStorage.setItem=()=>{throw Error('quota')};a.run('mergeDraftBackup()');assert.match(a.node('backup-feedback').textContent,/Import wstrzymany/);
+});
+test('published-status lookup for a different article cannot offer the previous article promotion as its own',()=>{
+ const a=setup();a.run("rememberPublishedArticle({id:5,title:'Poprzedni'},'https://ispinalokalnie.wordpress.com/?p=5');postId=6;showOutcome('success','Status','Sprawdzono','https://ispinalokalnie.wordpress.com/?p=6','Zobacz',true)");assert.equal(a.node('finish-promotion').classList.contains('hidden'),true);
+});
