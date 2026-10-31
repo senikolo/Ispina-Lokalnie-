@@ -32,7 +32,7 @@ public final class OAuthBrowserLogin {
         void failure(String message);
     }
 
-    public static final String REDIRECT = "com.ispinalokalnie.redaktorsmart.publish190:/callback";
+    public static final String REDIRECT = "com.ispinalokalnie.redaktorsmart.publish191:/callback";
     private static final String PREFS = "il_redaktor_settings";
     private static final String PENDING_STATE = "oauth21_pending_state";
     private static final String PENDING_VERIFIER = "oauth21_pending_verifier";
@@ -64,7 +64,7 @@ public final class OAuthBrowserLogin {
 
     public static boolean isCallback(Uri uri) {
         return uri != null &&
-            "com.ispinalokalnie.redaktorsmart.publish190".equals(uri.getScheme()) &&
+            "com.ispinalokalnie.redaktorsmart.publish191".equals(uri.getScheme()) &&
             "/callback".equals(uri.getPath());
     }
 
