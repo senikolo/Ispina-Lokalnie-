@@ -171,7 +171,8 @@ nav button.active{color:#174875;background:#edf5fb}
 const $=id=>document.getElementById(id);
 const SITE="252442125", PAGE=818;
 const requests=new Map();
-let reqNo=0, connected=false, postId=null, postStatus="", services=[], servicesLoaded=false, servicesRaw="";
+let reqNo=0, connected=false, postId=null, postStatus="", services=[], servicesLoaded=false, servicesRaw="", allPosts=[];
+const localKey="il_redaktor_draft_v2";let restoring=false, saveTimer=0;
 const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 function message(id,msg,kind=""){ $(id).innerHTML='<div class="note '+kind+'">'+esc(msg)+'</div>'; }
 function trim(s){return String(s||"").trim()}
@@ -197,18 +198,33 @@ window.onNativeResult=function(id,ok,payload){
   }
   if(id==="status"){
     try{
-      const s=JSON.parse(payload); connected=!!s.connected;
+      const s=JSON.parse(payload); connected=false;
       $("client-id").value=s.clientId||"";
       reflectAuth();
+      if(s.connected){message("settings-state","Weryfikuję dostęp do wpisów...");IL.verify();}
+      else message("home-connection","Połącz konto WordPress.com, aby odczytać i publikować artykuły.");
+      restoreLocal(true);
     }catch(e){message("auth-output","Błąd odczytu stanu autoryzacji.","error")}
   }
   if(id==="auth"){
     if(ok){
-      try{connected=!!JSON.parse(payload).connected}catch(e){connected=false}
-      message("auth-output",connected?"Połączono. Możesz pobrać wpisy i zapisać szkic.":"Konto rozłączone.","ok");
-      reflectAuth();
-      if(connected) loadPosts();
+      let tokenSaved=false;try{tokenSaved=!!JSON.parse(payload).connected}catch(e){}
+      connected=false;reflectAuth();
+      if(tokenSaved)message("auth-output","WordPress zatwierdził logowanie. Sprawdzam dostęp do wpisów...");
+      else message("auth-output","Konto rozłączone.","ok");
     } else message("auth-output",payload,"error");
+  }
+  if(id==="verify"){
+    connected=!!ok;
+    reflectAuth();
+    if(ok){
+      message("auth-output","Połączenie potwierdzone: WordPress zwrócił listę wpisów.","ok");
+      message("home-connection","Konto WordPress połączone i zweryfikowane. Możesz pracować nad portalem.","ok");
+      loadCategories();
+    }else{
+      message("auth-output",payload,"error");
+      message("home-connection","Nie udało się potwierdzić dostępu do wpisów.","error");
+    }
   }
   if(id==="upload"){
     if(ok){
@@ -225,7 +241,27 @@ function reflectAuth(){
   $("editor-dot").classList.toggle("on",connected);
   $("editor-auth").textContent=connected?"Połączono z WordPressem":"Niepołączono · Otwórz zakładkę Połączenie";
   $("settings-state").className="note "+(connected?"ok":"error");
-  $("settings-state").textContent=connected?"Token zapisany bezpiecznie. Konto połączone.":"Brak aktywnego tokenu. Aby zapisywać wpisy, połącz konto.";
+  $("settings-state").textContent=connected?"Połączenie potwierdzone przez API WordPress.":"Nie masz zweryfikowanej sesji. Zaloguj się lub sprawdź połączenie.";
+  if(connected)message("home-connection","Połączono z WordPressem: Ispina Lokalnie.","ok");
+}
+function toggleSetup(){ $("oauth-setup").classList.toggle("hidden"); }
+function oneTapConnect(){
+  if(!trim($("client-id").value)){
+    $("oauth-setup").classList.remove("hidden");
+    message("auth-output","Pierwsze połączenie wymaga tylko jednorazowego wpisania Client ID aplikacji WordPress. Kolejne logowania to jedno dotknięcie.");
+    return;
+  }
+  connect();
+}
+function verifyNow(){message("auth-output","Sprawdzam połączenie z WordPressem...");IL.verify();}
+async function loadCategories(){
+  try{
+    const categories=await rpc("GET","categories?per_page=100");
+    if(!Array.isArray(categories))return;
+    const previous=$("post-category").value;
+    $("post-category").innerHTML=categories.map(t=>'<option value="'+Number(t.id)+'">'+esc(t.name)+'</option>').join("");
+    if(categories.some(t=>String(t.id)===previous))$("post-category").value=previous;
+  }catch(e){ /* Existing verified category IDs remain usable. */ }
 }
 function connect(){
   const id=trim($("client-id").value);
@@ -256,6 +292,7 @@ function suggest(){
   const replacements=[[/\bIspinii\b/gi,"Ispiny"],[/\bIspini\b/gi,"Ispiny"],[/\bdo Ispina\b/gi,"do Ispiny"],[/\bw Ispina\b/gi,"w Ispinie"],[/ {2,}/g," "]];
   replacements.forEach(([rx,newValue])=>body=body.replace(rx,newValue));
   $("post-body").value=body;
+  updateMetrics();scheduleLocalSave();
   let title=trim($("post-title").value);
   if(title&&!/[.!?]$/.test(title)) $("post-title").value=title;
   const plain=body.replace(/<[^>]+>/g," ").replace(/[#*_]/g,"").replace(/\s+/g," ").trim();
@@ -280,6 +317,10 @@ async function savePost(status){
   const title=trim($("post-title").value),body=trim($("post-body").value);
   if(!title||!body){message("post-output","Wpisz tytuł i treść.","error");return}
   if(status==="publish"&&!confirm("Na pewno opublikować ten artykuł na stronie Ispina Lokalnie?"))return;
+  if(status==="draft" && postId && postStatus==="publish"){
+    if(!confirm("Ten artykuł jest już opublikowany. Zapisać zmiany BEZ wycofywania publikacji?"))return;
+    status="publish";
+  }
   message("post-output","Trwa wysyłanie. Czekamy na potwierdzenie numeru ID od WordPressa.");
   try{
     const mediaId=Number($("post-media").value)||0;
@@ -291,6 +332,7 @@ async function savePost(status){
     const result=await rpc("POST",path,data);
     if(!result.id||result.status!==status)throw new Error("WordPress nie potwierdził żądanego statusu. Nie uznaję operacji za zakończoną.");
     postId=result.id;postStatus=result.status;
+    localStorage.removeItem(localKey);
     $("editor-heading").textContent="Edytuj artykuł #"+result.id;
     $("edit-status").textContent=status==="publish"?"Opublikowany":"Szkic";
     message("post-output",(status==="publish"?"Opublikowano":"Zapisano szkic")+"! WordPress ID: "+result.id+" · Status: "+result.status+" · "+(result.link||"brak linku"),"ok");
@@ -302,15 +344,20 @@ function resetEditor(){
   $("post-category").value="10543";$("post-media").value="0";$("post-mode").value="text";
   $("editor-heading").textContent="Nowy artykuł";$("edit-status").textContent="Nowy";
   $("post-output").innerHTML="";$("preview-box").classList.add("hidden");
+  localStorage.removeItem(localKey);
+  updateMetrics();
 }
 async function loadPosts(){
   if(!connected){message("posts-output","Połącz konto w ustawieniach.","error");return}
   message("posts-output","Pobieram listę wpisów z WordPressa...");
   try{
-    const data=await rpc("GET","posts?context=edit&status=any&per_page=40&orderby=modified&order=desc");
+    const data=await rpc("GET","posts?context=edit&per_page=60&orderby=modified&order=desc");
     if(!Array.isArray(data))throw Error("Nie rozpoznano listy artykułów.");
     if(!data.length){message("posts-output","WordPress potwierdził pustą listę.");return}
-    $("posts-output").innerHTML=data.map(p=>'<div class="post"><b>'+esc(p.title?.rendered||"Bez tytułu")+'</b><span>WP ID '+Number(p.id)+' · '+esc(p.status)+' · '+esc(p.modified?.slice(0,16)||"")+'</span><button class="secondary" onclick="editPost('+Number(p.id)+')">Edytuj</button></div>').join("");
+    allPosts=data;
+    renderPosts();
+    /* original mapping removed */
+    // The list is filtered client-side by renderPosts().
   }catch(e){message("posts-output","Nie udało się pobrać wpisów: "+e.message,"error")}
 }
 async function editPost(id){
@@ -325,6 +372,7 @@ async function editPost(id){
     $("post-excerpt").value=p.excerpt?.raw||"";
     $("post-category").value=(p.categories||[])[0]||"10543";
     $("post-media").value=p.featured_media||0;
+    $("post-tags").value="";
     $("editor-heading").textContent="Edytuj artykuł #"+p.id;
     $("edit-status").textContent=p.status;
     showScreen("editor");
@@ -403,6 +451,93 @@ async function saveService(){
     message("services-output","Zapis potwierdzony! Strona WordPress ID "+PAGE+". Ofert zarządzanych przez Redaktora: "+services.length,"ok");
   }catch(e){message("services-output","Nie zapisano oferty: "+e.message,"error")}
 }
+const templates=[
+ {name:"Aktualność",title:"Co nowego w Ispinie?",body:"## Najważniejsze informacje\n\nOpisz krótko, co się wydarzyło i dlaczego jest to ważne dla mieszkańców.\n\n## Szczegóły\n\nPodaj miejsce, datę, organizatora oraz źródło informacji.\n\n## Co dalej?\n\nDodaj przydatny link lub kontakt.",cat:"10543"},
+ {name:"Historia",title:"Z historii Ispiny: ",body:"## Ispina dawniej\n\nPrzedstaw temat i jego znaczenie dla historii miejscowości.\n\n## Co mówią źródła?\n\nPodaj daty i udokumentowane fakty.\n\n## Pamięć mieszkańców\n\nZachęć do podzielenia się wspomnieniami, unikaj niezweryfikowanych informacji.",cat:"3503"},
+ {name:"OSP i wydarzenia",title:"Wydarzenie w Ispinie: ",body:"## Zaproszenie\n\nKto organizuje wydarzenie?\n\n## Kiedy i gdzie?\n\nData, godzina, miejsce, zasady udziału.\n\n## Dlaczego warto?\n\nKilka serdecznych zdań dla mieszkańców.",cat:"10543"},
+ {name:"Komunikacja",title:"Komunikacja w Ispinie: ",body:"## Najważniejsza zmiana\n\nJakich linii dotyczy informacja?\n\n## Od kiedy?\n\nData wejścia w życie i przystanki.\n\n## Gdzie sprawdzić rozkład?\n\nOdesłanie do sekcji Odjazdy na Ispina Lokalnie.",cat:"10543"}
+];
+function showTemplates(){
+  const root=$("templates-box");root.classList.remove("hidden");
+  root.innerHTML='<b>Wybierz szablon artykułu</b><p class="muted">Szablon jest punktem wyjścia, nie zastępuje weryfikacji informacji.</p><div class="actions">'+templates.map((t,i)=>'<button class="secondary" onclick="insertTemplate('+i+')">'+esc(t.name)+'</button>').join("")+'</div>';
+}
+function insertTemplate(i){
+  const t=templates[i];if(!t)return;
+  if(trim($("post-body").value)&&!confirm("Zastąpić aktualną treść szablonem?"))return;
+  $("post-title").value=t.title;$("post-body").value=t.body;$("post-mode").value="text";$("post-category").value=t.cat;
+  $("templates-box").classList.add("hidden");updateMetrics();scheduleLocalSave();
+}
+function updateMetrics(){
+  const body=trim($("post-body").value);
+  const words=body?body.split(/\s+/).length:0;
+  const title=trim($("post-title").value),excerpt=trim($("post-excerpt").value);
+  const warnings=[];
+  if(title.length>65)warnings.push("Tytuł jest długi ("+title.length+" znaków)");
+  if(!excerpt)warnings.push("Brak opisu / zajawki");
+  if(!Number($("post-media").value))warnings.push("Brak zdjęcia wyróżniającego");
+  if(body&&!/## |<h2[ >]/.test(body))warnings.push("Rozważ dodanie śródtytułów");
+  $("editor-metrics").textContent=words+" słów · "+title.length+" znaków tytułu. "+(warnings.length?warnings.join(" · "):"Podstawowa lista redakcyjna kompletna.");
+}
+function scheduleLocalSave(){
+  if(restoring)return;
+  clearTimeout(saveTimer);
+  saveTimer=setTimeout(()=>{
+    const record={updated:Date.now(),postId,postStatus};
+    for(const [key,id] of Object.entries({title:"post-title",body:"post-body",excerpt:"post-excerpt",tags:"post-tags",category:"post-category",mode:"post-mode",media:"post-media"}))
+      record[key]=$(id).value;
+    localStorage.setItem(localKey,JSON.stringify(record));
+  },450);
+}
+function restoreLocal(silent=false){
+  const raw=localStorage.getItem(localKey);if(!raw)return;
+  try{
+    const s=JSON.parse(raw);if(!s.body&&!s.title)return;
+    if(!silent&&!confirm("Przywrócić szkic z pamięci telefonu?"))return;
+    if(silent&&(trim($("post-body").value)||trim($("post-title").value)))return;
+    restoring=true;
+    for(const [key,id] of Object.entries({title:"post-title",body:"post-body",excerpt:"post-excerpt",tags:"post-tags",category:"post-category",mode:"post-mode",media:"post-media"}))
+      if(s[key]!==undefined)$(id).value=s[key];
+    postId=s.postId||null;postStatus=s.postStatus||"";
+    $("editor-heading").textContent=postId?"Szkic lokalny dla wpisu #"+postId:"Lokalny szkic";
+    $("edit-status").textContent="Kopia lokalna";
+    updateMetrics();
+    restoring=false;
+  }catch(e){restoring=false;message("post-output","Nie udało się odtworzyć lokalnej kopii.","error")}
+}
+function downloadText(){
+  const content=trim($("post-title").value)+"\n\n"+trim($("post-body").value);
+  if(window.navigator.share){navigator.share({title:"Ispina Lokalnie - kopia artykułu",text:content}).catch(()=>{});}
+  else message("post-output","Kopia jest zachowana lokalnie na telefonie. Możesz zaznaczyć i skopiować tekst w edytorze.");
+}
+function renderPosts(){
+  const q=trim($("posts-search").value).toLocaleLowerCase("pl");
+  const filtered=allPosts.filter(p=>(p.title?.rendered||"").toLocaleLowerCase("pl").includes(q));
+  $("posts-output").innerHTML=filtered.map(p=>'<div class="post"><b>'+esc(p.title?.rendered||"Bez tytułu")+'</b><span>WP ID '+Number(p.id)+' · '+esc(p.status)+' · '+esc(p.modified?.slice(0,16)||"")+'</span><button class="secondary" onclick="editPost('+Number(p.id)+')">Edytuj</button></div>').join("")||'<p class="muted">Brak wyników wyszukiwania.</p>';
+}
+async function loadMedia(){
+  if(!connected){message("media-output","Najpierw połącz konto WordPress.","error");return}
+  message("media-output","Pobieram zdjęcia z galerii IL...");
+  try{
+    const q=trim($("media-search").value);
+    const list=await rpc("GET","media?media_type=image&per_page=36&orderby=date&order=desc"+(q?"&search="+encodeURIComponent(q):""));
+    if(!Array.isArray(list))throw Error("Błąd biblioteki zdjęć.");
+    $("media-output").innerHTML='<div class="media-grid">'+list.map(m=>{
+      const src=m.media_details?.sizes?.thumbnail?.source_url||m.source_url||"";
+      return '<div class="media-card"><img loading="lazy" src="'+esc(src)+'" alt="'+esc(m.alt_text||"Zdjęcie IL")+'"><div class="media-info"><b>'+esc(m.title?.rendered||"Zdjęcie")+'</b><button onclick="chooseMedia('+Number(m.id)+')">Wybierz zdjęcie</button></div></div>';
+    }).join("")+'</div>';
+    if(!list.length)message("media-output","Nie znaleziono zdjęć.");
+  }catch(e){message("media-output","Nie udało się pobrać galerii: "+e.message,"error")}
+}
+function chooseMedia(id){
+  $("post-media").value=id;showScreen("editor");
+  message("post-output","Wybrano zdjęcie z biblioteki WordPress. ID "+id+".","ok");
+  updateMetrics();scheduleLocalSave();
+}
+["post-title","post-body","post-excerpt","post-tags","post-category","post-mode","post-media"].forEach(id=>{
+  $(id).addEventListener("input",()=>{updateMetrics();scheduleLocalSave()});
+  $(id).addEventListener("change",()=>{updateMetrics();scheduleLocalSave()});
+});
+updateMetrics();
 if(window.IL){IL.status()}else{message("auth-output","Brak mostu Android. Otwórz ten panel wewnątrz APK.","error");}
 </script>
 </body></html>
