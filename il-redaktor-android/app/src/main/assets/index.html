@@ -72,7 +72,13 @@ nav button.active{color:#174875;background:#edf5fb}
 .finish-detail{color:#36506b;line-height:1.55;font-size:15px;overflow-wrap:anywhere}
 .finish-panel button{margin-top:12px}
 .finish-actions{display:flex;flex-wrap:wrap;gap:10px}
-.operation-status{position:sticky;top:0;z-index:8;background:#174875;color:white;padding:9px 14px;border-radius:0 0 12px 12px;font-size:13px;font-weight:700;text-align:center}
+.operation-status{position:sticky;top:0;z-index:8;background:#174875;color:white;padding:12px 14px;border-radius:0 0 12px 12px;font-size:14px;font-weight:750;text-align:center}
+.operation-status.busy:before{content:"";display:inline-block;width:12px;height:12px;margin-right:9px;border:2px solid #ffffff6b;border-top-color:#fff;border-radius:50%;vertical-align:-2px;animation:turn .8s linear infinite}
+.operation-status.done{background:#1a7550}.operation-status.failed{background:#9e3835}
+@keyframes turn{to{transform:rotate(360deg)}}
+.activity-entry{border-bottom:1px solid #e2eaf3;padding:10px 0;font-size:13px;line-height:1.5}
+.activity-entry:last-child{border:0}.activity-entry strong{color:#174875}.activity-entry small{display:block;color:#637894}
+.activity-entry.failed strong{color:#a03027}
 </style>
 </head>
 <body>
@@ -92,6 +98,7 @@ nav button.active{color:#174875;background:#edf5fb}
     <button class="tile" onclick="showScreen('media');loadMedia()"><span class="tile-icon">▣</span><b>Galeria</b><small>Zdjęcia wpisów</small></button>
     <button class="tile" onclick="showScreen('editor');showTemplates()"><span class="tile-icon">✦</span><b>Szablony</b><small>Szybki start</small></button>
   </div>
+  <div class="card"><h2>Ostatnie działania</h2><p class="muted">Tutaj sprawdzisz, czy Redaktor pracuje, zakończył zadanie, czy zgłosił błąd. Wynik publikowania wymaga potwierdzenia z WordPressa.</p><div id="activity-feed" role="log" aria-live="polite"><p class="muted">Nie wykonano jeszcze operacji.</p></div></div>
   <div class="card"><h2>Wskazówki redakcyjne</h2><p class="muted">Przygotowuj szkice, poprawiaj teksty i publikuj dopiero po sprawdzeniu podglądu. Redaktor zachowa wersję lokalną w tym telefonie, nawet jeśli chwilowo zabraknie Internetu.</p>
   <div class="actions"><button class="secondary" onclick="showScreen('settings')">Połącz z WordPressem</button><button class="secondary" onclick="IL.openSite('https://ispinalokalnie.wordpress.com/')">Otwórz portal</button></div></div>
 </section>
@@ -205,10 +212,24 @@ const $=id=>document.getElementById(id);
 const SITE="252442125", PAGE=818;
 const requests=new Map();
 let finishUrl="";
-function startOperation(label){$("working-state").textContent="⏳ "+label;$("working-state").classList.remove("hidden");}
-function endOperation(){$("working-state").classList.add("hidden");}
+const actionHistory=[];
+function recordAction(kind,title,detail=""){
+  const item={kind,title,detail,at:new Date().toLocaleTimeString("pl-PL",{hour:"2-digit",minute:"2-digit"})};
+  actionHistory.unshift(item);if(actionHistory.length>10)actionHistory.pop();
+  $("activity-feed").innerHTML=actionHistory.map(a=>'<div class="activity-entry '+esc(a.kind)+'"><strong>'+esc(a.at+" · "+a.title)+'</strong><small>'+esc(a.detail)+'</small></div>').join("");
+}
+function operationBanner(kind,label){
+  const bar=$("working-state");bar.className="operation-status "+kind;
+  bar.textContent=(kind==="busy"?"⏳ ":kind==="done"?"✓ ":"✕ ")+label;
+}
+function startOperation(label){operationBanner("busy","TRWA: "+label);}
+function endOperation(){if($("working-state").classList.contains("busy"))$("working-state").classList.add("hidden");}
+function operationFinished(ok,title,detail=""){
+  operationBanner(ok?"done":"failed",(ok?"SUKCES: ":"BŁĄD: ")+title);
+  recordAction(ok?"done":"failed",title,detail);
+}
 function showOutcome(kind,headline,detail,link=""){
-  endOperation();
+  operationFinished(kind==="success",headline,detail.slice(0,260));
   finishUrl=link;
   $("finish-panel").classList.toggle("error",kind==="error");
   $("finish-symbol").textContent=kind==="success"?"✓":"!";
@@ -223,7 +244,10 @@ function openFinishUrl(){if(finishUrl)IL.openSite(finishUrl);}
 let reqNo=0, connected=false, postId=null, postStatus="", services=[], servicesLoaded=false, servicesRaw="", legacyServices=[], allPosts=[], assistantEnabled=false, assistantDraft=null;
 const localKey="il_redaktor_draft_v2";let restoring=false, saveTimer=0;
 const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
-function message(id,msg,kind=""){ $(id).innerHTML='<div class="note '+kind+'">'+esc(msg)+'</div>'; }
+function message(id,msg,kind=""){
+  $(id).innerHTML='<div class="note '+kind+'">'+esc(msg)+'</div>';
+  if(kind==="ok"||kind==="error")operationFinished(kind==="ok",(kind==="ok"?"Potwierdzono: ":"Nie powiodło się: ")+id,msg.slice(0,190));
+}
 function trim(s){return String(s||"").trim()}
 function showScreen(key){
   document.querySelectorAll(".panel").forEach(n=>n.classList.toggle("active",n.id==="screen-"+key));
@@ -233,7 +257,7 @@ function showScreen(key){
 function rpc(method,path,body) {
   return new Promise((resolve,reject)=>{
     const id="r"+(++reqNo);
-    const timeout=setTimeout(()=>{requests.delete(id);reject(new Error("Przekroczono czas odpowiedzi WordPressa."))},42000);
+    const timeout=setTimeout(()=>{requests.delete(id);reject(new Error("Przekroczono czas odpowiedzi WordPressa."))},90000);
     requests.set(id,{resolve,reject,timeout});
     IL.request(id,method,path,body?JSON.stringify(body):"");
   });
@@ -502,6 +526,7 @@ function resetEditor(){
 }
 async function loadPosts(){
   if(!connected){message("posts-output","Połącz konto w ustawieniach.","error");return}
+  startOperation("Pobieram artykuły i szkice…");
   message("posts-output","Pobieram listę wpisów z WordPressa...");
   try{
     const published=await rpc("GET","posts?context=edit&status=publish&per_page=60&orderby=modified&order=desc");
@@ -513,11 +538,13 @@ async function loadPosts(){
     if(!data.length){message("posts-output","WordPress potwierdził pustą listę.");return}
     allPosts=data;
     renderPosts();
+    operationFinished(true,"Pobrano listę artykułów",data.length+" wpisów i szkiców.");
     /* original mapping removed */
     // The list is filtered client-side by renderPosts().
   }catch(e){message("posts-output","Nie udało się pobrać wpisów: "+e.message,"error")}
 }
 async function editPost(id){
+  startOperation("Wczytuję artykuł #"+id+"…");
   message("posts-output","Wczytuję artykuł #"+id+"...");
   try{
     const p=await rpc("GET","posts/"+id+"?context=edit");
@@ -533,6 +560,7 @@ async function editPost(id){
     $("editor-heading").textContent="Edytuj artykuł #"+p.id;
     $("edit-status").textContent=p.status;
     showScreen("editor");
+    operationFinished(true,"Wczytano artykuł #"+id,"Można rozpocząć edycję.");
   }catch(e){message("posts-output","Nie można edytować wpisu: "+e.message,"error")}
 }
 function utf8Base64(v){return btoa(Array.from(new TextEncoder().encode(v),c=>String.fromCharCode(c)).join(""))}
@@ -540,6 +568,7 @@ function base64Utf8(v){const b=atob(v);return new TextDecoder().decode(Uint8Arra
 const START="<!-- IL_REDAKTOR_SMART_START -->",END="<!-- IL_REDAKTOR_SMART_END -->";
 async function loadServices(){
   if(!connected){message("services-output","Najpierw połącz konto WordPress.","error");return}
+  startOperation("Pobieram katalog Usługi…");
   message("services-output","Pobieram zawartość strony katalogu...");
   try{
     const page=await rpc("GET","pages/"+PAGE+"?context=edit");
@@ -702,6 +731,7 @@ function renderPosts(){
 }
 async function loadMedia(){
   if(!connected){message("media-output","Najpierw połącz konto WordPress.","error");return}
+  startOperation("Pobieram zdjęcia…");
   message("media-output","Pobieram zdjęcia z galerii IL...");
   try{
     const q=trim($("media-search").value);
@@ -712,6 +742,7 @@ async function loadMedia(){
       return '<div class="media-card"><img loading="lazy" src="'+esc(src)+'" alt="'+esc(m.alt_text||"Zdjęcie IL")+'"><div class="media-info"><b>'+esc(m.title?.rendered||"Zdjęcie")+'</b><button onclick="chooseMedia('+Number(m.id)+')">Wybierz zdjęcie</button></div></div>';
     }).join("")+'</div>';
     if(!list.length)message("media-output","Nie znaleziono zdjęć.");
+    operationFinished(true,"Odczytano galerię",list.length+" fotografii na tej stronie.");
   }catch(e){message("media-output","Nie udało się pobrać galerii: "+e.message,"error")}
 }
 function chooseMedia(id){
