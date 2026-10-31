@@ -498,17 +498,43 @@ async function savePost(status){
     const tagNames=trim($("post-tags").value).split(",").map(trim).filter(Boolean);
     if(tagNames.length)data.tags=await ensureTags(tagNames);
     const path=postId?"posts/"+postId:"posts";
+    // POST is issued exactly once: an automatic retry after network timeout could
+    // publish a duplicate. Save the ID immediately, then verify persistence by GET.
     const result=await rpc("POST",path,data);
-    if(!result.id||result.status!==status)throw new Error("WordPress nie potwierdził żądanego statusu. Nie uznaję operacji za zakończoną.");
-    postId=result.id;postStatus=result.status;
+    if(!Number.isSafeInteger(Number(result.id))||Number(result.id)<=0)
+      throw new Error("Odpowiedź zapisu nie zawiera numeru ID. Sprawdź listę artykułów przed ponowieniem.");
+    postId=Number(result.id);
+    postStatus=result.status||status;
+    $("editor-heading").textContent="Edytuj artykuł #"+postId;
+    $("edit-status").textContent="Sprawdzam zapis…";
+    message("post-output","WordPress zwrócił ID "+postId+". Sprawdzam, czy zmiany są widoczne po ponownym odczycie.");
+    startOperation("Weryfikacja zapisu wpisu #"+postId+"…");
+    let verified;
+    try {
+      verified=await rpc("GET","posts/"+postId+"?context=edit");
+    }catch(readError){
+      $("edit-status").textContent="Do sprawdzenia";
+      showOutcome("error","ZAPIS NIEZWERYFIKOWANY",
+        "WordPress zwrócił ID "+postId+", ale ponowny odczyt nie powiódł się: "+readError.message+
+        ". Nie klikaj ponownie Publikuj. Sprawdź wpis o tym numerze na stronie WordPress.");
+      return;
+    }
+    if(Number(verified.id)!==postId || verified.status!==status){
+      $("edit-status").textContent="Do sprawdzenia";
+      showOutcome("error","STATUS NIEPOTWIERDZONY",
+        "Wpis #"+postId+" istnieje, lecz odczytany status to „"+String(verified.status||"brak")+
+        "”, zamiast „"+status+"”. Sprawdź wpis przed ponowieniem.");
+      return;
+    }
+    postStatus=verified.status;
+    $("edit-status").textContent=status==="publish"?"Opublikowany":"Szkic zapisany";
     localStorage.removeItem(localKey);
-    $("editor-heading").textContent="Edytuj artykuł #"+result.id;
-    $("edit-status").textContent=status==="publish"?"Opublikowany":"Szkic";
     const summary=status==="publish"?"SUKCES! Artykuł opublikowany.":"SUKCES! Szkic zapisany.";
-    const detail="WordPress potwierdził zapis. Tytuł: "+title+". Numer wpisu: "+result.id+". Status: "+result.status+".";
+    const detail="Zapis i ponowny odczyt potwierdzone przez WordPress. Tytuł: "+title+
+      ". Numer wpisu: "+postId+". Status: "+verified.status+".";
     message("post-output",summary+" "+detail,"ok");
-    const link=result.link&&/^https:\/\/ispinalokalnie\.wordpress\.com\//.test(result.link)?result.link:
-      "https://wordpress.com/post/ispinalokalnie.wordpress.com/"+result.id;
+    const link=verified.link&&/^https:\/\/ispinalokalnie\.wordpress\.com\//.test(verified.link)?verified.link:
+      "https://wordpress.com/post/ispinalokalnie.wordpress.com/"+postId;
     showOutcome("success",summary,detail,link);
   }catch(e){
     message("post-output","Nie potwierdzono zapisu: "+e.message,"error");
