@@ -1,6 +1,6 @@
 # IL Redaktor Smart – niezależna aplikacja Android
 
-Wersja testowa 1.1.0-test. Android 8 i nowsze. Odrębny pakiet testowy com.ispinalokalnie.redaktorsmart.test. Nie koliduje ze starszym testowym wydaniem, ale do aktualizacji tego samego pakietu między kompilacjami konieczny jest stały prywatny klucz podpisujący; standardowy klucz debug w GitHub Actions jest jednorazowy.
+Wersja testowa 1.2.0-test. Android 8 i nowsze. Odrębny pakiet testowy com.ispinalokalnie.redaktorsmart.test. Nie koliduje ze starszym testowym wydaniem, ale do aktualizacji tego samego pakietu między kompilacjami konieczny jest stały prywatny klucz podpisujący; standardowy klucz debug w GitHub Actions jest jednorazowy.
 
 ## Audyt i poprawki
 - Zastąpiono fikcyjny monogram tekstowy oficjalną grafiką IL z WordPressa; ikona aplikacji jest generowana z tego samego źródła.
@@ -42,3 +42,9 @@ W katalogu Usługi tworzy dodatkowy obszar ofert; istniejących, ręcznie wpisan
 Złożone bloki Gutenberg wyświetlane są w edycji jako kod HTML/bloków.
 Publikacja wymaga wyraźnego potwierdzenia w aplikacji.
 Nie należy uznawać działania produkcyjnego za zweryfikowane przed zapisem i kontrolą szkicu testowego.
+
+## Logowanie WordPress.com / Google od 1.2.0-test
+
+Aplikacja otwiera WordPress.com w zewnętrznej przeglądarce. Użytkownik wybiera konto Google, jeżeli jest połączone z kontem WordPress.com, następnie zatwierdza dostęp. Aplikacja rejestruje publicznego klienta OAuth2.1 automatycznie i używa PKCE oraz lokalnego adresu powrotnego 127.0.0.1:38477. Nie wymaga ręcznego Client ID.
+
+Jest to nowa implementacja testowa bez potwierdzonego testu logowania na koncie właściciela. W przypadku odmowy autoryzacji zobaczysz szczegóły błędu. Komunikat SUKCES jest wyświetlany wyłącznie po pozytywnym sprawdzeniu dostępu do wpisów albo potwierdzonym zapisie.
