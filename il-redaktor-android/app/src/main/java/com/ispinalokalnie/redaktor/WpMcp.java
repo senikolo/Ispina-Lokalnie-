@@ -133,7 +133,7 @@ public final class WpMcp {
                 .put("capabilities", new JSONObject())
                 .put("clientInfo", new JSONObject()
                     .put("name", "IL Redaktor Smart")
-                    .put("version", "1.5.1")));
+                    .put("version", "1.8.0")));
         McpHttpResponse initial = postMcp(token, initialize, null, null);
         if (initial.body.has("error"))
             throw new Exception("WordPress MCP odrzucił inicjalizację: " +
@@ -370,71 +370,31 @@ public final class WpMcp {
     }
 
     /**
-     * The WordPress.com core REST API offers an official, direct posts endpoint.
-     * Posting via MCP may be denied even when reading works (different tool grants).
-     * An editor confirmation happens in JavaScript BEFORE this function runs.
-     *
-     * Security: fixed WordPress.com host + site ID; no caller-supplied URL.
-     * Reliability: a write is sent exactly once. On a timeout or HTTP 5xx we
-     * propagate uncertainty to the UI instead of retrying and duplicating a post.
+     * OAuth 2.1 access tokens issued for the WordPress MCP connection are used
+     * consistently for both reads and writes. Never silently switch transports.
+     * Each create/update call is sent ONCE; the UI must verify it with posts.get.
      */
-    static JSONObject postArticleDirect(String token, Integer postId, JSONObject data) throws Exception {
-        String endpoint = "https://public-api.wordpress.com/wp/v2/sites/252442125/posts" +
-            (postId == null ? "" : "/" + postId);
-        HttpURLConnection connection = null;
-        try {
-            connection = (HttpURLConnection) new URL(endpoint).openConnection();
-            connection.setRequestMethod("POST");
-            connection.setInstanceFollowRedirects(false);
-            connection.setConnectTimeout(18000);
-            connection.setReadTimeout(45000);
-            connection.setRequestProperty("Authorization", "Bearer " + token);
-            connection.setRequestProperty("Accept", "application/json");
-            connection.setRequestProperty("Content-Type", "application/json; charset=UTF-8");
-            connection.setDoOutput(true);
-            try(OutputStream output = connection.getOutputStream()) {
-                output.write(data.toString().getBytes(StandardCharsets.UTF_8));
-            }
-            int status = connection.getResponseCode();
-            String value = readReply(connection);
-            if (status < 200 || status >= 300) {
-                String reason = friendly(value);
-                if (status == 401 || status == 403)
-                    throw new Exception("HTTP " + status + " (uprawnienia): " + reason +
-                        ". Sprawdź rolę Administrator/Redaktor i zgodę na zarządzanie wpisami.");
-                if (status >= 500)
-                    throw new Exception("HTTP " + status + " (wynik zapisu niepewny): " + reason +
-                        ". Sprawdź listę artykułów przed ponowną próbą.");
-                throw new Exception("HTTP " + status + " (publikowanie): " + reason);
-            }
-            JSONObject response = new JSONObject(value);
-            if (!response.has("id") || response.optInt("id", 0) <= 0)
-                throw new Exception("API WordPress zwróciło odpowiedź bez ID. Sprawdź listę artykułów.");
-            return normalize(response);
-        } finally {
-            if(connection!=null) connection.disconnect();
-        }
+    static JSONObject postArticleViaMcp(String token, Integer postId, JSONObject data) throws Exception {
+        JSONObject params = new JSONObject(data.toString());
+        if (postId != null) params.put("id", postId);
+        params.put("user_confirmed", true);
+        String operation = postId == null ? "posts.create" : "posts.update";
+        Object saved = unwrap(request(token, operation, params));
+        if (!(saved instanceof JSONObject))
+            throw new Exception("WordPress MCP nie zwrócił danych zapisanego artykułu. Sprawdź listę wpisów.");
+        JSONObject result = (JSONObject) saved;
+        if (result.optInt("id", 0) <= 0)
+            throw new Exception("WordPress nie zwrócił ID artykułu. Nie powtarzaj publikacji bez sprawdzenia listy.");
+        return result;
     }
 
-    static JSONObject getArticleDirect(String token, int postId) throws Exception {
-        if(postId <= 0) throw new Exception("Nieprawidłowy numer artykułu.");
-        String endpoint="https://public-api.wordpress.com/wp/v2/sites/252442125/posts/" +
-            postId + "?context=edit";
-        HttpURLConnection c=null;
-        try {
-            c=(HttpURLConnection)new URL(endpoint).openConnection();
-            c.setRequestMethod("GET");
-            c.setInstanceFollowRedirects(false);
-            c.setConnectTimeout(15000);
-            c.setReadTimeout(30000);
-            c.setRequestProperty("Authorization","Bearer "+token);
-            c.setRequestProperty("Accept","application/json");
-            int code=c.getResponseCode();
-            String reply=readReply(c);
-            if(code<200 || code>=300)
-                throw new Exception("Odczyt wpisu HTTP "+code+": "+friendly(reply));
-            return normalize(new JSONObject(reply));
-        } finally {if(c!=null)c.disconnect();}
+    static JSONObject getArticleViaMcp(String token, int postId) throws Exception {
+        if (postId <= 0) throw new Exception("Nieprawidłowy numer artykułu.");
+        JSONObject params = new JSONObject().put("id", postId).put("context", "edit");
+        Object read = unwrap(request(token, "posts.get", params));
+        if (!(read instanceof JSONObject))
+            throw new Exception("WordPress MCP nie zwrócił treści artykułu.");
+        return (JSONObject) read;
     }
 
     static Object mapRestCall(String token, String method, String path, String body) throws Exception {
@@ -493,10 +453,10 @@ public final class WpMcp {
             if (params.optString("title").trim().isEmpty() &&
                 params.optString("content").trim().isEmpty())
                 throw new Exception("Artykuł musi mieć tytuł lub treść.");
-            return postArticleDirect(token, hasId ? Integer.parseInt(parts[1]) : null, params);
+            return postArticleViaMcp(token, hasId ? Integer.parseInt(parts[1]) : null, params);
         }
         if ("posts".equals(type) && hasId && "GET".equals(method)) {
-            return getArticleDirect(token,Integer.parseInt(parts[1]));
+            return getArticleViaMcp(token,Integer.parseInt(parts[1]));
         }
         if (hasId) params.put("id",Integer.parseInt(parts[1]));
         if ("POST".equals(method)) params.put("user_confirmed",true);
