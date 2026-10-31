@@ -1301,7 +1301,7 @@ function restoreLocal(silent=false){if(trim($("post-title").value)||trim($("post
 function showDraftLibrary(){if(publicationBusy||!persistDraft(true))return;renderDrafts();showScreen("drafts")}
 function renderDrafts(){const q=trim($("draft-search").value).toLocaleLowerCase("pl");const ds=(readDraftStore()?.drafts||[]).slice().sort((a,b)=>b.updated-a.updated).filter(d=>(d.title+" "+d.body).toLocaleLowerCase("pl").includes(q));$("draft-list").innerHTML=ds.map(d=>'<div class="note"><h3>'+esc(d.title||"Bez tytułu")+'</h3><p>'+esc(new Date(d.updated).toLocaleString("pl-PL"))+' · '+(d.postId?'WordPress #'+Number(d.postId)+' · ':'')+(d.dirty?'Zmiany lokalne':'Zsynchronizowany')+'</p><div class="actions"><button onclick="openLocalDraft(\''+esc(d.id)+'\')">Otwórz</button><button class="secondary" onclick="showDraftHistory(\''+esc(d.id)+'\')">Historia ('+d.revisions.length+')</button></div></div>').join("")||'<p>Brak szkiców pasujących do wyszukiwania.</p>';$("draft-history").innerHTML=""}
 function showDraftHistory(id){const d=readDraftStore()?.drafts.find(x=>x.id===id);if(!d)return;$("draft-history").innerHTML='<h3>Historia: '+esc(d.title||"Bez tytułu")+'</h3><p>Przywrócenie zachowa obecną wersję. Nie zmieni artykułu w WordPressie.</p>'+d.revisions.map((v,i)=>'<div class="note"><b>'+esc(new Date(v.at).toLocaleString("pl-PL"))+'</b><p>'+esc(String(v.snapshot.body||"").slice(0,180))+'</p><button class="secondary" onclick="restoreDraftVersion(\''+esc(id)+'\','+i+')">Przywróć tę wersję</button></div>').reverse().join("")+(d.revisions.length?'':'<p>Historia pojawi się po kolejnych zmianach tekstu.</p>')}
-function restoreDraftVersion(id,index){if(publicationBusy||!persistDraft(true))return false;const d=readDraftStore()?.drafts.find(x=>x.id===id),v=d?.revisions[index];if(!v)return false;const snapshot=JSON.parse(JSON.stringify(v.snapshot));activeDraftId=id;applyDraft(snapshot);if(!persistDraft(true))return false;showScreen("editor");return true}
+function restoreDraftVersion(id,index){if(publicationBusy||!persistDraft(true))return false;const d=readDraftStore()?.drafts.find(x=>x.id===id),v=d?.revisions[index];if(!v)return false;const snapshot=JSON.parse(JSON.stringify(v.snapshot));snapshot.postId=d.postId;snapshot.postStatus=d.postStatus;activeDraftId=id;applyDraft(snapshot);if(!persistDraft(true))return false;showScreen("editor");return true}
 function closeReview(){$("publish-review").classList.add("hidden");reviewSnapshot=null}
 function reviewPublication(){
   if(publicationBusy)return;if(!persistDraft(true))return;
@@ -1361,6 +1361,7 @@ if(actionHistory.length){
   $("activity-feed").innerHTML=actionHistory.map(a=>'<div class="activity-entry '+esc(a.kind)+'"><strong>'+esc(a.at+" · "+a.title)+'</strong><small>'+esc(a.detail)+'</small></div>').join("");
 }
 loadUiPreferences();
+restoreLocal(true);
 $("publication-sound").checked=localStorage.getItem("il_publication_sound")!=="false";
 if(window.IL){IL.status();if(IL.getHaptics)IL.getHaptics();if(IL.getTextZoom)IL.getTextZoom();if(IL.loginState)IL.loginState()}else{message("auth-output","Brak mostu Android. Otwórz ten panel wewnątrz APK.","error");}
 </script>

@@ -686,3 +686,14 @@ test('review confirmation publishes exactly once without a second confirm dialog
 test('local draft retains remote ID after verified publication so later saves update it',async()=>{
  const a=setup();a.c.rpc=async()=>({id:25,status:'publish'});await a.run("savePost('publish')");assert.equal(a.run('readDraftStore().drafts[0].postId'),25);assert.equal(a.run('readDraftStore().drafts[0].dirty'),false);
 });
+
+
+test('restoring a prepublication revision preserves the current WordPress post ID',async()=>{
+ const a=setup();a.run('persistDraft(true)');a.c.rpc=async()=>({id:81,status:'publish'});await a.run("savePost('publish')");
+ assert.equal(a.run('restoreDraftVersion(activeDraftId,0)'),true);assert.equal(a.run('postId'),81);assert.equal(a.run('postStatus'),'publish');
+});
+test('startup restores the last local draft without requiring WordPress login',()=>{
+ const draft={id:'offline',title:'Tekst offline',body:'Treść offline',postId:null,postStatus:'',revisions:[]};
+ const a=setup([['il_redaktor_drafts_v3',JSON.stringify({version:1,activeId:'offline',drafts:[draft]})]]);
+ assert.equal(a.run('activeDraftId'),'offline');assert.equal(a.run('readDraftStore().drafts[0].title'),'Tekst offline');
+});
