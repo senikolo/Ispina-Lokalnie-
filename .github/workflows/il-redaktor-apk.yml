@@ -53,9 +53,31 @@ jobs:
               icon.save(p/'ic_launcher_round.png')
           print('Embedded official IL logo:',len(raw),'bytes')
           PY
+      - name: Validate source HTML and JavaScript
+        run: |
+          python - <<'PY'
+          import pathlib,re
+          src=pathlib.Path('il-redaktor-android/app/src/main/assets/index.html').read_text()
+          match=re.search(r'<script>(.*?)</script>',src,flags=re.S)
+          if not match: raise AssertionError('Editor JavaScript missing')
+          pathlib.Path('/tmp/ilredaktor-ui.js').write_text(match.group(1))
+          for required in ['il-monogram.png','function savePost','function loadMedia','function restoreLocal','function loadServices','function oneTapConnect']:
+              assert required in src, required
+          assert 'class="logo">IL' not in src, 'Old text-only monogram was not replaced'
+          java=pathlib.Path('il-redaktor-android/app/src/main/java/com/ispinalokalnie/redaktor/MainActivity.java').read_text()
+          assert 'void verifyConnection' in java
+          assert 'AndroidKeyStore' in java
+          print('Required features and official IL branding confirmed')
+          PY
+          node --check /tmp/ilredaktor-ui.js
       - name: Compile Android APK
         working-directory: il-redaktor-android
         run: gradle --no-daemon :app:assembleDebug
+      - name: Confirm APK and actual monogram
+        run: |
+          test -s il-redaktor-android/app/build/outputs/apk/debug/app-debug.apk
+          test -s il-redaktor-android/app/src/main/assets/il-monogram.png
+          unzip -l il-redaktor-android/app/build/outputs/apk/debug/app-debug.apk | grep 'assets/il-monogram.png'
       - name: Upload installable APK
         uses: actions/upload-artifact@v4
         with:
