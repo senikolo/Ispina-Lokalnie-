@@ -596,9 +596,10 @@ function finishManualLogin(){const el=$("oauth-return");const url=trim(el.value)
 function setHapticsMode(value){if(IL.setHaptics)IL.setHaptics(Number(value))}
 function testHaptics(){$("haptics-status").textContent="Sprawdzam ustawienie i silnik wibracyjny…";if(IL.testHaptics)IL.testHaptics();else $("haptics-status").textContent="Test wibracji jest dostępny w aplikacji na Androida."}
 function hapticTileTap(event){
-  const target=event&&event.target;if(!target||typeof target.closest!=="function")return;
+  const target=event&&event.target;if(!target||typeof target.closest!=="function")return false;
   const tile=target.closest("button.tile, nav button, button.calendar-day");
-  if(tile&&!tile.disabled&&window.IL&&typeof IL.haptic==="function")IL.haptic("tap");
+  if(!tile||tile.disabled||!window.IL||typeof IL.haptic!=="function")return false;
+  IL.haptic("tap");return true;
 }
 document.addEventListener("click",hapticTileTap,true);
 const uiPreferencesKey="il_redaktor_ui_preferences_v1";
