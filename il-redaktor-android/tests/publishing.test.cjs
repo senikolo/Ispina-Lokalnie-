@@ -614,6 +614,12 @@ test("external assistant answer must be imported as a comparison before changing
   assert.match(a.node("correction-reason").textContent,/Odpowiedź z ChatGPT\/Gemini/);
 });
 
+test("external AI answer from an older editor snapshot is rejected",()=>{
+  const a=setup();a.run("assistantFromEditor('Popraw artykuł')");a.node("assistant-return-text").value="Stara propozycja";a.node("assistant-return-target").value="body";a.node("post-body").value="Nowsza wersja";
+  assert.equal(a.run("compareExternalAssistantResponse()"),false);
+  assert.equal(a.run("pendingCorrection"),null);assert.match(a.node("assistant-handoff-status").textContent,/dotyczy wcześniejszej wersji/);
+});
+
 test("smart local template marks unknown information and reports it before publication",()=>{
   const a=setup();a.run("insertTemplate(0)");a.node("template-field-0").value="Zmiana godzin odjazdu";a.node("template-field-1").value="2";a.run("applyTemplate(0)");
   assert.match(a.node("post-title").value,/Zmiany w rozkładach MLD: Zmiana godzin odjazdu/);
