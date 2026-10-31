@@ -158,6 +158,55 @@ Statusy poniżej są BLOCKED, ponieważ nie wykonano ich w tym środowisku. Zest
 | Fingerprint podpisu poprzedniego i nowego APK | FAIL — porównano certyfikaty; podpisy się różnią |
 | Instalacja aktualizacyjna na Androidzie | BLOCKED — brak urządzenia; różny fingerprint już wyklucza aktualizację |
 
+## Wyniki identyfikatorów z Master Prompt QA
+
+Każdy z 42 scenariuszy ma osobny wynik. PASS dotyczy wykonanego testu mock/static lub odczytu publicznego, nie oznacza działania na telefonie ani zapisu na żywym koncie. Scenariusze wymagające tych środowisk pozostają BLOCKED.
+
+| ID | Status | Uzasadnienie i dowód |
+|---|---|---|
+| QA-01 | PASS | Składnia JS i 51 testów Node VM: 51/51, zapis w wyniku przebiegu. |
+| QA-02 | BLOCKED | Nie wykonano osobnego przebiegu pustego tytułu/treści w UI na urządzeniu. |
+| QA-03 | PASS | Test #26 potwierdził zachowanie HTML edytora przy mapowaniu treści. |
+| QA-04 | PASS | Test #24 sprawdził tytuł, treść, zajawkę i kategorię w żądaniu. |
+| QA-05 | PASS | Test #27 sprawdził utworzenie/odczyt tagu i dołączenie go do wpisu z mockiem. |
+| QA-06 | PASS | Test #28 potwierdził brak POST wpisu po odmowie kontynuacji po błędzie tagów. |
+| QA-07 | PASS | Test #25 potwierdził mapowanie ID medium do `featured_media` z mockiem. |
+| QA-08 | PASS | Test #2 potwierdził `draft` po zapisie i ponownym odczycie z mockiem. |
+| QA-09 | BLOCKED | Brak stagingu i autoryzacji; nie opublikowano treści testowej na portalu. |
+| QA-10 | PASS | Test #4: nieudany odczyt po zapisie nie powoduje ponownego POST ani sukcesu. |
+| QA-11 | PASS | Test #3: status odpowiedzi inny od oczekiwanego nie daje fałszywego sukcesu. |
+| QA-12 | PASS | Test #31: timeout po POST pokazuje błąd i nie ponawia zapisu; transport mockowany. |
+| QA-13 | PASS | Test #9: dwa szybkie kliknięcia skutkują jednym równoległym POST w teście mock. |
+| QA-14 | PASS | Test #29: odmowa potwierdzenia publikacji nie wywołuje żądania sieciowego. |
+| QA-15 | BLOCKED | Test #16 sprawdził kontrakt harmonogramu z mockiem; termin nie został potwierdzony na stagingu. |
+| QA-16 | PASS | Testy #17–18: brak daty i data zbyt bliska blokują zapis. |
+| QA-17 | PASS | Test #21: rozbieżna data po zapisie kończy się błędem, nie sukcesem. |
+| QA-18 | PASS | Test #30: edycja aktualizuje istniejące ID bez tworzenia nowego wpisu w mocku. |
+| QA-19 | PASS | Test #10 potwierdził, że weryfikacja ostatniego zapisu wykonuje wyłącznie GET. |
+| QA-20 | BLOCKED | Testy #6–7 sprawdziły niepusty URL i fallback IL; otwarcia linku w przeglądarce urządzenia nie wykonano. |
+| QA-21 | BLOCKED | Nie zasymulowano utraty połączenia przed i po stronie serwera na urządzeniu/stagingu. |
+| QA-22 | BLOCKED | Anulowanie dialogu testowano; przerwania operacji i stanu spinnera na urządzeniu nie wykonano. |
+| QA-23 | BLOCKED | Odtworzenia lokalnego szkicu po zamknięciu/uruchomieniu procesu nie testowano na Androidzie. |
+| QA-24 | BLOCKED | DCR/PKCE przechodzi asercje CI, ale brak logowania OAuth i odczytu witryny na koncie redaktora. |
+| QA-25 | BLOCKED | Asercja sprawdza `state`; nie odtworzono błędnego stanu, odmowy i wygasłego kodu w przeglądarce. |
+| QA-26 | BLOCKED | Cold start oraz `onNewIntent` po powrocie z przeglądarki wymagają urządzenia; nie wykonano. |
+| QA-27 | BLOCKED | Brak sesji testowej do odtworzenia wygaśnięcia i odświeżania tokenu. |
+| QA-28 | BLOCKED | Ponownej instalacji i utraty stanu na urządzeniu nie testowano; różnicę podpisu osobno wykazano w QA-40. |
+| QA-29 | PASS | Test #33 rozpoznaje karty Gutenberg `<h3>`; publiczny odczyt strony 818 potwierdził tę strukturę. |
+| QA-30 | BLOCKED | Zapis edycji/ukrycia/usunięcia oferty wymaga autoryzacji; nie zmieniano strony produkcyjnej. |
+| QA-31 | BLOCKED | Duplikatu firmy nie dodano na stronie testowej; brak bezpiecznego obszaru zapisu. |
+| QA-32 | BLOCKED | Bez urządzenia i tokenu nie przetestowano uploadu lokalnego ani rzeczywistej biblioteki mediów. |
+| QA-33 | BLOCKED | Brak emulatorów/urządzeń Android 8, 10, 11 i 13 w środowisku. |
+| QA-34 | BLOCKED | Rotacji, dużej czcionki i klawiatury nie sprawdzono na ekranie Androida. |
+| QA-35 | BLOCKED | Asercje kodu istnieją; motywu systemowego i ograniczenia ruchu nie sprawdzono na urządzeniu. |
+| QA-36 | BLOCKED | Tryb baterii sprawdzono w teście preferencji, ale nie w systemowym trybie oszczędzania na Androidzie. |
+| QA-37 | BLOCKED | UI i natywne ustawienia haptics są w kodzie; siły/wyłączenia nie zweryfikowano fizycznie. |
+| QA-38 | BLOCKED | Mock testuje timeout po zapisie; brak przebiegu z kontrolowaną słabą lub przerwaną siecią. |
+| QA-39 | BLOCKED | CI zbudowało APK, sprawdziło package/version i `apksigner`; instalacji oraz uruchomienia na urządzeniu nie wykonano. |
+| QA-40 | FAIL | SHA-256 fingerprint 1.9.1 i 1.10.0 są różne; Android odrzuci aktualizację tego samego package ID. Szczegóły w sekcji APK. |
+| QA-41 | BLOCKED | Sprawdzono Keystore/OAuth w asercjach kodu, lecz nie wykonano pełnego skanu logów/storage/uprawnień na urządzeniu. |
+| QA-42 | PASS | Testy #45–49 potwierdziły lokalne sugestie i brak fikcyjnych URL; README wyjaśnia brak backendu i wymóg klucza API dla AI generatywnego. |
+
 ## APK i wydanie
 
 Build i weryfikacja APK 1.10.0 zakończyły się sukcesem:
