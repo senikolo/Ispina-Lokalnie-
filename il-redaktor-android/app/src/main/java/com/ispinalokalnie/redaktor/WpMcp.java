@@ -377,13 +377,33 @@ public final class WpMcp {
         boolean hasId=parts.length==2 && parts[1].matches("[0-9]+");
         JSONObject params="POST".equals(method) ? new JSONObject(body) : new JSONObject();
         if (!"POST".equals(method)) {
-            for (String key : new String[]{"context","status","search","orderby","order","media_type"}) {
-                String v=uri.getQueryParameter(key);
-                if (v!=null&&!v.isEmpty()) params.put(key,v);
+            // WordPress MCP operations do NOT share the same parameter schema.
+            // In particular, posts.list and media.list reject the REST context=edit
+            // parameter, whereas posts.get and pages.get accept it.
+            final boolean list = !hasId;
+            if (!list && ("posts".equals(type) || "pages".equals(type))) {
+                String context = uri.getQueryParameter("context");
+                if ("edit".equals(context) || "view".equals(context))
+                    params.put("context", context);
             }
-            for (String key : new String[]{"per_page","page"}) {
-                String v=uri.getQueryParameter(key);
-                if(v!=null&&v.matches("[0-9]+")) params.put(key,Integer.parseInt(v));
+            if (list) {
+                for (String key : new String[]{"search","orderby","order"}) {
+                    String v=uri.getQueryParameter(key);
+                    if (v!=null&&!v.isEmpty()) params.put(key,v);
+                }
+                for (String key : new String[]{"per_page","page"}) {
+                    String v=uri.getQueryParameter(key);
+                    if(v!=null&&v.matches("[0-9]+")) params.put(key,Integer.parseInt(v));
+                }
+                if ("posts".equals(type)) {
+                    String status=uri.getQueryParameter("status");
+                    if (status!=null && !status.isEmpty())
+                        params.put("status",new JSONArray().put(status));
+                } else if ("media".equals(type)) {
+                    String mediaType=uri.getQueryParameter("media_type");
+                    if (mediaType!=null && !mediaType.isEmpty())
+                        params.put("media_type",new JSONArray().put(mediaType));
+                }
             }
         }
         String operation;
@@ -394,15 +414,11 @@ public final class WpMcp {
         else if("media".equals(type)) {
             if ("POST".equals(method)) throw new Exception("Przesyłanie nowych zdjęć wymaga osobnego połączenia API. Wybierz zdjęcie z biblioteki.");
             operation="media.list";
-            // MCP requires media_type as array; optional filter by search.
-            String mediaType=params.optString("media_type","");
-            if(!mediaType.isEmpty())params.put("media_type",new JSONArray().put(mediaType));
+
         } else if("categories".equals(type)) operation="categories.list";
         else if("tags".equals(type)) operation="POST".equals(method)?"tags.create":"tags.list";
         else throw new Exception("Ta operacja nie jest obsługiwana przez WordPress MCP.");
-        if (!"POST".equals(method) && params.has("status") && "posts".equals(type)) {
-            params.put("status",new JSONArray().put(params.optString("status")));
-        }
+
         if (hasId) params.put("id",Integer.parseInt(parts[1]));
         if ("POST".equals(method)) params.put("user_confirmed",true);
         JSONObject response=request(token,operation,params);
