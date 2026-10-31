@@ -210,10 +210,11 @@ header{animation:ilHeader .38s cubic-bezier(.2,.7,.2,1) both}.brand .logo{animat
 <section id="screen-assistant" class="panel">
   <div class="card">
     <h2>Asystent redakcyjny IL</h2>
-    <p class="muted">Opisz, co chcesz przygotować. Asystent tworzy propozycję; sam nie zapisuje i nie publikuje treści. Jeśli zewnętrzny backend AI jest włączony, wysyła tekst zadania oraz wybrane tytuły/zajawki i nazwy usług do niego. Sprawdź treść przed jej przeniesieniem do edytora.</p>
+    <p class="muted">Opisz zadanie i sprawdź propozycję przed użyciem. Redaktor nigdy sam nie zapisuje ani nie publikuje odpowiedzi AI.</p>
     <div id="assistant-mode" class="note">Sprawdzam dostępny tryb asystenta…</div>
     <label for="assistant-prompt">Twoje zadanie</label>
     <textarea id="assistant-prompt" style="min-height:125px" placeholder="Np. Przygotuj szkic o historii Ispiny. Nie dopisuj niepotwierdzonych dat ani nazwisk."></textarea>
+    <div class="note"><b>Bezpłatna pomoc w aplikacji AI</b><p>Redaktor spróbuje otworzyć ChatGPT. Jeśli go nie ma lub nie przyjmie polecenia, spróbuje Gemini. Treść wyślesz dopiero po dotknięciu przycisku. Nie jest potrzebny klucz API.</p><div class="actions"><button onclick="sendAssistantToApps()">Otwórz ChatGPT, w razie potrzeby Gemini</button><button class="secondary" onclick="copyAssistantPrompt()">Kopiuj polecenie</button></div><label for="assistant-return-text">Odpowiedź z ChatGPT lub Gemini</label><textarea id="assistant-return-text" style="min-height:140px" placeholder="Po powrocie wklej tutaj odpowiedź AI"></textarea><label for="assistant-return-target">Porównaj tę odpowiedź z</label><select id="assistant-return-target"><option value="body">Treścią artykułu</option><option value="title">Tytułem</option><option value="excerpt">Zajawką SEO</option><option value="facebook">Postem na Facebooka</option></select><div class="actions"><button class="secondary" onclick="IL.readAssistantClipboard()">Wklej ze schowka</button><button onclick="compareExternalAssistantResponse()">Sprawdź i porównaj</button></div><p id="assistant-handoff-status" class="small" role="status" aria-live="polite">Wklejona treść pokaże się jako propozycja. Zmiany w artykule wymagają Twojego zatwierdzenia.</p></div>
     <div class="actions">
       <button class="secondary" onclick="assistantExample('Dodaj artykuł o historii Ispiny, wybierz kategorię Historia i popraw język. Nie wymyślaj faktów.')">Historia Ispiny</button>
       <button class="secondary" onclick="assistantExample('Dodaj do Usług nową firmę, sprawdź, czy nie ma jej już w katalogu, i przygotuj kartę. Zostaw nieznane dane puste.')">Nowa usługa</button>
@@ -224,7 +225,7 @@ header{animation:ilHeader .38s cubic-bezier(.2,.7,.2,1) both}.brand .logo{animat
     </div>
     <div class="actions"><button onclick="runAssistant()">Przygotuj propozycję</button></div>
     <div id="assistant-output" aria-live="polite" role="log"></div>
-    <p class="muted small">W trybie podstawowym dostępne są szablony i lokalne wskazówki. Generatywny model wymaga osobnego backendu i klucza Gemini API; sama subskrypcja Gemini Pro go nie udostępnia.</p>
+    <p class="muted small">Przycisk „Przygotuj propozycję” korzysta z lokalnych podpowiedzi lub skonfigurowanego zaplecza. Udostępnienie tekstu do ChatGPT/Gemini odbywa się osobno, przez aplikację wybraną na telefonie. Odpowiedź wraca przez schowek i zawsze trafia najpierw do porównania.</p>
   </div>
 </section>
 <section id="screen-editor" class="panel">
@@ -241,8 +242,8 @@ header{animation:ilHeader .38s cubic-bezier(.2,.7,.2,1) both}.brand .logo{animat
     <label for="post-tags">Tagi (oddziel przecinkami)</label><input id="post-tags" placeholder="Ispina, historia Ispiny">
     <label for="post-media">Zdjęcie wyróżniające</label>
     <div class="row"><input id="post-media" type="number" min="0" value="0" style="flex:1"><button class="secondary" onclick="IL.chooseImage()">Z telefonu</button><button class="secondary" onclick="showScreen('media');loadMedia()">Z galerii IL</button></div>
-    <div class="actions"><button class="secondary" onclick="suggest()">Porównaj korektę i SEO</button><button class="secondary" onclick="auditEditorial()">Sprawdź nazwy i fakty</button><button id="undo-edit" class="secondary hidden" onclick="undoEditorialChange()">Cofnij przyjętą korektę</button><button class="secondary" onclick="assistantFromEditor('Popraw język polski, śródtytuły i zajawkę. Zachowaj sens i wszystkie potwierdzone fakty; nie dopowiadaj informacji o Ispinie.')">Korekta AI</button><button class="secondary" onclick="openFacebookTeaser()">📣 Wygeneruj zajawkę na Facebooka</button><button class="secondary" onclick="suggestRelatedReading()">📖 Poleć czytelnikom powiązane teksty IL</button><button class="secondary" onclick="preview()">Podgląd</button><button class="secondary" onclick="showTemplates()">Szablony</button></div>
-    <div id="templates-box" class="note hidden"></div>
+    <div class="actions"><button class="secondary" onclick="suggest()">Porównaj korektę i SEO</button><button class="secondary" onclick="auditEditorial()">Sprawdź nazwy i fakty</button><button id="undo-edit" class="secondary hidden" onclick="undoEditorialChange()">Cofnij przyjętą korektę</button><button class="secondary" onclick="assistantFromEditor('Popraw język polski, śródtytuły i zajawkę. Zachowaj sens i wszystkie potwierdzone fakty; nie dopowiadaj informacji o Ispinie.')">Korekta AI</button><button class="secondary" onclick="openFacebookTeaser()">📣 Wygeneruj zajawkę na Facebooka</button><button class="secondary" onclick="suggestRelatedReading()">📖 Poleć czytelnikom powiązane teksty IL</button><button class="secondary" onclick="showPublicationBundle()">📦 Pakiet publikacyjny</button><button class="secondary" onclick="preview()">Podgląd</button><button class="secondary" onclick="showTemplates()">Szablony</button></div>
+    <div id="templates-box" class="note hidden"></div><div id="publication-bundle" class="note hidden" aria-live="polite"></div>
     <div class="actions"><button class="secondary" onclick="openSources()">Źródła i dokumenty</button><button class="secondary" onclick="openFindReplace()">Szukaj i zamień</button><button class="secondary" onclick="checkRemoteManually()">Porównaj z WordPressem</button></div><input type="hidden" id="post-sources" value="[]"><div id="editor-audit" role="status" aria-live="polite"></div><div id="editor-metrics" class="note">Napisz tekst, aby zobaczyć wskazówki redakcyjne.</div>
     <div id="reading-suggestions" aria-live="polite" role="region" aria-label="Propozycje lektury dla czytelników"></div>
     <div class="actions"><button class="secondary" onclick="showDraftLibrary()">📂 Moje szkice</button><button class="secondary" onclick="persistDraft(true)">Zapisz na telefonie</button><button class="secondary" onclick="downloadText()">Kopia tekstu</button></div>
@@ -334,7 +335,7 @@ header{animation:ilHeader .38s cubic-bezier(.2,.7,.2,1) both}.brand .logo{animat
     <label class="setting-row"><input type="checkbox" id="battery-saving" onchange="applyUiPreferences(true)"><span>Tryb oszczędzania baterii</span></label>
     <p id="ui-preferences-status" class="setting-caption" role="status" aria-live="polite">Ustawienia zapisują się na tym telefonie. Systemowe ograniczenie ruchu zawsze ma pierwszeństwo.</p>
   </div>
-  <div class="card"><h2>O programie</h2><p class="muted">IL Redaktor Smart 1.18.0 · Niezależna aplikacja Android 8 i nowszy. WordPress.com MCP. Publikacja wymaga potwierdzenia i ponownego odczytu wpisu.</p></div>
+  <div class="card"><h2>O programie</h2><p class="muted">IL Redaktor Smart 1.19.0 · Niezależna aplikacja Android 8 i nowszy. WordPress.com MCP. Publikacja wymaga potwierdzenia i ponownego odczytu wpisu.</p></div>
 </section>
 </main>
 <div id="conflict-dialog" class="finish-dialog hidden" role="dialog" aria-modal="true" aria-labelledby="conflict-title"><div class="finish-panel"><h2 id="conflict-title">Wersja na WordPressie wymaga porównania</h2><p id="conflict-message"></p><p>Nie wysłano zmian artykułu. Twoja praca pozostaje w szkicach na telefonie.</p><button class="secondary" onclick="showConflictComparison()">Porównaj wersje</button><div id="conflict-comparison" class="hidden"></div><p id="conflict-feedback" role="status"></p><div class="actions"><button onclick="resolveRemoteConflict(false)">Wczytaj wersję ze strony</button><button class="secondary" onclick="resolveRemoteConflict(true)">Zachowaj obie kopie</button><button class="secondary" onclick="closeRemoteConflict()">Wróć do tekstu</button></div><p class="small">Wczytanie nie usuwa Twojego szkicu. Zachowaj obie kopie odłączy lokalną wersję od wpisu na stronie.</p></div></div>
@@ -508,9 +509,21 @@ window.onNativeResult=function(id,ok,payload){
     try{
       assistantEnabled=!!JSON.parse(payload).enabled;
       message("assistant-mode",assistantEnabled?
-        "Asystent AI jest skonfigurowany. Tekst zadania i odczytany kontekst trafią do backendu oraz Google Gemini API. Asystent przygotowuje tylko propozycję; nie zapisuje jej w WordPressie.":
-        "Tryb podstawowy. AI nie jest skonfigurowane; możesz przygotować lokalny szkielet artykułu i korzystać z korekty oraz SEO.");
+        "Połączono lokalne podpowiedzi i skonfigurowany backend. ChatGPT/Gemini w telefonie możesz otworzyć osobno; sprawdź, co wysyłasz.":
+        "Tryb lokalny jest gotowy. Możesz też bez klucza API przekazać polecenie do zainstalowanej aplikacji ChatGPT, a w razie potrzeby do Gemini.");
     }catch(e){assistantEnabled=false;message("assistant-mode","Nie udało się sprawdzić trybu asystenta.","error")}
+    return;
+  }
+  if(id==="assistant-handoff"){
+    const provider=String(payload||"");
+    $("assistant-handoff-status").textContent=ok?provider:"Nie otworzyła się aplikacja AI. Polecenie skopiowałem — otwórz ChatGPT lub Gemini i wklej je ręcznie.";
+    $("assistant-handoff-status").className="small "+(ok?"ok":"error");
+    return;
+  }
+  if(id==="assistant-clipboard"){
+    if(!ok){$("assistant-handoff-status").textContent=payload;return;}
+    try{const data=JSON.parse(payload);$("assistant-return-text").value=String(data.text||"");$("assistant-handoff-status").textContent=data.text?"Wklejono odpowiedź ze schowka. Sprawdź ją, a potem wybierz „Sprawdź i porównaj”.":"Schowek jest pusty.";}
+    catch(e){$("assistant-handoff-status").textContent="Nie udało się odczytać odpowiedzi ze schowka.";}
     return;
   }
   if(id==="login-state"){
@@ -639,13 +652,42 @@ function signInGoogle(){
 }
 function oneTapConnect(){signInGoogle();}
 function assistantExample(value){assistantEditorTarget=null;$("assistant-prompt").value=value}
+function externalAssistantPrompt(){
+  const task=trim($("assistant-prompt").value);if(!task)return "";
+  return "Jesteś pomocnikiem redaktora lokalnego portalu Ispina Lokalnie. Przygotuj wyłącznie propozycję do sprawdzenia. Nie wymyślaj dat, nazwisk, liczb, źródeł, cytatów ani faktów. Nie twierdź, że coś zweryfikowałeś, jeśli nie dostałeś źródła. Zachowaj sens i poprawną polską odmianę nazwy: w Ispinie, do Ispiny, z Ispiny. Nie zapisuj ani nie publikuj. Jeśli brakuje informacji, wpisz [DO UZUPEŁNIENIA]. Zwróć samą gotową propozycję, bez komentarza o wykonaniu zadania.\n\nZadanie redaktora:\n"+task;
+}
+function sendAssistantToApps(){
+  const prompt=externalAssistantPrompt();if(!prompt){$("assistant-handoff-status").textContent="Najpierw wpisz polecenie albo wybierz jedną z gotowych podpowiedzi.";return false;}
+  if(prompt.length>18000){$("assistant-handoff-status").textContent="Polecenie jest zbyt długie do przekazania. Skróć tekst artykułu i spróbuj ponownie.";return false;}
+  $("assistant-handoff-status").textContent="Próbuję otworzyć ChatGPT. Jeśli nie będzie dostępny, spróbuję Gemini.";
+  if(typeof IL.shareAssistantPrompt==="function")IL.shareAssistantPrompt(prompt);else{if(IL.copyText)IL.copyText(prompt);$("assistant-handoff-status").textContent="Ten telefon nie obsługuje bezpośredniego przekazania. Polecenie skopiowano; wklej je w ChatGPT lub Gemini.";}
+  return true;
+}
+function copyAssistantPrompt(){
+  const prompt=externalAssistantPrompt();if(!prompt){$("assistant-handoff-status").textContent="Najpierw wpisz polecenie.";return false;}
+  if(IL.copyText)IL.copyText(prompt);$("assistant-handoff-status").textContent="Skopiowano polecenie. Wklej je do ChatGPT lub Gemini.";return true;
+}
+function compareExternalAssistantResponse(){
+  const answer=trim($("assistant-return-text").value),target=$("assistant-return-target").value;
+  if(!answer){$("assistant-handoff-status").textContent="Najpierw wklej odpowiedź z ChatGPT lub Gemini.";return false;}
+  if(answer.length>12000){$("assistant-handoff-status").textContent="Odpowiedź jest zbyt długa do bezpiecznego porównania. Wklej krótszy fragment.";return false;}
+  if(target==="facebook"){
+    assistantDraft={intent:"question",message:"Propozycja z aplikacji AI. Sprawdź fakty przed użyciem; możesz ją skopiować, nic nie zostało opublikowane.",title:"",content:"",excerpt:"",category:"",tags:[],internalLinks:[],factsToVerify:["Sprawdź każdą datę, liczbę, nazwę i twierdzenie z wiarygodnym źródłem."],service:null,facebookPost:answer,imageSuggestion:null};
+    renderAssistantResult(assistantDraft);$("assistant-handoff-status").textContent="Przygotowałem zajawkę do sprawdzenia i skopiowania.";return true;
+  }
+  const fields={};fields[target]=answer;if(target==="body")fields.mode="text";
+  showScreen("editor");
+  const opened=offerCorrection(fields,"Odpowiedź z ChatGPT/Gemini. Porównaj ją ze swoim tekstem; nic nie zmieni się, dopóki nie zatwierdzisz porównania.");
+  if(opened)$("assistant-handoff-status").textContent="Otworzyłem porównanie. Zmiany pojawią się w artykule dopiero po Twoim zatwierdzeniu.";
+  return opened;
+}
 function assistantFromEditor(task){
   const title=trim($("post-title").value),body=trim($("post-body").value);
   if(!body){message("assistant-output","Najpierw wpisz treść artykułu albo otwórz istniejący wpis.","error");showScreen("assistant");return}
   assistantEditorTarget={id:activeDraftId,snapshot:captureDraft(),signature:draftSignature(captureDraft())};
   $("assistant-prompt").value=task+"\n\nTytuł: "+title+"\n\nTreść do opracowania:\n"+body;
   showScreen("assistant");
-  message("assistant-output","Skopiowano bieżący tekst do polecenia. Przejrzyj go przed wysłaniem do skonfigurowanego backendu AI.");
+  message("assistant-output","Wstawiłem bieżący tekst do polecenia. Przejrzyj go. Możesz przygotować lokalną propozycję albo jawnie otworzyć ChatGPT/Gemini.");
 }
 function assistantContext(){
   const posts=allPosts.filter(p=>p.status==="publish").slice(0,30).map(p=>({id:Number(p.id),title:p.title?.raw||p.title?.rendered||"",excerpt:String(p.excerpt?.raw||p.excerpt?.rendered||"").replace(/<[^>]+>/g," ").slice(0,500),status:"publish"}));
@@ -822,7 +864,7 @@ async function testDraftWrite(){
   if(!confirm("Utworzyć w WordPressie prywatny szkic diagnostyczny? Nie będzie publiczny i pozostanie na liście szkiców do ręcznego usunięcia."))return;
   const testButton=$("test-draft-write");
   diagnosticWriteBusy=true;testButton.disabled=true;
-  const title="[TEST IL Redaktor Smart 1.18.0] Sprawdzenie zapisu "+new Date().toLocaleString("pl-PL");
+  const title="[TEST IL Redaktor Smart 1.19.0] Sprawdzenie zapisu "+new Date().toLocaleString("pl-PL");
   const body={title,content:"<p>Test techniczny zapisu z aplikacji IL Redaktor Smart. Ten szkic nie jest przeznaczony do publikacji.</p>",status:"draft",excerpt:"Test techniczny. Nie publikować."};
   let createdId=null;
   startOperation("Test: zapisuję szkic w WordPressie…");
@@ -1267,30 +1309,64 @@ async function saveService(){
   }finally{serviceBusy=false;$("save-service").disabled=false;}
 }
 const templates=[
- {name:"Aktualność",title:"Co nowego w Ispinie?",body:"## Najważniejsze informacje\n\nOpisz krótko, co się wydarzyło i dlaczego jest to ważne dla mieszkańców.\n\n## Szczegóły\n\nPodaj miejsce, datę, organizatora oraz źródło informacji.\n\n## Co dalej?\n\nDodaj przydatny link lub kontakt.",cat:"10543"},
- {name:"Historia",title:"Z historii Ispiny: ",body:"## Ispina dawniej\n\nPrzedstaw temat i jego znaczenie dla historii miejscowości.\n\n## Co mówią źródła?\n\nPodaj daty i udokumentowane fakty.\n\n## Pamięć mieszkańców\n\nZachęć do podzielenia się wspomnieniami, unikaj niezweryfikowanych informacji.",cat:"3503"},
- {name:"OSP i wydarzenia",title:"Wydarzenie w Ispinie: ",body:"## Zaproszenie\n\nKto organizuje wydarzenie?\n\n## Kiedy i gdzie?\n\nData, godzina, miejsce, zasady udziału.\n\n## Dlaczego warto?\n\nKilka serdecznych zdań dla mieszkańców.",cat:"10543"},
- {name:"Komunikacja",title:"Komunikacja w Ispinie: ",body:"## Najważniejsza zmiana\n\nJakich linii dotyczy informacja?\n\n## Od kiedy?\n\nData wejścia w życie i przystanki.\n\n## Gdzie sprawdzić rozkład?\n\nOdesłanie do sekcji Odjazdy na Ispina Lokalnie.",cat:"10543"}
+ {name:"Zmiany w rozkładach MLD",title:"Zmiany w rozkładach MLD",cat:"10543",fields:[{id:"subject",label:"Co się zmienia?",hint:"Np. nowa godzina odjazdu lub zmiana trasy"},{id:"lines",label:"Których linii dotyczy?",hint:"Numery linii"},{id:"from",label:"Od kiedy obowiązuje zmiana?",hint:"Data podana w komunikacie MLD"},{id:"stops",label:"Jakich przystanków dotyczy?",hint:"Wpisz tylko potwierdzone przystanki"},{id:"source",label:"Źródło komunikatu",hint:"Link lub nazwa dokumentu"},{id:"action",label:"Gdzie sprawdzić pełny rozkład?",hint:"Link do oficjalnego rozkładu"}],sections:[["Najważniejsza zmiana","subject"],["Linie i przystanki","lines","stops"],["Termin obowiązywania","from"],["Gdzie sprawdzić rozkład?","action"],["Źródło informacji","source"]]},
+ {name:"Wydarzenie / OSP",title:"Wydarzenie w Ispinie",cat:"10543",fields:[{id:"event",label:"Co się odbędzie?",hint:"Nazwa lub krótki opis wydarzenia"},{id:"organizer",label:"Kto organizuje?",hint:"Nazwa organizatora"},{id:"when",label:"Kiedy?",hint:"Data i godzina"},{id:"where",label:"Gdzie?",hint:"Potwierdzone miejsce"},{id:"entry",label:"Zasady udziału",hint:"Wstęp, zapisy lub opłaty — jeśli podano"},{id:"source",label:"Źródło lub kontakt",hint:"Link, telefon albo dokument organizatora"}],sections:[["Zaproszenie","event"],["Kto organizuje?","organizer"],["Kiedy i gdzie?","when","where"],["Udział i zapisy","entry"],["Informacje organizatora","source"]]},
+ {name:"Aktualność lokalna",title:"Aktualności z Ispiny",cat:"10543",fields:[{id:"what",label:"Co się wydarzyło lub zmieni?",hint:"Najważniejsza informacja"},{id:"who",label:"Kto potwierdził informację?",hint:"Instytucja, organizator lub osoba"},{id:"when",label:"Kiedy?",hint:"Data lub okres"},{id:"where",label:"Gdzie?",hint:"Miejsce"},{id:"next",label:"Co mieszkańcy powinni wiedzieć dalej?",hint:"Kolejne kroki lub ważne terminy"},{id:"source",label:"Źródło",hint:"Link lub nazwa dokumentu"}],sections:[["Najważniejsze informacje","what"],["Kto, kiedy i gdzie?","who","when","where"],["Co dalej?","next"],["Źródło informacji","source"]]},
+ {name:"Historia Ispiny",title:"Historia Ispiny",cat:"3503",fields:[{id:"topic",label:"Jaki temat opisujesz?",hint:"Miejsce, osoba lub wydarzenie"},{id:"period",label:"Jaka data lub okres jest potwierdzony?",hint:"Jeśli nie wiesz, zostaw puste"},{id:"facts",label:"Jakie fakty potwierdzają źródła?",hint:"Oddziel fakty od wspomnień"},{id:"source",label:"Źródło historyczne",hint:"Link, sygnatura albo nazwa publikacji"},{id:"memory",label:"Jakie wspomnienia mieszkańców warto przytoczyć?",hint:"Oznacz je jako relacje, nie potwierdzone dokumenty"}],sections:[["Temat i kontekst","topic"],["Potwierdzone daty i fakty","period","facts"],["Źródła","source"],["Pamięć mieszkańców","memory"]]},
+ {name:"Usługa lokalna",title:"Usługi w okolicy Ispiny",cat:"10543",fields:[{id:"name",label:"Nazwa firmy lub usługi",hint:"Dokładna nazwa"},{id:"offer",label:"Co oferuje?",hint:"Zakres usług podany przez firmę"},{id:"area",label:"Gdzie działa?",hint:"Adres lub obszar"},{id:"contact",label:"Kontakt",hint:"Telefon lub strona"},{id:"hours",label:"Godziny otwarcia",hint:"Jeśli zostały potwierdzone"},{id:"consent",label:"Źródło i zgoda",hint:"Potwierdź aktualność danych i zgodę na publikację"}],sections:[["O usłudze","name","offer"],["Obszar działania","area"],["Kontakt i godziny","contact","hours"],["Źródło i aktualność","consent"]]}
 ];
 function showTemplates(){
   const root=$("templates-box");root.classList.remove("hidden");
-  root.innerHTML='<b>Wybierz szablon artykułu</b><p class="muted">Szablon jest punktem wyjścia, nie zastępuje weryfikacji informacji.</p><div class="actions">'+templates.map((t,i)=>'<button class="secondary" onclick="insertTemplate('+i+')">'+esc(t.name)+'</button>').join("")+'</div>';
+  root.innerHTML='<b>Utwórz szkic krok po kroku</b><p class="muted">Uzupełnij to, co już wiesz. Puste miejsca zostaną wyraźnie oznaczone — Redaktor niczego nie dopowie.</p><div class="actions">'+templates.map((t,i)=>'<button class="secondary" onclick="insertTemplate('+i+')">'+esc(t.name)+'</button>').join("")+'</div>';
 }
 function insertTemplate(i){
-  const t=templates[i];if(!t)return;
-  if(trim($("post-body").value)&&!confirm("Zastąpić aktualną treść szablonem?"))return;
-  $("post-title").value=t.title;$("post-body").value=t.body;$("post-mode").value="text";$("post-category").value=t.cat;
+  const t=templates[i];if(!t)return false;
+  const root=$("templates-box");root.classList.remove("hidden");
+  root.innerHTML='<b>'+esc(t.name)+'</b><p class="muted">Wpisz potwierdzone informacje. Nieznane dane zostaw puste — pojawią się jako pola do uzupełnienia.</p>'+t.fields.map((f,index)=>'<label for="template-field-'+index+'">'+esc(f.label)+'</label><input id="template-field-'+index+'" maxlength="900" placeholder="'+esc(f.hint)+'">').join("")+'<div class="actions"><button onclick="applyTemplate('+i+')">Utwórz bezpieczny szkic</button><button class="secondary" onclick="showTemplates()">Wybierz inny</button></div>';
+  return true;
+}
+function applyTemplate(i){
+  const t=templates[i];if(!t)return false;
+  const values={};t.fields.forEach((f,index)=>values[f.id]=trim($("template-field-"+index).value));
+  const missing=t.fields.filter(f=>!values[f.id]);
+  const get=id=>values[id]||"[DO UZUPEŁNIENIA: "+(t.fields.find(f=>f.id===id)?.label||"potwierdzona informacja")+"]";
+  const sectionText=(heading,ids)=>"## "+heading+"\n\n"+ids.map(id=>get(id)).join("\n\n");
+  const titleField=values.subject||values.event||values.what||values.topic||values.name||"";
+  const title=t.title+(titleField?": "+titleField:"");
+  const body=t.sections.map(([heading,...ids])=>sectionText(heading,ids)).join("\n\n");
+  const intro=titleField?"Informacje o "+titleField+". Sprawdź szczegóły i źródła.":"Uzupełnij najważniejszą informację i potwierdź ją w źródle.";
+  if((trim($("post-body").value)||trim($("post-title").value))&&!confirm("Zastąpić obecny tytuł i tekst szkicem z tego szablonu?"))return false;
+  $("post-title").value=title;$("post-body").value=body;$("post-excerpt").value=intro;$("post-mode").value="text";$("post-category").value=t.cat;
+  const tag= t.name.includes("MLD")?"MLD":t.name.includes("Historia")?"historia Ispiny":"Ispina";
+  $("post-tags").value=Array.from(new Set(["Ispina",tag])).join(", ");
   $("templates-box").classList.add("hidden");updateMetrics();scheduleLocalSave();
+  const checks=[...missing.map(f=>"Uzupełnij: "+f.label),"Dodaj lub sprawdź źródło przed publikacją.","Potwierdź daty, nazwy i informacje praktyczne."];
+  $("editor-audit").innerHTML=auditMarkup(checks);$("local-save-status").textContent=missing.length?"Szkic gotowy. Zostawiłem "+missing.length+" brakujących informacji do uzupełnienia.":"Szkic gotowy. Sprawdź źródło i fakty przed publikacją.";
+  return true;
+}
+function publicationBundleText(){
+  const title=trim($("post-title").value)||"[UZUPEŁNIJ TYTUŁ]",excerpt=trim($("post-excerpt").value)||"[UZUPEŁNIJ ZAJAWKĘ]",article=plainEditorialText($("post-body").value)||"[UZUPEŁNIJ TREŚĆ ARTYKUŁU]";
+  const body=plainEditorialText($("post-body").value),facebook=[title,excerpt!=="[UZUPEŁNIJ ZAJAWKĘ]"?excerpt:shortEditorialText(body,180),"Zobacz więcej na Ispina Lokalnie."].filter(Boolean).join("\n\n");
+  return "PAKIET PUBLIKACYJNY — ISPINA LOKALNIE\n\nTYTUŁ\n"+title+"\n\nZAJAWKA\n"+excerpt+"\n\nTREŚĆ ARTYKUŁU\n"+article+"\n\nPROPOZYCJA NA FACEBOOKA\n"+facebook+"\n\nLISTA PRZED PUBLIKACJĄ\n"+editorialChecks().map(x=>"• "+x).join("\n");
+}
+function showPublicationBundle(){
+  const root=$("publication-bundle"),title=trim($("post-title").value)||"Brak tytułu",excerpt=trim($("post-excerpt").value)||"Brak zajawki",rawBody=plainEditorialText($("post-body").value),body=rawBody||"Brak treści artykułu",fb=[title,excerpt!=="Brak zajawki"?excerpt:shortEditorialText(rawBody,180),"Zobacz więcej na Ispina Lokalnie."].filter(Boolean).join("\n\n"),checks=editorialChecks();
+  root.classList.remove("hidden");root.innerHTML='<b>Pakiet publikacyjny</b><p><strong>Tytuł:</strong> '+esc(title)+'</p><p><strong>Zajawka:</strong> '+esc(excerpt)+'</p><details><summary>Treść artykułu</summary><div class="note" style="white-space:pre-wrap">'+esc(body)+'</div></details><p><strong>Facebook:</strong><br>'+esc(fb).replace(/\n/g,"<br>")+'</p><b>Ostatnia kontrola przed publikacją</b><ul>'+checks.map(x=>'<li>'+esc(x)+'</li>').join("")+'</ul><div class="actions"><button onclick="copyPublicationBundle()">Kopiuj cały pakiet</button><button class="secondary" onclick="openFacebookTeaser()">Dopracuj zajawkę</button></div>';
+  root.scrollIntoView?.({behavior:"smooth",block:"nearest"});return true;
+}
+function copyPublicationBundle(){const text=publicationBundleText();if(IL.copyText)IL.copyText(text);$("local-save-status").textContent="Skopiowano pakiet publikacyjny. Sprawdź go przed udostępnieniem.";return text;
 }
 function updateMetrics(){
   const body=trim($("post-body").value);
   const words=body?body.split(/\s+/).length:0;
   const title=trim($("post-title").value),excerpt=trim($("post-excerpt").value);
   const warnings=[];
+  const todo=Array.from(new Set((body.match(/\[DO UZUPEŁNIENIA: [^\]]+\]/g)||[])));
   if(title.length>65)warnings.push("Tytuł jest długi ("+title.length+" znaków)");
   if(!excerpt)warnings.push("Brak opisu / zajawki");
   if(!Number($("post-media").value))warnings.push("Brak zdjęcia wyróżniającego");
   if(body&&!/## |<h2[ >]/.test(body))warnings.push("Rozważ dodanie śródtytułów");
+  if(todo.length)warnings.push(todo.length+" pól do uzupełnienia");
   $("editor-metrics").textContent=words+" słów · "+title.length+" znaków tytułu. "+(warnings.length?warnings.join(" · "):"Podstawowa lista redakcyjna kompletna.");
 }
 const draftKey="il_redaktor_drafts_v3";
@@ -1369,10 +1445,13 @@ function correctLocalNames(value,mode="text"){
 }
 function editorialChecks(s=captureDraft()){
   const plain=plainEditorialText(s.title+" "+s.body+" "+s.excerpt),checks=[];
+  const missing=Array.from(new Set((String(s.body||"").match(/\[DO UZUPEŁNIENIA: [^\]]+\]/g)||[]).map(x=>x.replace(/^\[DO UZUPEŁNIENIA: /,"").replace(/\]$/, ""))));
+  if(missing.length)checks.push("Uzupełnij przed publikacją: "+missing.join(", ")+".");
   if(/\bIspini(?:i)?\b|\bIspni\b|\b(?:w|do|z) Ispina\b/i.test(plain))checks.push("Sprawdź odmianę nazwy: w Ispinie, do Ispiny, z Ispiny. Samodzielne „Ispini/Ispinii” wymaga ustalenia kontekstu zdania.");
   if(/(^|[^\p{L}])Niepoł(?=$|[^\p{L}])/iu.test(plain))checks.push("Rozwiń skrót „Niepoł” do właściwej pełnej nazwy: Niepołomice albo Podłęże.");
   const dates=Array.from(new Set(plain.match(/\b(?:18|19|20)\d{2}\b/g)||[])).slice(0,8);
   if(dates.length)checks.push("Daty do sprawdzenia w źródłach: "+dates.join(", ")+". Sam zapis daty nie potwierdza jej poprawności.");
+  if(!/https?:\/\/|źródł|komunikat|dokument|archiw|protokół|uchwał|regulamin/i.test(plain))checks.push("Nie widzę wskazanego źródła. Dodaj link lub nazwę dokumentu i sprawdź, czy jest aktualny.");
   if(/\b(histori|archiw|powódź|powodzi|wspomn|prezes|sekretarz|skarbn|urodz|zmarł)/i.test(plain))checks.push("Sprawdź nazwiska, daty i pochodzenie relacji. Wspomnienia mieszkańców oznacz jako wspomnienia.");
   checks.push("Kontrola lokalna nie weryfikuje faktów w internecie. Przed publikacją sprawdź źródła, nazwiska i informacje praktyczne.");return checks;
 }

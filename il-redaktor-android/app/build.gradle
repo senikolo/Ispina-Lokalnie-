@@ -10,8 +10,8 @@ android {
         testInstrumentationRunner 'com.ispinalokalnie.redaktor.ConfirmationInstrumentation'
         minSdk 26
         targetSdk 35
-        versionCode 24
-        versionName '1.18.0'
+        versionCode 25
+        versionName '1.19.0'
         def assistantEndpoint = System.getenv('IL_ASSISTANT_ENDPOINT') ?: project.findProperty('ilAssistantEndpoint') ?: ''
         if (assistantEndpoint && !assistantEndpoint.toString().startsWith('https://')) {
             throw new GradleException('IL_ASSISTANT_ENDPOINT must use HTTPS.')

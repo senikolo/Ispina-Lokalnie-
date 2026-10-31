@@ -586,9 +586,9 @@ test("AI context exposes published posts only for reader recommendations",()=>{
 test("new build metadata and the PR APK workflow agree",()=>{
   const gradle=fs.readFileSync(path.join(__dirname,"../app/build.gradle"),"utf8");
   const workflow=fs.readFileSync(path.join(__dirname,"../../.github/workflows/il-redaktor-apk.yml"),"utf8");
-  assert.match(gradle,/versionCode 24/);assert.match(gradle,/versionName '1\.18\.0'/);
+  assert.match(gradle,/versionCode 25/);assert.match(gradle,/versionName '1\.19\.0'/);
   assert.match(gradle,/applicationId 'com\.ispinalokalnie\.redaktorsmart\.stable'/);
-  assert.match(workflow,/versionCode='24' versionName='1\.18\.0'/);
+  assert.match(workflow,/versionCode='25' versionName='1\.19\.0'/);
 });
 
 test("AI editor shortcut copies current title and text into a reviewable prompt without sending it",()=>{
@@ -597,6 +597,43 @@ test("AI editor shortcut copies current title and text into a reviewable prompt 
   assert.match(a.node("assistant-prompt").value,/Skróć tekst/);
   assert.match(a.node("assistant-prompt").value,/Wiadomości z Ispiny/);
   assert.match(a.node("assistant-prompt").value,/Treść do poprawienia/);
+});
+
+test("ChatGPT/Gemini handoff adds fact guardrails and sends only after the user taps",()=>{
+  const a=setup();let sent="";a.node("assistant-prompt").value="Skróć tekst artykułu";a.c.IL.shareAssistantPrompt=text=>{sent=text};
+  assert.equal(a.run("sendAssistantToApps()"),true);
+  assert.match(sent,/w Ispinie, do Ispiny, z Ispiny/);assert.match(sent,/Nie wymyślaj dat/);assert.match(sent,/Skróć tekst artykułu/);
+  assert.equal(a.node("assistant-handoff-status").textContent,"Próbuję otworzyć ChatGPT. Jeśli nie będzie dostępny, spróbuję Gemini.");
+});
+
+test("external assistant answer must be imported as a comparison before changing article text",()=>{
+  const a=setup();a.node("assistant-return-text").value="Poprawiona treść z odpowiedzi AI";a.node("assistant-return-target").value="body";
+  a.run("compareExternalAssistantResponse()");
+  assert.equal(a.node("post-body").value,"Treść testowa");
+  assert.equal(a.run("pendingCorrection.changes.body"),"Poprawiona treść z odpowiedzi AI");
+  assert.match(a.node("correction-reason").textContent,/Odpowiedź z ChatGPT\/Gemini/);
+});
+
+test("smart local template marks unknown information and reports it before publication",()=>{
+  const a=setup();a.run("insertTemplate(0)");a.node("template-field-0").value="Zmiana godzin odjazdu";a.node("template-field-1").value="2";a.run("applyTemplate(0)");
+  assert.match(a.node("post-title").value,/Zmiany w rozkładach MLD: Zmiana godzin odjazdu/);
+  assert.match(a.node("post-body").value,/Zmiana godzin odjazdu/);assert.match(a.node("post-body").value,/\[DO UZUPEŁNIENIA: Od kiedy obowiązuje zmiana\?\]/);
+  assert.match(a.node("editor-audit").innerHTML,/Uzupełnij: Od kiedy obowiązuje zmiana/);
+  assert.match(a.node("editor-metrics").textContent,/pól do uzupełnienia/);
+});
+
+test("publication bundle contains only the current draft and its local preflight checks",()=>{
+  const a=setup();a.node("post-title").value="Zmiany w rozkładzie";a.node("post-excerpt").value="Sprawdź nowe godziny.";a.node("post-body").value="Linia 2 odjeżdża później.";
+  a.run("showPublicationBundle()");const html=a.node("publication-bundle").innerHTML;
+  assert.match(html,/Zmiany w rozkładzie/);assert.match(html,/Sprawdź nowe godziny/);assert.match(html,/Linia 2 odjeżdża później/);assert.match(html,/Ostatnia kontrola przed publikacją/);
+});
+
+test("native AI handoff prefers ChatGPT, then Gemini, and reads clipboard only on request",()=>{
+  const java=fs.readFileSync(path.join(__dirname,"../app/src/main/java/com/ispinalokalnie/redaktor/MainActivity.java"),"utf8");
+  assert.ok(java.indexOf('"com.openai.chatgpt"')<java.indexOf('"com.google.android.apps.bard"'));
+  assert.match(java,/void shareAssistantPrompt/);assert.match(java,/void readAssistantClipboard/);assert.match(java,/Intent\.ACTION_SEND/);
+  const manifest=fs.readFileSync(path.join(__dirname,"../app/src/main/AndroidManifest.xml"),"utf8");
+  assert.match(manifest,/com\.openai\.chatgpt/);assert.match(manifest,/com\.google\.android\.apps\.bard/);
 });
 
 test("free Facebook draft uses only current title and excerpt without adding facts",()=>{

@@ -1,6 +1,12 @@
-# IL Redaktor Smart 1.18.0
+# IL Redaktor Smart 1.19.0
 
-Stały applicationId `com.ispinalokalnie.redaktorsmart.stable`, versionCode 24. Podpisuj tym samym kluczem co 1.14/1.15/1.16/1.17; nie odinstalowuj przy aktualizacji.
+Stały applicationId `com.ispinalokalnie.redaktorsmart.stable`, versionCode 25. Podpisuj tym samym kluczem co 1.14/1.15/1.16/1.17/1.18; nie odinstalowuj przy aktualizacji.
+
+Wersja 1.19 dodaje bezpłatne przekazanie polecenia do aplikacji ChatGPT, a gdy nie ma odbiorcy ChatGPT — próbę otwarcia Gemini. Nie używa klucza API ani nie wysyła tekstu bez dotknięcia przycisku. Po powrocie odpowiedź można wkleić ze schowka i porównać z treścią, tytułem, zajawką lub tekstem na Facebooka. Zmiana artykułu wymaga zatwierdzenia w porównaniu. Bez aplikacji przyjmującej tekst pozostaje kopiowanie polecenia i ręczne wklejenie.
+
+Szablony krok po kroku obejmują MLD, wydarzenia i OSP, aktualności, historię oraz usługi lokalne. Puste informacje są oznaczane jako „DO UZUPEŁNIENIA”; lokalna kontrola pokazuje też brakujące źródło, daty i formy nazwy Ispina. Pakiet publikacyjny zbiera tytuł, zajawkę, propozycję na Facebooka i listę sprawdzeń.
+
+ChatGPT/Gemini są zewnętrznymi aplikacjami. Wysłanie treści wymaga świadomego działania użytkownika, a powrót odpowiedzi następuje przez schowek. Odbiór tekstu zależy od wersji i ustawień danej aplikacji.
 
 Wersja 1.18 kieruje krótką wibrację do każdego dotkniętego kafelka pulpitu, zakładki dolnej nawigacji i dnia w kalendarzu. Usunięto ograniczenie tłumiące szybkie kolejne tapnięcia, a intensywności mają wyraźniejsze czasy i amplitudy. Wibracje nadal można wyłączyć lub regulować w ustawieniach. Test UI obejmuje wiele kolejnych tapnięć oraz natywny most Androida.
 

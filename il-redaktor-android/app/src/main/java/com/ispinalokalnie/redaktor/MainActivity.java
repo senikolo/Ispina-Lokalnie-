@@ -380,6 +380,36 @@ public class MainActivity extends Activity {
         }
         @JavascriptInterface public void importDraftBackup(){ui.post(()->{if(backupPickerBusy)return;backupPickerBusy=true;try{Intent i=new Intent(Intent.ACTION_OPEN_DOCUMENT);i.addCategory(Intent.CATEGORY_OPENABLE);i.setType("*/*");i.putExtra(Intent.EXTRA_MIME_TYPES,new String[]{"application/json","text/plain","application/octet-stream"});startActivityForResult(i,1007);}catch(Exception ex){backupPickerBusy=false;callback("draft-import",false,"Nie można otworzyć wyboru pliku.");}});}
         @JavascriptInterface public void shareText(String text){if(text==null||text.length()>12000)return;ui.post(()->{try{Intent i=new Intent(Intent.ACTION_SEND);i.setType("text/plain");i.putExtra(Intent.EXTRA_TEXT,text);startActivity(Intent.createChooser(i,"Udostępnij zapowiedź artykułu"));}catch(Exception ex){callback("copy",false,"Nie znaleziono aplikacji do udostępnienia. Użyj Kopiuj.");}});}
+        @JavascriptInterface public void shareAssistantPrompt(String text){
+            if(text==null||text.trim().isEmpty()||text.length()>18000){callback("assistant-handoff",false,"Polecenie jest puste albo za długie. Skróć je i spróbuj ponownie.");return;}
+            ui.post(()->{
+                Intent base=new Intent(Intent.ACTION_SEND);base.setType("text/plain");base.putExtra(Intent.EXTRA_TEXT,text);
+                String[][] apps={{"com.openai.chatgpt","ChatGPT jest otwarty. Wklej polecenie, jeśli aplikacja o to poprosi; po uzyskaniu odpowiedzi wróć do Redaktora."},{"com.google.android.apps.bard","ChatGPT nie jest dostępny. Otworzyłem Gemini; wklej polecenie, jeśli aplikacja o to poprosi."}};
+                for(String[] app:apps){
+                    Intent target=new Intent(base);target.setPackage(app[0]);
+                    try{if(target.resolveActivity(getPackageManager())!=null){startActivity(target);callback("assistant-handoff",true,app[1]);return;}}
+                    catch(RuntimeException ignored){/* Try the next provider, then the system share sheet. */}
+                }
+                try{
+                    android.content.ClipboardManager clipboard=(android.content.ClipboardManager)getSystemService(CLIPBOARD_SERVICE);
+                    clipboard.setPrimaryClip(android.content.ClipData.newPlainText("Polecenie IL",text));
+                    startActivity(Intent.createChooser(base,"ChatGPT lub Gemini — wybierz aplikację"));
+                    callback("assistant-handoff",true,"Nie wykryłem odbiorcy ChatGPT/Gemini. Skopiowałem polecenie i otworzyłem pozostałe aplikacje do udostępniania; możesz też wkleić tekst ręcznie w ChatGPT lub Gemini.");
+                }catch(RuntimeException ex){callback("assistant-handoff",false,"Nie można otworzyć aplikacji AI. Polecenie nie zostało wysłane.");}
+            });
+        }
+        @JavascriptInterface public void readAssistantClipboard(){
+            ui.post(()->{
+                try{
+                    android.content.ClipboardManager clipboard=(android.content.ClipboardManager)getSystemService(CLIPBOARD_SERVICE);
+                    if(clipboard==null||!clipboard.hasPrimaryClip()||clipboard.getPrimaryClip()==null||clipboard.getPrimaryClip().getItemCount()==0){callback("assistant-clipboard",true,"{\"text\":\"\"}");return;}
+                    CharSequence value=clipboard.getPrimaryClip().getItemAt(0).coerceToText(MainActivity.this);
+                    String text=value==null?"":value.toString();
+                    if(text.length()>12000){callback("assistant-clipboard",false,"Odpowiedź ze schowka przekracza 12 000 znaków. Skopiuj krótszą propozycję.");return;}
+                    callback("assistant-clipboard",true,new JSONObject().put("text",text).toString());
+                }catch(Exception ex){callback("assistant-clipboard",false,"Nie udało się odczytać schowka. Skopiuj odpowiedź ponownie i spróbuj jeszcze raz.");}
+            });
+        }
 
         @JavascriptInterface public void getHaptics() {
             callback("haptics", true, "{\"mode\":" + hapticMode()

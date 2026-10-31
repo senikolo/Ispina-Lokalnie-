@@ -114,6 +114,10 @@ jobs:
           assert 'function testDraftWrite' in src and 'test-draft-write' in src, 'In-app write diagnostic missing'
           assert 'status:"draft"' in src, 'Diagnostic must create a draft, not a public post'
           assert 'function suggestRelatedReading' in src, 'Reader recommendations missing'
+          assert 'function sendAssistantToApps' in src and 'function compareExternalAssistantResponse' in src, 'ChatGPT/Gemini return flow missing'
+          assert 'void shareAssistantPrompt' in main and 'void readAssistantClipboard' in main, 'Native AI handoff or clipboard bridge missing'
+          assert 'com.openai.chatgpt' in main and 'com.google.android.apps.bard' in main, 'ChatGPT first / Gemini fallback missing'
+          assert 'function applyTemplate' in src and 'Zmiany w rozkładach MLD' in src and 'function showPublicationBundle' in src, 'Smart editorial templates or package missing'
           assert 'readingPromotions: z.array' in pathlib.Path('il-redaktor-android/backend/api/assistant.ts').read_text(), 'AI reader promotions missing'
           assert 'showPublishedPage' in main and 'isPublishedSiteUrl' in main, 'In-app published article view missing'
           for required in ['SUKCES!','NIE POWIODŁO SIĘ','function showOutcome','id="finish-dialog"']:
@@ -241,7 +245,7 @@ jobs:
           test -s "$APK"
           test -s il-redaktor-android/app/src/main/assets/il-monogram.png
           "$SDK_ROOT/build-tools/35.0.0/apksigner" verify --verbose "$APK"
-          "$SDK_ROOT/build-tools/35.0.0/aapt" dump badging "$APK" | grep -F "package: name='com.ispinalokalnie.redaktorsmart.stable' versionCode='24' versionName='1.18.0'"
+          "$SDK_ROOT/build-tools/35.0.0/aapt" dump badging "$APK" | grep -F "package: name='com.ispinalokalnie.redaktorsmart.stable' versionCode='25' versionName='1.19.0'"
           unzip -l "$APK" | grep 'assets/il-monogram.png'
       - name: Upload installable APK
         uses: actions/upload-artifact@v4
