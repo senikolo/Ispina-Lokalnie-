@@ -35,12 +35,57 @@ nav button.active{color:#095eb6;background:#edf6ff}nav button .sym{display:block
 .badge{display:inline-block;background:#eaf4ff;color:#1758a1;border-radius:50px;padding:3px 10px;font-size:12px}
 iframe{width:100%;min-height:320px;background:white;border:1px solid #cad6e6;border-radius:12px}
 .hidden{display:none!important}a{color:#075eb1}hr{border:0;border-top:1px solid #e1e9f2;margin:20px 0}
+
+/* Ispina Lokalnie official palette: #174875, #2d6d98, #f3f7fc, #dbe5ef */
+:root{font-family:Inter,system-ui,-apple-system,"Roboto",sans-serif;color:#23415f;background:#f3f7fc}
+header{background:#174875;border-radius:0 0 16px 16px;padding:20px 17px 18px}
+.logo{width:58px;height:58px;object-fit:contain;background:transparent;border-radius:13px;box-shadow:none;display:block}
+header h1{font-family:Cardo,Georgia,serif;font-size:25px;letter-spacing:.1px;color:white}
+header p{font-family:Cardo,Georgia,serif;font-style:italic;font-size:14px;color:#e7f2fa}
+.eyebrow{font-size:10px;letter-spacing:1.8px;font-weight:750;color:#a7d3f4;margin-bottom:2px}
+.card{border-color:#dbe5ef;border-radius:16px;box-shadow:0 2px 6px #1748750a}
+h2{font-family:Cardo,Georgia,serif;font-size:23px;color:#174875}
+h3{font-family:Cardo,Georgia,serif;color:#174875}
+input:focus,textarea:focus,select:focus{outline:2px solid #7daacb;outline-offset:1px}
+button{background:#174875;border-radius:10px}
+button.secondary{background:#e7f0f7;color:#174875}
+nav button.active{color:#174875;background:#edf5fb}
+.note{background:#edf5fb;color:#23415f}
+.hero-card{background:#fff}.hero-card .home-mark{width:74px;height:74px;object-fit:contain;flex-shrink:0;border-radius:12px}
+.hero-card .eyebrow{color:#2d6d98}.hero-card h2{font-size:22px;margin:4px 0}
+.quick-grid{margin:0 0 14px}.tile{min-height:126px;text-align:left;background:#fff;color:#174875;border:1px solid #dbe5ef;border-radius:16px;display:flex;align-items:flex-start;flex-direction:column;gap:4px;padding:15px;box-shadow:0 2px 6px #1748750c}
+.tile-icon{font-size:26px}.tile b{font-size:17px;font-family:Cardo,Georgia,serif}.tile small{color:#526477;font-size:12px}
+.primary-login{display:block;width:100%;font-size:16px;min-height:53px;margin:12px 0;background:#174875}
+.media-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:11px;margin-top:15px}
+.media-card{border:1px solid #dbe5ef;border-radius:14px;overflow:hidden;background:white}
+.media-card img{width:100%;height:120px;object-fit:contain;background:#f3f7fc}
+.media-card .media-info{padding:9px}.media-card b{font-size:12px;display:block;word-break:break-word;line-height:1.4}
+.media-card button{width:100%;font-size:12px;margin-top:8px}
+#oauth-setup{border:1px solid #dbe5ef;padding:12px;margin-top:12px;border-radius:12px}
+#editor-metrics{font-size:12px}
+.wide{width:100%}
+@media(max-width:370px){.actions button{flex:1}header h1{font-size:22px}nav button{font-size:10px}}
 </style>
 </head>
 <body>
-<header><div class="brand"><div class="logo">IL</div><div><h1>IL Redaktor Smart</h1><p>Łączy nas Ispina · panel redakcyjny</p></div></div></header>
+<header><div class="brand"><img class="logo" src="il-monogram.png" alt="Oryginalny monogram IL"><div><div class="eyebrow">ISPINA LOKALNIE</div><h1>Redaktor Smart</h1><p>Łączy nas Ispina · panel redakcyjny</p></div></div></header>
 <main>
-<section id="screen-editor" class="panel active">
+<section id="screen-home" class="panel active">
+  <div class="card hero-card">
+    <div class="row" style="align-items:flex-start"><img class="home-mark" src="il-monogram.png" alt="Monogram Ispina Lokalnie"><div><div class="eyebrow">TWOJA REDAKCJA</div><h2>Witaj w Ispina Lokalnie!</h2><p class="muted" style="margin:2px 0">Wszystko, czego potrzebujesz do prowadzenia portalu, w jednym miejscu.</p></div></div>
+    <div id="home-connection" class="note">Sprawdzam połączenie z WordPressem...</div>
+    <div class="actions"><button onclick="resetEditor();showScreen('editor')">+ Nowy artykuł</button><button class="secondary" onclick="showScreen('posts');loadPosts()">Moje artykuły</button></div>
+  </div>
+  <div class="grid quick-grid">
+    <button class="tile" onclick="showScreen('posts');loadPosts()"><span class="tile-icon">▤</span><b>Artykuły</b><small>Wpisy i szkice</small></button>
+    <button class="tile" onclick="showScreen('services');loadServices()"><span class="tile-icon">▦</span><b>Usługi</b><small>Katalog firm</small></button>
+    <button class="tile" onclick="showScreen('media');loadMedia()"><span class="tile-icon">▣</span><b>Galeria</b><small>Zdjęcia wpisów</small></button>
+    <button class="tile" onclick="showScreen('editor');showTemplates()"><span class="tile-icon">✦</span><b>Szablony</b><small>Szybki start</small></button>
+  </div>
+  <div class="card"><h2>Wskazówki redakcyjne</h2><p class="muted">Przygotowuj szkice, poprawiaj teksty i publikuj dopiero po sprawdzeniu podglądu. Redaktor zachowa wersję lokalną w tym telefonie, nawet jeśli chwilowo zabraknie Internetu.</p>
+  <div class="actions"><button class="secondary" onclick="showScreen('settings')">Połącz z WordPressem</button><button class="secondary" onclick="IL.openSite('https://ispinalokalnie.wordpress.com/')">Otwórz portal</button></div></div>
+</section>
+<section id="screen-editor" class="panel">
   <div class="card">
     <div class="row" style="justify-content:space-between"><h2 id="editor-heading">Nowy artykuł</h2><span class="badge" id="edit-status">Nowy</span></div>
     <div class="status"><span id="editor-dot" class="dot"></span><span id="editor-auth">Sprawdzanie połączenia...</span></div>
@@ -50,10 +95,13 @@ iframe{width:100%;min-height:320px;background:white;border:1px solid #cad6e6;bor
     <label style="flex:1">Format<select id="post-mode"><option value="text">Tekst → HTML</option><option value="html">HTML / bloki WordPress</option></select></label></div>
     <label for="post-excerpt">Krótki opis / zajawka SEO</label><textarea id="post-excerpt" style="min-height:80px" placeholder="Opis wyświetlany na liście wpisów..."></textarea>
     <label for="post-tags">Tagi (oddziel przecinkami)</label><input id="post-tags" placeholder="Ispina, historia Ispiny">
-    <label for="post-media">Zdjęcie wyróżniające: identyfikator WordPress</label>
-    <div class="row"><input id="post-media" type="number" min="0" value="0" style="flex:1"><button class="secondary" onclick="IL.chooseImage()">Dodaj zdjęcie</button></div>
-    <div class="actions"><button class="secondary" onclick="suggest()">Dopracuj tekst i SEO</button><button class="secondary" onclick="preview()">Podgląd</button></div>
-    <div class="actions"><button onclick="savePost('draft')">Zapisz szkic</button><button onclick="savePost('publish')">Opublikuj po zatwierdzeniu</button><button class="secondary" onclick="resetEditor()">Nowy wpis</button></div>
+    <label for="post-media">Zdjęcie wyróżniające</label>
+    <div class="row"><input id="post-media" type="number" min="0" value="0" style="flex:1"><button class="secondary" onclick="IL.chooseImage()">Z telefonu</button><button class="secondary" onclick="showScreen('media');loadMedia()">Z galerii IL</button></div>
+    <div class="actions"><button class="secondary" onclick="suggest()">Korekta i SEO</button><button class="secondary" onclick="preview()">Podgląd</button><button class="secondary" onclick="showTemplates()">Szablony</button></div>
+    <div id="templates-box" class="note hidden"></div>
+    <div id="editor-metrics" class="note">Napisz tekst, aby zobaczyć wskazówki redakcyjne.</div>
+    <div class="actions"><button class="secondary" onclick="restoreLocal()">Przywróć lokalny szkic</button><button class="secondary" onclick="downloadText()">Kopia tekstu</button></div>
+    <div class="actions"><button onclick="savePost('draft')" id="save-draft">Zapisz szkic / zmiany</button><button onclick="savePost('publish')" id="save-publish">Opublikuj po zatwierdzeniu</button><button class="secondary" onclick="resetEditor()">Nowy wpis</button></div>
     <div id="post-output" aria-live="polite"></div>
   </div>
   <div id="preview-box" class="card hidden"><h2>Podgląd artykułu</h2><iframe sandbox="" id="post-preview" title="Podgląd artykułu"></iframe></div>
@@ -61,10 +109,19 @@ iframe{width:100%;min-height:320px;background:white;border:1px solid #cad6e6;bor
 
 <section id="screen-posts" class="panel">
   <div class="card"><h2>Artykuły na portalu</h2><p class="muted">Pobierz listę, wybierz istniejący wpis i edytuj go bez utraty numeru ID.</p>
-  <div class="actions"><button onclick="loadPosts()">Odśwież wpisy</button><button class="secondary" onclick="showScreen('editor')">Nowy artykuł</button></div>
+  <label for="posts-search">Wyszukaj tytuł lub fragment</label><input id="posts-search" placeholder="Szukaj wpisów..." oninput="renderPosts()">
+  <div class="actions"><button onclick="loadPosts()">Odśwież wpisy</button><button class="secondary" onclick="resetEditor();showScreen('editor')">Nowy artykuł</button></div>
   <div id="posts-output" aria-live="polite"></div></div>
 </section>
 
+<section id="screen-media" class="panel">
+  <div class="card">
+    <h2>Biblioteka zdjęć IL</h2><p class="muted">Wybierz istniejące zdjęcie z WordPressa do artykułu. Nie trzeba ręcznie wpisywać identyfikatora zdjęcia.</p>
+    <label>Wyszukaj zdjęcie w bibliotece</label><input id="media-search" placeholder="Np. most, Ispina, OSP">
+    <div class="actions"><button onclick="loadMedia()">Pokaż zdjęcia</button><button class="secondary" onclick="IL.chooseImage()">Prześlij nowe</button></div>
+    <div id="media-output"></div>
+  </div>
+</section>
 <section id="screen-services" class="panel">
   <div class="card">
     <h2>Katalog „Usługi”</h2>
@@ -84,21 +141,27 @@ iframe{width:100%;min-height:320px;background:white;border:1px solid #cad6e6;bor
 
 <section id="screen-settings" class="panel">
   <div class="card">
-    <h2>Połączenie WordPress.com</h2>
+    <h2>Logowanie do WordPressa</h2>
     <p class="muted">Portal: <b>ispinalokalnie.wordpress.com</b><br>Identyfikator witryny: <b>252442125</b></p>
     <div id="settings-state" class="note">Sprawdzanie autoryzacji...</div>
-    <label for="client-id">Client ID aplikacji WordPress.com</label><input id="client-id" type="number" placeholder="Numer aplikacji OAuth">
+    <button class="wide primary-login" onclick="oneTapConnect()">Połącz z WordPress.com</button>
+    <p class="muted">Po jednorazowej konfiguracji wystarczy kliknąć przycisk powyżej. Nie zapisujemy Twojego hasła.</p>
+    <button class="secondary" onclick="toggleSetup()">Pierwsze połączenie / ustawienia zaawansowane</button>
+    <div id="oauth-setup" class="hidden">
+    <label for="client-id">Publiczny Client ID WordPress.com (wymagany tylko za pierwszym razem)</label><input id="client-id" inputmode="numeric" placeholder="Numer aplikacji OAuth">
     <p class="muted">Aby publikować z własnej aplikacji, zarejestruj ją w WordPress.com Apps. Adres przekierowania wpisz dokładnie jako:</p>
     <div class="note" style="overflow-wrap:anywhere">https://ispinalokalnie.wordpress.com/il-redaktor-auth/</div>
     <p class="muted">Nie wpisuj tutaj Client Secret ani hasła do konta. Aplikacja nie przechowuje sekretu OAuth; token jest szyfrowany w Android Keystore.</p>
     <div class="actions"><button onclick="connect()">Połącz konto WordPress</button><button class="secondary" onclick="IL.openSite('https://developer.wordpress.com/apps/')">Rejestracja aplikacji</button><button class="danger" onclick="disconnect()">Wyloguj</button></div>
-    <div id="auth-output" aria-live="polite"></div>
+    </div><div id="auth-output" aria-live="polite"></div>
+    <div class="actions"><button class="secondary" onclick="verifyNow()">Sprawdź dostęp do wpisów</button></div>
   </div>
-  <div class="card"><h2>O programie</h2><p class="muted">IL Redaktor Smart 1.0.0-test · Niezależna aplikacja Android 8–16. WordPress.com REST API. Publikacja wymaga potwierdzenia. Zapis jest uznawany za udany dopiero po otrzymaniu identyfikatora WordPress.</p></div>
+  <div class="card"><h2>O programie</h2><p class="muted">IL Redaktor Smart 1.1.0-test · Niezależna aplikacja Android 8–16. WordPress.com REST API. Publikacja wymaga potwierdzenia. Zapis jest uznawany za udany dopiero po otrzymaniu identyfikatora WordPress.</p></div>
 </section>
 </main>
 <nav aria-label="Główne zakładki">
-<button id="nav-editor" class="active" onclick="showScreen('editor')"><span class="sym">✎</span>Redaktor</button>
+<button id="nav-home" class="active" onclick="showScreen('home')"><span class="sym">⌂</span>Pulpit</button>
+<button id="nav-editor" onclick="showScreen('editor')"><span class="sym">✎</span>Redaktor</button>
 <button id="nav-posts" onclick="showScreen('posts')"><span class="sym">▤</span>Artykuły</button>
 <button id="nav-services" onclick="showScreen('services')"><span class="sym">▦</span>Usługi</button>
 <button id="nav-settings" onclick="showScreen('settings')"><span class="sym">⚙</span>Połączenie</button>
