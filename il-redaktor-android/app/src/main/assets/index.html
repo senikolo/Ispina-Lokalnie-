@@ -65,10 +65,20 @@ nav button.active{color:#174875;background:#edf5fb}
 #editor-metrics{font-size:12px}
 .wide{width:100%}
 @media(max-width:370px){.actions button{flex:1}header h1{font-size:22px}nav button{font-size:10px}}
+.finish-dialog{position:fixed;inset:0;background:#112e4db5;z-index:20;display:flex;align-items:center;justify-content:center;padding:20px}
+.finish-panel{width:100%;max-width:470px;background:#fff;border-radius:22px;padding:24px;box-shadow:0 20px 60px #001b3650}
+.finish-symbol{font-size:35px;line-height:1;color:#148450}.finish-panel.error .finish-symbol{color:#b03f3a}
+.finish-title{font-size:26px;font-weight:800;color:#174875;margin:10px 0;font-family:Cardo,Georgia,serif}
+.finish-panel.error .finish-title{color:#923e3a}
+.finish-detail{color:#36506b;line-height:1.55;font-size:15px;overflow-wrap:anywhere}
+.finish-panel button{margin-top:12px}
+.finish-actions{display:flex;flex-wrap:wrap;gap:10px}
+.operation-status{position:sticky;top:0;z-index:8;background:#174875;color:white;padding:9px 14px;border-radius:0 0 12px 12px;font-size:13px;font-weight:700;text-align:center}
 </style>
 </head>
 <body>
 <header><div class="brand"><img class="logo" src="il-monogram.png" alt="Oryginalny monogram IL"><div><div class="eyebrow">ISPINA LOKALNIE</div><h1>Redaktor Smart</h1><p>Łączy nas Ispina · panel redakcyjny</p></div></div></header>
+<div id="working-state" class="operation-status hidden" role="status" aria-live="polite">Trwa wykonywanie operacji…</div>
 <main>
 <section id="screen-home" class="panel active">
   <div class="card hero-card">
@@ -163,6 +173,13 @@ nav button.active{color:#174875;background:#edf5fb}
   <div class="card"><h2>O programie</h2><p class="muted">IL Redaktor Smart 1.1.0-test · Niezależna aplikacja Android 8–16. WordPress.com REST API. Publikacja wymaga potwierdzenia. Zapis jest uznawany za udany dopiero po otrzymaniu identyfikatora WordPress.</p></div>
 </section>
 </main>
+<div id="finish-dialog" class="finish-dialog hidden" role="alertdialog" aria-modal="true" aria-labelledby="finish-title">
+<div id="finish-panel" class="finish-panel">
+<div id="finish-symbol" class="finish-symbol">✓</div>
+<h2 id="finish-title" class="finish-title">SUKCES!</h2>
+<p id="finish-detail" class="finish-detail"></p>
+<div class="finish-actions"><button id="finish-open" class="hidden" onclick="openFinishUrl()">Otwórz w WordPressie</button><button class="secondary" onclick="closeFinish()">OK, zamknij</button></div>
+</div></div>
 <nav aria-label="Główne zakładki">
 <button id="nav-home" class="active" onclick="showScreen('home')"><span class="sym">⌂</span>Pulpit</button>
 <button id="nav-editor" onclick="showScreen('editor')"><span class="sym">✎</span>Redaktor</button>
@@ -175,6 +192,22 @@ nav button.active{color:#174875;background:#edf5fb}
 const $=id=>document.getElementById(id);
 const SITE="252442125", PAGE=818;
 const requests=new Map();
+let finishUrl="";
+function startOperation(label){$("working-state").textContent="⏳ "+label;$("working-state").classList.remove("hidden");}
+function endOperation(){$("working-state").classList.add("hidden");}
+function showOutcome(kind,headline,detail,link=""){
+  endOperation();
+  finishUrl=link;
+  $("finish-panel").classList.toggle("error",kind==="error");
+  $("finish-symbol").textContent=kind==="success"?"✓":"!";
+  $("finish-title").textContent=headline;
+  $("finish-detail").textContent=detail;
+  $("finish-open").classList.toggle("hidden",!link);
+  $("finish-dialog").classList.remove("hidden");
+}
+function closeFinish(){$("finish-dialog").classList.add("hidden");}
+function openFinishUrl(){if(finishUrl)IL.openSite(finishUrl);}
+
 let reqNo=0, connected=false, postId=null, postStatus="", services=[], servicesLoaded=false, servicesRaw="", allPosts=[];
 const localKey="il_redaktor_draft_v2";let restoring=false, saveTimer=0;
 const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
@@ -222,11 +255,13 @@ window.onNativeResult=function(id,ok,payload){
     connected=!!ok;
     reflectAuth();
     if(ok){
-      message("auth-output","Połączenie potwierdzone: WordPress zwrócił listę wpisów.","ok");
+      message("auth-output","SUKCES! Połączenie potwierdzone przez WordPress.","ok");
+      showOutcome("success","SUKCES!","Zalogowano i potwierdzono dostęp do artykułów Ispina Lokalnie.");
       message("home-connection","Konto WordPress połączone i zweryfikowane. Możesz pracować nad portalem.","ok");
       loadCategories();
     }else{
       message("auth-output",payload,"error");
+      showOutcome("error","NIE POWIODŁO SIĘ","WordPress nie potwierdził połączenia: "+payload);
       message("home-connection","Nie udało się potwierdzić dostępu do wpisów.","error");
     }
   }
@@ -332,6 +367,7 @@ async function savePost(status){
     if(!confirm("Ten artykuł jest już opublikowany. Zapisać zmiany BEZ wycofywania publikacji?"))return;
     status="publish";
   }
+  startOperation(status==="publish"?"Publikuję artykuł…":"Zapisuję szkic…");
   message("post-output","Trwa wysyłanie. Czekamy na potwierdzenie numeru ID od WordPressa.");
   try{
     const mediaId=Number($("post-media").value)||0;
@@ -346,8 +382,16 @@ async function savePost(status){
     localStorage.removeItem(localKey);
     $("editor-heading").textContent="Edytuj artykuł #"+result.id;
     $("edit-status").textContent=status==="publish"?"Opublikowany":"Szkic";
-    message("post-output",(status==="publish"?"Opublikowano":"Zapisano szkic")+"! WordPress ID: "+result.id+" · Status: "+result.status+" · "+(result.link||"brak linku"),"ok");
-  }catch(e){message("post-output","Nie zapisano potwierdzonego wpisu: "+e.message,"error")}
+    const summary=status==="publish"?"SUKCES! Artykuł opublikowany.":"SUKCES! Szkic zapisany.";
+    const detail="WordPress potwierdził zapis. Tytuł: "+title+". Numer wpisu: "+result.id+". Status: "+result.status+".";
+    message("post-output",summary+" "+detail,"ok");
+    const link=result.link&&/^https:\/\/ispinalokalnie\.wordpress\.com\//.test(result.link)?result.link:
+      "https://wordpress.com/post/ispinalokalnie.wordpress.com/"+result.id;
+    showOutcome("success",summary,detail,link);
+  }catch(e){
+    message("post-output","Nie potwierdzono zapisu: "+e.message,"error");
+    showOutcome("error","NIE POWIODŁO SIĘ","Nie uzyskano potwierdzenia zapisu z WordPressa. "+e.message+" Jeśli połączenie zostało przerwane, sprawdź listę wpisów przed ponowną próbą, aby uniknąć duplikatu.");
+  }
 }
 function resetEditor(){
   postId=null;postStatus="";
@@ -463,6 +507,7 @@ async function saveService(){
   if(!name||!description){message("services-output","Wpisz nazwę firmy i opis.","error");return}
   if(url&&!/^https:\/\/[a-z0-9.-]+(?:\/[^\s]*)?$/i.test(url)){message("services-output","Adres strony musi zaczynać się od https://","error");return}
   if(!confirm("Zapisać ofertę „"+name+"” na publicznej stronie Usługi w okolicy?"))return;
+  startOperation("Zapisuję ofertę w katalogu…");
   message("services-output","Przygotowuję zapis i potwierdzenie WordPressa...");
   try{
     // Refetch just before write, to minimize risk of overwriting other edits.
@@ -481,8 +526,13 @@ async function saveService(){
     const result=await rpc("POST","pages/"+PAGE,{content});
     if(Number(result.id)!==PAGE)throw Error("WordPress nie potwierdził poprawnej strony.");
     servicesRaw=content;services=next;drawServices();clearService();
-    message("services-output","Zapis potwierdzony! Strona WordPress ID "+PAGE+". Ofert zarządzanych przez Redaktora: "+services.length,"ok");
-  }catch(e){message("services-output","Nie zapisano oferty: "+e.message,"error")}
+    const detail="Firma: "+name+". WordPress potwierdził aktualizację strony Usługi w okolicy (ID "+PAGE+").";
+    message("services-output","SUKCES! "+detail,"ok");
+    showOutcome("success","SUKCES! Oferta zapisana.",detail,"https://ispinalokalnie.wordpress.com/uslugi-w-okolicy/");
+  }catch(e){
+    message("services-output","Nie potwierdzono zapisu oferty: "+e.message,"error");
+    showOutcome("error","NIE POWIODŁO SIĘ","WordPress nie potwierdził aktualizacji katalogu. "+e.message);
+  }
 }
 const templates=[
  {name:"Aktualność",title:"Co nowego w Ispinie?",body:"## Najważniejsze informacje\n\nOpisz krótko, co się wydarzyło i dlaczego jest to ważne dla mieszkańców.\n\n## Szczegóły\n\nPodaj miejsce, datę, organizatora oraz źródło informacji.\n\n## Co dalej?\n\nDodaj przydatny link lub kontakt.",cat:"10543"},
