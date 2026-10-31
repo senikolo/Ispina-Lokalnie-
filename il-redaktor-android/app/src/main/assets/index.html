@@ -79,6 +79,23 @@ nav button.active{color:#174875;background:#edf5fb}
 .activity-entry{border-bottom:1px solid #e2eaf3;padding:10px 0;font-size:13px;line-height:1.5}
 .activity-entry:last-child{border:0}.activity-entry strong{color:#174875}.activity-entry small{display:block;color:#637894}
 .activity-entry.failed strong{color:#a03027}
+/* Responsive polish, gentle feedback and accessibility */
+@keyframes ilRise{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+@keyframes ilPop{from{opacity:0;transform:scale(.97)}to{opacity:1;transform:scale(1)}}
+@keyframes ilPulse{50%{box-shadow:0 0 0 7px #20a07426}}
+.panel.active{animation:ilRise .24s ease-out both}
+.finish-panel{animation:ilPop .2s ease-out both}
+button,.tile,.card{transition:background-color .18s ease,border-color .18s ease,transform .18s ease}
+button:active:not(:disabled),.tile:active{transform:scale(.98)}
+button:focus-visible,.tile:focus-visible{outline:3px solid #61b3ed;outline-offset:2px}
+button{min-height:48px}nav button{min-height:54px}
+.dot.on{animation:ilPulse 2s ease-in-out infinite}
+#publication-phase{font-size:14px;font-weight:650;border-left:4px solid #2d6d98}
+#publication-phase.ok{border-color:#198451}
+#publication-phase.error{border-color:#b33835}
+.save-actions>button{flex:1 1 170px}
+@media(max-width:480px){.actions>button{flex:1 1 auto}.save-actions>button{flex:1 1 100%}.row{flex-wrap:wrap}.row>label{flex:1 1 145px!important}}
+@media(prefers-reduced-motion:reduce){*,*:before,*:after{animation-duration:.001ms!important;transition-duration:.001ms!important}}
 </style>
 </head>
 <body>
@@ -135,7 +152,7 @@ nav button.active{color:#174875;background:#edf5fb}
     <div id="templates-box" class="note hidden"></div>
     <div id="editor-metrics" class="note">Napisz tekst, aby zobaczyć wskazówki redakcyjne.</div>
     <div class="actions"><button class="secondary" onclick="restoreLocal()">Przywróć lokalny szkic</button><button class="secondary" onclick="downloadText()">Kopia tekstu</button></div>
-    <div class="actions"><button onclick="savePost('draft')" id="save-draft">Zapisz szkic / zmiany</button><button onclick="savePost('publish')" id="save-publish">Opublikuj po zatwierdzeniu</button><button class="secondary" onclick="resetEditor()">Nowy wpis</button></div><div class="actions"><button id="view-published-post" class="secondary hidden" onclick="openPublishedPost()">🌐 Zobacz artykuł na stronie IL</button></div><p id="publication-phase" class="note" role="status" aria-live="polite">Gotowy do redagowania. Publikacja wymaga potwierdzenia.</p>
+    <div class="actions save-actions"><button onclick="savePost('draft')" id="save-draft">Zapisz szkic / zmiany</button><button onclick="savePost('publish')" id="save-publish">Opublikuj po zatwierdzeniu</button><button class="secondary" onclick="resetEditor()">Nowy wpis</button></div><div class="actions"><button class="secondary" onclick="verifyLastPublication()">🔎 Sprawdź ostatni zapis</button></div><div class="actions"><button id="view-published-post" class="secondary hidden" onclick="openPublishedPost()">🌐 Zobacz artykuł na stronie IL</button></div><p id="publication-phase" class="note" role="status" aria-live="polite">Gotowy do redagowania. Publikacja wymaga potwierdzenia.</p>
     <div id="post-output" aria-live="polite"></div>
   </div>
   <div id="preview-box" class="card hidden"><h2>Podgląd artykułu</h2><iframe sandbox="" id="post-preview" title="Podgląd artykułu"></iframe></div>
@@ -153,7 +170,7 @@ nav button.active{color:#174875;background:#edf5fb}
     <h2>Biblioteka zdjęć IL</h2><p class="muted">Wybierz istniejące zdjęcie z WordPressa do artykułu. Nie trzeba ręcznie wpisywać identyfikatora zdjęcia.</p>
     <label>Wyszukaj zdjęcie w bibliotece</label><input id="media-search" placeholder="Np. most, Ispina, OSP">
     <div class="actions"><button onclick="loadMedia()">Pokaż zdjęcia</button><button class="secondary" onclick="IL.chooseImage()">Prześlij nowe</button></div>
-    <div id="media-output"></div>
+    <div id="media-output" aria-live="polite"></div>
   </div>
 </section>
 <section id="screen-services" class="panel">
@@ -172,7 +189,7 @@ nav button.active{color:#174875;background:#edf5fb}
     <label>Opis działalności</label><textarea id="service-description" style="min-height:105px"></textarea>
     <label>Telefon</label><input id="service-phone" type="tel" placeholder="Nr telefonu">
     <label>Strona internetowa (opcjonalnie)</label><input id="service-url" placeholder="https://">
-    <div class="actions"><button onclick="saveService()">Zapisz w katalogu</button><button class="secondary" onclick="clearService()">Wyczyść</button></div>
+    <div class="actions"><button id="save-service" onclick="saveService()">Zapisz w katalogu</button><button class="secondary" onclick="clearService()">Wyczyść</button></div>
     <div id="services-output" aria-live="polite"></div>
   </div>
 </section>
@@ -184,12 +201,12 @@ nav button.active{color:#174875;background:#edf5fb}
     <div id="settings-state" class="note">Sprawdzanie autoryzacji...</div>
     <button class="wide primary-login" onclick="signInGoogle()"><span style="display:inline-block;background:#fff;color:#4285f4;border-radius:7px;padding:4px 9px;margin-right:8px;font-weight:900">G</span> Zaloguj przez Google / WordPress.com</button>
     <p class="muted">Autoryzacja odbywa się bezpośrednio w WordPress.com. Na ekranie logowania wybierz Google, jeśli ta metoda jest dostępna dla Twojego konta. Do korzystania z MCP WordPress wymaga uprawnienia <strong>global</strong>, obejmującego potencjalnie całe konto WordPress.com i inne witryny. Redaktor wykonuje żądania tylko dla Ispina Lokalnie. Zatwierdzaj dostęp wyłącznie jeśli zgadzasz się na tak szeroki zakres. Aplikacja nie prosi o hasło, Client ID ani sekret.</p>
-    <div class="note">Po zaakceptowaniu dostępu wybierz <b>Wróć do Redaktora IL</b> na stronie przeglądarki. Aplikacja pokaże <b>SUKCES</b> dopiero po pobraniu istniejących artykułów z WordPressa. Jeśli połączenie się nie powiedzie, pokaże otrzymany kod HTTP i komunikat WordPressa.</div>
+    <div class="note">Po zaakceptowaniu dostępu wybierz <b>Wróć do Redaktora IL</b> na stronie przeglądarki. Aplikacja potwierdzi <b>połączenie</b> po pobraniu artykułów. <b>SUKCES PUBLIKACJI</b> pojawi się dopiero po ponownym odczycie zapisanego wpisu. Jeśli połączenie się nie powiedzie, pokaże otrzymany kod HTTP i komunikat WordPressa.</div>
     <div id="auth-output" aria-live="polite"></div>
     <p class="muted">Jeżeli WordPress odmawia dostępu, sprawdź, czy w ustawieniach konta WordPress.com jest włączony dostęp MCP i czy wybrane zgody pozwalają czytać oraz edytować treść.</p>
     <div class="actions"><button class="secondary" onclick="verifyNow()">Sprawdź dostęp do wpisów</button><button class="danger" onclick="disconnect()">Wyloguj</button></div>
   </div>
-  <div class="card"><h2>O programie</h2><p class="muted">IL Redaktor Smart 1.7.0-test · Niezależna aplikacja Android 8 i nowszy. WordPress.com MCP. Publikacja wymaga potwierdzenia. Zapis jest uznawany za udany dopiero po otrzymaniu identyfikatora WordPress.</p></div>
+  <div class="card"><h2>O programie</h2><p class="muted">IL Redaktor Smart 1.8.0-test · Niezależna aplikacja Android 8 i nowszy. WordPress.com MCP. Publikacja wymaga potwierdzenia. Zapis jest uznawany za udany dopiero po otrzymaniu identyfikatora WordPress.</p></div>
 </section>
 </main>
 <div id="finish-dialog" class="finish-dialog hidden" role="alertdialog" aria-modal="true" aria-labelledby="finish-title">
@@ -213,9 +230,11 @@ const SITE="252442125", PAGE=818;
 const requests=new Map();
 let finishUrl="";
 const actionHistory=[];
+try{const old=JSON.parse(localStorage.getItem("il_redaktor_actions_v1")||"[]");if(Array.isArray(old))actionHistory.push(...old.slice(0,10));}catch(e){}
 function recordAction(kind,title,detail=""){
   const item={kind,title,detail,at:new Date().toLocaleTimeString("pl-PL",{hour:"2-digit",minute:"2-digit"})};
   actionHistory.unshift(item);if(actionHistory.length>10)actionHistory.pop();
+  try{localStorage.setItem("il_redaktor_actions_v1",JSON.stringify(actionHistory));}catch(e){}
   $("activity-feed").innerHTML=actionHistory.map(a=>'<div class="activity-entry '+esc(a.kind)+'"><strong>'+esc(a.at+" · "+a.title)+'</strong><small>'+esc(a.detail)+'</small></div>').join("");
 }
 function operationBanner(kind,label){
@@ -246,7 +265,8 @@ function openPublishedPost(){if(publishedPageUrl)IL.openSite(publishedPageUrl);}
 function setPublishedUrl(url){publishedPageUrl=url||"";$("view-published-post").classList.toggle("hidden",!publishedPageUrl);}
 function publicationPhase(text,kind=""){$("publication-phase").className="note "+kind;$("publication-phase").textContent=text;}
 let publicationBusy=false;
-function publicationButtons(busy){publicationBusy=busy;$("save-draft").disabled=busy;$("save-publish").disabled=busy;}
+let lastPublicationAttempt=null, serviceBusy=false;
+function publicationButtons(busy){publicationBusy=busy;$("save-draft").disabled=busy;$("save-publish").disabled=busy;$("save-draft").setAttribute("aria-busy",String(busy));$("save-publish").setAttribute("aria-busy",String(busy));}
 
 let reqNo=0, connected=false, postId=null, postStatus="", services=[], servicesLoaded=false, servicesRaw="", legacyServices=[], allPosts=[], assistantEnabled=false, assistantDraft=null;
 const localKey="il_redaktor_draft_v2";let restoring=false, saveTimer=0;
@@ -258,7 +278,7 @@ function message(id,msg,kind=""){
 function trim(s){return String(s||"").trim()}
 function showScreen(key){
   document.querySelectorAll(".panel").forEach(n=>n.classList.toggle("active",n.id==="screen-"+key));
-  document.querySelectorAll("nav button").forEach(n=>n.classList.toggle("active",n.id==="nav-"+key));
+  document.querySelectorAll("nav button").forEach(n=>{const active=n.id==="nav-"+key;n.classList.toggle("active",active);if(active)n.setAttribute("aria-current","page");else n.removeAttribute("aria-current");});
   window.scrollTo(0,0);
 }
 function rpc(method,path,body) {
@@ -316,7 +336,7 @@ window.onNativeResult=function(id,ok,payload){
     reflectAuth();
     if(ok){
       message("auth-output","SUKCES! Połączenie potwierdzone przez WordPress.","ok");
-      showOutcome("success","SUKCES!","Zalogowano i potwierdzono dostęp do artykułów Ispina Lokalnie.");
+      showOutcome("success","POŁĄCZONO","Potwierdzono odczyt artykułów Ispina Lokalnie. Możliwość publikowania weryfikujemy osobno.");
       message("home-connection","Konto WordPress połączone i zweryfikowane. Możesz pracować nad portalem.","ok");
       loadCategories();
     }else{
@@ -347,11 +367,11 @@ function reflectAuth(){
   $("editor-dot").classList.toggle("on",connected);
   $("editor-auth").textContent=connected?"Połączono z WordPressem":"Niepołączono · Otwórz zakładkę Połączenie";
   $("settings-state").className="note "+(connected?"ok":"error");
-  $("settings-state").textContent=connected?"Połączenie potwierdzone przez API WordPress.":"Nie masz zweryfikowanej sesji. Zaloguj się lub sprawdź połączenie.";
+  $("settings-state").textContent=connected?"Połączenie przez WordPress MCP potwierdzone (odczyt). Publikacja wymaga własnej kontroli.":"Nie masz zweryfikowanej sesji. Zaloguj się lub sprawdź połączenie.";
   if(connected)message("home-connection","Połączono z WordPressem: Ispina Lokalnie.","ok");
 }
 function signInGoogle(){
-  if(connected){showOutcome("success","SUKCES!","Połączenie z WordPressem zostało już potwierdzone.");return}
+  if(connected){showOutcome("success","POŁĄCZONO","Odczyt wpisów przez WordPress MCP działa. Możliwość zapisu zostanie sprawdzona przy publikacji.");return}
   message("auth-output","Krok 1/4: rozpoczynam połączenie WordPress.com. Na stronie wybierz swoje konto Google, jeśli jest dostępne.");
   startOperation("Logowanie przez WordPress.com / Google…");
   IL.signInGoogle();
@@ -498,6 +518,7 @@ async function savePost(status){
     status="publish";
   }
   publicationButtons(true);
+  lastPublicationAttempt={title,status,id:postId,started:Date.now()};
   setPublishedUrl("");
   publicationPhase(status==="publish"?"Etap 1/3: przygotowuję publikację…":"Etap 1/3: przygotowuję szkic…");
   startOperation(status==="publish"?"Publikuję artykuł…":"Zapisuję szkic…");
@@ -525,6 +546,7 @@ async function savePost(status){
     if(!Number.isSafeInteger(Number(result.id))||Number(result.id)<=0)
       throw new Error("Odpowiedź zapisu nie zawiera numeru ID. Sprawdź listę artykułów przed ponowieniem.");
     postId=Number(result.id);
+    lastPublicationAttempt.id=postId;
     postStatus=result.status||status;
     $("editor-heading").textContent="Edytuj artykuł #"+postId;
     $("edit-status").textContent="Sprawdzam zapis…";
@@ -553,6 +575,7 @@ async function savePost(status){
     postStatus=verified.status;
     $("edit-status").textContent=status==="publish"?"Opublikowany":"Szkic zapisany";
     localStorage.removeItem(localKey);
+    lastPublicationAttempt=null;
     const summary=status==="publish"?"SUKCES! Artykuł opublikowany.":"SUKCES! Szkic zapisany.";
     const detail="Zapis i ponowny odczyt potwierdzone przez WordPress. Tytuł: "+title+
       ". Numer wpisu: "+postId+". Status: "+verified.status+".";
@@ -686,6 +709,7 @@ function serviceMarkup(list){
     '<h2>Usługi zgłoszone do Ispina Lokalnie</h2>'+cards+'</div>\n<!-- /wp:html -->\n'+END;
 }
 async function saveService(){
+  if(serviceBusy){message("services-output","Zapis oferty już trwa. Nie klikaj ponownie.","error");return}
   if(!servicesLoaded){message("services-output","Najpierw kliknij „Odczytaj usługi z WordPressa”.","error");return}
   const id=trim($("service-id").value)||("il_"+Date.now());
   const name=trim($("service-name").value),description=trim($("service-description").value);
@@ -698,6 +722,7 @@ async function saveService(){
   const duplicate=existing.find(s=>{const candidate=normalizedName(s);return candidate===targetName||(candidate.length>=5&&targetName.length>=5&&(candidate.includes(targetName)||targetName.includes(candidate)))});
   if(duplicate&&!confirm("Możliwy duplikat: „"+duplicate+"”. Sprawdź istniejącą kartę przed dodaniem kolejnej. Czy mimo to chcesz kontynuować?"))return;
   if(!confirm("Zapisać ofertę „"+name+"” na publicznej stronie Usługi w okolicy?"))return;
+  serviceBusy=true;$("save-service").disabled=true;
   startOperation("Zapisuję ofertę w katalogu…");
   message("services-output","Przygotowuję zapis i potwierdzenie WordPressa...");
   try{
@@ -716,14 +741,16 @@ async function saveService(){
     else content=raw+"\n\n"+rendered;
     const result=await rpc("POST","pages/"+PAGE,{content});
     if(Number(result.id)!==PAGE)throw Error("WordPress nie potwierdził poprawnej strony.");
-    servicesRaw=content;services=next;drawServices();clearService();
+    const check=await rpc("GET","pages/"+PAGE+"?context=edit");
+    if(Number(check.id)!==PAGE || typeof check.content?.raw!=="string" || !check.content.raw.includes("ILRS_JSON:"+utf8Base64(JSON.stringify(next))))throw Error("Zapisu oferty nie potwierdził ponowny odczyt strony. Nie zapisuj drugi raz bez sprawdzenia katalogu.");
+    servicesRaw=check.content.raw;services=next;drawServices();clearService();
     const detail="Firma: "+name+". WordPress potwierdził aktualizację strony Usługi w okolicy (ID "+PAGE+").";
     message("services-output","SUKCES! "+detail,"ok");
     showOutcome("success","SUKCES! Oferta zapisana.",detail,"https://ispinalokalnie.wordpress.com/uslugi-w-okolicy/");
   }catch(e){
     message("services-output","Nie potwierdzono zapisu oferty: "+e.message,"error");
-    showOutcome("error","NIE POWIODŁO SIĘ","WordPress nie potwierdził aktualizacji katalogu. "+e.message);
-  }
+    showOutcome("error","ZAPIS NIEPOTWIERDZONY","Nie udało się potwierdzić zmiany na stronie Usługi. Sprawdź katalog przed ponowną próbą. "+e.message);
+  }finally{serviceBusy=false;$("save-service").disabled=false;}
 }
 const templates=[
  {name:"Aktualność",title:"Co nowego w Ispinie?",body:"## Najważniejsze informacje\n\nOpisz krótko, co się wydarzyło i dlaczego jest to ważne dla mieszkańców.\n\n## Szczegóły\n\nPodaj miejsce, datę, organizatora oraz źródło informacji.\n\n## Co dalej?\n\nDodaj przydatny link lub kontakt.",cat:"10543"},
