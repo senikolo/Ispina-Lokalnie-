@@ -10,7 +10,7 @@ const fs = require("node:fs");
 const vm = require("node:vm");
 const path = require("node:path");
 
-function setup() {
+function setup(initialStorage=[]) {
   const html = fs.readFileSync(path.join(__dirname, "../app/src/main/assets/index.html"), "utf8");
   const code = html.match(/<script>([\s\S]*?)<\/script>/)?.[1];
   assert.ok(code, "Missing UI script");
@@ -34,7 +34,7 @@ function setup() {
     }
     return dom.get(id);
   }
-  const storage = new Map();
+  const storage = new Map(initialStorage);
   const IL = {status(){},assistantStatus(){},openSite(){},showPublishedPage(){}};
   const c = {
     window:{IL, scrollTo(){}},IL,document:{
@@ -577,9 +577,9 @@ test("AI context exposes published posts only for reader recommendations",()=>{
 test("new build metadata and the PR APK workflow agree",()=>{
   const gradle=fs.readFileSync(path.join(__dirname,"../app/build.gradle"),"utf8");
   const workflow=fs.readFileSync(path.join(__dirname,"../../.github/workflows/il-redaktor-apk.yml"),"utf8");
-  assert.match(gradle,/versionCode 19/);assert.match(gradle,/versionName '1\.13\.0-test'/);
-  assert.match(gradle,/applicationId 'com\.ispinalokalnie\.redaktorsmart\.publish194\.test'/);
-  assert.match(workflow,/versionCode='19' versionName='1\.13\.0-test'/);
+  assert.match(gradle,/versionCode 20/);assert.match(gradle,/versionName '1\.14\.0'/);
+  assert.match(gradle,/applicationId 'com\.ispinalokalnie\.redaktorsmart\.stable'/);
+  assert.match(workflow,/versionCode='20' versionName='1\.14\.0'/);
 });
 
 test("AI editor shortcut copies current title and text into a reviewable prompt without sending it",()=>{
@@ -636,7 +636,7 @@ test("OAuth DCR, PKCE, deep-link scheme and manifest callback match without a cl
   const wp=fs.readFileSync(path.join(root,"java/com/ispinalokalnie/redaktor/WpMcp.java"),"utf8");
   const manifest=fs.readFileSync(path.join(root,"AndroidManifest.xml"),"utf8");
   assert.match(oauth,/scope=global/);assert.match(oauth,/code_challenge_method=S256/);
-  assert.match(oauth,/publish194:\/callback/);assert.match(manifest,/com\.ispinalokalnie\.redaktorsmart\.publish194/);
+  assert.match(oauth,/stable:\/callback/);assert.match(manifest,/com\.ispinalokalnie\.redaktorsmart\.stable/);
   assert.match(wp,/token_endpoint_auth_method", "none"/);assert.match(wp,/code_verifier/);
   assert.doesNotMatch(wp,/put\("client_secret"/);
 });
@@ -645,4 +645,44 @@ test("photo upload source downsamples and compresses images before sending",()=>
   const java=fs.readFileSync(path.join(__dirname,"../app/src/main/java/com/ispinalokalnie/redaktor/MainActivity.java"),"utf8");
   assert.match(java,/inSampleSize = 1/);assert.match(java,/> 1600/);
   assert.match(java,/Bitmap\.CompressFormat\.JPEG, 80/);assert.match(java,/bytes\.length > 6_000_000/);
+});
+
+test('multiple local drafts survive creating and opening another article',()=>{
+ const a=setup();assert.equal(a.run('persistDraft(true)'),true);const first=a.run('activeDraftId');
+ a.run("resetEditor();$('post-title').value='Drugi';$('post-body').value='Drugi tekst';persistDraft(true)");
+ assert.equal(a.run('readDraftStore().drafts.length'),2);a.c.targetId=first;a.run('openLocalDraft(targetId)');
+ assert.equal(a.node('post-title').value,'Testowy artykuł');assert.equal(a.run('readDraftStore().drafts.length'),2);
+});
+test('restoring revision preserves current text in history and never writes remotely',()=>{
+ const a=setup();let writes=0;a.c.rpc=()=>{writes++;throw Error('Unexpected request')};
+ a.run("persistDraft(true);$('post-body').value='Wersja druga';persistDraft(true)");
+ assert.equal(a.run('restoreDraftVersion(activeDraftId,0)'),true);assert.equal(a.node('post-body').value,'Treść testowa');
+ assert.equal(a.run('readDraftStore().drafts[0].revisions.some(v=>v.snapshot.body===\'Wersja druga\')'),true);assert.equal(writes,0);
+});
+test('storage failure prevents resetting or switching away from the current unsaved text',()=>{
+ const a=setup();a.run('persistDraft()');a.c.localStorage.setItem=()=>{throw Error('quota')};a.node('post-body').value='Nie zgub mnie';
+ assert.equal(a.run('resetEditor()'),false);assert.equal(a.node('post-body').value,'Nie zgub mnie');assert.match(a.node('local-save-status').textContent,/Nie udało/);
+});
+test('legacy local draft migrates durably and retains its WordPress identity',()=>{
+ const legacy=JSON.stringify({title:'Stary szkic',body:'Treść',postId:123,postStatus:'draft'});
+ const a=setup([['il_redaktor_draft_v2',legacy]]);a.run('readDraftStore()');
+ const store=JSON.parse(a.storage.get('il_redaktor_drafts_v3'));assert.equal(store.drafts[0].postId,123);assert.equal(a.storage.get('il_redaktor_draft_v2'),legacy);
+});
+test('malformed draft storage is not overwritten by autosave',()=>{
+ const a=setup([['il_redaktor_drafts_v3','broken json']]);assert.equal(a.run('persistDraft()'),false);assert.equal(a.storage.get('il_redaktor_drafts_v3'),'broken json');
+});
+test('prepublication review performs no writes and optional photo does not block',()=>{
+ const a=setup();let writes=0;a.c.rpc=()=>{writes++};a.run('reviewPublication()');assert.equal(writes,0);assert.equal(a.node('review-confirm').disabled,false);
+ assert.match(a.node('review-summary').innerHTML,/Brak zdjęcia/);assert.match(a.node('review-preview').srcdoc,/Content-Security-Policy/);a.run('closeReview()');assert.equal(writes,0);
+});
+test('prepublication review prevents missing title and requires fresh consent after changes',async()=>{
+ const a=setup();a.node('post-title').value='';a.run('reviewPublication()');assert.equal(a.node('review-confirm').disabled,true);
+ a.node('post-title').value='Tytuł';a.run('reviewPublication()');a.node('post-body').value='Zmieniony tekst';let writes=0;a.c.rpc=()=>{writes++};await a.run('confirmReviewPublication()');assert.equal(writes,0);assert.match(a.node('review-feedback').textContent,/zmieniła/);
+});
+test('review confirmation publishes exactly once without a second confirm dialog',async()=>{
+ const a=setup();let writes=0;a.c.confirm=()=>{throw Error('Redundant confirmation')};a.c.rpc=async(method)=>{if(method==='POST')writes++;return {id:24,status:'publish'}};
+ a.run('reviewPublication()');await a.run('confirmReviewPublication()');assert.equal(writes,1);assert.match(a.node('finish-title').textContent,/Sukces/);
+});
+test('local draft retains remote ID after verified publication so later saves update it',async()=>{
+ const a=setup();a.c.rpc=async()=>({id:25,status:'publish'});await a.run("savePost('publish')");assert.equal(a.run('readDraftStore().drafts[0].postId'),25);assert.equal(a.run('readDraftStore().drafts[0].dirty'),false);
 });

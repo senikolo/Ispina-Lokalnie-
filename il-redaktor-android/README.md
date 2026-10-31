@@ -1,3 +1,30 @@
+# IL Redaktor Smart 1.14.0
+
+Stały pakiet: `com.ispinalokalnie.redaktorsmart.stable`, versionCode 20.
+Pierwsza instalacja obok poprzednich wydań testowych wymaga ponownego logowania.
+Nie odinstalowuj starego wydania przed skopiowaniem lokalnych tekstów: jego dane nie przenoszą się między pakietami.
+
+## Aktualizacje i podpis
+
+Przyszłe aktualizacje muszą zachować applicationId, prywatny klucz podpisujący i zwiększać versionCode.
+Publiczny odcisk SHA256 certyfikatu znajduje się w release-certificate.sha256.
+Prywatny klucz i jego kopia pozostają poza repozytorium i artefaktami Actions.
+Actions tworzy unsigned release; podpisywanie odbywa się prywatnym kluczem poza CI.
+Debug APK z Actions służy wyłącznie do testów. Nie dystrybuować go jako aktualizacji stabilnej instalacji.
+Podpisany release trzeba sprawdzić przez apksigner verify --verbose --print-certs i porównać odcisk.
+Test emulatora sprawdza zachowanie dwóch szkiców, historii i znacznika preferencji przy ponownej instalacji adb install -r tego samego debug APK; nie używa prawdziwych danych logowania.
+
+## Szkice i publikacja
+
+Moje szkice przechowują wiele tekstów lokalnie, autosave 450 ms i do 12 poprzednich wersji (checkpoint przy przełączaniu lub co 30 s zmian).
+Przywrócenie wersji zachowuje obecną w historii. Błąd pamięci blokuje czyszczenie edytora.
+Kopie lokalne nie są kopią w chmurze i nie przetrwają odinstalowania ani wyczyszczenia danych; ważne teksty zachowuj także w WordPressie lub przez Kopia tekstu.
+Przed publikacją jest podsumowanie i izolowany podgląd. Zdjęcie i zajawka pozostają opcjonalne.
+Jedno potwierdzenie wysyła jeden POST, a SUKCES wymaga ponownego odczytu wpisu z WordPressa.
+
+---
+Poniżej dokumentacja historyczna wcześniejszych wersji testowych.
+
 # IL Redaktor Smart
 
 Niezależna aplikacja Android do redagowania portalu Ispina Lokalnie. Nie zmienia aplikacji dla mieszkańców. Aktualna wersja robocza: **1.13.0-test**, pakiet `com.ispinalokalnie.redaktorsmart.publish194.test` (versionCode 19), Android 8 i nowszy.

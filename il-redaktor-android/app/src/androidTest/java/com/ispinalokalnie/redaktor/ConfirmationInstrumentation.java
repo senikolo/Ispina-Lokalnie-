@@ -16,8 +16,9 @@ import java.util.concurrent.atomic.AtomicReference;
 public final class ConfirmationInstrumentation extends Instrumentation {
     private MainActivity activity;
     private WebView editor;
+    private String mode="confirm";
 
-    @Override public void onCreate(Bundle args) { super.onCreate(args); start(); }
+    @Override public void onCreate(Bundle args) { super.onCreate(args); if(args!=null)mode=args.getString("mode","confirm"); start(); }
 
     private Object field(String name) throws Exception {
         Field f = MainActivity.class.getDeclaredField(name);
@@ -65,11 +66,24 @@ public final class ConfirmationInstrumentation extends Instrumentation {
                 if (SystemClock.uptimeMillis() >= deadline) throw new AssertionError("Editor did not finish loading");
                 SystemClock.sleep(100);
             }
+            if ("seed".equals(mode)) {
+                String seeded=evaluate("$('post-title').value='Pierwszy szkic';$('post-body').value='Pierwsza wersja';persistDraft(true);$('post-body').value='Druga wersja';persistDraft(true);resetEditor();$('post-title').value='Drugi szkic';$('post-body').value='Drugi tekst';persistDraft(true);String(readDraftStore().drafts.length)");
+                if(!"\"2\"".equals(seeded))throw new AssertionError("Draft seeding failed: "+seeded);
+                if(!getTargetContext().getSharedPreferences("il_update_probe",0).edit().putString("marker","preserved").commit())throw new AssertionError("Preferences seeding failed");
+                result.putString("stream","IL_UPDATE_SEED=PASS\n");
+            } else if ("verify".equals(mode)) {
+                String restored=evaluate("JSON.stringify(readDraftStore().drafts.map(d=>[d.title,d.body,d.revisions.length]))");
+                if(!restored.contains("Pierwszy szkic")||!restored.contains("Druga wersja")||!restored.contains("Drugi szkic"))throw new AssertionError("Drafts lost after reinstall: "+restored);
+                if(!"preserved".equals(getTargetContext().getSharedPreferences("il_update_probe",0).getString("marker","")))throw new AssertionError("Preferences lost after reinstall");
+                if(!"true".equals(evaluate("readDraftStore().drafts.some(d=>d.revisions.some(v=>v.snapshot.body==='Pierwsza wersja'))")))throw new AssertionError("Revision history lost");
+                result.putString("stream","IL_UPDATE_DATA_TEST=PASS (drafts, history, preferences after adb install -r)\n");
+            } else {
             // A real Android WebView must pause until native confirmation is selected.
             probe(AlertDialog.BUTTON_NEGATIVE, "\"false:0\"", false);
             probe(AlertDialog.BUTTON_POSITIVE, "\"true:1\"", false);
             probe(AlertDialog.BUTTON_NEGATIVE, "\"false:0\"", true);
             result.putString("stream", "IL_WEBVIEW_CONFIRM_TEST=PASS (cancel, confirm once, dismiss)\n");
+            }
             runOnMainSync(() -> activity.finish());
             finish(Activity.RESULT_OK, result);
         } catch (Throwable error) {

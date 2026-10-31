@@ -226,8 +226,8 @@ a{color:#1767a8}:root[data-theme="dark"] a{color:#9ecfff}
     <div id="templates-box" class="note hidden"></div>
     <div id="editor-metrics" class="note">Napisz tekst, aby zobaczyć wskazówki redakcyjne.</div>
     <div id="reading-suggestions" aria-live="polite" role="region" aria-label="Propozycje lektury dla czytelników"></div>
-    <div class="actions"><button class="secondary" onclick="restoreLocal()">Przywróć lokalny szkic</button><button class="secondary" onclick="downloadText()">Kopia tekstu</button></div>
-    <div class="publish-now-card"><h3>Gotowy artykuł?</h3><p>Opublikuj go teraz na Ispina Lokalnie. Nie musisz wybierać daty. Najpierw poproszę Cię o potwierdzenie.</p><button class="wide" onclick="savePost('publish')" id="save-publish">Opublikuj teraz</button><p class="small">Po potwierdzeniu przez WordPress zobaczysz duży napis SUKCES i przycisk do swojego artykułu.</p></div>
+    <div class="actions"><button class="secondary" onclick="showDraftLibrary()">📂 Moje szkice</button><button class="secondary" onclick="persistDraft(true)">Zapisz na telefonie</button><button class="secondary" onclick="downloadText()">Kopia tekstu</button></div>
+    <p id="local-save-status" class="muted small" role="status" aria-live="polite">Zmiany zapisuję automatycznie na tym telefonie.</p><div class="publish-now-card"><h3>Gotowy artykuł?</h3><p>Opublikuj go teraz na Ispina Lokalnie. Nie musisz wybierać daty. Najpierw poproszę Cię o potwierdzenie.</p><button class="wide" onclick="reviewPublication()" id="save-publish">Opublikuj teraz</button><p class="small">Po potwierdzeniu przez WordPress zobaczysz duży napis SUKCES i przycisk do swojego artykułu.</p></div>
     <div class="actions save-actions"><button class="secondary" onclick="savePost('draft')" id="save-draft">Zapisz szkic / zmiany</button><button class="secondary" onclick="resetEditor()" id="new-post">Nowy wpis</button></div>
     <details class="note"><summary>Zaplanuj na później (opcjonalnie)</summary><p>Użyj tej opcji tylko wtedy, gdy artykuł ma ukazać się w przyszłości.</p><label for="post-schedule">Termin publikacji</label><input id="post-schedule" type="datetime-local"><p class="muted small">Wybierz datę i godzinę według strefy czasowej telefonu. WordPress musi potwierdzić status „zaplanowany”.</p><button class="secondary wide" onclick="savePost('future')" id="save-schedule">Zaplanuj na wybrany termin</button></details>
     <div class="actions"><button class="secondary" onclick="verifyLastPublication()">🔎 Sprawdź ostatni zapis</button></div><div class="actions"><button id="view-published-post" class="secondary hidden" onclick="openPublishedPost()">📖 Zobacz opublikowany wpis w aplikacji</button></div><p id="publication-phase" class="note" role="status" aria-live="polite">Gotowy do redagowania. Publikacja wymaga potwierdzenia.</p>
@@ -236,6 +236,7 @@ a{color:#1767a8}:root[data-theme="dark"] a{color:#9ecfff}
   <div id="preview-box" class="card hidden"><h2>Podgląd artykułu</h2><iframe sandbox="" id="post-preview" title="Podgląd artykułu"></iframe></div>
 </section>
 
+<section id="screen-drafts" class="panel"><div class="card"><h2>Moje szkice na telefonie</h2><p>Każdy tekst zapisuje się osobno. Historia przechowuje do 12 poprzednich wersji. Kopie lokalne nie są publikowane w WordPressie.</p><label for="draft-search">Szukaj szkicu</label><input id="draft-search" oninput="renderDrafts()" placeholder="Tytuł lub fragment tekstu"><div class="actions"><button onclick="resetEditor();showScreen('editor')">+ Nowy wpis</button><button class="secondary" onclick="showScreen('editor')">Wróć do tekstu</button></div><div id="draft-list"></div><div id="draft-history" aria-live="polite"></div></div></section>
 <section id="screen-posts" class="panel">
   <div class="card"><h2>Artykuły na portalu</h2><p class="muted">Pobierz listę, wybierz istniejący wpis i edytuj go bez utraty numeru ID.</p>
   <label for="posts-search">Wyszukaj tytuł lub fragment</label><input id="posts-search" placeholder="Szukaj wpisów..." oninput="renderPosts()">
@@ -287,7 +288,7 @@ a{color:#1767a8}:root[data-theme="dark"] a{color:#9ecfff}
       <p>Zatwierdź dostęp w przeglądarce i wybierz otwarcie Redaktora IL, gdy Android o to zapyta. Jeśli jesteś już z powrotem w aplikacji, ale nadal widzisz krok 3/4, skorzystaj z opcji poniżej.</p>
       <div class="actions"><button class="secondary" onclick="checkLoginState()">Sprawdź stan</button><button class="secondary" onclick="cancelLoginFlow()">Anuluj i spróbuj ponownie</button></div>
       <details><summary>Zaawansowane: ręczne dokończenie logowania</summary>
-        <p>Jeśli przeglądarka pokazuje pełny adres rozpoczynający się od <code>com.ispinalokalnie.redaktorsmart.publish194:/callback</code>, możesz wkleić go poniżej. Nie wpisuj tu hasła, kodu z SMS ani zwykłego adresu WordPressa. Nie udostępniaj nikomu tego adresu.</p>
+        <p>Jeśli przeglądarka pokazuje pełny adres rozpoczynający się od <code>com.ispinalokalnie.redaktorsmart.stable:/callback</code>, możesz wkleić go poniżej. Nie wpisuj tu hasła, kodu z SMS ani zwykłego adresu WordPressa. Nie udostępniaj nikomu tego adresu.</p>
         <label for="oauth-return">Adres powrotu (poufny)</label><input id="oauth-return" type="password" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Wklej pełny adres powrotu z przeglądarki">
         <div class="actions"><button onclick="finishManualLogin()">Dokończ logowanie</button></div>
       </details>
@@ -313,9 +314,10 @@ a{color:#1767a8}:root[data-theme="dark"] a{color:#9ecfff}
     <label class="setting-row"><input type="checkbox" id="battery-saving" onchange="applyUiPreferences(true)"><span>Tryb oszczędzania baterii</span></label>
     <p id="ui-preferences-status" class="setting-caption" role="status" aria-live="polite">Ustawienia zapisują się na tym telefonie. Systemowe ograniczenie ruchu zawsze ma pierwszeństwo.</p>
   </div>
-  <div class="card"><h2>O programie</h2><p class="muted">IL Redaktor Smart 1.13.0-test · Niezależna aplikacja Android 8 i nowszy. WordPress.com MCP. Publikacja wymaga potwierdzenia i ponownego odczytu wpisu.</p></div>
+  <div class="card"><h2>O programie</h2><p class="muted">IL Redaktor Smart 1.14.0 · Niezależna aplikacja Android 8 i nowszy. WordPress.com MCP. Publikacja wymaga potwierdzenia i ponownego odczytu wpisu.</p></div>
 </section>
 </main>
+<div id="publish-review" class="finish-dialog hidden" role="dialog" aria-modal="true" aria-labelledby="review-title"><div class="finish-panel" style="max-height:90vh;overflow:auto"><h2 id="review-title">Przed publikacją</h2><div id="review-summary"></div><iframe id="review-preview" sandbox="" title="Podgląd przed publikacją"></iframe><p id="review-feedback" role="status"></p><div class="actions"><button class="secondary" onclick="closeReview()">Wróć do poprawiania</button><button id="review-confirm" onclick="confirmReviewPublication()">Potwierdzam — opublikuj</button></div></div></div>
 <div id="publication-progress" class="finish-dialog hidden" role="dialog" aria-modal="true" aria-labelledby="progress-title"><div class="finish-panel"><h2 id="progress-title">Publikuję — poczekaj chwilę</h2><p id="progress-step" role="status" aria-live="polite">Przygotowuję artykuł…</p><p class="muted">Poczekaj na potwierdzenie z WordPressa. Przy wolnym połączeniu odpowiedź może potrwać dłużej. Nie wysyłaj wpisu ponownie.</p></div></div>
 <div id="finish-dialog" class="finish-dialog hidden" role="alertdialog" aria-modal="true" aria-labelledby="finish-title">
 <div id="finish-panel" class="finish-panel">
@@ -425,6 +427,7 @@ function message(id,msg,kind=""){
 }
 function trim(s){return String(s||"").trim()}
 function showScreen(key){
+  if(key!=="editor"&&typeof draftStore!=="undefined")persistDraft();
   document.querySelectorAll(".panel").forEach(n=>n.classList.toggle("active",n.id==="screen-"+key));
   document.querySelectorAll("nav button").forEach(n=>{const active=n.id==="nav-"+key;n.classList.toggle("active",active);if(active)n.setAttribute("aria-current","page");else n.removeAttribute("aria-current");});
   window.scrollTo(0,0);
@@ -752,7 +755,7 @@ async function runAssistant(){
 function acceptAssistantArticle(){
   const d=assistantDraft;if(!d||d.intent!=="article_draft")return;
   if(trim($("post-body").value)&&!confirm("Zastąpić aktualny tekst propozycją Asystenta?"))return;
-  resetEditor();$("post-title").value=d.title||"";$("post-body").value=d.content||"";$("post-mode").value="html";
+  if(!resetEditor())return;$("post-title").value=d.title||"";$("post-body").value=d.content||"";$("post-mode").value="html";
   $("post-excerpt").value=d.excerpt||"";$("post-tags").value=(d.tags||[]).join(", ");
   if(/histori/i.test(d.category||""))$("post-category").value="3503";
   updateMetrics();scheduleLocalSave();showScreen("editor");
@@ -777,7 +780,7 @@ async function testDraftWrite(){
   if(!confirm("Utworzyć w WordPressie prywatny szkic diagnostyczny? Nie będzie publiczny i pozostanie na liście szkiców do ręcznego usunięcia."))return;
   const testButton=$("test-draft-write");
   diagnosticWriteBusy=true;testButton.disabled=true;
-  const title="[TEST IL Redaktor Smart 1.13.0] Sprawdzenie zapisu "+new Date().toLocaleString("pl-PL");
+  const title="[TEST IL Redaktor Smart 1.14.0] Sprawdzenie zapisu "+new Date().toLocaleString("pl-PL");
   const body={title,content:"<p>Test techniczny zapisu z aplikacji IL Redaktor Smart. Ten szkic nie jest przeznaczony do publikacji.</p>",status:"draft",excerpt:"Test techniczny. Nie publikować."};
   let createdId=null;
   startOperation("Test: zapisuję szkic w WordPressie…");
@@ -855,7 +858,7 @@ async function ensureTags(list){
   }
   return result;
 }
-async function savePost(status){
+async function savePost(status,reviewApproval=null){
   if(!connected){message("post-output","Najpierw połącz konto WordPress.","error");showScreen("settings");return}
   const title=trim($("post-title").value),body=trim($("post-body").value);
   if(!title||!body){message("post-output","Wpisz tytuł i treść.","error");return}
@@ -869,7 +872,7 @@ async function savePost(status){
     if(!confirm("Zaplanować publikację artykułu na "+new Date(timestamp).toLocaleString("pl-PL")+"? WordPress opublikuje go automatycznie w tym terminie."))return;
     if(postId&&postStatus==="publish"&&!confirm("Ten artykuł jest już publiczny. Zaplanowanie go ponownie zdejmie obecną wersję ze strony do nowego terminu. Kontynuować?"))return;
   }
-  if(status==="publish"&&!confirm("Opublikować artykuł na żywo w Ispina Lokalnie? WordPress może również powiadomić subskrybentów.")){
+  if(status==="publish"&&reviewApproval!==draftSignature(captureDraft())&&!confirm("Opublikować artykuł na żywo w Ispina Lokalnie? WordPress może również powiadomić subskrybentów.")){
     publicationPhase("Anulowano publikację. Artykuł nie został wysłany.");
     operationBanner("pending","Anulowano publikację — niczego nie wysłano.");return;
   }
@@ -957,7 +960,7 @@ async function savePost(status){
     }
     postStatus=verified.status;
     $("edit-status").textContent=status==="publish"?"Opublikowany":status==="future"?"Zaplanowany":"Szkic zapisany";
-    localStorage.removeItem(localKey);
+    persistDraft(true,true);
     lastPublicationAttempt=null;
     const summary=status==="publish"?"✓ Sukces! Artykuł został opublikowany na Ispina Lokalnie.":status==="future"?"✓ Sukces! Publikacja artykułu została zaplanowana.":"SUKCES! Szkic zapisany.";
     const detail="WordPress zapisał wpis, a ponowny odczyt potwierdził jego status. Tytuł: "+title+
@@ -1012,15 +1015,16 @@ async function verifyLastPublication(){
   }catch(e){message("post-output","Nie udało się sprawdzić ostatniego zapisu: "+e.message,"error")}
 }
 function resetEditor(){
-  if(publicationBusy)return;
+  if(publicationBusy||!persistDraft(true))return false;
+  activeDraftId=null;clearTimeout(saveTimer);
   setPublishedUrl("");publicationPhase("Gotowy do redagowania. Publikacja wymaga potwierdzenia.");
   postId=null;postStatus="";
   ["post-title","post-body","post-excerpt","post-tags","post-schedule"].forEach(id=>$(id).value="");
   $("post-category").value="10543";$("post-media").value="0";$("post-mode").value="text";
   $("editor-heading").textContent="Nowy artykuł";$("edit-status").textContent="Nowy";
   $("post-output").innerHTML="";$("preview-box").classList.add("hidden");
-  localStorage.removeItem(localKey);
-  updateMetrics();
+  $("local-save-status").textContent="Nowy tekst — zapiszę go automatycznie po rozpoczęciu pisania.";
+  updateMetrics();return true;
 }
 async function loadPosts(){
   if(!connected){message("posts-output","Połącz konto w ustawieniach.","error");return}
@@ -1049,7 +1053,7 @@ async function editPost(id){
   try{
     const p=await rpc("GET","posts/"+id+"?context=edit");
     if(!p.id||!p.content||typeof p.content.raw!=="string")throw Error("Brak pełnej treści do edycji.");
-    resetEditor();postId=p.id;postStatus=p.status;
+    if(!resetEditor())throw Error("Najpierw zachowaj bieżący tekst — zapis lokalny się nie powiódł.");postId=p.id;postStatus=p.status;
     $("post-title").value=p.title?.raw||p.title?.rendered||"";
     $("post-body").value=p.content.raw;
     $("post-mode").value="html";
@@ -1061,7 +1065,7 @@ async function editPost(id){
     $("editor-heading").textContent="Edytuj artykuł #"+p.id;
     $("edit-status").textContent=p.status;
     if(p.status==="publish")setPublishedUrl(p.link&&/^https:\/\/ispinalokalnie\.wordpress\.com\//.test(p.link)?p.link:"https://ispinalokalnie.wordpress.com/?p="+Number(p.id));
-    showScreen("editor");
+    persistDraft(false,true);showScreen("editor");
     operationFinished(true,"Wczytano artykuł #"+id,"Można rozpocząć edycję.");
   }catch(e){message("posts-output","Nie można edytować wpisu: "+e.message,"error")}
 }
@@ -1259,32 +1263,58 @@ function updateMetrics(){
   if(body&&!/## |<h2[ >]/.test(body))warnings.push("Rozważ dodanie śródtytułów");
   $("editor-metrics").textContent=words+" słów · "+title.length+" znaków tytułu. "+(warnings.length?warnings.join(" · "):"Podstawowa lista redakcyjna kompletna.");
 }
-function scheduleLocalSave(){
-  if(restoring)return;
-  clearTimeout(saveTimer);
-  saveTimer=setTimeout(()=>{
-    const record={updated:Date.now(),postId,postStatus};
-for(const [key,id] of Object.entries({title:"post-title",body:"post-body",excerpt:"post-excerpt",tags:"post-tags",category:"post-category",mode:"post-mode",media:"post-media",schedule:"post-schedule"}))
-      record[key]=$(id).value;
-    localStorage.setItem(localKey,JSON.stringify(record));
-  },450);
-}
-function restoreLocal(silent=false){
-  const raw=localStorage.getItem(localKey);if(!raw)return;
+const draftKey="il_redaktor_drafts_v3";
+const draftFields={title:"post-title",body:"post-body",excerpt:"post-excerpt",tags:"post-tags",category:"post-category",mode:"post-mode",media:"post-media",schedule:"post-schedule"};
+let activeDraftId=null,draftStore=null,draftStorageBroken=false,reviewSnapshot=null;
+function draftId(){return "d"+Date.now().toString(36)+Math.random().toString(36).slice(2,10)}
+function captureDraft(){const s={postId,postStatus};for(const [k,id] of Object.entries(draftFields))s[k]=$(id).value;return s}
+function draftSignature(s){return JSON.stringify(Object.fromEntries([...Object.keys(draftFields),"postId","postStatus"].map(k=>[k,s[k]??""])))}
+function readDraftStore(){
+  if(draftStore)return draftStore;
   try{
-    const s=JSON.parse(raw);if(!s.body&&!s.title)return;
-    if(!silent&&!confirm("Przywrócić szkic z pamięci telefonu?"))return;
-    if(silent&&(trim($("post-body").value)||trim($("post-title").value)))return;
-    restoring=true;
-    for(const [key,id] of Object.entries({title:"post-title",body:"post-body",excerpt:"post-excerpt",tags:"post-tags",category:"post-category",mode:"post-mode",media:"post-media",schedule:"post-schedule"}))
-      if(s[key]!==undefined)$(id).value=s[key];
-    postId=s.postId||null;postStatus=s.postStatus||"";
-    $("editor-heading").textContent=postId?"Szkic lokalny dla wpisu #"+postId:"Lokalny szkic";
-    $("edit-status").textContent="Kopia lokalna";
-    updateMetrics();
-    restoring=false;
-  }catch(e){restoring=false;message("post-output","Nie udało się odtworzyć lokalnej kopii.","error")}
+    const raw=localStorage.getItem(draftKey);
+    if(raw){const d=JSON.parse(raw);if(d.version!==1||!Array.isArray(d.drafts)||d.drafts.some(x=>!x||typeof x.id!=="string"||!Array.isArray(x.revisions)))throw Error("Nieznany format szkiców");draftStore=d;}
+    else {draftStore={version:1,activeId:null,drafts:[]};const old=localStorage.getItem(localKey);if(old){const d=JSON.parse(old);if(d.title||d.body){draftStore.drafts.push({...d,id:draftId(),created:d.updated||Date.now(),updated:d.updated||Date.now(),revisions:[],dirty:true});draftStore.activeId=draftStore.drafts[0].id;localStorage.setItem(draftKey,JSON.stringify(draftStore));}}}
+    return draftStore;
+  }catch(e){draftStore=null;draftStorageBroken=true;$("local-save-status").textContent="Nie mogę odczytać szkiców. Zachowaj tekst przyciskiem Kopia tekstu. Nie usuwaj danych aplikacji.";return null}
 }
+function persistDraft(checkpoint=false,synced=false){
+  clearTimeout(saveTimer);if(restoring)return true;
+  const store=readDraftStore();if(!store||draftStorageBroken)return false;
+  const snapshot=captureDraft();if(!activeDraftId&&!Object.keys(draftFields).some(k=>!["category","mode","media"].includes(k)&&trim(snapshot[k])))return true;
+  const next=JSON.parse(JSON.stringify(store));let d=next.drafts.find(x=>x.id===activeDraftId);
+  if(!d){d={id:draftId(),created:Date.now(),updated:Date.now(),revisions:[],dirty:true};next.drafts.push(d);}
+  const changed=draftSignature(d)!==draftSignature(snapshot);
+  if(changed&&("title" in d||"body" in d)&&(checkpoint||!d.revisions.length||Date.now()-d.revisions[d.revisions.length-1].at>=30000)){
+    const previous={};for(const k of [...Object.keys(draftFields),"postId","postStatus"])previous[k]=d[k]??"";
+    d.revisions.push({at:d.updated||Date.now(),snapshot:previous});d.revisions=d.revisions.slice(-12);
+  }
+  if(changed||synced){Object.assign(d,snapshot);d.updated=Date.now();d.dirty=!synced;}
+  next.activeId=d.id;
+  try{localStorage.setItem(draftKey,JSON.stringify(next));draftStore=next;activeDraftId=d.id;$("local-save-status").textContent=(synced?"Kopia na telefonie i zapis w WordPressie potwierdzone. ":"Zapisano na telefonie. ")+new Date(d.updated).toLocaleTimeString("pl-PL");return true}
+  catch(e){$("local-save-status").textContent="Nie udało się zapisać na telefonie — możliwy brak miejsca. Skopiuj tekst. Bieżący tekst pozostaje w edytorze.";return false}
+}
+function scheduleLocalSave(){if(restoring)return;clearTimeout(saveTimer);$("local-save-status").textContent="Zapisuję na telefonie…";saveTimer=setTimeout(()=>persistDraft(),450)}
+function applyDraft(s){restoring=true;try{for(const [k,id] of Object.entries(draftFields))$(id).value=s[k]??({category:"10543",mode:"text",media:"0"}[k]||"");postId=s.postId||null;postStatus=s.postStatus||"";setPublishedUrl(postStatus==="publish"&&postId?"https://ispinalokalnie.wordpress.com/?p="+Number(postId):"");$("editor-heading").textContent=postId?"Edycja wpisu #"+postId:"Lokalny szkic";$("edit-status").textContent="Kopia na telefonie";$("post-output").innerHTML="";$("preview-box").classList.add("hidden");updateMetrics();}finally{restoring=false}}
+function openLocalDraft(id){if(publicationBusy||!persistDraft(true))return;const d=readDraftStore()?.drafts.find(x=>x.id===id);if(!d)return;activeDraftId=d.id;applyDraft(d);persistDraft();showScreen("editor")}
+function restoreLocal(silent=false){if(trim($("post-title").value)||trim($("post-body").value)){if(!silent)showDraftLibrary();return}const store=readDraftStore();if(!store)return;const d=store.drafts.find(x=>x.id===store.activeId)||store.drafts[store.drafts.length-1];if(d){activeDraftId=d.id;applyDraft(d)}}
+function showDraftLibrary(){if(publicationBusy||!persistDraft(true))return;renderDrafts();showScreen("drafts")}
+function renderDrafts(){const q=trim($("draft-search").value).toLocaleLowerCase("pl");const ds=(readDraftStore()?.drafts||[]).slice().sort((a,b)=>b.updated-a.updated).filter(d=>(d.title+" "+d.body).toLocaleLowerCase("pl").includes(q));$("draft-list").innerHTML=ds.map(d=>'<div class="note"><h3>'+esc(d.title||"Bez tytułu")+'</h3><p>'+esc(new Date(d.updated).toLocaleString("pl-PL"))+' · '+(d.postId?'WordPress #'+Number(d.postId)+' · ':'')+(d.dirty?'Zmiany lokalne':'Zsynchronizowany')+'</p><div class="actions"><button onclick="openLocalDraft(\''+esc(d.id)+'\')">Otwórz</button><button class="secondary" onclick="showDraftHistory(\''+esc(d.id)+'\')">Historia ('+d.revisions.length+')</button></div></div>').join("")||'<p>Brak szkiców pasujących do wyszukiwania.</p>';$("draft-history").innerHTML=""}
+function showDraftHistory(id){const d=readDraftStore()?.drafts.find(x=>x.id===id);if(!d)return;$("draft-history").innerHTML='<h3>Historia: '+esc(d.title||"Bez tytułu")+'</h3><p>Przywrócenie zachowa obecną wersję. Nie zmieni artykułu w WordPressie.</p>'+d.revisions.map((v,i)=>'<div class="note"><b>'+esc(new Date(v.at).toLocaleString("pl-PL"))+'</b><p>'+esc(String(v.snapshot.body||"").slice(0,180))+'</p><button class="secondary" onclick="restoreDraftVersion(\''+esc(id)+'\','+i+')">Przywróć tę wersję</button></div>').reverse().join("")+(d.revisions.length?'':'<p>Historia pojawi się po kolejnych zmianach tekstu.</p>')}
+function restoreDraftVersion(id,index){if(publicationBusy||!persistDraft(true))return false;const d=readDraftStore()?.drafts.find(x=>x.id===id),v=d?.revisions[index];if(!v)return false;const snapshot=JSON.parse(JSON.stringify(v.snapshot));activeDraftId=id;applyDraft(snapshot);if(!persistDraft(true))return false;showScreen("editor");return true}
+function closeReview(){$("publish-review").classList.add("hidden");reviewSnapshot=null}
+function reviewPublication(){
+  if(publicationBusy)return;if(!persistDraft(true))return;
+  const s=captureDraft();reviewSnapshot=draftSignature(s);
+  const missing=[];if(!trim(s.title))missing.push("Dodaj tytuł");if(!trim(s.body))missing.push("Dodaj treść");if(!Number(s.category))missing.push("Wybierz kategorię");
+  const categories={10543:"Aktualności",3503:"Historia",21188:"Technologia"};const category=$("post-category").selectedOptions?.[0]?.textContent||categories[s.category]||s.category;
+  const photo=Number(s.media);const media=typeof mediaById!=="undefined"?mediaById.get(photo):null;
+  $("review-summary").innerHTML='<h3>'+esc(s.title||"Bez tytułu")+'</h3><p>Kategoria: '+esc(category||"Nie wybrano")+'</p><p>Zajawka: '+esc(s.excerpt||"Brak — możesz ją dodać, ale nie jest wymagana.")+'</p><p>Tagi: '+esc(s.tags||"Brak")+'</p>'+(photo?'<p>Zdjęcie wyróżniające: #'+photo+'</p>'+(media?.url?'<img style="max-width:100%" src="'+esc(safeMediaUrl(media.url))+'" alt="Zdjęcie wyróżniające">':'<p>Podgląd zdjęcia będzie dostępny po wczytaniu galerii IL.</p>'):'<p>Brak zdjęcia — możesz opublikować bez zdjęcia.</p>')+'<p>Publikacja będzie publiczna na Ispina Lokalnie. WordPress może powiadomić subskrybentów.</p>';
+  $("review-preview").srcdoc='<!doctype html><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="default-src \'none\'; img-src https: data:; style-src \'unsafe-inline\'"><style>body{font:17px sans-serif;padding:14px;line-height:1.6;overflow-wrap:anywhere}img{max-width:100%}</style><h1>'+esc(s.title)+'</h1>'+editorHtml();
+  $("review-feedback").textContent=missing.length?missing.join(". ")+".":"Gotowe do publikacji. Sprawdź treść i potwierdź.";$("review-confirm").disabled=missing.length>0;$("publish-review").classList.remove("hidden");
+}
+async function confirmReviewPublication(){const now=draftSignature(captureDraft());if(!reviewSnapshot||now!==reviewSnapshot){reviewPublication();$("review-feedback").textContent="Treść zmieniła się. Sprawdź podsumowanie i potwierdź ponownie.";return}if($("review-confirm").disabled)return;const approval=reviewSnapshot;closeReview();return savePost("publish",approval)}
+window.addEventListener?.("pagehide",()=>persistDraft());
 function downloadText(){
   const content=trim($("post-title").value)+"\n\n"+trim($("post-body").value);
   IL.copyText(content);

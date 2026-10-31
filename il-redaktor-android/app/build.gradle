@@ -5,13 +5,13 @@ android {
     namespace 'com.ispinalokalnie.redaktor'
     compileSdk 35
     defaultConfig {
-        applicationId 'com.ispinalokalnie.redaktorsmart.publish194.test'
-        testApplicationId 'com.ispinalokalnie.redaktorsmart.publish194.instrumentation'
+        applicationId 'com.ispinalokalnie.redaktorsmart.stable'
+        testApplicationId 'com.ispinalokalnie.redaktorsmart.stable.instrumentation'
         testInstrumentationRunner 'com.ispinalokalnie.redaktor.ConfirmationInstrumentation'
         minSdk 26
         targetSdk 35
-        versionCode 19
-        versionName '1.13.0-test'
+        versionCode 20
+        versionName '1.14.0'
         def assistantEndpoint = System.getenv('IL_ASSISTANT_ENDPOINT') ?: project.findProperty('ilAssistantEndpoint') ?: ''
         if (assistantEndpoint && !assistantEndpoint.toString().startsWith('https://')) {
             throw new GradleException('IL_ASSISTANT_ENDPOINT must use HTTPS.')

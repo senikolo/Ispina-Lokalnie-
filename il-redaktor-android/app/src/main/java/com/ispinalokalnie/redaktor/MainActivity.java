@@ -864,6 +864,11 @@ public class MainActivity extends Activity {
         else super.onBackPressed();
     }
 
+    @Override protected void onPause() {
+        if (editor != null && webPageReady) editor.evaluateJavascript("if(typeof persistDraft==='function')persistDraft()", null);
+        super.onPause();
+    }
+
     @Override protected void onDestroy() {
         if (editorConfirmation != null) editorConfirmation.dismiss();
         work.shutdownNow();
