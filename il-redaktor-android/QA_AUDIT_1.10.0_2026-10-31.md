@@ -6,6 +6,9 @@
 **PR:** [#9](https://github.com/senikolo/Ispina-Lokalnie-/pull/9)  
 **Wersja źródeł:** versionName `1.10.0-test`, versionCode `16`, package `com.ispinalokalnie.redaktorsmart.publish191.test`, minSdk 26.
 
+**Commit źródłowy:** [`beee36ac693fde42b8711dbd41cfa02b56604624`](https://github.com/senikolo/Ispina-Lokalnie-/commit/beee36ac693fde42b8711dbd41cfa02b56604624)
+**GitHub Actions APK run:** [41198188559](https://github.com/senikolo/Ispina-Lokalnie-/actions/runs/41198188559), zakończony sukcesem.
+
 ## Werdykt
 
 Zmiany kodu i automatyczne testy kontraktowe są gotowe do weryfikacji na Androidzie i na koncie redaktora. **Nie potwierdzono w tym przebiegu logowania OAuth ani zapisu do konta właściciela na fizycznym urządzeniu.** Testy automatyczne nie używały prawdziwego tokenu WordPress i nie zapisywały niczego w portalu.
@@ -18,8 +21,9 @@ Zmiany kodu i automatyczne testy kontraktowe są gotowe do weryfikacji na Androi
 | Logowanie OAuth na Androidzie | BLOCKED — potrzebny telefon/emulator i konto WordPress redaktora |
 | Tworzenie szkicu przez prawdziwe MCP | BLOCKED — brak autoryzowanej sesji w tym środowisku |
 | Emulator / test zgodności Android 8, 10, 11 i 13 | BLOCKED — brak Android SDK, `adb` i emulatora lokalnie |
-| APK 1.10.0 | Oczekuje na nowy workflow CI po wypchnięciu zmian |
-| APK release z zachowaniem podpisu | BLOCKED — istniejący workflow nie wykrył skonfigurowanego klucza release; nie tworzono nowego |
+| APK 1.10.0 — build, badging, `apksigner`, monogram | PASS — GitHub Actions run 41198188559 |
+| Aktualizacja 1.9.1 → 1.10.0 podpisem debug | FAIL — fingerprint certyfikatu różni się; Android odrzuci instalację aktualizacyjną dla tego samego package ID |
+| APK release z istniejącym podpisem | BLOCKED — workflow pominął signed release z powodu braku skonfigurowanego klucza; nie tworzono nowego |
 
 Nie należy scalać PR do `main` jako wydania produkcyjnego, dopóki nie przejdą test logowania, szkicu i podglądu na urządzeniu właściciela.
 
@@ -151,13 +155,20 @@ Statusy poniżej są BLOCKED, ponieważ nie wykonano ich w tym środowisku. Zest
 | Brak/słaba sieć, utrata w trakcie żądania | BLOCKED | emulator/telefon z kontrolowaną siecią |
 | Duża czcionka, TalkBack, rotacja, klawiatura | BLOCKED | test UI na Androidzie |
 | Zużycie RAM/CPU, start i ANR na starszym urządzeniu | BLOCKED | urządzenie i narzędzia pomiaru |
-| Aktualizacja starego APK | BLOCKED | poprzedni i nowy APK oraz porównanie certyfikatów |
+| Fingerprint podpisu poprzedniego i nowego APK | FAIL — porównano certyfikaty; podpisy się różnią |
+| Instalacja aktualizacyjna na Androidzie | BLOCKED — brak urządzenia; różny fingerprint już wyklucza aktualizację |
 
 ## APK i wydanie
 
-Poprzedni przebieg CI na commit `45e04e20c355a36db17d431b25a27e3b3174d9b1` zbudował APK debug versionCode 15 / `1.9.1-test`, ale **to nie jest APK 1.10.0**. Wtedy job `Build signed release APK when a private signing key is configured` był pominięty, więc nie ma potwierdzonego klucza release. Nie należy używać starego artefaktu jako nowej wersji ani zakładać możliwości aktualizacji z zachowaniem podpisu.
+Build i weryfikacja APK 1.10.0 zakończyły się sukcesem:
 
-Po następnym pushu uzupełnij tę sekcję o numer workflow, wynik kompilacji, rzeczywisty hash APK, fingerprint certyfikatu i bezpośredni link z release. Jeśli release signing pozostanie pominięty, oznacz APK jako debug/test. Instalacja może wymagać odinstalowania wcześniejszego pakietu — przed tym zabezpiecz lokalne szkice.
+- Run: [41198188559](https://github.com/senikolo/Ispina-Lokalnie-/actions/runs/41198188559), commit `beee36ac693fde42b8711dbd41cfa02b56604624`.
+- `aapt dump badging` potwierdził package `com.ispinalokalnie.redaktorsmart.publish191.test`, versionCode 16 i versionName `1.10.0-test`. `apksigner verify` i kontrola monogramu IL przeszły w CI.
+- APK direct release: [IL-Redaktor-Smart-1.10.0-TEST.apk](https://github.com/senikolo/Ispina-Lokalnie-/releases/download/il-redaktor-smart-1.10.0-test/IL-Redaktor-Smart-1.10.0-TEST.apk).
+- SHA-256 APK: `bae8b4fd10cec48b8cd2922681aaa205040d8b5b39575ff791adf3ecd87339b4`.
+- Niepodpisany keystore release nie został skonfigurowany: workflow pominął oba kroki podpisanego release. To debug APK testowe.
+- Porównanie certyfikatów z pobranych artefaktów: 1.9.1 `D9:54:92:D2:6C:43:AC:3A:FF:AB:D1:58:DA:80:01:72:55:42:C0:27:A8:16:56:65:8A:F1:E0:DE:32:4E:F1:37`; 1.10.0 `D5:4D:CD:49:C3:9B:F6:E8:16:FE:29:F8:B0:0D:DD:2A:8E:42:4B:B8:EC:D4:57:8F:9F:52:C6:57:F4:29:8F:D9`. Package ID jest ten sam, więc APK 1.10.0 **nie może aktualizować** tamtej 1.9.1 instalacji. Android wymaga odinstalowania starej wersji; skopiuj lokalne szkice przed usunięciem aplikacji. Do aktualizacji bez utraty danych potrzebny jest istniejący klucz release zgodny z APK zainstalowanym u redaktora.
+- SHA-256 APK 1.9.1 porównanego z artefaktu CI: `6191f9f80fe3e0a571972523e75ad695322d05e2726fe216b09b32be1cc3a2d9`.
 
 ## Pozostałe ograniczenia
 
@@ -169,4 +180,4 @@ Po następnym pushu uzupełnij tę sekcję o numer workflow, wynik kompilacji, r
 
 ## Instalacja i następny krok
 
-Po utworzeniu nowego artefaktu pobierz APK z linku GitHub Release z sekcji powyżej. Włącz instalację zaufanych plików dla używanej przeglądarki/menedżera, zainstaluj APK i otwórz **IL Redaktor Smart 1.10.0 TEST**. Zaloguj się do WordPress.com; jeśli konto oferuje Google, wybierz je na ekranie WordPress.com. Po potwierdzeniu, że portal i zakres zgody są prawidłowe, uruchom „Sprawdź dostęp do wpisów”. Test zapisu utworzy niepubliczny szkic pozostawiony na koncie — użyj go tylko za świadomą zgodą redaktora.
+Pobierz APK z powyższego GitHub Release. **Przed instalacją nad 1.9.1 skopiuj lokalne szkice i odinstaluj starą wersję** — certyfikaty debug są różne, a odinstalowanie czyści jej lokalne dane. Zainstaluj APK i otwórz **IL Redaktor Smart 1.10.0 TEST**. Zaloguj się do WordPress.com; jeśli konto oferuje Google, wybierz je na ekranie WordPress.com. Po potwierdzeniu, że portal i zakres zgody są prawidłowe, uruchom „Sprawdź dostęp do wpisów”. Test zapisu utworzy niepubliczny szkic pozostawiony na koncie — użyj go tylko za świadomą zgodą redaktora.
