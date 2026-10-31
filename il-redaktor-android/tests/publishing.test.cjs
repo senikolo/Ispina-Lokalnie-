@@ -1087,6 +1087,8 @@ test("AI formatting guard rejects fabricated additional information",()=>{
   const a=setup();
   assert.equal(a.run("formattingMatchesOriginal('W Ispinie trwa remont.','text','<p>W Ispinie trwa remont. Prace zakończą się jutro.</p>')"),false);
   assert.equal(a.run("formattingMatchesOriginal('W Ispinie trwa remont.','text','<p>W Ispinie trwa remont.</p>')"),true);
+  assert.equal(a.run("formattingMatchesOriginal('W Ispinie trwa remont.','text','<p onclick=\"alert(1)\">W Ispinie trwa remont.</p>')"),false);
+  assert.equal(a.run("formattingMatchesOriginal('W Ispinie trwa remont.','text','<p>W Ispinie trwa remont.</p><script></script>')"),false);
 });
 
 test("free AI formatting handoff preserves original text until accepted",async()=>{
