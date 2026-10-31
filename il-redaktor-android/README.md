@@ -1,6 +1,6 @@
 # IL Redaktor Smart
 
-Niezależna aplikacja Android do redagowania portalu Ispina Lokalnie. Nie zmienia aplikacji dla mieszkańców. Aktualna wersja robocza: **1.4.1-test**, pakiet `com.ispinalokalnie.redaktorsmart.loginfix.test`, Android 8 i nowszy.
+Niezależna aplikacja Android do redagowania portalu Ispina Lokalnie. Nie zmienia aplikacji dla mieszkańców. Aktualna wersja robocza: **1.4.1-test**, pakiet `com.ispinalokalnie.redaktorsmart.ipv4fix.test`, Android 8 i nowszy.
 
 ## Logowanie WordPress.com
 
@@ -20,7 +20,7 @@ W ustawieniach konta WordPress.com trzeba włączyć dostęp MCP i zatwierdzić 
 
 ## Kompilacja i podpis
 
-Workflow **IL Redaktor Smart - Android APK** sprawdza JavaScript, asercje bezpieczeństwa i zawartość APK, buduje APK debug oraz przechowuje artefakt przez 30 dni. APK debug z GitHub Actions nie jest podpisany tym samym kluczem co poprzednie wydania, więc może wymagać odinstalowania wcześniejszej wersji testowej.
+Workflow **IL Redaktor Smart - Android APK** sprawdza JavaScript, asercje bezpieczeństwa i zawartość APK, buduje APK debug oraz przechowuje artefakt przez 30 dni. Aby ominac konflikt podpisu miedzy kolejnymi APK debug, wersja 1.4.1-test uzywa osobnego identyfikatora aplikacji (`com.ispinalokalnie.redaktorsmart.ipv4fix.test`) i nazwy z numerem wersji. Instaluje sie obok wczesniejszych testow; nie kasuj starej aplikacji z lokalnymi szkicami przed weryfikacja. Kolejne aktualizacje tego samego pakietu nadal wymagaja stalego klucza podpisujacego.
 
 Aby workflow budował także aktualizowalny APK release, skonfiguruj w GitHub Actions secrets:
 
