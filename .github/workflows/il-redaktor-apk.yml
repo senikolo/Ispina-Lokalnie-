@@ -1,0 +1,36 @@
+name: IL Redaktor Smart - Android APK
+
+on:
+  push:
+    branches:
+      - codex/il-redaktor-native-android-20261031
+    paths:
+      - "il-redaktor-android/**"
+      - ".github/workflows/il-redaktor-apk.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: android-actions/setup-android@v3
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+      - name: Compile Android APK
+        working-directory: il-redaktor-android
+        run: gradle --no-daemon :app:assembleDebug
+      - name: Upload installable APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: IL-Redaktor-Smart-APK
+          path: il-redaktor-android/app/build/outputs/apk/debug/app-debug.apk
+          retention-days: 30
