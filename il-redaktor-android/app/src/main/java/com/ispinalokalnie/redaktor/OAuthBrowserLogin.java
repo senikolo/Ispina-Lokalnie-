@@ -153,6 +153,7 @@ public final class OAuthBrowserLogin {
         note("Krok 4/4: Redaktor otrzymał odpowiedź. Sprawdzam uprawnienia WordPress.com…");
         new Thread(() -> {
             SharedPreferences p = prefs();
+            boolean acceptedState = false;
             try {
                 String expectedState = p.getString(PENDING_STATE, "");
                 String verifier = p.getString(PENDING_VERIFIER, "");
@@ -165,6 +166,10 @@ public final class OAuthBrowserLogin {
                 String state = uri.getQueryParameter("state");
                 if (!expectedState.equals(state))
                     throw new Exception("Nieprawidłowe potwierdzenie stanu OAuth. Spróbuj ponownie.");
+                // A forged or stale callback must not clear a valid login attempt.
+                // Once state matches, the provider has completed this attempt, even
+                // if it returned access_denied or token exchange later fails.
+                acceptedState = true;
                 String denied = uri.getQueryParameter("error");
                 if (denied != null && !denied.isEmpty())
                     throw new Exception("WordPress odrzucił autoryzację: " + denied);
@@ -182,7 +187,7 @@ public final class OAuthBrowserLogin {
                 fail("Nie udało się zakończyć logowania: " +
                     (ex.getMessage() == null ? "Nieznany problem OAuth." : ex.getMessage()));
             } finally {
-                clearPending();
+                if (acceptedState) clearPending();
             }
         }, "il-oauth-exchange").start();
     }

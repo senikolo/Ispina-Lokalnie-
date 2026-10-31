@@ -27,6 +27,7 @@ function setup() {
           contains(x){return classes.has(x)},
           toggle(x,force){if(force===undefined? !classes.has(x):force)classes.add(x);else classes.delete(x)}
         },
+        checked:false,disabled:false,
         addEventListener(){},
         setAttribute(){},removeAttribute(){},
       });
@@ -37,8 +38,8 @@ function setup() {
   const IL = {status(){},assistantStatus(){},openSite(){}};
   const c = {
     window:{IL, scrollTo(){}},IL,document:{
-      getElementById:node,querySelectorAll(){return []}
-    },setTimeout,clearTimeout,console,Date,TextEncoder,TextDecoder,
+      getElementById:node,querySelectorAll(){return []},documentElement:{setAttribute(){}}
+    },setTimeout,clearTimeout,console,Date,TextEncoder,TextDecoder,URL,
     localStorage:{
       getItem(k){return storage.get(k)||null},
       setItem(k,v){storage.set(k,v)},
@@ -48,7 +49,7 @@ function setup() {
   vm.createContext(c);
   vm.runInContext(code,c);
   vm.runInContext("connected=true;document.getElementById('post-title').value='Testowy artykuł';document.getElementById('post-body').value='Treść testowa';document.getElementById('post-mode').value='text';document.getElementById('post-category').value='10543';document.getElementById('post-media').value='0';",c);
-  return {c,node,run:(script)=>vm.runInContext(script,c)};
+  return {c,node,storage,run:(script)=>vm.runInContext(script,c)};
 }
 
 test("publishing issues exactly one POST and verifies by GET before SUCCESS",async()=>{
@@ -63,7 +64,7 @@ test("publishing issues exactly one POST and verifies by GET before SUCCESS",asy
   assert.equal(calls[0].body.status,"publish");
   assert.equal(calls[1].method,"GET");
   assert.equal(calls[1].path,"posts/987654?context=edit");
-  assert.match(a.node("finish-title").textContent,/SUKCES/);
+  assert.equal(a.node("finish-title").textContent,"✓ Sukces! Artykuł został opublikowany na Ispina Lokalnie.");
   assert.match(a.node("finish-detail").textContent,/ponowny odczyt/);
   assert.match(a.node("edit-status").textContent,/Opublikowany/);
 });
@@ -123,7 +124,7 @@ test("confirmed publication exposes real public permalink in a dialog and persis
     {id:67,status:"publish"}:
     {id:67,status:"publish",link:expected};
   await a.run("savePost('publish')");
-  assert.equal(a.node("finish-open").textContent,"🌐 Zobacz opublikowany artykuł na stronie IL");
+  assert.equal(a.node("finish-open").textContent,"Zobacz artykuł");
   assert.equal(a.node("view-published-post").classList.contains("hidden"),false);
   assert.match(a.node("publication-phase").textContent,/SUKCES/);
   a.run("openFinishUrl()");
@@ -151,7 +152,7 @@ test("a failing tags lookup may be skipped after explicit confirmation so it doe
   await a.run("savePost('publish')");
   assert.equal(calls.filter(c=>c.p==="posts").length,1);
   assert.equal(calls.find(c=>c.p==="posts").body.tags,undefined);
-  assert.match(a.node("finish-title").textContent,/SUKCES/);
+  assert.match(a.node("finish-title").textContent,/Sukces/);
 });
 
 test("publish guard prevents second parallel request even if user taps twice",async()=>{
@@ -251,4 +252,267 @@ test("draft diagnostic never claims success if verification fails and never retr
   assert.equal(calls.filter(x=>x.method==="POST").length,1);
   assert.match(a.node("finish-title").textContent,/NIEZWERYFIKOWANY/);
   assert.equal(a.node("test-draft-write").disabled,false);
+});
+
+function dateInFuture(minutes=30){const d=new Date(Date.now()+minutes*60_000);const pad=n=>String(n).padStart(2,"0");return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`}
+
+test("scheduled publication sends future status and ISO date, then verifies by GET",async()=>{
+  const a=setup(),calls=[];a.node("post-schedule").value=dateInFuture();
+  a.c.rpc=async(method,path,body)=>{calls.push({method,path,body});return method==="POST"?{id:201,status:"future"}:{id:201,status:"future",date_gmt:calls[0].body.date}};
+  await a.run("savePost('future')");
+  assert.equal(calls[0].body.status,"future");
+  assert.match(calls[0].body.date,/Z$/);
+  assert.equal(calls[1].path,"posts/201?context=edit");
+  assert.match(a.node("finish-title").textContent,/zaplanowana/);
+  assert.equal(a.node("finish-preview").classList.contains("hidden"),true);
+});
+
+test("schedule without a date is rejected before any write",async()=>{
+  const a=setup();let writes=0;a.c.rpc=async()=>{writes++;throw Error("unexpected")};
+  await a.run("savePost('future')");
+  assert.equal(writes,0);
+  assert.match(a.node("post-output").innerHTML,/Wybierz termin/);
+});
+
+test("schedule less than two minutes away is rejected",async()=>{
+  const a=setup();a.node("post-schedule").value=dateInFuture(1);let writes=0;a.c.rpc=async()=>{writes++};
+  await a.run("savePost('future')");
+  assert.equal(writes,0);
+});
+
+test("schedule cancellation leaves WordPress untouched",async()=>{
+  const a=setup();a.node("post-schedule").value=dateInFuture();a.c.confirm=()=>false;let writes=0;a.c.rpc=async()=>{writes++};
+  await a.run("savePost('future')");
+  assert.equal(writes,0);
+  assert.equal(a.node("save-schedule").disabled,false);
+});
+
+test("scheduled status mismatch is not reported as success",async()=>{
+  const a=setup();a.node("post-schedule").value=dateInFuture();
+  a.c.rpc=async(method)=>method==="POST"?{id:202,status:"future"}:{id:202,status:"draft"};
+  await a.run("savePost('future')");
+  assert.equal(a.node("finish-title").textContent,"STATUS NIEPOTWIERDZONY");
+  assert.equal(a.node("finish-preview").classList.contains("hidden"),true);
+});
+
+test("schedule date mismatch is reported as an error even when WordPress says future",async()=>{
+  const a=setup();a.node("post-schedule").value=dateInFuture();
+  a.c.rpc=async(method)=>method==="POST"?{id:212,status:"future"}:{id:212,status:"future",date_gmt:new Date(Date.now()+3*60*60_000).toISOString()};
+  await a.run("savePost('future')");
+  assert.equal(a.node("finish-title").textContent,"TERMIN NIEPOTWIERDZONY");
+});
+
+test("editing a scheduled post preserves its existing future status after confirmation",async()=>{
+  const a=setup(),calls=[];a.run("postId=203;postStatus='future'");a.node("post-schedule").value=dateInFuture(60);
+  a.c.rpc=async(method,path,body)=>{calls.push({method,path,body});return method==="POST"?{id:203,status:"future"}:{id:203,status:"future",date_gmt:calls[0].body.date}};
+  await a.run("savePost('draft')");
+  assert.equal(calls[0].path,"posts/203");
+  assert.equal(calls[0].body.status,"future");
+  assert.equal(calls[0].body.date.endsWith("Z"),true);
+});
+
+test("editor schedules controls and mentions timezone and status confirmation",()=>{
+  const a=setup();
+  assert.ok(a.node("post-schedule"));assert.ok(a.node("save-schedule"));
+  const html=fs.readFileSync(path.join(__dirname,"../app/src/main/assets/index.html"),"utf8");
+  assert.match(html,/strefy czasowej telefonu/);
+});
+
+test("publication sends title, HTML content, excerpt and chosen category",async()=>{
+  const a=setup(),calls=[];a.node("post-title").value="Tytuł";a.node("post-body").value="Akapit 1\n\n## Nagłówek";
+  a.node("post-excerpt").value="Opis SEO";a.node("post-category").value="3503";
+  a.c.rpc=async(method,path,body)=>{calls.push({method,path,body});return method==="POST"?{id:204,status:"draft"}:{id:204,status:"draft"}};
+  await a.run("savePost('draft')");
+  assert.equal(calls[0].body.title,"Tytuł");assert.equal(calls[0].body.excerpt,"Opis SEO");
+  assert.deepEqual(Array.from(calls[0].body.categories),[3503]);
+  assert.match(calls[0].body.content,/<h2>/);
+});
+
+test("featured image is sent as WordPress media ID",async()=>{
+  const a=setup(),calls=[];a.node("post-media").value="345";
+  a.c.rpc=async(method,path,body)=>{calls.push({method,path,body});return method==="POST"?{id:205,status:"draft"}:{id:205,status:"draft"}};
+  await a.run("savePost('draft')");assert.equal(calls[0].body.featured_media,345);
+});
+
+test("HTML mode preserves editor markup for WordPress",async()=>{
+  const a=setup(),calls=[];a.node("post-mode").value="html";a.node("post-body").value="<h2>W Ispinie</h2><p>Tekst</p>";
+  a.c.rpc=async(method,path,body)=>{calls.push({method,path,body});return method==="POST"?{id:206,status:"draft"}:{id:206,status:"draft"}};
+  await a.run("savePost('draft')");assert.equal(calls[0].body.content,"<h2>W Ispinie</h2><p>Tekst</p>");
+});
+
+test("successful tag creation and lookup are attached to post",async()=>{
+  const a=setup(),calls=[];a.node("post-tags").value="Historia Ispiny";
+  a.c.rpc=async(method,path,body)=>{calls.push({method,path,body});if(path.startsWith("tags?"))return [];
+    if(path==="tags")return {id:900};return method==="POST"?{id:207,status:"draft"}:{id:207,status:"draft"}};
+  await a.run("savePost('draft')");
+  assert.deepEqual(Array.from(calls.find(x=>x.path==="posts").body.tags),[900]);
+});
+
+test("declining to continue after tag preparation failure prevents post write",async()=>{
+  const a=setup();a.node("post-tags").value="Tag";a.c.confirm=()=>false;let postWrites=0;
+  a.c.rpc=async(method,path)=>{if(path.startsWith("tags"))throw Error("403");if(path==="posts")postWrites++;return {id:208,status:"draft"}};
+  await a.run("savePost('draft')");assert.equal(postWrites,0);
+});
+
+test("cancelling immediate-publication confirmation causes no network call",async()=>{
+  const a=setup();a.c.confirm=()=>false;let requests=0;a.c.rpc=async()=>{requests++};
+  await a.run("savePost('publish')");assert.equal(requests,0);
+});
+
+test("editing an existing article updates its ID exactly once",async()=>{
+  const a=setup(),calls=[];a.run("postId=209;postStatus='publish'");
+  a.c.rpc=async(method,path,body)=>{calls.push({method,path,body});return method==="POST"?{id:209,status:"publish"}:{id:209,status:"publish"}};
+  await a.run("savePost('draft')");
+  assert.equal(calls.filter(c=>c.method==="POST").length,1);assert.equal(calls[0].path,"posts/209");
+});
+
+test("network timeout after POST is surfaced without retry",async()=>{
+  const a=setup(),calls=[];a.c.rpc=async(method,path)=>{calls.push({method,path});if(method==="POST")throw Error("timeout");return {}};
+  await a.run("savePost('publish')");assert.equal(calls.filter(c=>c.method==="POST").length,1);
+  assert.match(a.node("finish-detail").textContent,/timeout/);
+});
+
+test("external canonical links are not opened and use the site-owned permalink fallback",async()=>{
+  const a=setup(),opened=[];a.c.IL.openSite=url=>opened.push(url);
+  a.c.rpc=async(method)=>method==="POST"?{id:210,status:"publish"}:{id:210,status:"publish",link:"https://evil.example/article"};
+  await a.run("savePost('publish')");a.run("openFinishUrl()");
+  assert.deepEqual(opened,["https://ispinalokalnie.wordpress.com/?p=210"]);
+});
+
+test("legacy catalog parser recognizes real Gutenberg H3 cards and ignores own managed block",()=>{
+  const a=setup();a.run("renderLegacyServices('<h3>RemoTerm &ndash; Marcin Mrukot</h3><h3>N-Tech</h3><!-- IL_REDAKTOR_SMART_START --> <h3>Managed duplicate</h3> <!-- IL_REDAKTOR_SMART_END -->')");
+  assert.deepEqual(Array.from(a.run("legacyServices")),["RemoTerm – Marcin Mrukot","N-Tech"]);
+});
+
+test("service image URL allows trusted WordPress media HTTPS only",()=>{
+  const a=setup();
+  assert.equal(a.run("safeMediaUrl('https://ispinalokalnie.wordpress.com/photo.jpg')"),"https://ispinalokalnie.wordpress.com/photo.jpg");
+  assert.equal(a.run("safeMediaUrl('http://example.com/photo.jpg')"),"");
+  assert.equal(a.run("safeMediaUrl('https://wordpress.com.evil.example/photo.jpg')"),"");
+});
+
+test("hide operation preserves existing manual catalog HTML while updating managed block",async()=>{
+  const a=setup();a.run(`servicesLoaded=true;servicesRaw='<h3>Legacy listing</h3>';services=[{id:'il_a',name:'A',description:'Opis'}]`);
+  let written="";a.c.rpc=async(method,path,body)=>{
+    if(method==="GET"&&path.startsWith("pages/")&&!written)return {id:818,content:{raw:a.run("servicesRaw")}};
+    if(method==="POST"){written=body.content;return {id:818};}
+    if(method==="GET")return {id:818,content:{raw:written}};
+    throw Error("unexpected");
+  };
+  a.c.confirm=()=>true;await a.run("toggleServiceVisibility(0)");
+  assert.match(a.run("servicesRaw"),/<h3>Legacy listing<\/h3>/);
+  assert.equal(a.run("services[0].hidden"),true);
+});
+
+test("delete operation asks for confirmation before changing managed listing",async()=>{
+  const a=setup();a.run(`servicesLoaded=true;servicesRaw='legacy';services=[{id:'il_a',name:'A',description:'Opis'}]`);
+  let confirms=0,writes=0;a.c.confirm=()=>{confirms++;return false};a.c.rpc=async()=>{writes++};
+  await a.run("deleteService(0)");assert.equal(confirms,1);assert.equal(writes,0);
+});
+
+test("theme and battery preferences persist without needing Android bridge",()=>{
+  const a=setup();a.node("theme-select").value="dark";a.node("text-zoom-select").value="150";
+  a.node("animations-enabled").checked=false;a.node("battery-saving").checked=true;
+  a.run("applyUiPreferences(true)");
+  const prefs=JSON.parse(a.storage.get("il_redaktor_ui_preferences_v1"));
+  assert.deepEqual(prefs,{theme:"dark",zoom:150,animations:false,battery:true});
+});
+
+test("native text zoom callback accepts supported values and ignores arbitrary values",()=>{
+  const a=setup();a.run(`window.onNativeResult('text-zoom',true,'{"value":150}')`);
+  assert.equal(a.node("text-zoom-select").value,"150");
+  a.run(`window.onNativeResult('text-zoom',true,'{"value":999}')`);
+  assert.equal(a.node("text-zoom-select").value,"150");
+});
+
+test("settings expose theme, animation, battery and accessible text size controls",()=>{
+  const html=fs.readFileSync(path.join(__dirname,"../app/src/main/assets/index.html"),"utf8");
+  for(const id of ["theme-select","animations-enabled","battery-saving","text-zoom-select"])assert.match(html,new RegExp(`id="${id}"`));
+});
+
+test("OAuth callback mismatch and encrypted token storage rules remain explicit in Android code",()=>{
+  const root=path.join(__dirname,"../app/src/main/java/com/ispinalokalnie/redaktor");
+  const oauth=fs.readFileSync(path.join(root,"OAuthBrowserLogin.java"),"utf8");
+  const activity=fs.readFileSync(path.join(root,"MainActivity.java"),"utf8");
+  assert.match(oauth,/if \(!expectedState\.equals\(state\)\)/);assert.match(oauth,/acceptedState = true/);
+  assert.match(activity,/AES\/GCM\/NoPadding/);assert.match(activity,/AndroidKeyStore/);
+});
+
+test("MCP post mapping accepts future status and disallows unsupported status values",()=>{
+  const java=fs.readFileSync(path.join(__dirname,"../app/src/main/java/com/ispinalokalnie/redaktor/WpMcp.java"),"utf8");
+  assert.match(java,/draft\|publish\|private\|pending\|future/);
+});
+
+test("repeat scheduling taps are blocked while a write is in flight",async()=>{
+  const a=setup(),calls=[];a.node("post-schedule").value=dateInFuture();let release;
+  a.c.rpc=(method,path)=>{calls.push({method,path});if(method==="POST")return new Promise(resolve=>release=()=>resolve({id:211,status:"future"}));return Promise.resolve({id:211,status:"future"})};
+  const first=a.run("savePost('future')"),second=a.run("savePost('future')");await second;
+  assert.equal(calls.filter(c=>c.method==="POST").length,1);release();await first;
+});
+
+test("successful outcome actions are present and only shown for verified published articles",()=>{
+  const a=setup();a.run(`showOutcome('success','headline','detail','https://ispinalokalnie.wordpress.com/p/','Zobacz artykuł',true)`);
+  for(const id of ["finish-preview","finish-edit","finish-home"])assert.equal(a.node(id).classList.contains("hidden"),false);
+  a.run(`showOutcome('success','headline','detail','https://ispinalokalnie.wordpress.com/p/','Otwórz',false)`);
+  for(const id of ["finish-preview","finish-edit","finish-home"])assert.equal(a.node(id).classList.contains("hidden"),true);
+});
+
+test("new build metadata and the PR APK workflow agree",()=>{
+  const gradle=fs.readFileSync(path.join(__dirname,"../app/build.gradle"),"utf8");
+  const workflow=fs.readFileSync(path.join(__dirname,"../../.github/workflows/il-redaktor-apk.yml"),"utf8");
+  assert.match(gradle,/versionCode 16/);assert.match(gradle,/versionName '1\.10\.0-test'/);
+  assert.match(workflow,/versionCode='16' versionName='1\.10\.0-test'/);
+});
+
+test("AI editor shortcut copies current title and text into a reviewable prompt without sending it",()=>{
+  const a=setup();a.node("post-title").value="Wiadomości z Ispiny";a.node("post-body").value="Treść do poprawienia";
+  a.run("assistantFromEditor('Skróć tekst')");
+  assert.match(a.node("assistant-prompt").value,/Skróć tekst/);
+  assert.match(a.node("assistant-prompt").value,/Wiadomości z Ispiny/);
+  assert.match(a.node("assistant-prompt").value,/Treść do poprawienia/);
+});
+
+test("free Facebook draft uses only current title and excerpt without adding facts",()=>{
+  const a=setup();a.node("post-title").value="Wpis z Ispiny";a.node("post-excerpt").value="Potwierdzona zajawka";
+  const result=JSON.parse(a.run("JSON.stringify(localAssistant('Przygotuj post na Facebooka'))"));
+  assert.equal(result.facebookPost,"Wpis z Ispiny\n\nPotwierdzona zajawka");
+  assert.equal(result.imageSuggestion,null);
+});
+
+test("assistant renderer escapes generated content and exposes Facebook copy and photo library search",()=>{
+  const a=setup();
+  a.run(`renderAssistantResult({intent:'article_draft',message:'Propozycja',title:'W Ispinie',content:'<script>alert(1)</script>',excerpt:'Opis',category:'Historia',tags:[],internalLinks:[],factsToVerify:[],service:null,facebookPost:'Post testowy',imageSuggestion:{description:'Archiwalne zdjęcie',altText:'Zdjęcie z archiwum IL',searchTerms:['archiwum Ispiny']}})`);
+  const html=a.node("assistant-output").innerHTML;
+  assert.match(html,/&lt;script&gt;/);assert.doesNotMatch(html,/<script>/);
+  assert.match(html,/Kopiuj tekst na Facebooka/);assert.match(html,/Szukaj w galerii IL/);
+});
+
+test("local language correction applies required Ispina forms",()=>{
+  const a=setup();a.node("post-body").value="w Ispina, do Ispina, z Ispina, Ispinii i Ispini";
+  a.run("suggest()");
+  assert.equal(a.node("post-body").value,"w Ispinie, do Ispiny, z Ispiny, Ispiny i Ispiny");
+});
+
+test("AI contract only returns image search terms, not unverifiable image URLs",()=>{
+  const backend=fs.readFileSync(path.join(__dirname,"../backend/api/assistant.ts"),"utf8");
+  assert.match(backend,/facebookPost: z\.string\(\)\.max\(1800\)/);
+  assert.match(backend,/imageSuggestion: z\.object/);
+  assert.match(backend,/Nie zwracaj adresów URL zdjęć/);
+});
+
+test("OAuth DCR, PKCE, deep-link scheme and manifest callback match without a client secret",()=>{
+  const root=path.join(__dirname,"../app/src/main");
+  const oauth=fs.readFileSync(path.join(root,"java/com/ispinalokalnie/redaktor/OAuthBrowserLogin.java"),"utf8");
+  const wp=fs.readFileSync(path.join(root,"java/com/ispinalokalnie/redaktor/WpMcp.java"),"utf8");
+  const manifest=fs.readFileSync(path.join(root,"AndroidManifest.xml"),"utf8");
+  assert.match(oauth,/scope=global/);assert.match(oauth,/code_challenge_method=S256/);
+  assert.match(oauth,/publish191:\/callback/);assert.match(manifest,/com\.ispinalokalnie\.redaktorsmart\.publish191/);
+  assert.match(wp,/token_endpoint_auth_method", "none"/);assert.match(wp,/code_verifier/);
+  assert.doesNotMatch(wp,/put\("client_secret"/);
+});
+
+test("photo upload source downsamples and compresses images before sending",()=>{
+  const java=fs.readFileSync(path.join(__dirname,"../app/src/main/java/com/ispinalokalnie/redaktor/MainActivity.java"),"utf8");
+  assert.match(java,/inSampleSize = 1/);assert.match(java,/> 1600/);
+  assert.match(java,/Bitmap\.CompressFormat\.JPEG, 80/);assert.match(java,/bytes\.length > 6_000_000/);
 });

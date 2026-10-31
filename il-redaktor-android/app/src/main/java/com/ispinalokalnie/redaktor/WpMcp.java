@@ -133,7 +133,7 @@ public final class WpMcp {
                 .put("capabilities", new JSONObject())
                 .put("clientInfo", new JSONObject()
                     .put("name", "IL Redaktor Smart")
-                    .put("version", "1.8.0")));
+                    .put("version", "1.10.0")));
         McpHttpResponse initial = postMcp(token, initialize, null, null);
         if (initial.body.has("error"))
             throw new Exception("WordPress MCP odrzucił inicjalizację: " +
@@ -448,7 +448,7 @@ public final class WpMcp {
         else throw new Exception("Ta operacja nie jest obsługiwana przez WordPress MCP.");
 
         if ("posts".equals(type) && "POST".equals(method)) {
-            if (!params.optString("status").matches("draft|publish|private|pending"))
+            if (!params.optString("status").matches("draft|publish|private|pending|future"))
                 throw new Exception("Wybierz poprawny status artykułu.");
             if (params.optString("title").trim().isEmpty() &&
                 params.optString("content").trim().isEmpty())

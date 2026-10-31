@@ -162,8 +162,17 @@ jobs:
           assert 'getArticleViaMcp(token' in mcp, 'Read-after-write must use WordPress MCP'
           assert 'setPublishedUrl(link)' in ui
           assert 'Zobacz artykuł na stronie IL' in ui
+          assert '✓ Sukces! Artykuł został opublikowany na Ispina Lokalnie.' in ui
+          assert 'Podgląd strony' in ui and 'Edytuj ponownie' in ui and 'Wróć do pulpitu' in ui
+          assert 'type="datetime-local"' in ui and 'status==="future"' in ui
+          assert 'TERMIN NIEPOTWIERDZONY' in ui
+          assert 'assistantFromEditor' in ui and 'copyAssistantFacebook' in ui
+          assert 'imageSuggestion: z.object' in Path('il-redaktor-android/backend/api/assistant.ts').read_text()
+          assert 'Nie zwracaj adresów URL zdjęć' in Path('il-redaktor-android/backend/api/assistant.ts').read_text()
           assert 'publicationButtons(true)' in ui and 'publicationButtons(false)' in ui
           assert 'Ostatnie działania' in ui
+          assert 'acceptedState = true' in Path('il-redaktor-android/app/src/main/java/com/ispinalokalnie/redaktor/OAuthBrowserLogin.java').read_text()
+          assert 'AES/GCM/NoPadding' in Path('il-redaktor-android/app/src/main/java/com/ispinalokalnie/redaktor/MainActivity.java').read_text()
           print('Publishing mapping, persistence verification and operation reporting present')
           PY
       - name: Typecheck optional AI backend
@@ -181,7 +190,7 @@ jobs:
           test -s "$APK"
           test -s il-redaktor-android/app/src/main/assets/il-monogram.png
           "$SDK_ROOT/build-tools/35.0.0/apksigner" verify --verbose "$APK"
-          "$SDK_ROOT/build-tools/35.0.0/aapt" dump badging "$APK" | grep -F "package: name='com.ispinalokalnie.redaktorsmart.publish191.test' versionCode='15' versionName='1.9.1-test'"
+          "$SDK_ROOT/build-tools/35.0.0/aapt" dump badging "$APK" | grep -F "package: name='com.ispinalokalnie.redaktorsmart.publish191.test' versionCode='16' versionName='1.10.0-test'"
           unzip -l "$APK" | grep 'assets/il-monogram.png'
       - name: Upload installable APK
         uses: actions/upload-artifact@v4
@@ -245,8 +254,8 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          TAG="il-redaktor-smart-1.9.1-test"
-          FILE="IL-Redaktor-Smart-1.9.1-TEST.apk"
+          TAG="il-redaktor-smart-1.10.0-test"
+          FILE="IL-Redaktor-Smart-1.10.0-TEST.apk"
           test -s android-package/app-debug.apk
           cp android-package/app-debug.apk "$FILE"
           if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
@@ -255,8 +264,8 @@ jobs:
             gh release create "$TAG" "$FILE" \
               --repo "$GITHUB_REPOSITORY" \
               --target "$GITHUB_SHA" \
-              --title "IL Redaktor Smart 1.9.1 TEST (WordPress MCP + status, animacje i audyt)" \
-              --notes "Wersja testowa Android 8+. Ikona Redaktora z czerwoną kropką. Poprawiona obsługa logowania WordPress.com i sesji MCP. Test na telefonie jest wymagany; nie scalać z main bez weryfikacji." \
+              --title "IL Redaktor Smart 1.10.0 TEST (OAuth, publikowanie, QA)" \
+              --notes "Wersja testowa Android 8+. Wymaga weryfikacji na urządzeniu i na koncie WordPress.com przed wdrożeniem produkcyjnym." \
               --prerelease
           fi
           gh release view "$TAG" --repo "$GITHUB_REPOSITORY" \

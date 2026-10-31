@@ -1,6 +1,8 @@
 # IL Redaktor Smart
 
-Niezależna aplikacja Android do redagowania portalu Ispina Lokalnie. Nie zmienia aplikacji dla mieszkańców. Aktualna wersja robocza: **1.5.3-test**, pakiet `com.ispinalokalnie.redaktorsmart.scope153.test`, Android 8 i nowszy.
+Niezależna aplikacja Android do redagowania portalu Ispina Lokalnie. Nie zmienia aplikacji dla mieszkańców. Aktualna wersja robocza: **1.10.0-test**, pakiet `com.ispinalokalnie.redaktorsmart.publish191.test` (versionCode 16), Android 8 i nowszy.
+
+Przed kolejnym wydaniem użyj [Master Prompt QA](QA_MASTER_PROMPT.md) i zapisz wyniki według [raportu audytu 1.10.0](QA_AUDIT_1.10.0_2026-10-31.md). Testy kodu nie zastępują logowania na urządzeniu ani testu na koncie WordPress.com.
 
 ## Logowanie WordPress.com
 
@@ -12,15 +14,15 @@ W ustawieniach konta WordPress.com trzeba włączyć dostęp MCP i zatwierdzić 
 
 ## Funkcje
 
-- Pulpit redakcyjny, lista istniejących wpisów i szkiców, edycja wpisu, zapis szkicu i publikacja po dodatkowym potwierdzeniu.
+- Pulpit redakcyjny, lista opublikowanych wpisów, szkiców i wpisów zaplanowanych; edycja wpisu, zapis szkicu, harmonogram i publikacja po dodatkowym potwierdzeniu. Zapis jest sukcesem dopiero po ponownym odczycie wpisu z WordPress.com.
 - Lokalna kopia robocza, podgląd, formatowanie HTML, kategorie, tagi, zajawka i zdjęcie wyróżniające.
 - Odczyt biblioteki mediów, wybór zdjęcia z telefonu i optymalizacja wymiarów przed wysłaniem.
-- Odczyt ręcznie dodanych kart z katalogu „Usługi w okolicy” (strona 818). Ręczne karty są obecnie tylko podglądane; zapis z aplikacji modyfikuje wyłącznie własny, oznaczony obszar Redaktora i przerywa, jeśli strona zmieniła się od ostatniego odczytu.
+- Katalog „Usługi w okolicy” jest stroną WordPress (ID 818) z kartami Gutenberg, a nie zwykłą kategorią wpisów. Aplikacja rozpoznaje istniejące nagłówki kart i zarządza własnym oznaczonym obszarem: dodaje/edytuje, ukrywa lub usuwa własne oferty. Ręczna zawartość strony pozostaje poza tym obszarem; zapis przerywa się, jeśli strona zmieniła się od ostatniego odczytu.
 - Lokalne wskazówki redakcyjne, szablony i sugestie SEO działają bez usługi AI. Nie zastępują weryfikacji faktów historycznych.
 
 ## Kompilacja i podpis
 
-Workflow **IL Redaktor Smart - Android APK** sprawdza JavaScript, asercje bezpieczeństwa i zawartość APK, buduje APK debug oraz przechowuje artefakt przez 30 dni. Aby ominac konflikt podpisu miedzy kolejnymi APK debug, wersja 1.4.1-test uzywa osobnego identyfikatora aplikacji (`com.ispinalokalnie.redaktorsmart.ipv4fix.test`) i nazwy z numerem wersji. Instaluje sie obok wczesniejszych testow; nie kasuj starej aplikacji z lokalnymi szkicami przed weryfikacja. Kolejne aktualizacje tego samego pakietu nadal wymagaja stalego klucza podpisujacego.
+Workflow **IL Redaktor Smart - Android APK** sprawdza JavaScript, testy kontraktowe, asercje integracji i zawartość APK, buduje APK debug oraz przechowuje artefakt przez 30 dni. APK z versionCode 16 używa pakietu `com.ispinalokalnie.redaktorsmart.publish191.test`. Instalacja obok starszego testowego pakietu jest możliwa. Aktualizacja istniejącej instalacji wymaga jednak zgodnego podpisu; samo zwiększenie versionCode nie wystarcza. Nie odinstalowuj poprzedniej aplikacji, jeśli są w niej lokalne szkice.
 
 Aby workflow budował także aktualizowalny APK release, skonfiguruj w GitHub Actions secrets:
 
@@ -33,7 +35,7 @@ Te sekrety muszą pochodzić z prywatnego, bezpiecznie przechowywanego klucza po
 
 ## Zakres testów
 
-Workflow potwierdza poprawność składni JavaScript i kompilację APK. Nie zastępuje testu OAuth na telefonie i koncie redaktora. W bieżącym środowisku nie ma emulatora ani podłączonego urządzenia; przed uznaniem logowania za działające produkcyjnie należy wykonać autoryzację na docelowym telefonie Android 8–13. Nie zapisuj testowych treści ani nie modyfikuj publicznego katalogu bez zatwierdzenia redaktora.
+Test suite wykonuje przypadki logiki aplikacji z transportem WordPress zastąpionym mockiem. Nie zastępuje testu OAuth na telefonie ani zapisu/odczytu na koncie redaktora. Testy na urządzeniu Android 8–13 i bezpieczny szkic na koncie właściciela wymagają środowiska oraz autoryzacji redaktora. Nie publikuj treści testowych na żywo.
 
 ## AI
 

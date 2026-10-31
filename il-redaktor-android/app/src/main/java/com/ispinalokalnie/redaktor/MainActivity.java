@@ -48,6 +48,7 @@ public class MainActivity extends Activity {
     private static final String SITE = "252442125";
     private static final String PREF = "il_redaktor_settings";
     private static final String KEY = "il_redaktor_oauth_aes_v1";
+    private static final String TEXT_ZOOM_KEY = "ui_text_zoom";
     private final ExecutorService work = Executors.newSingleThreadExecutor();
     private final Handler ui = new Handler(Looper.getMainLooper());
     private WebView editor;
@@ -56,13 +57,15 @@ public class MainActivity extends Activity {
     private boolean webPageReady = false;
     private final java.util.ArrayList<String> waitingJs = new java.util.ArrayList<>();
     private static final String HAPTICS_KEY = "haptics_intensity";
-    private long lastHapticAt = 0;
+    private long lastTapHapticAt = 0;
+    private long lastOutcomeHapticAt = 0;
 
     @Override public void onCreate(Bundle state) {
         super.onCreate(state);
         editor = new WebView(this);
         editor.setBackgroundColor(0xfff3f7fc);
         WebSettings settings = editor.getSettings();
+        settings.setTextZoom(Math.max(80, Math.min(160, prefs().getInt(TEXT_ZOOM_KEY, 100))));
         settings.setJavaScriptEnabled(true);
         settings.setDomStorageEnabled(true);
         settings.setAllowFileAccess(true);
@@ -275,8 +278,13 @@ public class MainActivity extends Activity {
         int mode = hapticMode();
         if (mode == 0) return;
         long now = android.os.SystemClock.elapsedRealtime();
-        if (now - lastHapticAt < 90L && "tap".equals(kind)) return;
-        lastHapticAt = now;
+        if ("tap".equals(kind)) {
+            if (now - lastTapHapticAt < 180L) return;
+            lastTapHapticAt = now;
+        } else {
+            if (now - lastOutcomeHapticAt < 600L) return;
+            lastOutcomeHapticAt = now;
+        }
         Vibrator vibrator = (Vibrator) getSystemService(VIBRATOR_SERVICE);
         if (vibrator == null || !vibrator.hasVibrator()) return;
         int duration = mode == 1 ? 12 : mode == 2 ? 22 : 36;
@@ -299,6 +307,26 @@ public class MainActivity extends Activity {
     public class Bridge {
         @JavascriptInterface public void getHaptics() {
             callback("haptics", true, "{\"mode\":" + hapticMode() + "}");
+        }
+
+        @JavascriptInterface public void getTextZoom() {
+            callback("text-zoom", true,
+                "{\"value\":" + Math.max(80, Math.min(160, prefs().getInt(TEXT_ZOOM_KEY, 100))) + "}");
+        }
+
+        @JavascriptInterface public void setTextZoom(int percent) {
+            if (percent < 80 || percent > 160 || percent % 5 != 0) {
+                callback("text-zoom", false, "Wybierz rozmiar tekstu od 80% do 160%.");
+                return;
+            }
+            if (!prefs().edit().putInt(TEXT_ZOOM_KEY, percent).commit()) {
+                callback("text-zoom", false, "Nie udało się zapisać rozmiaru tekstu.");
+                return;
+            }
+            ui.post(() -> {
+                if (editor != null) editor.getSettings().setTextZoom(percent);
+                callback("text-zoom", true, "{\"value\":" + percent + "}");
+            });
         }
 
         @JavascriptInterface public void setHaptics(int mode) {
