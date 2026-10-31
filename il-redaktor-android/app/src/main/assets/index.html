@@ -90,7 +90,7 @@ nav button.active{color:#174875;background:#edf5fb}
     <div class="row" style="justify-content:space-between"><h2 id="editor-heading">Nowy artykuł</h2><span class="badge" id="edit-status">Nowy</span></div>
     <div class="status"><span id="editor-dot" class="dot"></span><span id="editor-auth">Sprawdzanie połączenia...</span></div>
     <label for="post-title">Tytuł artykułu</label><input id="post-title" placeholder="Np. 10 ciekawostek o Ispinie">
-    <label for="post-body">Treść artykułu</label><textarea id="post-body" placeholder="Napisz tekst. Pusta linia oddziela akapity. ## oznacza nagłówek."></textarea>
+    <label for="post-body">Treść artykułu</label><div class="actions"><button class="secondary" onclick="IL.dictate()">🎙 Dyktuj tekst po polsku</button></div><textarea id="post-body" placeholder="Napisz tekst. Pusta linia oddziela akapity. ## oznacza nagłówek."></textarea>
     <div class="row"><label style="flex:1">Kategoria<select id="post-category"><option value="10543">Aktualności</option><option value="3503">Historia</option><option value="21188">Technologia</option></select></label>
     <label style="flex:1">Format<select id="post-mode"><option value="text">Tekst → HTML</option><option value="html">HTML / bloki WordPress</option></select></label></div>
     <label for="post-excerpt">Krótki opis / zajawka SEO</label><textarea id="post-excerpt" style="min-height:80px" placeholder="Opis wyświetlany na liście wpisów..."></textarea>
@@ -133,6 +133,8 @@ nav button.active{color:#174875;background:#edf5fb}
     <h3 id="service-heading">Dodaj usługodawcę</h3>
     <input type="hidden" id="service-id">
     <label>Nazwa firmy</label><input id="service-name" placeholder="Np. Usługi budowlane...">
+    <label>Rodzaj usługi</label>
+    <select id="service-category"><option>Remonty i wykończenia</option><option>Budowa domów</option><option>Motoryzacja</option><option>Ogrodnictwo</option><option>Usługi domowe</option><option>Inne usługi lokalne</option></select>
     <label>Opis działalności</label><textarea id="service-description" style="min-height:105px"></textarea>
     <label>Telefon</label><input id="service-phone" type="tel" placeholder="Nr telefonu">
     <label>Strona internetowa (opcjonalnie)</label><input id="service-url" placeholder="https://">
@@ -229,6 +231,11 @@ window.onNativeResult=function(id,ok,payload){
     }
   }
   if(id==="copy"){message("post-output",payload,"ok");return;}
+  if(id==="dictate"){
+    if(ok){$("post-body").value+=($("post-body").value?" ":"")+payload;updateMetrics();scheduleLocalSave();message("post-output","Dodano podyktowaną treść.","ok");}
+    else message("post-output",payload,"error");
+    return;
+  }
   if(id==="upload"){
     if(ok){
       try{
@@ -422,20 +429,24 @@ function drawServices(){
 function clearService(){
   ["service-name","service-description","service-phone","service-url","service-id"].forEach(id=>$(id).value="");
   $("service-heading").textContent="Dodaj usługodawcę";
+  $("service-category").value="Remonty i wykończenia";
 }
 function editService(i){
   const s=services[i];if(!s)return;
   $("service-id").value=s.id;
   $("service-name").value=s.name;$("service-description").value=s.description;
+  $("service-category").value=s.category||"Inne usługi lokalne";
   $("service-phone").value=s.phone||"";$("service-url").value=s.url||"";
   $("service-heading").textContent="Edytuj ofertę · "+s.name;
 }
 function serviceMarkup(list){
   const cards=list.map(s=>{
     const phone=trim(s.phone).replace(/[^\d+]/g,"");
+    const category=trim(s.category||"Inne usługi lokalne");
     const url=/^https:\/\/[a-z0-9.-]+(?:\/[^\s]*)?$/i.test(s.url)?s.url:"";
     return '<article style="border:1px solid #dce8f2;border-radius:12px;padding:16px;margin:12px 0;background:#fff">'+
-      '<h3 style="color:#075eae;margin:0 0 8px">'+esc(s.name)+'</h3>'+
+      '<p style="margin:0 0 5px;font-size:13px;color:#2d6d98">'+esc(category)+'</p>'+ 
+      '<h3 style="color:#174875;margin:0 0 8px">'+esc(s.name)+'</h3>'+
       '<p>'+esc(s.description).replace(/\n/g,"<br>")+'</p>'+
       (phone?'<p>☎ <a href="tel:'+esc(phone)+'">'+esc(s.phone)+'</a></p>':"")+
       (url?'<p><a href="'+esc(url)+'" rel="noopener nofollow">Strona firmy</a></p>':"")+'</article>';
@@ -448,7 +459,7 @@ async function saveService(){
   if(!servicesLoaded){message("services-output","Najpierw kliknij „Odczytaj usługi z WordPressa”.","error");return}
   const id=trim($("service-id").value)||("il_"+Date.now());
   const name=trim($("service-name").value),description=trim($("service-description").value);
-  const phone=trim($("service-phone").value),url=trim($("service-url").value);
+  const phone=trim($("service-phone").value),url=trim($("service-url").value),category=trim($("service-category").value);
   if(!name||!description){message("services-output","Wpisz nazwę firmy i opis.","error");return}
   if(url&&!/^https:\/\/[a-z0-9.-]+(?:\/[^\s]*)?$/i.test(url)){message("services-output","Adres strony musi zaczynać się od https://","error");return}
   if(!confirm("Zapisać ofertę „"+name+"” na publicznej stronie Usługi w okolicy?"))return;
@@ -460,7 +471,7 @@ async function saveService(){
     if(typeof raw!=="string")throw Error("Brak treści źródłowej strony.");
     if(servicesRaw!==raw)throw Error("Strona zmieniła się od odczytu. Wczytaj katalog ponownie, aby nie nadpisać cudzych zmian.");
     const next=services.filter(s=>s.id!==id);
-    next.push({id,name,description,phone,url});
+    next.push({id,name,description,phone,url,category});
     const rendered=serviceMarkup(next);
     let content;
     const a=raw.indexOf(START),b=raw.indexOf(END);
