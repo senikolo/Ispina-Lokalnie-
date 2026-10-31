@@ -35,7 +35,7 @@ function setup() {
     return dom.get(id);
   }
   const storage = new Map();
-  const IL = {status(){},assistantStatus(){},openSite(){}};
+  const IL = {status(){},assistantStatus(){},openSite(){},showPublishedPage(){}};
   const c = {
     window:{IL, scrollTo(){}},IL,document:{
       getElementById:node,querySelectorAll(){return []},documentElement:{setAttribute(){}}
@@ -110,26 +110,64 @@ test("rejected POST shows failure, never SUCCESS",async()=>{
   a.c.rpc=async(method,p,body)=>{calls.push({method,p,body});throw new Error("HTTP 403");};
   await a.run("savePost('publish')");
   assert.equal(calls.length,1);
-  assert.match(a.node("finish-title").textContent,/NIE POWIODŁO/);
+  assert.match(a.node("finish-title").textContent,/PUBLIKACJA NIEZAKOŃCZONA/);
   assert.match(a.node("finish-detail").textContent,/HTTP 403/);
 });
 
+test("publishing failure explains WordPress write permissions in plain Polish",async()=>{
+  const a=setup();
+  a.c.rpc=async()=>{throw new Error("WordPress: HTTP 403 Forbidden: posts.create disabled")};
+  await a.run("savePost('publish')");
+  assert.equal(a.node("finish-title").textContent,"PUBLIKACJA NIEZAKOŃCZONA");
+  assert.match(a.node("finish-detail").textContent,/WordPress nie pozwolił/);
+  assert.match(a.node("finish-detail").textContent,/ustawieniach dostępu MCP WordPress.com/);
+  assert.match(a.node("finish-detail").textContent,/HTTP 403/);
+  assert.match(a.node("finish-detail").textContent,/sprawdź ostatni zapis/i);
+});
 
-test("confirmed publication exposes real public permalink in a dialog and persistent editor button",async()=>{
+
+test("confirmed publication opens the live article inside the app and keeps browser access optional",async()=>{
   const a=setup();
   const expected="https://ispinalokalnie.wordpress.com/2026/10/31/probny-artykul/";
-  const opened=[];
-  a.c.IL.openSite=(url)=>opened.push(url);
+  const openedInApp=[],openedInBrowser=[];
+  a.c.IL.showPublishedPage=(url)=>openedInApp.push(url);
+  a.c.IL.openSite=(url)=>openedInBrowser.push(url);
   a.c.rpc=async(method,p,body)=>method==="POST"?
     {id:67,status:"publish"}:
     {id:67,status:"publish",link:expected};
   await a.run("savePost('publish')");
-  assert.equal(a.node("finish-open").textContent,"Zobacz artykuł");
+  assert.equal(a.node("finish-preview").textContent,"📖 Zobacz treść w aplikacji");
+  assert.equal(a.node("finish-open").textContent,"Otwórz w przeglądarce");
   assert.equal(a.node("view-published-post").classList.contains("hidden"),false);
   assert.match(a.node("publication-phase").textContent,/SUKCES/);
   a.run("openFinishUrl()");
+  a.run("openPublishedPreview()");
   a.run("openPublishedPost()");
-  assert.deepEqual(opened,[expected,expected]);
+  assert.deepEqual(openedInBrowser,[expected]);
+  assert.deepEqual(openedInApp,[expected,expected]);
+});
+
+test("reader recommendations use published IL articles and insert a confirmed internal link",async()=>{
+  const a=setup();
+  a.node("post-title").value="Historia mostu w Ispinie";
+  a.node("post-body").value="Historia mostu i dawnych przepraw w Ispinie.";
+  const publishedUrl="https://ispinalokalnie.wordpress.com/historia-mostu/";
+  a.c.rpc=async(method,path)=>{
+    assert.equal(method,"GET");
+    assert.match(path,/status=publish/);
+    return [
+      {id:712,status:"publish",title:{rendered:"Historia mostu w Ispinie"},excerpt:{rendered:"Opowieść o dawnych przeprawach."},link:publishedUrl},
+      {id:713,status:"draft",title:{rendered:"Historia mostu – szkic"},excerpt:{rendered:"Nieopublikowany tekst."},link:"https://ispinalokalnie.wordpress.com/?p=713"},
+      {id:714,status:"publish",title:{rendered:"Prace w ogrodzie"},excerpt:{rendered:"Porady ogrodnicze."},link:"https://ispinalokalnie.wordpress.com/ogrod/"}
+    ];
+  };
+  await a.run("suggestRelatedReading()");
+  assert.match(a.node("reading-suggestions").innerHTML,/Historia mostu w Ispinie/);
+  assert.doesNotMatch(a.node("reading-suggestions").innerHTML,/Nieopublikowany tekst/);
+  a.run("appendReadingLink(712)");
+  assert.match(a.node("post-body").value,/href="https:\/\/ispinalokalnie\.wordpress\.com\/historia-mostu\/"/);
+  assert.match(a.node("post-body").value,/Przeczytaj także/);
+  assert.equal(a.node("post-mode").value,"html");
 });
 
 test("published article without canonical link falls back to real public WordPress ?p URL, not admin",async()=>{
@@ -457,11 +495,30 @@ test("successful outcome actions are present and only shown for verified publish
   for(const id of ["finish-preview","finish-edit","finish-home"])assert.equal(a.node(id).classList.contains("hidden"),true);
 });
 
+test("native published-page viewer is restricted to the IL site and has no JavaScript bridge",()=>{
+  const activity=fs.readFileSync(path.join(__dirname,"../app/src/main/java/com/ispinalokalnie/redaktor/MainActivity.java"),"utf8");
+  const viewer=activity.slice(activity.indexOf("private void showPublishedPageInApp"),activity.indexOf("@Override protected void onNewIntent"));
+  assert.match(activity,/@JavascriptInterface public void showPublishedPage\(String target\)/);
+  assert.match(viewer,/isPublishedSiteUrl\(target\)/);
+  assert.match(viewer,/settings\.setAllowFileAccess\(false\)/);
+  assert.match(viewer,/MIXED_CONTENT_NEVER_ALLOW/);
+  assert.doesNotMatch(viewer,/addJavascriptInterface/);
+});
+
+test("AI context exposes published posts only for reader recommendations",()=>{
+  const a=setup();
+  a.run(`allPosts=[{id:1,status:'publish',title:{rendered:'Wpis publiczny'}},{id:2,status:'draft',title:{rendered:'Szkic prywatny'}}]`);
+  const context=JSON.parse(a.run("JSON.stringify(assistantContext())"));
+  assert.deepEqual(context.posts.map(post=>post.id),[1]);
+  assert.equal(context.posts[0].status,"publish");
+});
+
 test("new build metadata and the PR APK workflow agree",()=>{
   const gradle=fs.readFileSync(path.join(__dirname,"../app/build.gradle"),"utf8");
   const workflow=fs.readFileSync(path.join(__dirname,"../../.github/workflows/il-redaktor-apk.yml"),"utf8");
-  assert.match(gradle,/versionCode 16/);assert.match(gradle,/versionName '1\.10\.0-test'/);
-  assert.match(workflow,/versionCode='16' versionName='1\.10\.0-test'/);
+  assert.match(gradle,/versionCode 17/);assert.match(gradle,/versionName '1\.11\.0-test'/);
+  assert.match(gradle,/applicationId 'com\.ispinalokalnie\.redaktorsmart\.publish192\.test'/);
+  assert.match(workflow,/versionCode='17' versionName='1\.11\.0-test'/);
 });
 
 test("AI editor shortcut copies current title and text into a reviewable prompt without sending it",()=>{
@@ -487,6 +544,16 @@ test("assistant renderer escapes generated content and exposes Facebook copy and
   assert.match(html,/Kopiuj tekst na Facebooka/);assert.match(html,/Szukaj w galerii IL/);
 });
 
+test("AI reading promotions are matched to exact published post IDs before display",()=>{
+  const a=setup();
+  a.run(`allPosts=[{id:712,status:'publish',title:{rendered:'Potwierdzony tytuł IL'},link:'https://ispinalokalnie.wordpress.com/realny-wpis/'}];postId=0;renderAssistantResult({intent:'article_draft',message:'Propozycja',title:'W Ispinie',content:'Treść',excerpt:'',category:'',tags:[],internalLinks:[],readingPromotions:[{postId:712,promo:'Przeczytaj również ten tekst.'},{postId:999,promo:'Nieistniejący artykuł.'}],factsToVerify:[],service:null,facebookPost:'',imageSuggestion:null})`);
+  const html=a.node("assistant-output").innerHTML;
+  assert.match(html,/Podpowiedzi dla czytelnika IL/);
+  assert.match(html,/Potwierdzony tytuł IL/);
+  assert.match(html,/Przeczytaj również ten tekst/);
+  assert.doesNotMatch(html,/Nieistniejący artykuł/);
+});
+
 test("local language correction applies required Ispina forms",()=>{
   const a=setup();a.node("post-body").value="w Ispina, do Ispina, z Ispina, Ispinii i Ispini";
   a.run("suggest()");
@@ -498,6 +565,8 @@ test("AI contract only returns image search terms, not unverifiable image URLs",
   assert.match(backend,/facebookPost: z\.string\(\)\.max\(1800\)/);
   assert.match(backend,/imageSuggestion: z\.object/);
   assert.match(backend,/Nie zwracaj adresów URL zdjęć/);
+  assert.match(backend,/readingPromotions: z\.array/);
+  assert.match(backend,/wyłącznie do przekazanych wpisów ze statusem publish/);
 });
 
 test("OAuth DCR, PKCE, deep-link scheme and manifest callback match without a client secret",()=>{
@@ -506,7 +575,7 @@ test("OAuth DCR, PKCE, deep-link scheme and manifest callback match without a cl
   const wp=fs.readFileSync(path.join(root,"java/com/ispinalokalnie/redaktor/WpMcp.java"),"utf8");
   const manifest=fs.readFileSync(path.join(root,"AndroidManifest.xml"),"utf8");
   assert.match(oauth,/scope=global/);assert.match(oauth,/code_challenge_method=S256/);
-  assert.match(oauth,/publish191:\/callback/);assert.match(manifest,/com\.ispinalokalnie\.redaktorsmart\.publish191/);
+  assert.match(oauth,/publish192:\/callback/);assert.match(manifest,/com\.ispinalokalnie\.redaktorsmart\.publish192/);
   assert.match(wp,/token_endpoint_auth_method", "none"/);assert.match(wp,/code_verifier/);
   assert.doesNotMatch(wp,/put\("client_secret"/);
 });

@@ -1,6 +1,7 @@
 package com.ispinalokalnie.redaktor;
 
 import android.app.Activity;
+import android.app.Dialog;
 import android.os.Vibrator;
 import android.os.VibrationEffect;
 import android.webkit.WebViewClient;
@@ -8,7 +9,15 @@ import android.content.Context;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.graphics.Color;
+import android.graphics.Typeface;
+import android.graphics.drawable.ColorDrawable;
 import android.net.Uri;
+import android.view.Gravity;
+import android.view.View;
+import android.view.ViewGroup;
+import android.view.Window;
+import android.view.WindowManager;
 import android.os.Bundle;
 import android.provider.OpenableColumns;
 import android.database.Cursor;
@@ -20,6 +29,9 @@ import android.webkit.JavascriptInterface;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.widget.Toast;
+import android.widget.Button;
+import android.widget.LinearLayout;
+import android.widget.TextView;
 
 import org.json.JSONObject;
 
@@ -52,6 +64,7 @@ public class MainActivity extends Activity {
     private final ExecutorService work = Executors.newSingleThreadExecutor();
     private final Handler ui = new Handler(Looper.getMainLooper());
     private WebView editor;
+    private Dialog publishedDialog;
     private volatile boolean verified = false;
     private boolean loginInProgress = false;
     private boolean webPageReady = false;
@@ -482,6 +495,10 @@ public class MainActivity extends Activity {
                 catch (Exception e) { callback("external", false, "Nie można otworzyć przeglądarki."); }
             });
         }
+
+        @JavascriptInterface public void showPublishedPage(String target) {
+            showPublishedPageInApp(target);
+        }
     }
 
     private void doRequest(String rid, String method, String path, String body) {
@@ -641,6 +658,149 @@ public class MainActivity extends Activity {
         }
     }
 
+    private int dp(float value) {
+        return Math.round(value * getResources().getDisplayMetrics().density);
+    }
+
+    private boolean isPublishedSiteUrl(String value) {
+        try {
+            Uri uri = Uri.parse(value);
+            return "https".equals(uri.getScheme()) &&
+                "ispinalokalnie.wordpress.com".equals(uri.getHost()) &&
+                uri.getUserInfo() == null && (uri.getPort() == -1 || uri.getPort() == 443);
+        } catch (Exception ignored) { return false; }
+    }
+
+    private void openExternalPage(String value) {
+        try {
+            Uri uri = Uri.parse(value);
+            if (("https".equals(uri.getScheme()) || "http".equals(uri.getScheme())) && uri.getHost() != null)
+                startActivity(new Intent(Intent.ACTION_VIEW, uri));
+        } catch (Exception ignored) { }
+    }
+
+    private void showPublishedPageInApp(String target) {
+        if (!isPublishedSiteUrl(target)) {
+            ui.post(() -> Toast.makeText(this, "Adres wpisu nie należy do portalu Ispina Lokalnie.", Toast.LENGTH_LONG).show());
+            return;
+        }
+        ui.post(() -> {
+            if (isFinishing()) return;
+            if (publishedDialog != null && publishedDialog.isShowing()) publishedDialog.dismiss();
+
+            Dialog dialog = new Dialog(this);
+            publishedDialog = dialog;
+            LinearLayout root = new LinearLayout(this);
+            root.setOrientation(LinearLayout.VERTICAL);
+            root.setPadding(dp(14), dp(12), dp(14), dp(10));
+            root.setBackgroundColor(0xfff3f7fc);
+
+            TextView heading = new TextView(this);
+            heading.setText("Opublikowany wpis · Ispina Lokalnie");
+            heading.setTextColor(0xff174875);
+            heading.setTextSize(19);
+            heading.setTypeface(null, Typeface.BOLD);
+            heading.setPadding(dp(2), dp(3), dp(2), dp(8));
+            root.addView(heading, new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+
+            TextView status = new TextView(this);
+            status.setText("Łączę się ze stroną i wczytuję opublikowaną treść…");
+            status.setTextColor(0xff38546d);
+            status.setTextSize(14);
+            status.setGravity(Gravity.CENTER_VERTICAL);
+            status.setAccessibilityLiveRegion(View.ACCESSIBILITY_LIVE_REGION_POLITE);
+
+            Button refresh = new Button(this);
+            refresh.setText("Odśwież");
+            refresh.setAllCaps(false);
+            LinearLayout statusRow = new LinearLayout(this);
+            statusRow.setGravity(Gravity.CENTER_VERTICAL);
+            statusRow.addView(status, new LinearLayout.LayoutParams(0,
+                ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
+            statusRow.addView(refresh, new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+            root.addView(statusRow, new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+
+            WebView page = new WebView(this);
+            page.setBackgroundColor(Color.WHITE);
+            WebSettings settings = page.getSettings();
+            settings.setJavaScriptEnabled(true);
+            settings.setDomStorageEnabled(true);
+            settings.setAllowFileAccess(false);
+            settings.setAllowContentAccess(false);
+            settings.setMixedContentMode(WebSettings.MIXED_CONTENT_NEVER_ALLOW);
+            page.setWebViewClient(new WebViewClient() {
+                @Override public void onPageStarted(WebView view, String url, Bitmap favicon) {
+                    status.setText("Wczytuję opublikowaną stronę. Za chwilę zobaczysz jej rzeczywisty wygląd.");
+                }
+
+                @Override public void onPageFinished(WebView view, String url) {
+                    status.setText("Wpis wyświetlony z portalu IL. Jeśli widzisz starszą wersję, wybierz „Odśwież”.");
+                }
+
+                @Override public boolean shouldOverrideUrlLoading(WebView view, android.webkit.WebResourceRequest request) {
+                    Uri uri = request.getUrl();
+                    if (isPublishedSiteUrl(uri.toString())) return false;
+                    if (("https".equals(uri.getScheme()) || "http".equals(uri.getScheme())) && uri.getHost() != null)
+                        openExternalPage(uri.toString());
+                    return true;
+                }
+
+                @Override public void onReceivedError(WebView view, android.webkit.WebResourceRequest request,
+                                                      android.webkit.WebResourceError error) {
+                    if (request.isForMainFrame())
+                        status.setText("Nie udało się wczytać wpisu. Sprawdź połączenie z Internetem i wybierz „Odśwież”.");
+                }
+
+                @Override public void onReceivedHttpError(WebView view, android.webkit.WebResourceRequest request,
+                                                          android.webkit.WebResourceResponse response) {
+                    if (request.isForMainFrame() && response.getStatusCode() >= 400)
+                        status.setText("Strona zwróciła błąd HTTP " + response.getStatusCode() + ". Możesz spróbować odświeżyć wpis.");
+                }
+            });
+            root.addView(page, new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f));
+
+            Button browser = new Button(this);
+            browser.setText("Otwórz w przeglądarce");
+            browser.setAllCaps(false);
+            Button close = new Button(this);
+            close.setText("Wróć do Redaktora");
+            close.setAllCaps(false);
+            LinearLayout actions = new LinearLayout(this);
+            actions.setGravity(Gravity.END | Gravity.CENTER_VERTICAL);
+            actions.addView(browser, new LinearLayout.LayoutParams(0,
+                ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
+            actions.addView(close, new LinearLayout.LayoutParams(0,
+                ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
+            root.addView(actions, new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+
+            refresh.setOnClickListener(v -> {
+                status.setText("Odświeżam opublikowaną stronę…");
+                page.reload();
+            });
+            browser.setOnClickListener(v -> openExternalPage(target));
+            close.setOnClickListener(v -> dialog.dismiss());
+            dialog.setContentView(root);
+            dialog.setCancelable(true);
+            dialog.setOnDismissListener(ignored -> {
+                page.stopLoading();
+                page.destroy();
+                if (publishedDialog == dialog) publishedDialog = null;
+            });
+            dialog.show();
+            Window window = dialog.getWindow();
+            if (window != null) {
+                window.setBackgroundDrawable(new ColorDrawable(0xfff3f7fc));
+                window.setLayout(WindowManager.LayoutParams.MATCH_PARENT, WindowManager.LayoutParams.MATCH_PARENT);
+            }
+            page.loadUrl(target);
+        });
+    }
+
     @Override protected void onNewIntent(Intent intent) {
         super.onNewIntent(intent);
         setIntent(intent);
@@ -648,12 +808,17 @@ public class MainActivity extends Activity {
     }
 
     @Override public void onBackPressed() {
+        if (publishedDialog != null && publishedDialog.isShowing()) {
+            publishedDialog.dismiss();
+            return;
+        }
         if (editor.canGoBack()) editor.goBack();
         else super.onBackPressed();
     }
 
     @Override protected void onDestroy() {
         work.shutdownNow();
+        if (publishedDialog != null && publishedDialog.isShowing()) publishedDialog.dismiss();
         if (editor != null) editor.destroy();
         super.onDestroy();
     }

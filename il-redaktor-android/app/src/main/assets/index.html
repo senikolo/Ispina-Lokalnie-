@@ -218,11 +218,12 @@ a{color:#1767a8}:root[data-theme="dark"] a{color:#9ecfff}
     <label for="post-schedule">Termin publikacji</label><div class="row"><input id="post-schedule" type="datetime-local" style="flex:1"><button onclick="savePost('future')" id="save-schedule">Zaplanuj publikację</button></div><p class="muted small">Wybierz datę i godzinę według strefy czasowej telefonu. WordPress musi potwierdzić status „zaplanowany”.</p>
     <label for="post-media">Zdjęcie wyróżniające</label>
     <div class="row"><input id="post-media" type="number" min="0" value="0" style="flex:1"><button class="secondary" onclick="IL.chooseImage()">Z telefonu</button><button class="secondary" onclick="showScreen('media');loadMedia()">Z galerii IL</button></div>
-    <div class="actions"><button class="secondary" onclick="suggest()">Korekta i SEO</button><button class="secondary" onclick="assistantFromEditor('Popraw język polski, śródtytuły i zajawkę. Zachowaj sens i wszystkie potwierdzone fakty; nie dopowiadaj informacji o Ispinie.')">Korekta AI</button><button class="secondary" onclick="preview()">Podgląd</button><button class="secondary" onclick="showTemplates()">Szablony</button></div>
+    <div class="actions"><button class="secondary" onclick="suggest()">Korekta i SEO</button><button class="secondary" onclick="assistantFromEditor('Popraw język polski, śródtytuły i zajawkę. Zachowaj sens i wszystkie potwierdzone fakty; nie dopowiadaj informacji o Ispinie.')">Korekta AI</button><button class="secondary" onclick="suggestRelatedReading()">📖 Poleć czytelnikom powiązane teksty IL</button><button class="secondary" onclick="preview()">Podgląd</button><button class="secondary" onclick="showTemplates()">Szablony</button></div>
     <div id="templates-box" class="note hidden"></div>
     <div id="editor-metrics" class="note">Napisz tekst, aby zobaczyć wskazówki redakcyjne.</div>
+    <div id="reading-suggestions" aria-live="polite" role="region" aria-label="Propozycje lektury dla czytelników"></div>
     <div class="actions"><button class="secondary" onclick="restoreLocal()">Przywróć lokalny szkic</button><button class="secondary" onclick="downloadText()">Kopia tekstu</button></div>
-    <div class="actions save-actions"><button onclick="savePost('draft')" id="save-draft">Zapisz szkic / zmiany</button><button onclick="savePost('publish')" id="save-publish">Opublikuj po zatwierdzeniu</button><button class="secondary" onclick="resetEditor()">Nowy wpis</button></div><div class="actions"><button class="secondary" onclick="verifyLastPublication()">🔎 Sprawdź ostatni zapis</button></div><div class="actions"><button id="view-published-post" class="secondary hidden" onclick="openPublishedPost()">🌐 Zobacz artykuł na stronie IL</button></div><p id="publication-phase" class="note" role="status" aria-live="polite">Gotowy do redagowania. Publikacja wymaga potwierdzenia.</p>
+    <div class="actions save-actions"><button onclick="savePost('draft')" id="save-draft">Zapisz szkic / zmiany</button><button onclick="savePost('publish')" id="save-publish">Opublikuj po zatwierdzeniu</button><button class="secondary" onclick="resetEditor()">Nowy wpis</button></div><div class="actions"><button class="secondary" onclick="verifyLastPublication()">🔎 Sprawdź ostatni zapis</button></div><div class="actions"><button id="view-published-post" class="secondary hidden" onclick="openPublishedPost()">📖 Zobacz opublikowany wpis w aplikacji</button></div><p id="publication-phase" class="note" role="status" aria-live="polite">Gotowy do redagowania. Publikacja wymaga potwierdzenia.</p>
     <div id="post-output" aria-live="polite"></div>
   </div>
   <div id="preview-box" class="card hidden"><h2>Podgląd artykułu</h2><iframe sandbox="" id="post-preview" title="Podgląd artykułu"></iframe></div>
@@ -279,7 +280,7 @@ a{color:#1767a8}:root[data-theme="dark"] a{color:#9ecfff}
       <p>Zatwierdź dostęp w przeglądarce i wybierz otwarcie Redaktora IL, gdy Android o to zapyta. Jeśli jesteś już z powrotem w aplikacji, ale nadal widzisz krok 3/4, skorzystaj z opcji poniżej.</p>
       <div class="actions"><button class="secondary" onclick="checkLoginState()">Sprawdź stan</button><button class="secondary" onclick="cancelLoginFlow()">Anuluj i spróbuj ponownie</button></div>
       <details><summary>Zaawansowane: ręczne dokończenie logowania</summary>
-        <p>Jeśli przeglądarka pokazuje pełny adres rozpoczynający się od <code>com.ispinalokalnie.redaktorsmart.publish191:/callback</code>, możesz wkleić go poniżej. Nie wpisuj tu hasła, kodu z SMS ani zwykłego adresu WordPressa. Nie udostępniaj nikomu tego adresu.</p>
+        <p>Jeśli przeglądarka pokazuje pełny adres rozpoczynający się od <code>com.ispinalokalnie.redaktorsmart.publish192:/callback</code>, możesz wkleić go poniżej. Nie wpisuj tu hasła, kodu z SMS ani zwykłego adresu WordPressa. Nie udostępniaj nikomu tego adresu.</p>
         <label for="oauth-return">Adres powrotu (poufny)</label><input id="oauth-return" type="password" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Wklej pełny adres powrotu z przeglądarki">
         <div class="actions"><button onclick="finishManualLogin()">Dokończ logowanie</button></div>
       </details>
@@ -305,7 +306,7 @@ a{color:#1767a8}:root[data-theme="dark"] a{color:#9ecfff}
     <label class="setting-row"><input type="checkbox" id="battery-saving" onchange="applyUiPreferences(true)"><span>Tryb oszczędzania baterii</span></label>
     <p id="ui-preferences-status" class="setting-caption" role="status" aria-live="polite">Ustawienia zapisują się na tym telefonie. Systemowe ograniczenie ruchu zawsze ma pierwszeństwo.</p>
   </div>
-  <div class="card"><h2>O programie</h2><p class="muted">IL Redaktor Smart 1.10.0-test · Niezależna aplikacja Android 8 i nowszy. WordPress.com MCP. Publikacja wymaga potwierdzenia i ponownego odczytu wpisu.</p></div>
+  <div class="card"><h2>O programie</h2><p class="muted">IL Redaktor Smart 1.11.0-test · Niezależna aplikacja Android 8 i nowszy. WordPress.com MCP. Publikacja wymaga potwierdzenia i ponownego odczytu wpisu.</p></div>
 </section>
 </main>
 <div id="finish-dialog" class="finish-dialog hidden" role="alertdialog" aria-modal="true" aria-labelledby="finish-title">
@@ -313,7 +314,7 @@ a{color:#1767a8}:root[data-theme="dark"] a{color:#9ecfff}
 <div id="finish-symbol" class="finish-symbol">✓</div>
 <h2 id="finish-title" class="finish-title">SUKCES!</h2>
 <p id="finish-detail" class="finish-detail"></p>
-<div class="finish-actions"><button id="finish-open" class="hidden" onclick="openFinishUrl()">Zobacz artykuł</button><button id="finish-preview" class="publication-action secondary hidden" onclick="openPublishedPreview()">Podgląd strony</button><button id="finish-edit" class="publication-action secondary hidden" onclick="editPublishedAgain()">Edytuj ponownie</button><button id="finish-home" class="publication-action secondary hidden" onclick="returnToDashboard()">Wróć do pulpitu</button><button class="secondary" onclick="closeFinish()">Zamknij</button></div>
+<div class="finish-actions"><button id="finish-preview" class="publication-action hidden" onclick="openPublishedPreview()">📖 Zobacz treść w aplikacji</button><button id="finish-open" class="secondary hidden" onclick="openFinishUrl()">Otwórz w przeglądarce</button><button id="finish-edit" class="publication-action secondary hidden" onclick="editPublishedAgain()">Edytuj ponownie</button><button id="finish-home" class="publication-action secondary hidden" onclick="returnToDashboard()">Wróć do pulpitu</button><button class="secondary" onclick="closeFinish()">Zamknij</button></div>
 </div></div>
 <nav aria-label="Główne zakładki">
 <button id="nav-home" class="active" onclick="showScreen('home')"><span class="sym">⌂</span>Pulpit</button>
@@ -355,22 +356,46 @@ function showOutcome(kind,headline,detail,link="",linkLabel="Otwórz w WordPress
   $("finish-title").textContent=headline;
   $("finish-detail").textContent=detail;
   $("finish-open").classList.toggle("hidden",!link);
-  $("finish-open").textContent=linkLabel;
+  $("finish-open").textContent=kind==="success"&&isPublishedArticle?"Otwórz w przeglądarce":linkLabel;
+  $("finish-preview").textContent="📖 Zobacz treść w aplikacji";
   ["finish-preview","finish-edit","finish-home"].forEach(id=>$(id).classList.toggle("hidden",!(kind==="success"&&isPublishedArticle)));
   $("finish-dialog").classList.remove("hidden");
 }
 function closeFinish(){$("finish-dialog").classList.add("hidden");}
 function openFinishUrl(){if(finishUrl)IL.openSite(finishUrl);}
-function openPublishedPreview(){closeFinish();showScreen("editor");preview();}
+function openPublishedPreview(){
+  const url=publishedPageUrl||finishUrl;
+  if(!url){publicationPhase("Nie mam jeszcze potwierdzonego adresu opublikowanego wpisu. Użyj „Sprawdź ostatni zapis”.","error");closeFinish();showScreen("editor");return}
+  closeFinish();showScreen("editor");
+  if(typeof IL.showPublishedPage==="function"){
+    publicationPhase("Otwieram opublikowany wpis w Redaktorze IL…");
+    IL.showPublishedPage(url);
+  }else{
+    publicationPhase("Ta wersja aplikacji nie ma jeszcze widoku opublikowanego wpisu. Zaktualizuj Redaktora IL.","error");
+  }
+}
 function editPublishedAgain(){closeFinish();showScreen("editor");}
 function returnToDashboard(){closeFinish();showScreen("home");}
 let publishedPageUrl="";
-function openPublishedPost(){if(publishedPageUrl)IL.openSite(publishedPageUrl);}
+function openPublishedPost(){openPublishedPreview();}
 function setPublishedUrl(url){publishedPageUrl=url||"";$("view-published-post").classList.toggle("hidden",!publishedPageUrl);}
 function publicationPhase(text,kind=""){$("publication-phase").className="note "+kind;$("publication-phase").textContent=text;}
 let publicationBusy=false;
 let lastPublicationAttempt=null, serviceBusy=false;
+let publicationStep="przygotowanie wpisu";
 function publicationButtons(busy){publicationBusy=busy;["save-draft","save-publish","save-schedule"].forEach(id=>{$(id).disabled=busy;$(id).setAttribute("aria-busy",String(busy))})}
+function explainPublicationFailure(error,stage,id){
+  const raw=trim(error?.message||error||"Nieznany błąd WordPressa.");
+  const lower=raw.toLocaleLowerCase("pl");
+  let next="Sprawdź listę artykułów w aplikacji i użyj „Sprawdź ostatni zapis” przed kolejną próbą.";
+  if(/http 401|unauthorized|invalid_token|token expired|wygasł token/.test(lower))
+    next="Odczyt konta działał, ale dostęp do zapisu wygasł. Otwórz „Połączenie”, zaloguj się ponownie i sprawdź, czy wpis już istnieje.";
+  else if(/http 403|forbidden|permission|capabilit|not allowed|disabled|brak uprawnień|niedozwolon/.test(lower))
+    next="WordPress nie pozwolił temu kontu zapisać lub opublikować wpisu. Sprawdź rolę konta oraz włączone uprawnienia tworzenia i publikowania wpisów w ustawieniach dostępu MCP WordPress.com. Potem sprawdź ostatni zapis przed kolejną próbą.";
+  else if(/timeout|timed out|przekroczono czas|brak odpowiedzi|failed to connect|unknownhost|network|połączen/.test(lower))
+    next="Połączenie przerwało się podczas pracy. Nie wysyłaj wpisu ponownie od razu. Najpierw odśwież listę artykułów i sprawdź ostatni zapis, żeby uniknąć duplikatu.";
+  return "Nie udało mi się dokończyć publikacji. Zatrzymałem się na etapie: "+stage+".\n\n"+next+"\n\nSzczegóły z WordPressa: "+raw+(id?"\nNumer wpisu do sprawdzenia: #"+id:"\nJeśli WordPress zdążył zapisać wpis przed przerwaniem połączenia, wyszukaj go po tytule: „"+trim(lastPublicationAttempt?.title||$("post-title").value)+"”.");
+}
 
 let reqNo=0, connected=false, postId=null, postStatus="", services=[], servicesLoaded=false, servicesRaw="", legacyServices=[], allPosts=[], assistantEnabled=false, assistantDraft=null, mediaSelectionTarget="post", mediaById=new Map();
 const localKey="il_redaktor_draft_v2";let restoring=false, saveTimer=0;
@@ -557,10 +582,77 @@ function assistantFromEditor(task){
   message("assistant-output","Skopiowano bieżący tekst do polecenia. Przejrzyj go przed wysłaniem do skonfigurowanego backendu AI.");
 }
 function assistantContext(){
-  const posts=allPosts.slice(0,30).map(p=>({id:Number(p.id),title:p.title?.rendered||"",excerpt:String(p.excerpt?.rendered||"").replace(/<[^>]+>/g," ").slice(0,500),status:p.status||""}));
+  const posts=allPosts.filter(p=>p.status==="publish").slice(0,30).map(p=>({id:Number(p.id),title:p.title?.raw||p.title?.rendered||"",excerpt:String(p.excerpt?.raw||p.excerpt?.rendered||"").replace(/<[^>]+>/g," ").slice(0,500),status:"publish"}));
   const legacy=Array.from(document.querySelectorAll("#legacy-services-list div")).map(n=>n.textContent.replace(/^✓\s*/,"").trim()).filter(Boolean);
   const owned=services.map(s=>s.name).filter(Boolean);
   return {posts,services:Array.from(new Set([...legacy,...owned])).slice(0,50)};
+}
+let readingRecommendations=[];
+const readingStopWords=new Set("ale albo aby bez być co czy czym dla do gdzie gdy i ich ile im inna inne jest jego jej już jak jaka jakie jako jeżeli kiedy kto która które który lat lub ma między mnie może na nad nam nas nie nich niż o od oraz po pod przez przy się są ta tak te tego tej ten to tu tych tym u w we za ze też oraz bardzo portal artykuł wpis tekst czytaj przeczytaj więcej informacje lokalny lokalne lokalnie ispina ispiny ispinie ispin lokaln ispini artyku przecz".normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLocaleLowerCase("pl").split(/\s+/));
+function wpPlain(value){return String(value??"").replace(/<[^>]*>/g," ").replace(/&nbsp;/gi," ").replace(/&amp;/gi,"&").replace(/&quot;/gi,'"').replace(/&#0*39;|&apos;/gi,"'").replace(/&lt;/gi,"<").replace(/&gt;/gi,">").replace(/\s+/g," ").trim()}
+function wpPostTitle(post){return wpPlain(post?.title?.raw||post?.title?.rendered||post?.title||"")}
+function wpPostExcerpt(post){return wpPlain(post?.excerpt?.raw||post?.excerpt?.rendered||post?.excerpt||"")}
+function wpPostPublicUrl(post){
+  const id=Number(post?.id),candidate=String(post?.link||"");
+  return Number.isSafeInteger(id)&&id>0&&/^https:\/\/ispinalokalnie\.wordpress\.com\//.test(candidate)?candidate:
+    Number.isSafeInteger(id)&&id>0?"https://ispinalokalnie.wordpress.com/?p="+id:"";
+}
+function readingTerms(value){
+  const normalized=wpPlain(value).normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLocaleLowerCase("pl");
+  return new Set((normalized.match(/[a-z0-9]{3,}/g)||[]).map(word=>word.length>6?word.slice(0,6):word).filter(word=>!readingStopWords.has(word)));
+}
+function makeReadingPromo(post,promo=""){
+  const title=wpPostTitle(post),excerpt=wpPostExcerpt(post);
+  return trim(promo)||("Przeczytaj także: „"+title+"”."+(excerpt?" "+excerpt:""));
+}
+function visiblePublishedPosts(){
+  return allPosts.filter(post=>post.status==="publish"&&Number.isSafeInteger(Number(post.id))&&Number(post.id)>0&&wpPostTitle(post)&&wpPostPublicUrl(post));
+}
+async function refreshPublishedPostsForReading(){
+  if(!connected)throw Error("Połącz konto z WordPressem, aby pobrać opublikowane artykuły IL.");
+  const result=await rpc("GET","posts?context=edit&status=publish&per_page=60&orderby=modified&order=desc");
+  if(!Array.isArray(result))throw Error("WordPress nie zwrócił listy opublikowanych artykułów.");
+  allPosts=[...result,...allPosts.filter(post=>post.status!=="publish")];
+  return visiblePublishedPosts();
+}
+function renderReadingCards(posts,label="Propozycje dla czytelników"){
+  readingRecommendations=posts.map(item=>({post:item.post||item,promo:makeReadingPromo(item.post||item,item.promo||"")}));
+  if(!readingRecommendations.length){$("reading-suggestions").innerHTML='<div class="note">Nie znalazłem opublikowanych artykułów do polecenia. Odśwież listę później albo dopisz temat artykułu.</div>';return}
+  const cards=readingRecommendations.map(({post,promo})=>{
+    const id=Number(post.id),title=wpPostTitle(post),excerpt=wpPostExcerpt(post);
+    return '<div class="note"><b>Przeczytaj także: '+esc(title)+'</b>'+(excerpt?'<p>'+esc(excerpt.slice(0,260))+'</p>':'')+'<p><b>Propozycja zachęty:</b> '+esc(promo)+'</p><div class="actions"><button class="secondary" onclick="openReadingArticle('+id+')">Pokaż wpis w aplikacji</button><button class="secondary" onclick="copyReadingPromotion('+id+')">Kopiuj zachętę</button><button onclick="appendReadingLink('+id+')">Dodaj link do artykułu</button></div></div>';
+  }).join("");
+  $("reading-suggestions").innerHTML='<div class="card"><h3>'+esc(label)+'</h3><p class="muted">To istniejące, opublikowane teksty Ispina Lokalnie. Wybierz te, które rzeczywiście pasują do bieżącego artykułu.</p>'+cards+'</div>';
+}
+async function suggestRelatedReading(){
+  const topic=trim($("post-title").value+" "+$("post-excerpt").value+" "+$("post-body").value.replace(/<[^>]*>/g," "));
+  if(!trim($("post-title").value)&&!trim($("post-body").value)){message("post-output","Wpisz najpierw tytuł albo treść. Wtedy dobiorę lekturę do tematu.","error");return}
+  startOperation("Szukam powiązanych, opublikowanych tekstów IL…");
+  $("reading-suggestions").innerHTML='<div class="note" role="status">Pobieram opublikowane artykuły i dopasowuję je do Twojego tematu…</div>';
+  try{
+    const published=await refreshPublishedPostsForReading();
+    const topicTerms=readingTerms(topic),currentId=Number(postId)||0;
+    const ranked=published.filter(post=>Number(post.id)!==currentId).map(post=>{
+      const titleTerms=readingTerms(wpPostTitle(post)),excerptTerms=readingTerms(wpPostExcerpt(post));
+      let score=0;titleTerms.forEach(term=>{if(topicTerms.has(term))score+=3});excerptTerms.forEach(term=>{if(topicTerms.has(term))score+=1});
+      return {post,score};
+    }).sort((a,b)=>b.score-a.score||String(b.post.modified||"").localeCompare(String(a.post.modified||"")));
+    const matches=ranked.filter(item=>item.score>0).slice(0,3);
+    if(matches.length){renderReadingCards(matches,"Powiązane artykuły dla czytelników IL");const countText=matches.length===1?"jedną propozycję":matches.length+" propozycje";operationFinished(true,"Znalazłem powiązane teksty",countText+" na podstawie opublikowanych tytułów i opisów.");}
+    else {const recent=ranked.slice(0,3);renderReadingCards(recent,"Najnowsze teksty do rozważenia");operationFinished(true,"Przejrzałem opublikowane teksty",recent.length?"Nie znalazłem mocnego dopasowania tematycznego, więc pokazuję najnowsze artykuły do Twojej oceny.":"W witrynie nie ma artykułów do polecenia.");}
+  }catch(error){$("reading-suggestions").innerHTML='<div class="note error">'+esc("Nie udało mi się pobrać propozycji lektury. "+error.message+" Twoja treść nie została zmieniona.")+'</div>';operationFinished(false,"Nie pobrano propozycji lektury",error.message)}
+}
+function readingRecommendation(id){return readingRecommendations.find(item=>Number(item.post.id)===Number(id))||null}
+function openReadingArticle(id){const item=readingRecommendation(id),url=item&&wpPostPublicUrl(item.post);if(url&&typeof IL.showPublishedPage==="function")IL.showPublishedPage(url);else message("post-output","Nie mogę otworzyć tego wpisu w aplikacji. Sprawdź połączenie i odśwież propozycje.","error")}
+function copyReadingPromotion(id){const item=readingRecommendation(id);if(!item)return;const promo=makeReadingPromo(item.post,item.promo);if(IL.copyText)IL.copyText(promo);message("post-output","Skopiowałem propozycję zachęty. Możesz ją wkleić do artykułu albo wykorzystać w zapowiedzi.","ok")}
+function appendReadingLink(id){
+  const item=readingRecommendation(id);if(!item)return;
+  const title=wpPostTitle(item.post),url=wpPostPublicUrl(item.post);if(!url)return;
+  if(!confirm("Dodać na końcu artykułu sekcję „Przeczytaj także” z linkiem do „"+title+"”?"))return;
+  const existing=editorHtml().trim();
+  const block='<p><strong>Przeczytaj także:</strong> <a href="'+esc(url)+'">'+esc(title)+'</a></p>';
+  $("post-body").value=(existing?(existing+"\n\n"):"")+block;$("post-mode").value="html";
+  updateMetrics();scheduleLocalSave();message("post-output","Dodałem link do opublikowanego artykułu „"+title+"”. Sprawdź jego miejsce i treść przed publikacją.","ok");
 }
 function requestAssistant(prompt,context){
   return new Promise((resolve,reject)=>{
@@ -593,7 +685,16 @@ function localAssistant(prompt){
 }
 function renderAssistantResult(result){
   assistantDraft=result;
-  const links=(result.internalLinks||[]).map(x=>esc(x.title)+" (ID "+Number(x.postId)+")").join(", ");
+  const approvedLinks=(result.internalLinks||[]).map(x=>allPosts.find(p=>Number(p.id)===Number(x.postId)&&p.status==="publish")).filter(Boolean);
+  const links=approvedLinks.map(p=>esc(wpPostTitle(p))+" (ID "+Number(p.id)+")").join(", ");
+  const seenReadingIds=new Set();
+  readingRecommendations=(result.readingPromotions||[]).map(item=>{
+    const post=allPosts.find(p=>Number(p.id)===Number(item.postId)&&p.status==="publish"&&Number(p.id)!==Number(postId));
+    if(!post||seenReadingIds.has(Number(post.id)))return null;
+    seenReadingIds.add(Number(post.id));
+    return {post,promo:makeReadingPromo(post,item.promo||"")};
+  }).filter(Boolean).slice(0,3);
+  const reading=readingRecommendations.length?'<div class="note"><b>Podpowiedzi dla czytelnika IL</b><p>Wybrałem istniejące, opublikowane teksty. Sprawdź, czy pasują do tego artykułu.</p>'+readingRecommendations.map(({post,promo})=>'<div class="note"><b>Przeczytaj także: '+esc(wpPostTitle(post))+'</b><p>'+esc(promo)+'</p><div class="actions"><button class="secondary" onclick="openReadingArticle('+Number(post.id)+')">Pokaż wpis w aplikacji</button><button class="secondary" onclick="copyReadingPromotion('+Number(post.id)+')">Kopiuj zachętę</button><button onclick="appendReadingLink('+Number(post.id)+')">Dodaj link do artykułu</button></div></div>').join('')+'</div>':'';
   const checks=(result.factsToVerify||[]).map(x=>"<li>"+esc(x)+"</li>").join("");
   let action="";
   if(result.intent==="article_draft"&&result.title)action='<button class="secondary" onclick="acceptAssistantArticle()">Przenieś propozycję do artykułu</button>';
@@ -602,7 +703,7 @@ function renderAssistantResult(result){
   const service=result.service&&result.service.name?'<p><b>Firma:</b> '+esc(result.service.name)+'</p>':'';
   const facebook=result.facebookPost?'<div class="note"><b>Propozycja na Facebooka</b><p>'+esc(result.facebookPost)+'</p><button class="secondary" onclick="copyAssistantFacebook()">Kopiuj tekst na Facebooka</button></div>':'';
   const image=result.imageSuggestion?'<div class="note"><b>Pomysł na zdjęcie</b><p>'+esc(result.imageSuggestion.description||"")+'</p><p>Tekst alternatywny: '+esc(result.imageSuggestion.altText||"")+'</p><p>Frazy do wyszukania w galerii IL: '+esc((result.imageSuggestion.searchTerms||[]).join(", "))+'</p><small>Sprawdź prawa do zdjęcia. Asystent nie potwierdza licencji ani nie tworzy fikcyjnych adresów zdjęć.</small><button class="secondary" onclick="searchAssistantImage()">Szukaj w galerii IL</button></div>':'';
-  $("assistant-output").innerHTML='<div class="card"><h3>Propozycja · '+esc(result.intent||"odpowiedź")+'</h3><p>'+esc(result.message||"")+'</p>'+(result.title?'<p><b>Tytuł:</b> '+esc(result.title)+'</p>':'')+service+body+(links?'<p><b>Linkowanie wewnętrzne:</b> '+links+'</p>':'')+(checks?'<p><b>Do sprawdzenia:</b></p><ul>'+checks+'</ul>':'')+facebook+image+'<div class="actions">'+action+'</div></div>';
+  $("assistant-output").innerHTML='<div class="card"><h3>Propozycja · '+esc(result.intent||"odpowiedź")+'</h3><p>'+esc(result.message||"")+'</p>'+(result.title?'<p><b>Tytuł:</b> '+esc(result.title)+'</p>':'')+service+body+(links?'<p><b>Linkowanie wewnętrzne:</b> '+links+'</p>':'')+reading+(checks?'<p><b>Do sprawdzenia:</b></p><ul>'+checks+'</ul>':'')+facebook+image+'<div class="actions">'+action+'</div></div>';
 }
 function copyAssistantFacebook(){const text=assistantDraft?.facebookPost||"";if(text&&IL.copyText)IL.copyText(text)}
 function searchAssistantImage(){
@@ -617,7 +718,8 @@ async function runAssistant(){
   message("assistant-output","Sprawdzam kontekst i przygotowuję odpowiedź…");
   try{
     if(assistantEnabled&&connected){
-      if(!allPosts.length)await loadPosts();
+      message("assistant-output","Pobieram opublikowane artykuły IL, aby podpowiedzieć prawdziwe materiały do dalszego czytania.");
+      await refreshPublishedPostsForReading();
       if(!servicesLoaded)await loadServices();
       const result=await requestAssistant(prompt,assistantContext());
       endOperation();renderAssistantResult(result);
@@ -656,7 +758,7 @@ async function testDraftWrite(){
   if(!confirm("Utworzyć w WordPressie prywatny szkic diagnostyczny? Nie będzie publiczny i pozostanie na liście szkiców do ręcznego usunięcia."))return;
   const testButton=$("test-draft-write");
   diagnosticWriteBusy=true;testButton.disabled=true;
-  const title="[TEST IL Redaktor Smart 1.10.0] Sprawdzenie zapisu "+new Date().toLocaleString("pl-PL");
+  const title="[TEST IL Redaktor Smart 1.11.0] Sprawdzenie zapisu "+new Date().toLocaleString("pl-PL");
   const body={title,content:"<p>Test techniczny zapisu z aplikacji IL Redaktor Smart. Ten szkic nie jest przeznaczony do publikacji.</p>",status:"draft",excerpt:"Test techniczny. Nie publikować."};
   let createdId=null;
   startOperation("Test: zapisuję szkic w WordPressie…");
@@ -763,10 +865,11 @@ async function savePost(status){
   }
   publicationButtons(true);
   lastPublicationAttempt={title,status,id:postId,started:Date.now()};
+  publicationStep="przygotowanie wpisu";
   setPublishedUrl("");
-  publicationPhase(status==="publish"?"Etap 1/3: przygotowuję publikację…":status==="future"?"Etap 1/3: przygotowuję harmonogram…":"Etap 1/3: przygotowuję szkic…");
+  publicationPhase(status==="publish"?"Krok 1 z 3: przygotowuję wpis do publikacji. Jeszcze niczego nie wysłałem.":status==="future"?"Krok 1 z 3: przygotowuję harmonogram wpisu…":"Krok 1 z 3: przygotowuję szkic…");
   startOperation(status==="publish"?"Publikuję artykuł…":status==="future"?"Planuję publikację…":"Zapisuję szkic…");
-  message("post-output","Trwa wysyłanie. Czekamy na potwierdzenie numeru ID od WordPressa.");
+  message("post-output",status==="publish"?"Rozpocząłem publikowanie. Najpierw sprawdzę wymagane dane, następnie wyślę wpis i odczytam go ponownie z WordPressa.":"Rozpocząłem zapis. Po odpowiedzi WordPressa sprawdzę, czy treść i status zostały zachowane.");
   try{
     const mediaId=Number($("post-media").value)||0;
     const data={title,content:editorHtml(),status,excerpt:trim($("post-excerpt").value),categories:[Number($("post-category").value)]};
@@ -774,7 +877,7 @@ async function savePost(status){
     if(mediaId>0)data.featured_media=mediaId;
     const tagNames=trim($("post-tags").value).split(",").map(trim).filter(Boolean);
     if(tagNames.length){
-      try{publicationPhase("Etap 1/3: sprawdzam tagi i kategorie…");data.tags=await ensureTags(tagNames);}
+      try{publicationStep="sprawdzanie tagów";publicationPhase("Krok 1 z 3: sprawdzam tagi. Wpis nie został jeszcze wysłany.");data.tags=await ensureTags(tagNames);}
       catch(tagErr){
         if(!confirm("Nie udało się przygotować tagów ("+tagErr.message+"). Czy kontynuować zapis BEZ tagów?")) {
           publicationPhase("Anulowano publikowanie, niczego nie zapisano w WordPressie.","error");return;
@@ -783,7 +886,8 @@ async function savePost(status){
         recordAction("failed","Nie dodano tagów",tagErr.message);
       }
     }
-    publicationPhase("Etap 2/3: wysyłam wpis do WordPress.com. Nie zamykaj aplikacji.");
+    publicationStep=status==="publish"?"wysyłanie do WordPressa":"zapisywanie w WordPressie";
+    publicationPhase("Krok 2 z 3: wysyłam wpis do WordPress.com. Poczekaj na odpowiedź i nie wysyłaj go ponownie.");
     const path=postId?"posts/"+postId:"posts";
     // POST is issued exactly once: an automatic retry after network timeout could
     // publish a duplicate. Save the ID immediately, then verify persistence by GET.
@@ -796,7 +900,8 @@ async function savePost(status){
     $("editor-heading").textContent="Edytuj artykuł #"+postId;
     $("edit-status").textContent="Sprawdzam zapis…";
     message("post-output","WordPress zwrócił ID "+postId+". Sprawdzam, czy zmiany są widoczne po ponownym odczycie.");
-    publicationPhase("Etap 3/3: sprawdzam zapisany wpis #"+postId+" w WordPress.com…");
+    publicationStep="potwierdzanie zapisu";
+    publicationPhase("Krok 3 z 3: odczytuję wpis #"+postId+" z WordPressa. Dopiero po tym potwierdzę wynik.");
     startOperation("Weryfikacja zapisu wpisu #"+postId+"…");
     let verified;
     try {
@@ -832,21 +937,22 @@ async function savePost(status){
     localStorage.removeItem(localKey);
     lastPublicationAttempt=null;
     const summary=status==="publish"?"✓ Sukces! Artykuł został opublikowany na Ispina Lokalnie.":status==="future"?"✓ Sukces! Publikacja artykułu została zaplanowana.":"SUKCES! Szkic zapisany.";
-    const detail="Zapis i ponowny odczyt potwierdzone przez WordPress. Tytuł: "+title+
-      ". Numer wpisu: "+postId+". Status: "+verified.status+".";
+    const detail="WordPress zapisał wpis, a ponowny odczyt potwierdził jego status. Tytuł: "+title+
+      ". Numer wpisu: "+postId+". Status: "+verified.status+"."+(status==="publish"?" Wybierz „Zobacz treść w aplikacji”, aby od razu ją wyświetlić.":"");
     message("post-output",summary+" "+detail,"ok");
     const canonical=verified.link&&/^https:\/\/ispinalokalnie\.wordpress\.com\//.test(verified.link)?verified.link:"";
     const published=status==="publish";
     const link=published?(canonical||"https://ispinalokalnie.wordpress.com/?p="+postId):
       "https://wordpress.com/post/ispinalokalnie.wordpress.com/"+postId;
     if(published)setPublishedUrl(link);
-    publicationPhase(published?"SUKCES! Artykuł jest opublikowany. Możesz otworzyć jego prawdziwy widok na stronie IL.":status==="future"?"SUKCES! WordPress potwierdził zaplanowaną datę publikacji.":"SUKCES! Szkic zapisany w WordPressie.","ok");
+    publicationPhase(published?"SUKCES! WordPress potwierdził publikację. Wybierz „Zobacz treść w aplikacji”, aby przeczytać wpis.":status==="future"?"SUKCES! WordPress potwierdził zaplanowaną datę publikacji.":"SUKCES! WordPress potwierdził zapis szkicu.","ok");
     showOutcome("success",summary,detail,link,
-      published?"Zobacz artykuł":status==="future"?"Edytuj zaplanowany wpis":"Otwórz szkic w WordPressie",published);
+      published?"Otwórz w przeglądarce":status==="future"?"Edytuj zaplanowany wpis":"Otwórz szkic w WordPressie",published);
   }catch(e){
-    publicationPhase("NIE POWIODŁO SIĘ: "+e.message,"error");
-    message("post-output","Nie potwierdzono zapisu: "+e.message,"error");
-    showOutcome("error","NIE POWIODŁO SIĘ","Nie uzyskano potwierdzenia zapisu z WordPressa. "+e.message+" Jeśli połączenie zostało przerwane, sprawdź listę wpisów przed ponowną próbą, aby uniknąć duplikatu.");
+    const detail=explainPublicationFailure(e,publicationStep,postId);
+    publicationPhase("Nie udało się dokończyć publikacji. Zobacz niżej, na którym kroku zatrzymała się operacja.","error");
+    message("post-output",detail,"error");
+    showOutcome("error","PUBLIKACJA NIEZAKOŃCZONA",detail);
   }finally{publicationButtons(false);}
 }
 async function verifyLastPublication(){

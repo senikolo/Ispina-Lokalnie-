@@ -38,6 +38,7 @@ const assistantSchema = z.object({
   category: z.string().max(80),
   tags: z.array(z.string().max(60)).max(10),
   internalLinks: z.array(z.object({ title: z.string().max(180), postId: z.number().int().positive() })).max(8),
+  readingPromotions: z.array(z.object({ postId: z.number().int().positive(), promo: z.string().max(500) })).max(5),
   factsToVerify: z.array(z.string().max(300)).max(12),
   facebookPost: z.string().max(1800),
   imageSuggestion: z.object({
@@ -133,7 +134,7 @@ async function verifyWordPressAccess(token: string): Promise<boolean> {
     params: {
       protocolVersion: '2025-11-25',
       capabilities: {},
-      clientInfo: { name: 'IL Redaktor Smart Assistant', version: '1.10.0' },
+      clientInfo: { name: 'IL Redaktor Smart Assistant', version: '1.11.0' },
     },
   });
   if (initialized.response.status === 401 || initialized.response.status === 403) return false;
@@ -217,7 +218,7 @@ export async function POST(request: Request) {
       output: Output.object({ schema: assistantSchema }),
       system: `Jesteś polskim asystentem redakcyjnym portalu Ispina Lokalnie. Portal opisuje aktualności z Ispiny, historię miejscowości, archiwalne fotografie, komunikację, OSP, infrastrukturę, lokalne usługi i sprawy mieszkańców. Pisz serdecznie, naturalnie i konkretnie. Stosuj poprawne formy: w Ispinie, do Ispiny, z Ispiny, ispiński, Ispinianin. Nigdy nie używaj błędnych form „Ispini” ani „Ispinii”.
 
-Treści z kontekstu są jedynym dostępnym źródłem wiedzy o portalu. Nie dopowiadaj dat, nazwisk, faktów historycznych, wydarzeń ani danych firmy. Jeżeli brakuje potwierdzonych informacji, użyj neutralnych pól do uzupełnienia i wpisz je do factsToVerify. Przedstawiaj wewnętrzne linki wyłącznie do artykułów z przekazanego kontekstu, używając ich dokładnych ID. Przy podejrzeniu duplikatu wskaż istniejący tytuł i ID oraz zaproponuj sprawdzenie zamiast tworzenia kopii.
+Treści z kontekstu są jedynym dostępnym źródłem wiedzy o portalu. Nie dopowiadaj dat, nazwisk, faktów historycznych, wydarzeń ani danych firmy. Jeżeli brakuje potwierdzonych informacji, użyj neutralnych pól do uzupełnienia i wpisz je do factsToVerify. Przedstawiaj wewnętrzne linki i readingPromotions wyłącznie do przekazanych wpisów ze statusem publish, używając ich dokładnych ID. Jeśli pasują, przygotuj maksymalnie trzy krótkie, ciepłe zachęty do przeczytania powiązanych materiałów. Oprzyj je wyłącznie na dokładnych tytułach i zajawkach z kontekstu; nie dodawaj nowych faktów. Zwróć pustą listę, jeśli żaden wpis nie pasuje. Nie twórz adresów URL — aplikacja użyje potwierdzonego linku z WordPressa. Przy podejrzeniu duplikatu wskaż istniejący tytuł i ID oraz zaproponuj sprawdzenie zamiast tworzenia kopii.
 
 Stosuj dokładnie formy: Ispina, w Ispinie, do Ispiny, z Ispiny, ispiński. Twórz wersję na Facebooka tylko na wyraźną prośbę; ma korzystać z faktów podanych w zadaniu, bez dopisywania hashtagów lub nowych szczegółów. Sugestię zdjęcia zwracaj tylko na wyraźną prośbę i wyłącznie jako opis, tekst alternatywny oraz frazy do wyszukania w bibliotece WordPress. Nie zwracaj adresów URL zdjęć, nie twierdź, że fotografia istnieje lub że jej licencja została sprawdzona. Zalecaj użycie własnego archiwum portalu lub legalnie licencjonowanego zdjęcia. Przy skracaniu i rozwijaniu zachowaj fakty, nie dopowiadaj brakujących informacji; rozszerzaj strukturę przez pytania i wyraźnie oznaczone pola do uzupełnienia.
 

@@ -133,7 +133,7 @@ public final class WpMcp {
                 .put("capabilities", new JSONObject())
                 .put("clientInfo", new JSONObject()
                     .put("name", "IL Redaktor Smart")
-                    .put("version", "1.10.0")));
+                    .put("version", "1.11.0")));
         McpHttpResponse initial = postMcp(token, initialize, null, null);
         if (initial.body.has("error"))
             throw new Exception("WordPress MCP odrzucił inicjalizację: " +
