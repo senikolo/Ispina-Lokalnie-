@@ -61,6 +61,8 @@ public class MainActivity extends Activity {
     private AlertDialog loginDialog;
     private String oauthState = "";
     private volatile boolean verified = false;
+    private boolean loginInProgress = false;
+    private boolean mcpMode(){ return "mcp21".equals(prefs().getString("auth_mode", "legacy")); }
 
     @Override public void onCreate(Bundle state) {
         super.onCreate(state);
@@ -146,6 +148,23 @@ public class MainActivity extends Activity {
 
     private void verifyConnection() {
         if (!connected()) { callback("verify", false, "Brak aktywnej sesji WordPressa."); return; }
+        if (mcpMode()) {
+            work.execute(() -> {
+                try {
+                    Object data = WpMcp.unwrap(WpMcp.request(getToken(), "posts.list",
+                        new JSONObject().put("per_page",1).put("status",new org.json.JSONArray().put("publish"))));
+                    if (!(data instanceof org.json.JSONArray)) throw new Exception("WordPress nie zwrócił listy artykułów.");
+                    verified=true;
+                    callback("verify",true,"{\"connected\":true}");
+                } catch(Exception ex) {
+                    verified=false;
+                    if (ex.getMessage()!=null && ex.getMessage().contains("HTTP 401"))
+                        prefs().edit().remove("token").remove("expiry").apply();
+                    callback("verify",false,ex.getMessage());
+                }
+            });
+            return;
+        }
         work.execute(() -> {
             HttpURLConnection c = null;
             try {
@@ -190,6 +209,32 @@ public class MainActivity extends Activity {
             callback("status", true, obj.toString());
         }
 
+        @JavascriptInterface public void signInGoogle() {
+            ui.post(() -> {
+                if(loginInProgress) { callback("auth-progress",true,"Logowanie jest już w toku.");return; }
+                loginInProgress=true;
+                new OAuthBrowserLogin(MainActivity.this,new OAuthBrowserLogin.Listener(){
+                    @Override public void status(String text){callback("auth-progress",true,text);}
+                    @Override public void failure(String text){
+                        loginInProgress=false;
+                        callback("auth-progress",false,text);
+                    }
+                    @Override public void success(String access,long expires,String refresh,String clientId){
+                        loginInProgress=false;
+                        try{
+                            putToken(access,expires);
+                            prefs().edit().putString("auth_mode","mcp21").apply();
+                            verified=false;
+                            callback("auth",true,"{\"connected\":true}");
+                            verifyConnection();
+                        } catch(Exception ex){
+                            callback("auth-progress",false,"Nie udało się bezpiecznie zapisać logowania.");
+                        }
+                    }
+                }).start();
+            });
+        }
+
         @JavascriptInterface public void connect(String suppliedClientId) {
             ui.post(() -> {
                 String id = suppliedClientId.trim();
@@ -207,7 +252,7 @@ public class MainActivity extends Activity {
 
         @JavascriptInterface public void disconnect() {
             verified = false;
-            prefs().edit().remove("token").remove("expiry").apply();
+            prefs().edit().remove("token").remove("expiry").remove("auth_mode").apply();
             callback("auth", true, "{\"connected\":false}");
         }
 
@@ -343,6 +388,16 @@ public class MainActivity extends Activity {
     }
 
     private void doRequest(String rid, String method, String path, String body) {
+        if(mcpMode()){
+            try {
+                Object value=WpMcp.mapRestCall(getToken(),method,path,body);
+                callback(rid,true,value.toString());
+            }catch(Exception ex){
+                if(ex.getMessage()!=null && ex.getMessage().contains("HTTP 401")) verified=false;
+                callback(rid,false,"WordPress MCP: "+ex.getMessage());
+            }
+            return;
+        }
         HttpURLConnection conn = null;
         try {
             conn = (HttpURLConnection) new URL(API + path).openConnection();
