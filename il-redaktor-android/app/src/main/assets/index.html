@@ -249,7 +249,7 @@ nav button.active{color:var(--il-blue);background:#e6f0f8}
       <p>Zatwierdź dostęp w przeglądarce i wybierz otwarcie Redaktora IL, gdy Android o to zapyta. Jeśli jesteś już z powrotem w aplikacji, ale nadal widzisz krok 3/4, skorzystaj z opcji poniżej.</p>
       <div class="actions"><button class="secondary" onclick="checkLoginState()">Sprawdź stan</button><button class="secondary" onclick="cancelLoginFlow()">Anuluj i spróbuj ponownie</button></div>
       <details><summary>Zaawansowane: ręczne dokończenie logowania</summary>
-        <p>Jeśli przeglądarka pokazuje pełny adres rozpoczynający się od <code>com.ispinalokalnie.redaktorsmart.publish190:/callback</code>, możesz wkleić go poniżej. Nie wpisuj tu hasła, kodu z SMS ani zwykłego adresu WordPressa. Nie udostępniaj nikomu tego adresu.</p>
+        <p>Jeśli przeglądarka pokazuje pełny adres rozpoczynający się od <code>com.ispinalokalnie.redaktorsmart.publish191:/callback</code>, możesz wkleić go poniżej. Nie wpisuj tu hasła, kodu z SMS ani zwykłego adresu WordPressa. Nie udostępniaj nikomu tego adresu.</p>
         <label for="oauth-return">Adres powrotu (poufny)</label><input id="oauth-return" type="password" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Wklej pełny adres powrotu z przeglądarki">
         <div class="actions"><button onclick="finishManualLogin()">Dokończ logowanie</button></div>
       </details>
@@ -260,9 +260,15 @@ nav button.active{color:var(--il-blue);background:#e6f0f8}
     <div id="auth-output" aria-live="polite"></div>
     <p class="muted">Jeżeli WordPress odmawia dostępu, sprawdź, czy w ustawieniach konta WordPress.com jest włączony dostęp MCP i czy wybrane zgody pozwalają czytać oraz edytować treść.</p>
     <div class="actions"><button class="secondary" onclick="verifyNow()">Sprawdź dostęp do wpisów</button><button class="danger" onclick="disconnect()">Wyloguj</button></div>
+    <div class="card settings-soft" style="margin-top:18px">
+      <h3>Diagnostyka zapisu WordPress</h3>
+      <p class="setting-caption">Sprawdza prawdziwy zapis przez aplikację: po zatwierdzeniu powstanie <strong>tylko szkic</strong>, który nie jest publiczny i nie powinien wysyłać powiadomień czytelnikom. Po zapisie Redaktor ponownie odczyta jego status. Szkic pozostanie na koncie do samodzielnego usunięcia.</p>
+      <button id="test-draft-write" class="wide secondary" onclick="testDraftWrite()">🧪 Test zapisu szkicu w WordPressie</button>
+      <div id="test-write-result" role="status" aria-live="polite"></div>
+    </div>
   </div>
   <div class="card settings-soft"><h2>Wibracje i odczucia dotykowe</h2><p class="setting-caption">Subtelna reakcja na dotknięcie przycisku, pomyślny zapis lub błąd. Szanuje ustawienia telefonu i można ją wyłączyć.</p><label for="haptics-select">Intensywność wibracji</label><select id="haptics-select" onchange="setHapticsMode(this.value)"><option value="0">Wyłączone</option><option value="1" selected>Delikatne</option><option value="2">Normalne</option><option value="3">Mocniejsze</option></select><div class="actions"><button class="secondary" onclick="testHaptics()">Sprawdź wibrację</button></div><div id="haptics-status" class="setting-caption" aria-live="polite">Ustawienie zostanie zapamiętane na telefonie.</div></div>
-  <div class="card"><h2>O programie</h2><p class="muted">IL Redaktor Smart 1.9.0-test · Niezależna aplikacja Android 8 i nowszy. WordPress.com MCP. Publikacja wymaga potwierdzenia. Zapis jest uznawany za udany dopiero po otrzymaniu identyfikatora WordPress.</p></div>
+  <div class="card"><h2>O programie</h2><p class="muted">IL Redaktor Smart 1.9.1-test · Niezależna aplikacja Android 8 i nowszy. WordPress.com MCP. Publikacja wymaga potwierdzenia. Zapis jest uznawany za udany dopiero po otrzymaniu identyfikatora WordPress.</p></div>
 </section>
 </main>
 <div id="finish-dialog" class="finish-dialog hidden" role="alertdialog" aria-modal="true" aria-labelledby="finish-title">
@@ -534,6 +540,41 @@ function acceptAssistantService(){
   if(s.category)$("service-category").value=s.category;
   showScreen("services");
   message("services-output","Propozycję przeniesiono do formularza. Sprawdź duplikaty i dane przed zatwierdzeniem zapisu.","ok");
+}
+let diagnosticWriteBusy=false;
+async function testDraftWrite(){
+  if(!connected){
+    message("test-write-result","Najpierw połącz konto z WordPressem.","error");
+    return;
+  }
+  if(diagnosticWriteBusy){message("test-write-result","Test jest już wykonywany.");return}
+  if(!confirm("Utworzyć w WordPressie prywatny szkic diagnostyczny? Nie będzie publiczny i pozostanie na liście szkiców do ręcznego usunięcia."))return;
+  const testButton=$("test-draft-write");
+  diagnosticWriteBusy=true;testButton.disabled=true;
+  const title="[TEST IL Redaktor Smart 1.9.1] Sprawdzenie zapisu "+new Date().toLocaleString("pl-PL");
+  const body={title,content:"<p>Test techniczny zapisu z aplikacji IL Redaktor Smart. Ten szkic nie jest przeznaczony do publikacji.</p>",status:"draft",excerpt:"Test techniczny. Nie publikować."};
+  let createdId=null;
+  startOperation("Test: zapisuję szkic w WordPressie…");
+  message("test-write-result","Etap 1/2: wysyłam szkic do WordPressa. Nie ponawiaj ręcznie.");
+  try{
+    const created=await rpc("POST","posts",body);
+    createdId=Number(created.id);
+    if(!Number.isSafeInteger(createdId)||createdId<=0)throw Error("WordPress nie zwrócił numeru wpisu. Sprawdź listę szkiców.");
+    operationBanner("busy","Test: sprawdzam utworzony szkic #"+createdId);
+    message("test-write-result","Etap 2/2: szkic #"+createdId+" zapisany; sprawdzam jego status ponownym odczytem.");
+    const confirmed=await rpc("GET","posts/"+createdId+"?context=edit");
+    if(Number(confirmed.id)!==createdId||confirmed.status!=="draft")
+      throw Error("WordPress zwrócił nieoczekiwany status: "+String(confirmed.status||"brak"));
+    const link="https://wordpress.com/post/ispinalokalnie.wordpress.com/"+createdId;
+    const detail="WordPress potwierdził utworzenie i ponowny odczyt szkicu #"+createdId+". Status: draft. Szkic nie został opublikowany; możesz otworzyć go i usunąć w WordPressie.";
+    message("test-write-result","SUKCES! "+detail,"ok");
+    showOutcome("success","TEST ZAPISU: SUKCES",detail,link,"Zobacz szkic w WordPressie");
+  }catch(error){
+    const detail="Nie potwierdzono operacji: "+error.message+
+      (createdId?". Zapis mógł nastąpić: sprawdź szkic #"+createdId+" przed ponowieniem.":". Sprawdź listę szkiców, zanim uruchomisz test ponownie.");
+    message("test-write-result",detail,"error");
+    showOutcome("error",createdId?"TEST: ZAPIS NIEZWERYFIKOWANY":"TEST ZAPISU: BŁĄD",detail);
+  }finally{diagnosticWriteBusy=false;testButton.disabled=false;}
 }
 function verifyNow(){message("auth-output","Sprawdzam połączenie z WordPressem...");IL.verify();}
 async function loadCategories(){
