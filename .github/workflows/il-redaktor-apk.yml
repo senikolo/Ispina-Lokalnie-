@@ -182,7 +182,8 @@ jobs:
           assert 'function readWordPressScheduleTime' in ui
           assert 'function formatArticleLocally' in ui and 'function formatArticleWithAI' in ui
           assert 'TREŚĆ NIEPOTWIERDZONA' in ui
-          assert 'onStop()' in main and 'onBackPressed()' in main
+          android=Path('il-redaktor-android/app/src/main/java/com/ispinalokalnie/redaktor/MainActivity.java').read_text()
+          assert 'onStop()' in android and 'onBackPressed()' in android
           assert 'assistantFromEditor' in ui and 'copyAssistantFacebook' in ui
           assert 'imageSuggestion: z.object' in Path('il-redaktor-android/backend/api/assistant.ts').read_text()
           assert 'Nie zwracaj adresów URL zdjęć' in Path('il-redaktor-android/backend/api/assistant.ts').read_text()
