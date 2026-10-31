@@ -135,7 +135,7 @@ nav button.active{color:#174875;background:#edf5fb}
     <div id="templates-box" class="note hidden"></div>
     <div id="editor-metrics" class="note">Napisz tekst, aby zobaczyć wskazówki redakcyjne.</div>
     <div class="actions"><button class="secondary" onclick="restoreLocal()">Przywróć lokalny szkic</button><button class="secondary" onclick="downloadText()">Kopia tekstu</button></div>
-    <div class="actions"><button onclick="savePost('draft')" id="save-draft">Zapisz szkic / zmiany</button><button onclick="savePost('publish')" id="save-publish">Opublikuj po zatwierdzeniu</button><button class="secondary" onclick="resetEditor()">Nowy wpis</button></div>
+    <div class="actions"><button onclick="savePost('draft')" id="save-draft">Zapisz szkic / zmiany</button><button onclick="savePost('publish')" id="save-publish">Opublikuj po zatwierdzeniu</button><button class="secondary" onclick="resetEditor()">Nowy wpis</button></div><div class="actions"><button id="view-published-post" class="secondary hidden" onclick="openPublishedPost()">🌐 Zobacz artykuł na stronie IL</button></div><p id="publication-phase" class="note" role="status" aria-live="polite">Gotowy do redagowania. Publikacja wymaga potwierdzenia.</p>
     <div id="post-output" aria-live="polite"></div>
   </div>
   <div id="preview-box" class="card hidden"><h2>Podgląd artykułu</h2><iframe sandbox="" id="post-preview" title="Podgląd artykułu"></iframe></div>
@@ -197,7 +197,7 @@ nav button.active{color:#174875;background:#edf5fb}
 <div id="finish-symbol" class="finish-symbol">✓</div>
 <h2 id="finish-title" class="finish-title">SUKCES!</h2>
 <p id="finish-detail" class="finish-detail"></p>
-<div class="finish-actions"><button id="finish-open" class="hidden" onclick="openFinishUrl()">Otwórz w WordPressie</button><button class="secondary" onclick="closeFinish()">OK, zamknij</button></div>
+<div class="finish-actions"><button id="finish-open" class="hidden" onclick="openFinishUrl()">Zobacz artykuł na stronie</button><button class="secondary" onclick="closeFinish()">OK, zamknij</button></div>
 </div></div>
 <nav aria-label="Główne zakładki">
 <button id="nav-home" class="active" onclick="showScreen('home')"><span class="sym">⌂</span>Pulpit</button>
@@ -228,7 +228,7 @@ function operationFinished(ok,title,detail=""){
   operationBanner(ok?"done":"failed",(ok?"SUKCES: ":"BŁĄD: ")+title);
   recordAction(ok?"done":"failed",title,detail);
 }
-function showOutcome(kind,headline,detail,link=""){
+function showOutcome(kind,headline,detail,link="",linkLabel="Otwórz w WordPressie"){
   operationFinished(kind==="success",headline,detail.slice(0,260));
   finishUrl=link;
   $("finish-panel").classList.toggle("error",kind==="error");
@@ -236,10 +236,17 @@ function showOutcome(kind,headline,detail,link=""){
   $("finish-title").textContent=headline;
   $("finish-detail").textContent=detail;
   $("finish-open").classList.toggle("hidden",!link);
+  $("finish-open").textContent=linkLabel;
   $("finish-dialog").classList.remove("hidden");
 }
 function closeFinish(){$("finish-dialog").classList.add("hidden");}
 function openFinishUrl(){if(finishUrl)IL.openSite(finishUrl);}
+let publishedPageUrl="";
+function openPublishedPost(){if(publishedPageUrl)IL.openSite(publishedPageUrl);}
+function setPublishedUrl(url){publishedPageUrl=url||"";$("view-published-post").classList.toggle("hidden",!publishedPageUrl);}
+function publicationPhase(text,kind=""){$("publication-phase").className="note "+kind;$("publication-phase").textContent=text;}
+let publicationBusy=false;
+function publicationButtons(busy){publicationBusy=busy;$("save-draft").disabled=busy;$("save-publish").disabled=busy;}
 
 let reqNo=0, connected=false, postId=null, postStatus="", services=[], servicesLoaded=false, servicesRaw="", legacyServices=[], allPosts=[], assistantEnabled=false, assistantDraft=null;
 const localKey="il_redaktor_draft_v2";let restoring=false, saveTimer=0;
@@ -484,11 +491,15 @@ async function savePost(status){
   if(!connected){message("post-output","Najpierw połącz konto WordPress.","error");showScreen("settings");return}
   const title=trim($("post-title").value),body=trim($("post-body").value);
   if(!title||!body){message("post-output","Wpisz tytuł i treść.","error");return}
-  if(status==="publish"&&!confirm("Na pewno opublikować ten artykuł na stronie Ispina Lokalnie?"))return;
+  if(publicationBusy){publicationPhase("Zapisywanie już trwa. Nie wysyłaj artykułu ponownie.");return}
+  if(status==="publish"&&!confirm("Opublikować artykuł na żywo w Ispina Lokalnie? WordPress może również powiadomić subskrybentów."))return;
   if(status==="draft" && postId && postStatus==="publish"){
     if(!confirm("Ten artykuł jest już opublikowany. Zapisać zmiany BEZ wycofywania publikacji?"))return;
     status="publish";
   }
+  publicationButtons(true);
+  setPublishedUrl("");
+  publicationPhase(status==="publish"?"Etap 1/3: przygotowuję publikację…":"Etap 1/3: przygotowuję szkic…");
   startOperation(status==="publish"?"Publikuję artykuł…":"Zapisuję szkic…");
   message("post-output","Trwa wysyłanie. Czekamy na potwierdzenie numeru ID od WordPressa.");
   try{
@@ -496,7 +507,17 @@ async function savePost(status){
     const data={title,content:editorHtml(),status,excerpt:trim($("post-excerpt").value),categories:[Number($("post-category").value)]};
     if(mediaId>0)data.featured_media=mediaId;
     const tagNames=trim($("post-tags").value).split(",").map(trim).filter(Boolean);
-    if(tagNames.length)data.tags=await ensureTags(tagNames);
+    if(tagNames.length){
+      try{publicationPhase("Etap 1/3: sprawdzam tagi i kategorie…");data.tags=await ensureTags(tagNames);}
+      catch(tagErr){
+        if(!confirm("Nie udało się przygotować tagów ("+tagErr.message+"). Czy kontynuować zapis BEZ tagów?")) {
+          publicationPhase("Anulowano publikowanie, niczego nie zapisano w WordPressie.","error");return;
+        }
+        delete data.tags;
+        recordAction("failed","Nie dodano tagów",tagErr.message);
+      }
+    }
+    publicationPhase("Etap 2/3: wysyłam wpis do WordPress.com. Nie zamykaj aplikacji.");
     const path=postId?"posts/"+postId:"posts";
     // POST is issued exactly once: an automatic retry after network timeout could
     // publish a duplicate. Save the ID immediately, then verify persistence by GET.
@@ -508,12 +529,14 @@ async function savePost(status){
     $("editor-heading").textContent="Edytuj artykuł #"+postId;
     $("edit-status").textContent="Sprawdzam zapis…";
     message("post-output","WordPress zwrócił ID "+postId+". Sprawdzam, czy zmiany są widoczne po ponownym odczycie.");
+    publicationPhase("Etap 3/3: sprawdzam zapisany wpis #"+postId+" w WordPress.com…");
     startOperation("Weryfikacja zapisu wpisu #"+postId+"…");
     let verified;
     try {
       verified=await rpc("GET","posts/"+postId+"?context=edit");
     }catch(readError){
       $("edit-status").textContent="Do sprawdzenia";
+      publicationPhase("WordPress zwrócił numer wpisu, ale nie udało się zweryfikować statusu. Sprawdź listę wpisów.","error");
       showOutcome("error","ZAPIS NIEZWERYFIKOWANY",
         "WordPress zwrócił ID "+postId+", ale ponowny odczyt nie powiódł się: "+readError.message+
         ". Nie klikaj ponownie Publikuj. Sprawdź wpis o tym numerze na stronie WordPress.");
@@ -521,6 +544,7 @@ async function savePost(status){
     }
     if(Number(verified.id)!==postId || verified.status!==status){
       $("edit-status").textContent="Do sprawdzenia";
+      publicationPhase("Artykuł istnieje, ale jego status jest inny niż oczekiwano.","error");
       showOutcome("error","STATUS NIEPOTWIERDZONY",
         "Wpis #"+postId+" istnieje, lecz odczytany status to „"+String(verified.status||"brak")+
         "”, zamiast „"+status+"”. Sprawdź wpis przed ponowieniem.");
@@ -533,15 +557,22 @@ async function savePost(status){
     const detail="Zapis i ponowny odczyt potwierdzone przez WordPress. Tytuł: "+title+
       ". Numer wpisu: "+postId+". Status: "+verified.status+".";
     message("post-output",summary+" "+detail,"ok");
-    const link=verified.link&&/^https:\/\/ispinalokalnie\.wordpress\.com\//.test(verified.link)?verified.link:
+    const canonical=verified.link&&/^https:\/\/ispinalokalnie\.wordpress\.com\//.test(verified.link)?verified.link:"";
+    const published=status==="publish";
+    const link=published?(canonical||"https://ispinalokalnie.wordpress.com/?p="+postId):
       "https://wordpress.com/post/ispinalokalnie.wordpress.com/"+postId;
-    showOutcome("success",summary,detail,link);
+    if(published)setPublishedUrl(link);
+    publicationPhase(published?"SUKCES! Artykuł jest opublikowany. Możesz otworzyć jego prawdziwy widok na stronie IL.":"SUKCES! Szkic zapisany w WordPressie.","ok");
+    showOutcome("success",summary,detail,link,
+      published?"🌐 Zobacz opublikowany artykuł na stronie IL":"Otwórz szkic w WordPressie");
   }catch(e){
+    publicationPhase("NIE POWIODŁO SIĘ: "+e.message,"error");
     message("post-output","Nie potwierdzono zapisu: "+e.message,"error");
     showOutcome("error","NIE POWIODŁO SIĘ","Nie uzyskano potwierdzenia zapisu z WordPressa. "+e.message+" Jeśli połączenie zostało przerwane, sprawdź listę wpisów przed ponowną próbą, aby uniknąć duplikatu.");
-  }
+  }finally{publicationButtons(false);}
 }
 function resetEditor(){
+  setPublishedUrl("");publicationPhase("Gotowy do redagowania. Publikacja wymaga potwierdzenia.");
   postId=null;postStatus="";
   ["post-title","post-body","post-excerpt","post-tags"].forEach(id=>$(id).value="");
   $("post-category").value="10543";$("post-media").value="0";$("post-mode").value="text";
@@ -585,6 +616,7 @@ async function editPost(id){
     $("post-tags").value="";
     $("editor-heading").textContent="Edytuj artykuł #"+p.id;
     $("edit-status").textContent=p.status;
+    if(p.status==="publish")setPublishedUrl(p.link&&/^https:\/\/ispinalokalnie\.wordpress\.com\//.test(p.link)?p.link:"https://ispinalokalnie.wordpress.com/?p="+Number(p.id));
     showScreen("editor");
     operationFinished(true,"Wczytano artykuł #"+id,"Można rozpocząć edycję.");
   }catch(e){message("posts-output","Nie można edytować wpisu: "+e.message,"error")}
