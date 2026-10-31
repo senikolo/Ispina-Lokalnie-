@@ -111,3 +111,61 @@ test("rejected POST shows failure, never SUCCESS",async()=>{
   assert.match(a.node("finish-title").textContent,/NIE POWIODŁO/);
   assert.match(a.node("finish-detail").textContent,/HTTP 403/);
 });
+
+
+test("confirmed publication exposes real public permalink in a dialog and persistent editor button",async()=>{
+  const a=setup();
+  const expected="https://ispinalokalnie.wordpress.com/2026/10/31/probny-artykul/";
+  const opened=[];
+  a.c.IL.openSite=(url)=>opened.push(url);
+  a.c.rpc=async(method,p,body)=>method==="POST"?
+    {id:67,status:"publish"}:
+    {id:67,status:"publish",link:expected};
+  await a.run("savePost('publish')");
+  assert.equal(a.node("finish-open").textContent,"🌐 Zobacz opublikowany artykuł na stronie IL");
+  assert.equal(a.node("view-published-post").classList.contains("hidden"),false);
+  assert.match(a.node("publication-phase").textContent,/SUKCES/);
+  a.run("openFinishUrl()");
+  a.run("openPublishedPost()");
+  assert.deepEqual(opened,[expected,expected]);
+});
+
+test("published article without canonical link falls back to real public WordPress ?p URL, not admin",async()=>{
+  const a=setup(),opened=[];
+  a.c.IL.openSite=(url)=>opened.push(url);
+  a.c.rpc=async(method)=>method==="POST"?{id:69,status:"publish"}:{id:69,status:"publish"};
+  await a.run("savePost('publish')");
+  a.run("openFinishUrl()");
+  assert.equal(opened[0],"https://ispinalokalnie.wordpress.com/?p=69");
+});
+
+test("a failing tags lookup may be skipped after explicit confirmation so it does not block publishing",async()=>{
+  const a=setup(), calls=[];
+  a.node("post-tags").value="Ispina";
+  a.c.rpc=async(method,p,body)=>{
+    calls.push({method,p,body});
+    if(p.startsWith("tags"))throw new Error("Tag API disabled");
+    return method==="POST"?{id:70,status:"publish"}:{id:70,status:"publish"};
+  };
+  await a.run("savePost('publish')");
+  assert.equal(calls.filter(c=>c.p==="posts").length,1);
+  assert.equal(calls.find(c=>c.p==="posts").body.tags,undefined);
+  assert.match(a.node("finish-title").textContent,/SUKCES/);
+});
+
+test("publish guard prevents second parallel request even if user taps twice",async()=>{
+  const a=setup(),calls=[];
+  let release;
+  a.c.rpc=(method,p,body)=>{
+    calls.push({method,p,body});
+    if(method==="POST")return new Promise(resolve=>release=()=>resolve({id:71,status:"publish"}));
+    return Promise.resolve({id:71,status:"publish"});
+  };
+  const first=a.run("savePost('publish')");
+  const second=a.run("savePost('publish')");
+  await second;
+  assert.equal(calls.filter(c=>c.method==="POST").length,1);
+  assert.match(a.node("publication-phase").textContent,/już trwa/);
+  release();await first;
+  assert.equal(a.node("save-publish").disabled,false);
+});
