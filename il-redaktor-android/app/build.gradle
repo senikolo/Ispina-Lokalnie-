@@ -8,8 +8,8 @@ android {
         applicationId 'com.ispinalokalnie.redaktorsmart.loginfix.test'
         minSdk 26
         targetSdk 35
-        versionCode 5
-        versionName '1.4.0-test'
+        versionCode 6
+        versionName '1.4.1-test'
         def assistantEndpoint = System.getenv('IL_ASSISTANT_ENDPOINT') ?: project.findProperty('ilAssistantEndpoint') ?: ''
         if (assistantEndpoint && !assistantEndpoint.toString().startsWith('https://')) {
             throw new GradleException('IL_ASSISTANT_ENDPOINT must use HTTPS.')
