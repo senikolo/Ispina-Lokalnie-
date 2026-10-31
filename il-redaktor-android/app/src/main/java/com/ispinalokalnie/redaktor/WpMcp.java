@@ -29,6 +29,138 @@ public final class WpMcp {
 
     private WpMcp() {}
 
+    // In-memory, per access-token session. Never persist session IDs or log credentials.
+    // WordPress.com uses stateful MCP Streamable HTTP transport.
+    private static String mcpSessionId = "";
+    private static String mcpSessionBearer = "";
+    private static String mcpProtocolVersion = "2025-11-25";
+
+    static synchronized void resetSession() {
+        mcpSessionId = "";
+        mcpSessionBearer = "";
+        mcpProtocolVersion = "2025-11-25";
+    }
+
+    private static final class ExpiredMcpSession extends Exception {
+        ExpiredMcpSession() { super("Sesja MCP wygasła."); }
+    }
+
+    private static final class McpHttpResponse {
+        final JSONObject body;
+        final String sessionId;
+        McpHttpResponse(JSONObject body, String sessionId) {
+            this.body = body;
+            this.sessionId = sessionId;
+        }
+    }
+
+    private static JSONObject parseMcpBody(String body) throws Exception {
+        if (body == null || body.trim().isEmpty()) return new JSONObject();
+        String input = body.trim();
+        if (input.startsWith("{")) return new JSONObject(input);
+        // Streamable HTTP may return server-sent events instead of plain JSON.
+        if (input.startsWith("event:") || input.startsWith("data:") || input.startsWith(":")) {
+            StringBuilder data = new StringBuilder();
+            for (String line : input.split("\\r?\\n")) {
+                if (line.startsWith("data:")) {
+                    String value = line.substring(5).trim();
+                    if ("[DONE]".equals(value)) continue;
+                    if (data.length() > 0) data.append('\n');
+                    data.append(value);
+                    try {
+                        JSONObject candidate = new JSONObject(data.toString());
+                        if (candidate.has("result") || candidate.has("error"))
+                            return candidate;
+                    } catch (org.json.JSONException ignored) {
+                        // Wait for remaining multiline SSE payload.
+                    }
+                } else if (line.trim().isEmpty()) {
+                    data.setLength(0);
+                }
+            }
+        }
+        throw new Exception("Nieczytelna odpowiedź serwera WordPress MCP.");
+    }
+
+    private static McpHttpResponse postMcp(String bearer, JSONObject json,
+                                            String session, String protocol) throws Exception {
+        HttpURLConnection connection = null;
+        try {
+            connection = (HttpURLConnection) new URL(MCP).openConnection();
+            connection.setRequestMethod("POST");
+            connection.setInstanceFollowRedirects(false);
+            connection.setConnectTimeout(15000);
+            connection.setReadTimeout(30000);
+            connection.setDoOutput(true);
+            connection.setRequestProperty("Accept", "application/json, text/event-stream");
+            connection.setRequestProperty("Content-Type", "application/json; charset=UTF-8");
+            connection.setRequestProperty("Authorization", "Bearer " + bearer);
+            if (session != null && !session.isEmpty()) {
+                connection.setRequestProperty("Mcp-Session-Id", session);
+                connection.setRequestProperty("MCP-Protocol-Version", protocol);
+            }
+            try (OutputStream out = connection.getOutputStream()) {
+                out.write(json.toString().getBytes(StandardCharsets.UTF_8));
+            }
+            int status = connection.getResponseCode();
+            String value = readReply(connection);
+            if (status == 404 && session != null && !session.isEmpty())
+                throw new ExpiredMcpSession();
+            if (status < 200 || status >= 300)
+                throw new Exception("HTTP " + status + ": " + friendly(value));
+            JSONObject parsed = parseMcpBody(value);
+            JSONObject error = parsed.optJSONObject("error");
+            if (error != null) {
+                String message = error.optString("message", "Błąd protokołu MCP.");
+                if (message.toLowerCase(java.util.Locale.ROOT).contains("invalid or expired session"))
+                    throw new ExpiredMcpSession();
+            }
+            return new McpHttpResponse(parsed, connection.getHeaderField("Mcp-Session-Id"));
+        } finally {
+            if (connection != null) connection.disconnect();
+        }
+    }
+
+    private static void ensureMcpSession(String token) throws Exception {
+        if (!mcpSessionId.isEmpty() && token.equals(mcpSessionBearer)) return;
+        resetSession();
+        JSONObject initialize = new JSONObject()
+            .put("jsonrpc", "2.0")
+            .put("id", 1)
+            .put("method", "initialize")
+            .put("params", new JSONObject()
+                .put("protocolVersion", "2025-11-25")
+                .put("capabilities", new JSONObject())
+                .put("clientInfo", new JSONObject()
+                    .put("name", "IL Redaktor Smart")
+                    .put("version", "1.5.1")));
+        McpHttpResponse initial = postMcp(token, initialize, null, null);
+        if (initial.body.has("error"))
+            throw new Exception("WordPress MCP odrzucił inicjalizację: " +
+                initial.body.getJSONObject("error").optString("message"));
+        JSONObject result = initial.body.optJSONObject("result");
+        if (result == null)
+            throw new Exception("WordPress MCP nie potwierdził inicjalizacji.");
+        String session = initial.sessionId == null ? "" : initial.sessionId.trim();
+        if (session.isEmpty() || session.length() > 512 ||
+            !session.matches("[\\x21-\\x7E]+"))
+            throw new Exception("WordPress MCP nie przekazał prawidłowego Mcp-Session-Id.");
+        String protocol = result.optString("protocolVersion", "2025-11-25");
+        if (protocol.isEmpty() || protocol.length() > 32 ||
+            !protocol.matches("[0-9]{4}-[0-9]{2}-[0-9]{2}"))
+            throw new Exception("WordPress MCP przekazał nieznaną wersję protokołu.");
+        // MCP initialization is complete only after this mandatory notification.
+        JSONObject initialized = new JSONObject()
+            .put("jsonrpc", "2.0")
+            .put("method", "notifications/initialized");
+        postMcp(token, initialized, session, protocol);
+        mcpSessionId = session;
+        mcpSessionBearer = token;
+        mcpProtocolVersion = protocol;
+    }
+
+
+
     static String readReply(HttpURLConnection c) throws Exception {
         InputStream source = c.getResponseCode() >= 400 ? c.getErrorStream() : c.getInputStream();
         if (source == null) return "{}";
@@ -138,7 +270,7 @@ public final class WpMcp {
         return sendForm(TOKEN,map);
     }
 
-    static JSONObject request(String token, String operation, JSONObject params) throws Exception {
+    static synchronized JSONObject request(String token, String operation, JSONObject params) throws Exception {
         JSONObject args = new JSONObject();
         args.put("wpcom_site", SITE);
         args.put("action", "execute");
@@ -151,7 +283,21 @@ public final class WpMcp {
         call.put("params", new JSONObject()
             .put("name", "wpcom-mcp-content-authoring")
             .put("arguments", args));
-        JSONObject outer = sendJson(MCP, call, token);
+        // No tools/call may be sent before the initialize/initialized handshake.
+        // Synchronization avoids multiple threads accidentally sharing an unfinished session.
+        JSONObject outer = null;
+        for (int attempt = 0; attempt < 2; attempt++) {
+            try {
+                ensureMcpSession(token);
+                outer = postMcp(token, call, mcpSessionId, mcpProtocolVersion).body;
+                break;
+            } catch (ExpiredMcpSession expired) {
+                resetSession();
+                if (attempt == 1)
+                    throw new Exception("WordPress MCP odrzucił dwukrotnie sesję. Spróbuj ponownie.");
+            }
+        }
+        if (outer == null) throw new Exception("Brak odpowiedzi z WordPress MCP.");
         if (outer.has("error")) {
             JSONObject error = outer.optJSONObject("error");
             throw new Exception(error == null ? "Błąd protokołu MCP." :
