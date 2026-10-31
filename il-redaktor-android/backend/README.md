@@ -13,6 +13,8 @@ Endpoint weryfikuje sesję, wykonując tylko odczyt `posts.list` dla `ispinaloka
 
 Po wdrożeniu ustaw `IL_ASSISTANT_ENDPOINT` w środowisku kompilacji APK na HTTPS URL endpointu `/api/assistant`. Bez tej zmiennej aplikacja pozostaje w trybie podstawowym i nie wysyła tekstu do modelu.
 
+Panel „Wyszukiwanie internetowe” korzysta z trybu `research` tego samego endpointu. Gemini używa wbudowanego narzędzia Google Search grounding, a aplikacja pokazuje źródła URL zwrócone przez AI SDK i użyte frazy, jeśli są dostępne. To wyszukiwanie tylko do odczytu; nie zapisuje ani nie publikuje artykułów. Limit wyszukiwania wynosi 3 raporty na godzinę na konto i adres IP. Wyniki wymagają ręcznego sprawdzenia w oryginalnych dokumentach. Każde wyszukiwanie wymaga potwierdzenia w aplikacji, bo korzystanie z Google Search grounding może generować osobne koszty API, niezależne od planu Gemini używanego w aplikacji.
+
 ## Koszty i ograniczenia
 
 Klucz do Gemini Developer API jest oddzielny od subskrypcji Gemini Pro. Model `gemini-3.5-flash-lite` ma aktualnie bezpłatny limit API; użycie po przejściu na płatny poziom jest rozliczane według cennika Google. Limity API mogą się zmieniać. Redis/Upstash i Vercel mogą wymagać osobnego konta i mogą naliczać opłaty zależne od użycia. Tryb bez skonfigurowanego Redis jest celowo wyłączony, zamiast działać bez ograniczeń kosztowych.
