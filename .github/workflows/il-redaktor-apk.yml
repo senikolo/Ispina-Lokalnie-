@@ -267,6 +267,44 @@ jobs:
           name: IL-Redaktor-Unsigned-Release
           path: il-redaktor-android/app/build/outputs/apk/release/app-release-unsigned.apk
           retention-days: 30
+      - name: Build existing-key signed release for safe Android upgrades (optional)
+        env:
+          IL_RELEASE_KEYSTORE_B64: ${{ secrets.IL_RELEASE_KEYSTORE_B64 }}
+          IL_RELEASE_KEY_ALIAS: ${{ secrets.IL_RELEASE_KEY_ALIAS }}
+          IL_RELEASE_KEYSTORE_PASSWORD: ${{ secrets.IL_RELEASE_KEYSTORE_PASSWORD }}
+          IL_RELEASE_KEY_PASSWORD: ${{ secrets.IL_RELEASE_KEY_PASSWORD }}
+        run: |
+          if [ -z "$IL_RELEASE_KEYSTORE_B64" ] || [ -z "$IL_RELEASE_KEY_ALIAS" ] ||
+             [ -z "$IL_RELEASE_KEYSTORE_PASSWORD" ] || [ -z "$IL_RELEASE_KEY_PASSWORD" ]; then
+            echo "Existing release signing secrets unavailable; signed upgrade APK not produced."
+            exit 0
+          fi
+          export IL_RELEASE_KEYSTORE_PATH="$RUNNER_TEMP/il-existing-release.jks"
+          trap 'rm -f "$IL_RELEASE_KEYSTORE_PATH"' EXIT
+          printf '%s' "$IL_RELEASE_KEYSTORE_B64" | base64 --decode > "$IL_RELEASE_KEYSTORE_PATH"
+          chmod 600 "$IL_RELEASE_KEYSTORE_PATH"
+          gradle --no-daemon -p il-redaktor-android :app:assembleRelease
+          APK="il-redaktor-android/app/build/outputs/apk/release/app-release.apk"
+          test -s "$APK"
+          SDK_ROOT="${ANDROID_HOME:-/usr/local/lib/android/sdk}"
+          SIGNER="$SDK_ROOT/build-tools/35.0.0/apksigner"
+          "$SIGNER" verify --verbose "$APK"
+          ACTUAL="$("$SIGNER" verify --print-certs "$APK" | sed -n 's/.*certificate SHA-256 digest: //p' | head -1 | tr -cd '0-9a-fA-F' | tr '[:upper:]' '[:lower:]')"
+          EXPECTED="$(tr -cd '0-9a-fA-F' < il-redaktor-android/release-certificate.sha256 | tr '[:upper:]' '[:lower:]')"
+          if [ -z "$ACTUAL" ] || [ "$ACTUAL" != "$EXPECTED" ]; then
+            echo "ERROR: signing certificate differs from installed stable IL Redaktor release certificate."
+            exit 1
+          fi
+          mkdir -p "$RUNNER_TEMP/il-signed-upgrade"
+          cp "$APK" "$RUNNER_TEMP/il-signed-upgrade/IL-Redaktor-Smart-1.21.0-UPDATE.apk"
+          echo "Signed upgrade APK created with the existing release certificate."
+      - name: Upload verified signed upgrade when available
+        uses: actions/upload-artifact@v4
+        with:
+          name: IL-Redaktor-Signed-Upgrade
+          path: ${{ runner.temp }}/il-signed-upgrade/IL-Redaktor-Smart-1.21.0-UPDATE.apk
+          if-no-files-found: ignore
+          retention-days: 30
       - uses: actions/upload-artifact@v4
         with:
           name: IL-Redaktor-Signing-Tools
