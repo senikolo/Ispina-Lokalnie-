@@ -33,7 +33,9 @@ public final class OAuthBrowserLogin {
     }
 
     // WordPress.com documents localhost loopback redirects for native public clients.
-    private static final String REDIRECT="http://localhost:38477/callback";
+    // Uzywamy jednoznacznego adresu IPv4. Android/Chrome moze rozwiazac "localhost" do ::1,
+    // podczas gdy nasluch odbywa sie na 127.0.0.1; kod OAuth nie dociera wtedy do aplikacji.
+    private static final String REDIRECT="http://127.0.0.1:38477/callback";
     private static final SecureRandom RANDOM = new SecureRandom();
     private static final int PORT=38477;
     private final Activity activity;
@@ -103,7 +105,7 @@ public final class OAuthBrowserLogin {
             String receivedCode=null;
             String error=null;
             long expiresAt=System.currentTimeMillis()+180000;
-            note("Krok 3/4: Czekam na potwierdzenie logowania z przeglądarki…");
+            note("Krok 3/4: Oczekuję na powrót z WordPress.com (do 3 minut). Nie zamykaj aplikacji…");
             while(System.currentTimeMillis()<expiresAt) {
                 try(Socket socket=server.accept()) {
                     socket.setSoTimeout(8000);
@@ -112,7 +114,7 @@ public final class OAuthBrowserLogin {
                     if(first==null)continue;
                     String[] firstParts=first.split(" ");
                     String path=firstParts.length>=2?firstParts[1]:"/";
-                    Uri request=Uri.parse("http://localhost:38477"+path);
+                    Uri request=Uri.parse("http://127.0.0.1:38477"+path);
                     boolean callback="/callback".equals(request.getPath());
                     String remoteState=request.getQueryParameter("state");
                     boolean correctState=callback&&state.equals(remoteState);
@@ -130,7 +132,7 @@ public final class OAuthBrowserLogin {
                     if(correctState)break;
                 }
             }
-            if(receivedCode==null)throw new Exception(error!=null?"WordPress odrzucił logowanie: "+error:"Nie otrzymano potwierdzenia z przeglądarki.");
+            if(receivedCode==null)throw new Exception(error!=null?"WordPress odrzucił logowanie: "+error:"Nie otrzymano kodu powrotnego na 127.0.0.1:38477. Sprawdź, czy przeglądarka nie pokazuje błędu strony po zatwierdzeniu dostępu.");
             note("Krok 4/4: Wymieniam kod i sprawdzam dostęp do Ispina Lokalnie…");
             JSONObject tokens=WpMcp.exchangeCode(actualClientId,REDIRECT,receivedCode,verifier);
             String token=tokens.optString("access_token","");
@@ -143,7 +145,7 @@ public final class OAuthBrowserLogin {
             if(ex instanceof BindException)
                 message="Lokalny port powrotu jest zajęty przez inną aplikację. Zamknij ją i spróbuj ponownie.";
             if(message.contains("SocketTimeoutException")||message.contains("timed out"))
-                message="Przeglądarka nie wróciła do aplikacji. Spróbuj ponownie i dokończ zatwierdzanie w WordPress.com.";
+                message="Minął czas oczekiwania na odpowiedź z WordPress.com. Sprawdź przeglądarkę i spróbuj ponownie. Adres powrotu: 127.0.0.1:38477.";
             if(message.contains("invalid_client") || message.contains("invalid_redirect_uri")) {
                 activity.getSharedPreferences("il_redaktor_settings", Activity.MODE_PRIVATE)
                     .edit().remove("oauth21_client_id").remove("oauth21_redirect").apply();
