@@ -10,6 +10,7 @@ const fs = require("node:fs");
 const vm = require("node:vm");
 const path = require("node:path");
 
+function wpFixture(id=200,status='publish'){return {id,status,title:{raw:'Wpis'},content:{raw:'Treść na stronie'},excerpt:{raw:'Zajawka'},modified:'2026-10-31T10:00:00',categories:[10543],tags:[10],featured_media:0,date_gmt:'2026-10-31T10:00:00',link:'https://ispinalokalnie.wordpress.com/?p='+id};}
 function setup(initialStorage=[],nativeData) {
   const html = fs.readFileSync(path.join(__dirname, "../app/src/main/assets/index.html"), "utf8");
   const code = html.match(/<script>([\s\S]*?)<\/script>/)?.[1];
@@ -403,12 +404,9 @@ test("schedule date mismatch is reported as an error even when WordPress says fu
 });
 
 test("editing a scheduled post preserves its existing future status after confirmation",async()=>{
-  const a=setup(),calls=[];a.run("postId=203;postStatus='future'");a.node("post-schedule").value=dateInFuture(60);
-  a.c.rpc=async(method,path,body)=>{calls.push({method,path,body});return method==="POST"?{id:203,status:"future"}:{id:203,status:"future",date_gmt:calls[0].body.date}};
-  await a.run("savePost('draft')");
-  assert.equal(calls[0].path,"posts/203");
-  assert.equal(calls[0].body.status,"future");
-  assert.equal(calls[0].body.date.endsWith("Z"),true);
+  const a=setup(),calls=[];a.node("post-schedule").value=dateInFuture(60);const remote=wpFixture(203,'future');remote.date_gmt=new Date(a.node('post-schedule').value).toISOString();a.c.remote=remote;a.run("postId=203;postStatus='future';remoteBaseline=remoteVersion(remote)");
+  a.c.rpc=async(method,path,body)=>{calls.push({method,path,body});return method==='POST'?{...remote,date_gmt:body.date}:remote};await a.run("savePost('draft')");
+  const posted=calls.find(c=>c.method==='POST');assert.equal(posted.path,'posts/203');assert.equal(posted.body.status,'future');assert.equal(posted.body.date.endsWith('Z'),true);
 });
 
 test("editor schedules controls and mentions timezone and status confirmation",()=>{
@@ -460,10 +458,7 @@ test("cancelling immediate-publication confirmation causes no network call",asyn
 });
 
 test("editing an existing article updates its ID exactly once",async()=>{
-  const a=setup(),calls=[];a.run("postId=209;postStatus='publish'");
-  a.c.rpc=async(method,path,body)=>{calls.push({method,path,body});return method==="POST"?{id:209,status:"publish"}:{id:209,status:"publish"}};
-  await a.run("savePost('draft')");
-  assert.equal(calls.filter(c=>c.method==="POST").length,1);assert.equal(calls[0].path,"posts/209");
+ const a=setup(),calls=[];a.c.remote=wpFixture(209);a.run("postId=209;postStatus='publish';remoteBaseline=remoteVersion(remote)");a.c.rpc=async(method,path,body)=>{calls.push({method,path,body});return a.c.remote};await a.run("savePost('draft')");assert.equal(calls.filter(c=>c.method==='POST').length,1);assert.equal(calls.find(c=>c.method==='POST').path,'posts/209');
 });
 
 test("network timeout after POST is surfaced without retry",async()=>{
@@ -578,9 +573,9 @@ test("AI context exposes published posts only for reader recommendations",()=>{
 test("new build metadata and the PR APK workflow agree",()=>{
   const gradle=fs.readFileSync(path.join(__dirname,"../app/build.gradle"),"utf8");
   const workflow=fs.readFileSync(path.join(__dirname,"../../.github/workflows/il-redaktor-apk.yml"),"utf8");
-  assert.match(gradle,/versionCode 21/);assert.match(gradle,/versionName '1\.15\.0'/);
+  assert.match(gradle,/versionCode 22/);assert.match(gradle,/versionName '1\.16\.0'/);
   assert.match(gradle,/applicationId 'com\.ispinalokalnie\.redaktorsmart\.stable'/);
-  assert.match(workflow,/versionCode='21' versionName='1\.15\.0'/);
+  assert.match(workflow,/versionCode='22' versionName='1\.16\.0'/);
 });
 
 test("AI editor shortcut copies current title and text into a reviewable prompt without sending it",()=>{
@@ -780,7 +775,7 @@ test('assistant article acceptance uses comparison and retains current remote ID
 });
 test('promotion exists only after verified published status, with the canonical link',async()=>{
  const a=setup();assert.equal(a.run('openPromotion()'),false);a.c.rpc=async()=>({id:61,status:'draft'});await a.run("savePost('publish')");assert.equal(a.run('promotionArticle'),null);
- a.c.rpc=async()=>({id:61,status:'publish',link:'https://ispinalokalnie.wordpress.com/realny-artykul/'});await a.run("savePost('publish')");assert.equal(a.run('openPromotion()'),true);assert.match(a.node('promotion-text').value,/https:\/\/ispinalokalnie.wordpress.com\/realny-artykul\//);assert.match(a.node('promotion-text').value,/Łączy nas Ispina/);
+ a.run('resetEditor()');a.node('post-title').value='Testowy artykuł';a.node('post-body').value='Treść';a.c.rpc=async()=>({id:61,status:'publish',link:'https://ispinalokalnie.wordpress.com/realny-artykul/'});await a.run("savePost('publish')");assert.equal(a.run('openPromotion()'),true);assert.match(a.node('promotion-text').value,/https:\/\/ispinalokalnie.wordpress.com\/realny-artykul\//);assert.match(a.node('promotion-text').value,/Łączy nas Ispina/);
 });
 test('draft save does not create a public promotion',async()=>{
  const a=setup();a.c.rpc=async()=>({id:62,status:'draft'});await a.run("savePost('draft')");assert.equal(a.run('promotionArticle'),null);assert.equal(a.storage.has('il_last_verified_promotion_v1'),false);
@@ -824,4 +819,81 @@ test('correction comparison shows readable category names instead of numeric IDs
 });
 test('general language request is not misrepresented as completed local grammar correction',async()=>{
  const a=setup();await a.run("editorHelp('Popraw język polski i usuń powtórzenia')");assert.equal(a.run('pendingCorrection'),null);assert.match(a.node('editor-chat-log').innerHTML,/wymaga skonfigurowanego AI/);
+});
+
+test('remote changes block article and tag writes and keep the local text',async()=>{
+ const a=setup(),old=wpFixture(300),changed={...old,modified:'2026-10-31T11:00:00',content:{raw:'Nowsza wersja ze strony'}};a.c.old=old;a.run("postId=300;postStatus='publish';remoteBaseline=remoteVersion(old)");a.node('post-tags').value='Nowy tag';const calls=[];a.c.rpc=async(method)=>{calls.push(method);return changed};await a.run("savePost('draft')");assert.deepEqual(calls,['GET']);assert.equal(a.node('post-body').value,'Treść testowa');assert.equal(a.node('conflict-dialog').classList.contains('hidden'),false);assert.equal(a.node('save-publish').disabled,false);
+});
+test('old linked drafts without a baseline require comparison before any overwrite',async()=>{
+ const a=setup();a.run("postId=301;postStatus='publish'");let writes=0;a.c.rpc=async(method)=>{if(method==='POST')writes++;return wpFixture(301)};await a.run("savePost('draft')");assert.equal(writes,0);assert.match(a.node('conflict-message').textContent,/wersji odniesienia/);
+});
+test('second preflight detects changes made while preparing tags',async()=>{
+ const a=setup(),old=wpFixture(302);a.c.old=old;a.run("postId=302;postStatus='publish';remoteBaseline=remoteVersion(old)");a.node('post-tags').value='Tag';let reads=0,writes=0;a.c.ensureTags=async()=>[10];a.c.rpc=async(method)=>{if(method==='POST')writes++;return ++reads===1?old:{...old,modified:'changed'}};await a.run("savePost('draft')");assert.equal(writes,0);assert.equal(reads,2);
+});
+test('preflight read failure never falls back to an unsafe update',async()=>{
+ const a=setup();a.c.old=wpFixture(303);a.run("postId=303;postStatus='publish';remoteBaseline=remoteVersion(old)");let writes=0;a.c.rpc=async(method)=>{if(method==='POST')writes++;throw Error('offline')};await a.run("savePost('draft')");assert.equal(writes,0);assert.match(a.node('finish-detail').textContent,/offline/);
+});
+test('local edits during preflight stop the update',async()=>{
+ const a=setup();a.c.old=wpFixture(304);a.run("postId=304;postStatus='publish';remoteBaseline=remoteVersion(old)");let writes=0;a.c.rpc=async(method)=>{if(method==='POST')writes++;a.node('post-body').value='Nowszy tekst lokalny';return a.c.old};await a.run("savePost('draft')");assert.equal(writes,0);assert.equal(a.node('post-body').value,'Nowszy tekst lokalny');
+});
+test('keeping both copies detaches the local draft and loads the latest remote without writing WordPress',async()=>{
+ const a=setup();a.c.old=wpFixture(305);a.c.latest={...a.c.old,content:{raw:'Aktualny tekst WP'},modified:'new'};a.run("postId=305;postStatus='publish';remoteBaseline=remoteVersion(old);persistDraft();showRemoteConflict(latest,'Zmiana')");const methods=[];a.c.rpc=async(method)=>{methods.push(method);return a.c.latest};assert.equal(await a.run('resolveRemoteConflict(true)'),true);assert.deepEqual(methods,['GET']);assert.equal(a.node('post-body').value,'Aktualny tekst WP');assert.equal(a.run("readDraftStore().drafts.some(d=>d.postId===null&&d.body==='Treść testowa')"),true);assert.equal(a.run('postId'),305);
+});
+test('loading remote version preserves the earlier local draft and its sources',async()=>{
+ const a=setup();a.c.old=wpFixture(306);a.c.latest={...a.c.old,content:{raw:'Nowe WP'}};a.run("postId=306;postStatus='publish';remoteBaseline=remoteVersion(old);$('post-sources').value=JSON.stringify([{id:'s1',name:'Źródło',notes:'Notatka',checked:true}]);persistDraft();showRemoteConflict(latest,'Zmiana')");a.c.rpc=async()=>a.c.latest;assert.equal(await a.run('resolveRemoteConflict(false)'),true);assert.equal(a.run("readDraftStore().drafts.some(d=>d.body==='Treść testowa')"),true);assert.equal(JSON.parse(a.node('post-sources').value)[0].name,'Źródło');
+});
+test('baseline survives local saving and portable backup',()=>{
+ const a=setup();a.c.remote=wpFixture(307);a.run("postId=307;postStatus='publish';remoteBaseline=remoteVersion(remote);persistDraft()");const backup=JSON.parse(a.run('makeDraftBackup()'));assert.equal(backup.drafts[0].remoteBaseline.id,307);assert.match(backup.drafts[0].remoteBaseline.signature,/Treść na stronie/);
+});
+test('restoring an earlier draft keeps the current remote baseline',()=>{
+ const a=setup();a.c.old=wpFixture(308);a.run("postId=308;postStatus='publish';remoteBaseline=remoteVersion(old);persistDraft();$('post-body').value='Nowa';persistDraft(true)");a.c.latest={...a.c.old,modified:'later'};a.run("remoteBaseline=remoteVersion(latest);persistDraft(true);restoreDraftVersion(activeDraftId,0)");assert.equal(a.run('remoteBaseline.modified'),'later');
+});
+test('sources can create a draft before the article has a title or body',()=>{
+ const a=setup();a.run("resetEditor();openSources();$('source-name').value='Gazeta';$('source-notes').value='Ważna informacja';saveSource()");assert.equal(a.run('readDraftStore().drafts.length'),2);assert.equal(JSON.parse(a.run('readDraftStore().drafts[1].sources'))[0].name,'Gazeta');
+});
+test('source status is manual and source notes never go to the post payload',async()=>{
+ const a=setup();a.run("openSources();$('source-name').value='Archiwum';$('source-url').value='https://example.com/skan';$('source-notes').value='Prywatna notatka';$('source-checked').checked=true;saveSource()");const s=JSON.parse(a.node('post-sources').value)[0];assert.equal(s.checked,true);assert.ok(s.verifiedAt>0);let data;a.c.rpc=async(method,path,body)=>{if(method==='POST')data=body;return {id:309,status:'draft'}};await a.run("savePost('draft')");assert.doesNotMatch(JSON.stringify(data),/Prywatna notatka|example.com/);
+});
+test('sources reject script links and escape names and notes',()=>{
+ const a=setup();a.run("openSources();$('source-name').value='<img onerror=bad>';$('source-url').value='javascript:alert(1)';saveSource()");assert.equal(a.run('currentSources().length'),0);a.node('source-url').value='https://example.com';a.run('saveSource()');assert.match(a.node('sources-list').innerHTML,/&lt;img/);assert.doesNotMatch(a.node('sources-list').innerHTML,/<img/);
+});
+test('research photos are portable and stored only once across revisions',()=>{
+ const a=setup();a.run("persistDraft();sourcePhotoTarget={id:activeDraftId,source:null}");a.c.payload=JSON.stringify({mime:'image/jpeg',name:'Skan',base64:'/9j/2Q=='});a.run("receiveSourcePhoto(true,payload);$('post-body').value='Zmiana';persistDraft(true)");const data=JSON.parse(a.run('makeDraftBackup()'));assert.equal(Object.keys(data.sourceFiles).length,1);assert.equal(data.drafts[0].revisions.some(v=>JSON.stringify(v).includes('/9j/2Q==')),false);a.c.backup=JSON.stringify(data);assert.equal(a.run('Object.keys(parseDraftBackup(backup).sourceFiles).length'),1);
+});
+test('import keeps research photo files and source references',()=>{
+ const a=setup();a.run("persistDraft();sourcePhotoTarget={id:activeDraftId,source:null}");a.c.payload=JSON.stringify({mime:'image/jpeg',name:'Skan',base64:'/9j/2Q=='});a.run('receiveSourcePhoto(true,payload)');const raw=a.run('makeDraftBackup()'),b=setup();b.c.backup=raw;b.run('previewDraftBackup(backup);mergeDraftBackup()');assert.equal(b.run('Object.keys(readDraftStore().sourceFiles).length'),1);assert.equal(b.run("readDraftStore().drafts.some(d=>JSON.parse(d.sources||'[]').some(s=>s.photo))"),true);
+});
+test('find and replace treats regex symbols and dollar replacements literally',()=>{
+ const a=setup();a.c.value='a.b aXb a.b';const r=a.run("replacementResult(value,'a.b','$&',true,false)");assert.equal(r.count,2);assert.equal(r.value,'$& aXb $&');
+});
+test('HTML find and replace never changes attributes or code blocks',()=>{
+ const a=setup();a.c.value='<a href="/most">most</a><code>most</code>';const r=a.run("replacementResult(value,'most','droga',false,true)");assert.equal(r.count,1);assert.equal(r.value,'<a href="/most">droga</a><code>most</code>');
+});
+test('find replacement remains a proposal until accepted',()=>{
+ const a=setup();a.node('find-text').value='testowa';a.node('replace-text').value='nowa';a.node('find-field').value='body';a.run('proposeReplacement()');assert.equal(a.node('post-body').value,'Treść testowa');assert.equal(a.run('pendingCorrection.changes.body'),'Treść nowa');
+});
+test('preview switches between real phone and desktop viewport widths without a write',()=>{
+ const a=setup();a.run("preview();setPreviewDevice('desktop')");assert.equal(a.node('post-preview').style.width,'1024px');a.run("setPreviewDevice('phone')");assert.equal(a.node('post-preview').style.width,'360px');assert.match(a.node('post-preview').srcdoc,/Treść testowa/);
+});
+test('calendar distinguishes local plans from remotely confirmed schedules',()=>{
+ const a=setup();a.node('post-schedule').value='2026-11-03T15:30';a.run('persistDraft()');a.c.remote={...wpFixture(310,'future'),date_gmt:'2026-11-04T15:00:00'};a.run("allPosts=[remote];$('calendar-month').value='2026-11';renderCalendar()");assert.match(a.node('calendar-entries').innerHTML,/Plan roboczy/);assert.match(a.node('calendar-entries').innerHTML,/WordPress · zaplanowany/);assert.match(a.node('calendar-grid').innerHTML,/2026-11-03/);
+});
+test('calendar navigation handles year boundaries and changing months clears day selection',()=>{
+ const a=setup();a.run("$('calendar-month').value='2026-12';moveCalendar(1)");assert.equal(a.node('calendar-month').value,'2027-01');a.run("selectedCalendarDay='2026-12-31';renderCalendar()");assert.equal(a.run('selectedCalendarDay'),'');
+});
+test('refreshing the calendar only reads data and never schedules a post',async()=>{
+ const a=setup(),methods=[];a.c.rpc=async(method)=>{methods.push(method);return []};await a.run('refreshCalendar()');assert.deepEqual(methods,['GET','GET']);assert.match(a.node('calendar-output').textContent,/Nie zmieniono harmonogramu/);
+});
+test('opening animations respect reduced motion, app preference and battery saving',()=>{
+ const a=setup();const html=fs.readFileSync(path.join(__dirname,'../app/src/main/assets/index.html'),'utf8');assert.match(html,/@keyframes ilOpen/);assert.match(html,/prefers-reduced-motion:reduce/);assert.match(html,/data-effects="off"/);assert.match(html,/data-battery-saving="on"/);assert.match(html,/Kalendarz/);
+});
+
+test('remote calendar dates accept both UTC suffix and explicit offset',()=>{
+ const a=setup();a.c.p={date_gmt:'2026-11-04T15:00:00+00:00'};assert.equal(a.run('remoteCalendarDate(p).toISOString()'),'2026-11-04T15:00:00.000Z');
+});
+test('changing source photo retains the old image while history still references it',()=>{
+ const a=setup();a.run("persistDraft();sourcePhotoTarget={id:activeDraftId,source:null}");a.c.payload=JSON.stringify({mime:'image/jpeg',name:'Skan',base64:'/9j/2Q=='});a.run("receiveSourcePhoto(true,payload);sourcePhotoTarget={id:activeDraftId,source:currentSources()[0].id};receiveSourcePhoto(true,payload)");assert.equal(a.run('Object.keys(readDraftStore().sourceFiles).length'),2);
+});
+test('orphan research photos are removed only when no current or historical source references them',()=>{
+ const a=setup();a.run("persistDraft();draftStore.sourceFiles={unused:{mime:'image/jpeg',base64:'/9j/2Q==',name:'Unused'}};persistDraft()");assert.equal(a.run('Object.keys(readDraftStore().sourceFiles).length'),0);
 });

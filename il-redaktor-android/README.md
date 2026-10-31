@@ -1,3 +1,19 @@
+# IL Redaktor Smart 1.16.0
+
+Stały applicationId `com.ispinalokalnie.redaktorsmart.stable`, versionCode 22. Podpisuj tym samym kluczem co 1.14/1.15; nie odinstalowuj przy aktualizacji.
+
+## Zmiany
+
+- Odczyt pełnej wersji wpisu przed przygotowaniem zapisu oraz ponownie tuż przed posts.update. Wersja odniesienia obejmuje treść, tytuł, zajawkę, kategorie, tagi, zdjęcie, status, datę i znacznik modified. Zmiana lub brak punktu odniesienia zatrzymuje wysłanie wpisu i otwiera porównanie. Wczytanie strony zachowuje starszą kopię lokalną; Zachowaj obie kopie odłącza lokalny szkic od WordPress ID. Zmiana lokalna podczas odczytu przerywa zapis. Nie ma przycisku ślepego nadpisania.
+- Ograniczenie integracji: posts.update w aktualnym schemacie MCP nie oferuje atomowego compare-and-set ani warunku if-unmodified-since. Dwa odczyty wykrywają zmiany widoczne w tych momentach; nie eliminują wyścigu, gdy inny klient zapisze dokładnie między ostatnim GET i POST. Nie jest to serwerowa blokada współbieżnej edycji.
+- Źródła przy szkicu: linki http/https, notatki, ręczny status sprawdzenia i zdjęcia dokumentów. Zdjęcia są pomniejszane i zapisywane wyłącznie w lokalnej biblioteczce (bez media.create). Są dołączane do kopii JSON jako deduplikowane sourceFiles, a historia trzyma tylko odnośniki. Niepublikowane notatki i zdjęcia nie są wysyłane w payload artykułu. Osobny przycisk pozwala jawnie dodać odsyłacz do treści. Do 20 źródeł na szkic, 600 KB na zdjęcie i 8 MB całej biblioteczki/kopii. Pliki niewskazywane już przez żaden szkic lub jego historię są pomijane przy kolejnym zapisie.
+- Kalendarz redakcyjny: plany lokalne, kopie terminów, opublikowane i zaplanowane wpisy z WordPressa. Odświeżenie to wyłącznie odczyt, do 100 future i 100 ostatnich publish. Plan lokalny nie zleca publikacji. Daty date_gmt są przeliczane na strefę telefonu; przy braku date_gmt używana jest data zwrócona przez serwer. Kalendarz nie jest powiadomieniem ani usługą cyklicznej synchronizacji.
+- Podgląd roboczy 360 px / 1024 px w izolowanej ramce. Układ motywu WordPressa może się różnić; rzeczywisty widok opublikowanego artykułu pozostaje dostępny.
+- Szukaj i zamień: dosłowna fraza, wielkość liter, wybór treści/tytułu/zajawki i potwierdzenie w porównaniu korekt. HTML pomija znaczniki, atrybuty i bloki code/pre/script/style.
+- Nowe kafelki, łagodne animacje otwierania i przejść, bez ciągłego pulsowania logo. Respektują ustawienia aplikacji, oszczędzanie baterii i prefers-reduced-motion.
+
+Instrukcje i ograniczenia wcześniejszego wydania:
+
 # IL Redaktor Smart 1.15.0
 
 Aktualizacja stabilnego pakietu `com.ispinalokalnie.redaktorsmart.stable`, versionCode 21.

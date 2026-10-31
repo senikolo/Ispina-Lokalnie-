@@ -189,10 +189,10 @@ jobs:
       - name: Compile Android APK
         working-directory: il-redaktor-android
         run: gradle --no-daemon :app:assembleDebug :app:assembleDebugAndroidTest
-      - name: Build previous 1.14 debug APK with the same CI debug signing key
+      - name: Build previous 1.15 debug APK with the same CI debug signing key
         run: |
-          git fetch --depth=1 origin 7fbffa5a45899d9e9923cf5a5b0ca6b7f0a09d90
-          git worktree add --detach "$RUNNER_TEMP/il-previous" 7fbffa5a45899d9e9923cf5a5b0ca6b7f0a09d90
+          git fetch --depth=1 origin 17333f654fae324384b5c09dd1a7fd94da8e4359
+          git worktree add --detach "$RUNNER_TEMP/il-previous" 17333f654fae324384b5c09dd1a7fd94da8e4359
           cp -R il-redaktor-android/app/src/main/res "$RUNNER_TEMP/il-previous/il-redaktor-android/app/src/main/"
           gradle --no-daemon -p "$RUNNER_TEMP/il-previous/il-redaktor-android" :app:assembleDebug
           cp "$RUNNER_TEMP/il-previous/il-redaktor-android/app/build/outputs/apk/debug/app-debug.apk" /tmp/il-previous-debug.apk
@@ -218,6 +218,15 @@ jobs:
             adb shell am instrument -w com.ispinalokalnie.redaktorsmart.stable.instrumentation/com.ispinalokalnie.redaktor.ConfirmationInstrumentation | tee /tmp/il-confirmation-test.txt
             grep -F 'IL_WEBVIEW_CONFIRM_TEST=PASS' /tmp/il-confirmation-test.txt || { adb logcat -d -s chromium AndroidRuntime ILEditorProbe ActivityManager; exit 1; }
             grep -F 'IL_EDITOR_FEATURES_TEST=PASS' /tmp/il-confirmation-test.txt
+            grep -F 'IL_WORKSPACE_FEATURES_TEST=PASS' /tmp/il-confirmation-test.txt
+            adb pull /sdcard/Android/data/com.ispinalokalnie.redaktorsmart.stable/files/qa /tmp/il-editor-ui
+      - name: Upload emulator UI checks
+        uses: actions/upload-artifact@v4
+        with:
+          name: IL-Redaktor-UI-Checks
+          path: /tmp/il-editor-ui/*.png
+          if-no-files-found: error
+          retention-days: 14
       - name: Confirm APK and actual monogram
         run: |
           SDK_ROOT="${ANDROID_HOME:-/usr/local/lib/android/sdk}"
@@ -225,7 +234,7 @@ jobs:
           test -s "$APK"
           test -s il-redaktor-android/app/src/main/assets/il-monogram.png
           "$SDK_ROOT/build-tools/35.0.0/apksigner" verify --verbose "$APK"
-          "$SDK_ROOT/build-tools/35.0.0/aapt" dump badging "$APK" | grep -F "package: name='com.ispinalokalnie.redaktorsmart.stable' versionCode='21' versionName='1.15.0'"
+          "$SDK_ROOT/build-tools/35.0.0/aapt" dump badging "$APK" | grep -F "package: name='com.ispinalokalnie.redaktorsmart.stable' versionCode='22' versionName='1.16.0'"
           unzip -l "$APK" | grep 'assets/il-monogram.png'
       - name: Upload installable APK
         uses: actions/upload-artifact@v4

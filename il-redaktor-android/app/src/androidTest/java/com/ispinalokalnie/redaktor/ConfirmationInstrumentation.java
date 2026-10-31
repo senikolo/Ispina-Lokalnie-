@@ -108,6 +108,26 @@ public final class ConfirmationInstrumentation extends Instrumentation {
         runOnMainSync(()->editor.requestFocus());waitForIdleSync();
     }
 
+    private void captureUi(String name)throws Exception{
+        getUiAutomation().waitForIdle(600,5000);android.graphics.Bitmap shot=getUiAutomation().takeScreenshot();if(shot==null)throw new AssertionError("No screenshot for "+name);
+        java.io.File dir=getTargetContext().getExternalFilesDir("qa");if(dir==null)throw new AssertionError("QA folder unavailable");dir.mkdirs();try(java.io.FileOutputStream out=new java.io.FileOutputStream(new java.io.File(dir,name+".png"))){shot.compress(android.graphics.Bitmap.CompressFormat.PNG,100,out);}shot.recycle();
+    }
+    private void verifyWorkspaceFeatures()throws Exception{
+        diagnosticStage="sources and portable photos";
+        if(!"true".equals(evaluate("resetEditor();$('post-title').value='Historia Ispiny';$('post-body').value='W Ispini.';openSources();$('source-name').value='Gazeta Krakowska';$('source-notes').value='Sprawdzić datę w skanie';saveSource();currentSources().length===1 && !currentSources()[0].checked")))throw new AssertionError("Source note workflow failed");
+        android.graphics.Bitmap image=android.graphics.Bitmap.createBitmap(80,50,android.graphics.Bitmap.Config.ARGB_8888);image.eraseColor(android.graphics.Color.rgb(224,235,245));java.io.ByteArrayOutputStream out=new java.io.ByteArrayOutputStream();image.compress(android.graphics.Bitmap.CompressFormat.JPEG,75,out);image.recycle();
+        String photo=new org.json.JSONObject().put("mime","image/jpeg").put("name","Dokument próbny").put("base64",android.util.Base64.encodeToString(out.toByteArray(),android.util.Base64.NO_WRAP)).toString();
+        if(!"true".equals(evaluate("sourcePhotoTarget={id:activeDraftId,source:null};receiveSourcePhoto(true,"+org.json.JSONObject.quote(photo)+");currentSources().length===2 && Object.keys(parseDraftBackup(makeDraftBackup()).sourceFiles).length===1")))throw new AssertionError("Portable source photo failed");captureUi("sources");evaluate("closeSources()");
+        diagnosticStage="literal replacement and responsive preview";
+        if(!"true".equals(evaluate("$('find-text').value='Ispini';$('replace-text').value='Ispinie';$('find-field').value='body';proposeReplacement();$('post-body').value==='W Ispini.' && acceptCorrection() && $('post-body').value==='W Ispinie.'")))throw new AssertionError("Find/replace confirmation failed");
+        if(!"true".equals(evaluate("preview();setPreviewDevice('desktop');$('post-preview').style.width==='1024px'")))throw new AssertionError("Desktop preview width failed");evaluate("setPreviewDevice('phone')");
+        diagnosticStage="editorial calendar";
+        if(!"true".equals(evaluate("$('post-schedule').value='2026-11-05T09:30';persistDraft();showCalendar();$('calendar-month').value='2026-11';renderCalendar();$('calendar-entries').textContent.includes('Plan roboczy')")))throw new AssertionError("Local calendar failed");captureUi("calendar");evaluate("showScreen('editor')");
+        diagnosticStage="remote conflict guard";
+        evaluate("window.__oldRpc=rpc;window.__oldConnected=connected;window.__fakeRemote={id:98765,status:'publish',title:{raw:'Historia Ispiny'},content:{raw:'Pierwotna wersja na stronie'},excerpt:{raw:''},categories:[10543],tags:[],modified:'old'};postId=98765;postStatus='publish';remoteBaseline=remoteVersion(window.__fakeRemote);persistDraft();window.__fakeRemote={...window.__fakeRemote,modified:'new',content:{raw:'Nowsza wersja z WordPressa'}};rpc=async(method)=>{if(method!=='GET')throw Error('Unexpected write');return window.__fakeRemote};window.__conflictProbe=false;preflightRemote(draftSignature(captureDraft())).then(ok=>{window.__conflictProbe=!ok&&pendingRemoteConflict!==null;showConflictComparison()})");
+        waitForScript("window.__conflictProbe===true");captureUi("conflict");evaluate("closeRemoteConflict();rpc=window.__oldRpc;connected=window.__oldConnected;postId=null;postStatus='';remoteBaseline=null;resetEditor();showScreen('home')");captureUi("home");
+    }
+
     @Override public void onStart() {
         Bundle result = new Bundle();
         Thread trace=new Thread(()->{for(int n=0;n<35&&!diagnosticDone;n++){SystemClock.sleep(2000);if(!diagnosticDone)android.util.Log.i("ILEditorProbe",diagnosticStage+" "+java.util.Arrays.toString(android.os.Looper.getMainLooper().getThread().getStackTrace()));}},"il-test-diagnostics");trace.setDaemon(true);trace.start();
@@ -124,20 +144,21 @@ public final class ConfirmationInstrumentation extends Instrumentation {
             runOnMainSync(() -> editor.requestFocus());
             waitForIdleSync();
             if ("seed".equals(mode)) {
-                if(getTargetContext().getPackageManager().getPackageInfo(getTargetContext().getPackageName(),0).versionCode!=20)throw new AssertionError("Seed must run on previous 1.14 versionCode 20");
+                if(getTargetContext().getPackageManager().getPackageInfo(getTargetContext().getPackageName(),0).versionCode!=21)throw new AssertionError("Seed must run on previous 1.15 versionCode 21");
                 String seeded=evaluate("localStorage.removeItem(draftKey);draftStore=null;activeDraftId=null;$('post-title').value='Pierwszy szkic';$('post-body').value='Pierwsza wersja';persistDraft(true);$('post-body').value='Druga wersja';persistDraft(true);resetEditor();$('post-title').value='Drugi szkic';$('post-body').value='Drugi tekst';persistDraft(true);String(readDraftStore().drafts.length)");
                 if(!"\"2\"".equals(seeded))throw new AssertionError("Draft seeding failed: "+seeded);
                 if(!getTargetContext().getSharedPreferences("il_update_probe",0).edit().putString("marker","preserved").commit())throw new AssertionError("Preferences seeding failed");
                 result.putString("stream","IL_UPDATE_SEED=PASS\n");
             } else if ("verify".equals(mode)) {
-                if(getTargetContext().getPackageManager().getPackageInfo(getTargetContext().getPackageName(),0).versionCode!=21)throw new AssertionError("Verification must run after upgrade to versionCode 21");
+                if(getTargetContext().getPackageManager().getPackageInfo(getTargetContext().getPackageName(),0).versionCode!=22)throw new AssertionError("Verification must run after upgrade to versionCode 22");
                 String restored=evaluate("JSON.stringify(readDraftStore().drafts.map(d=>[d.title,d.body,d.revisions.length]))");
                 if(!restored.contains("Pierwszy szkic")||!restored.contains("Druga wersja")||!restored.contains("Drugi szkic"))throw new AssertionError("Drafts lost after reinstall: "+restored);
                 if(!"preserved".equals(getTargetContext().getSharedPreferences("il_update_probe",0).getString("marker","")))throw new AssertionError("Preferences lost after reinstall");
                 if(!"true".equals(evaluate("readDraftStore().drafts.some(d=>d.revisions.some(v=>v.snapshot.body==='Pierwsza wersja'))")))throw new AssertionError("Revision history lost");
-                result.putString("stream","IL_UPDATE_DATA_TEST=PASS (1.14 to 1.15 upgrade: drafts, history, preferences)\n");
+                result.putString("stream","IL_UPDATE_DATA_TEST=PASS (1.15 to 1.16 upgrade: drafts, history, preferences)\n");
             } else {
             diagnosticStage="photo crop";verifyEditorFeatures();
+            verifyWorkspaceFeatures();
             diagnosticStage="publication review";
             String review=evaluate("$('post-title').value='Podgląd testowy';$('post-body').value='Treść bez publikacji';$('post-category').value='10543';reviewPublication();!$('publish-review').classList.contains('hidden') && !$('review-confirm').disabled && $('review-preview').getAttribute('sandbox')===''");
             if(!"true".equals(review))throw new AssertionError("Publication review failed: "+review);
@@ -147,11 +168,8 @@ public final class ConfirmationInstrumentation extends Instrumentation {
             probe(AlertDialog.BUTTON_NEGATIVE, "\"false:0\"", false);
             probe(AlertDialog.BUTTON_POSITIVE, "\"true:1\"", false);
             probe(AlertDialog.BUTTON_NEGATIVE, "\"false:0\"", true);
-            result.putString("stream", "IL_WEBVIEW_CONFIRM_TEST=PASS (cancel, confirm once, dismiss)\nIL_EDITOR_FEATURES_TEST=PASS (comparison, undo, backup file streams, photo crop, EXIF, cancel)\n");
+            result.putString("stream", "IL_WEBVIEW_CONFIRM_TEST=PASS (cancel, confirm once, dismiss)\nIL_EDITOR_FEATURES_TEST=PASS (comparison, undo, backup file streams, photo crop, EXIF, cancel)\nIL_WORKSPACE_FEATURES_TEST=PASS (sources/photos backup, literal replacement, viewport, calendar, remote conflict)\n");
             }
-            // Legacy 1.14 uses asynchronous WebView DOM storage. Let its pending
-            // writes drain before ending the test process, then finish the Activity lifecycle.
-            if("seed".equals(mode))SystemClock.sleep(2000);
             runOnMainSync(() -> activity.finish());waitForIdleSync();
             finish(Activity.RESULT_OK, result);
         } catch (Throwable error) {
