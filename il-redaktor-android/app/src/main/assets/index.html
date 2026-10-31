@@ -96,6 +96,49 @@ button{min-height:48px}nav button{min-height:54px}
 .save-actions>button{flex:1 1 170px}
 @media(max-width:480px){.actions>button{flex:1 1 auto}.save-actions>button{flex:1 1 100%}.row{flex-wrap:wrap}.row>label{flex:1 1 145px!important}}
 @media(prefers-reduced-motion:reduce){*,*:before,*:after{animation-duration:.001ms!important;transition-duration:.001ms!important}}
+
+/* IL Redaktor 1.9 — minimalistyczna estetyka IL i oszczędne animacje */
+:root{--il-blue:#174875;--il-accent:#2d6d98;--il-pale:#eef5fb}
+body{background:linear-gradient(180deg,#eff5fb 0,#f5f8fc 45%,#f5f8fc 100%);color:#203e5c}
+header{background:linear-gradient(120deg,#143c63,#174875 65%,#22658d);padding:17px 18px 18px;border-radius:0 0 20px 20px;box-shadow:0 7px 24px #153b6317}
+.brand{gap:12px;max-width:760px;margin:auto}
+.logo{width:50px;height:50px;border-radius:12px;box-shadow:0 3px 16px #0a28472a}
+header h1{font-size:23px;line-height:1.15;letter-spacing:0}
+header p{font-size:12px;line-height:1.35;margin-top:4px}
+.eyebrow{font-size:10px;letter-spacing:1.3px}
+main{padding:13px 13px 20px}
+.card{padding:16px;border-radius:18px;box-shadow:0 5px 20px #1748750c;border-color:#dde8f2}
+h2{font-size:22px;letter-spacing:-.3px;line-height:1.18}
+.note{border:1px solid #dbe7f0;padding:10px 12px;border-radius:13px}
+.note.error{border-color:#f4d7d3}.note.ok{border-color:#cdebd8}
+input,select,textarea{font-size:16px;border-radius:12px;border-color:#c5d7e6}
+button{border-radius:12px;font-size:14px;box-shadow:0 2px 7px #17487510}
+button.secondary{box-shadow:none;border:1px solid #d9e7f0}
+.primary-login{box-shadow:0 5px 16px #17487525;letter-spacing:.15px}
+.tile{box-shadow:0 4px 14px #1748750c;min-height:122px;gap:5px}
+.tile:active{background:#edf5fa;box-shadow:0 1px 5px #17487515}
+nav{background:#fffffff5;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-color:#e0e9f3}
+nav button.active{color:var(--il-blue);background:#e6f0f8}
+.operation-status{margin:0 12px;border-radius:0 0 13px 13px;padding:9px 12px;font-size:12px;line-height:1.45;text-align:left;box-shadow:0 3px 12px #17487518}
+.operation-status.pending{background:#336588}
+.operation-status:before{vertical-align:middle}
+.finish-panel{border:1px solid #dbe7ef}
+@keyframes ilGleam{0%,100%{opacity:.75}50%{opacity:1}}
+.brand .logo{animation:ilGleam 4.2s ease-in-out infinite}
+.settings-group{margin-top:15px}
+.settings-title{display:flex;align-items:center;gap:8px}
+.setting-caption{color:#62778a;font-size:12px;line-height:1.55}
+.recovery-card{padding:14px;background:#f1f7fd;border:1px solid #c8e0f0;border-radius:15px;margin:14px 0;animation:ilRise .27s ease both}
+.recovery-card h3{font-size:19px;margin-bottom:7px}
+.recovery-card p{font-size:13px;line-height:1.6;color:#35536e}
+.recovery-card details{padding:8px 0}
+.recovery-card summary{cursor:pointer;font-size:13px;font-weight:700;color:#174875}
+.recovery-card .actions{margin-top:7px}
+.recovery-card input{font-size:14px}
+.settings-soft{background:#fafcff}
+.mini-label{display:inline-flex;align-items:center;gap:7px;font-size:13px;font-weight:700;color:#174875}
+@media(max-width:370px){header h1{font-size:20px}.logo{width:46px;height:46px}.brand{gap:9px}main{padding:10px}.card{padding:13px}}
+@media(prefers-reduced-motion:reduce){.brand .logo{animation:none!important}}
 </style>
 </head>
 <body>
@@ -200,13 +243,26 @@ button{min-height:48px}nav button{min-height:54px}
     <p class="muted">Portal: <b>ispinalokalnie.wordpress.com</b><br>Identyfikator witryny: <b>252442125</b></p>
     <div id="settings-state" class="note">Sprawdzanie autoryzacji...</div>
     <button class="wide primary-login" onclick="signInGoogle()"><span style="display:inline-block;background:#fff;color:#4285f4;border-radius:7px;padding:4px 9px;margin-right:8px;font-weight:900">G</span> Zaloguj przez Google / WordPress.com</button>
-    <p class="muted">Autoryzacja odbywa się bezpośrednio w WordPress.com. Na ekranie logowania wybierz Google, jeśli ta metoda jest dostępna dla Twojego konta. Do korzystania z MCP WordPress wymaga uprawnienia <strong>global</strong>, obejmującego potencjalnie całe konto WordPress.com i inne witryny. Redaktor wykonuje żądania tylko dla Ispina Lokalnie. Zatwierdzaj dostęp wyłącznie jeśli zgadzasz się na tak szeroki zakres. Aplikacja nie prosi o hasło, Client ID ani sekret.</p>
-    <div class="note">Po zaakceptowaniu dostępu wybierz <b>Wróć do Redaktora IL</b> na stronie przeglądarki. Aplikacja potwierdzi <b>połączenie</b> po pobraniu artykułów. <b>SUKCES PUBLIKACJI</b> pojawi się dopiero po ponownym odczycie zapisanego wpisu. Jeśli połączenie się nie powiedzie, pokaże otrzymany kod HTTP i komunikat WordPressa.</div>
+    <p class="setting-caption">Bezpieczne logowanie otwiera WordPress.com w przeglądarce. Wybierz Google, jeśli Twoje konto korzysta z tej metody.</p>
+    <div id="login-recovery" class="recovery-card hidden" role="region" aria-label="Pomoc przy logowaniu">
+      <h3>🔑 Czekam na zakończenie logowania</h3>
+      <p>Zatwierdź dostęp w przeglądarce i wybierz otwarcie Redaktora IL, gdy Android o to zapyta. Jeśli jesteś już z powrotem w aplikacji, ale nadal widzisz krok 3/4, skorzystaj z opcji poniżej.</p>
+      <div class="actions"><button class="secondary" onclick="checkLoginState()">Sprawdź stan</button><button class="secondary" onclick="cancelLoginFlow()">Anuluj i spróbuj ponownie</button></div>
+      <details><summary>Zaawansowane: ręczne dokończenie logowania</summary>
+        <p>Jeśli przeglądarka pokazuje pełny adres rozpoczynający się od <code>com.ispinalokalnie.redaktorsmart.publish190:/callback</code>, możesz wkleić go poniżej. Nie wpisuj tu hasła, kodu z SMS ani zwykłego adresu WordPressa. Nie udostępniaj nikomu tego adresu.</p>
+        <label for="oauth-return">Adres powrotu (poufny)</label><input id="oauth-return" type="password" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Wklej pełny adres powrotu z przeglądarki">
+        <div class="actions"><button onclick="finishManualLogin()">Dokończ logowanie</button></div>
+      </details>
+    </div>
+    <details class="settings-group"><summary class="mini-label">O bezpieczeństwie połączenia i uprawnieniach</summary>
+      <p class="muted">Aplikacja korzysta z WordPress.com OAuth i MCP. Uprawnienie <strong>global</strong> może obejmować całe konto WordPress.com, a nie tylko witrynę Ispina Lokalnie. Redaktor ogranicza swoje operacje do portalu IL. Zatwierdzaj zgodę tylko wtedy, gdy akceptujesz ten zakres. Aplikacja nie potrzebuje Twojego hasła.</p>
+    </details>
     <div id="auth-output" aria-live="polite"></div>
     <p class="muted">Jeżeli WordPress odmawia dostępu, sprawdź, czy w ustawieniach konta WordPress.com jest włączony dostęp MCP i czy wybrane zgody pozwalają czytać oraz edytować treść.</p>
     <div class="actions"><button class="secondary" onclick="verifyNow()">Sprawdź dostęp do wpisów</button><button class="danger" onclick="disconnect()">Wyloguj</button></div>
   </div>
-  <div class="card"><h2>O programie</h2><p class="muted">IL Redaktor Smart 1.8.0-test · Niezależna aplikacja Android 8 i nowszy. WordPress.com MCP. Publikacja wymaga potwierdzenia. Zapis jest uznawany za udany dopiero po otrzymaniu identyfikatora WordPress.</p></div>
+  <div class="card settings-soft"><h2>Wibracje i odczucia dotykowe</h2><p class="setting-caption">Subtelna reakcja na dotknięcie przycisku, pomyślny zapis lub błąd. Szanuje ustawienia telefonu i można ją wyłączyć.</p><label for="haptics-select">Intensywność wibracji</label><select id="haptics-select" onchange="setHapticsMode(this.value)"><option value="0">Wyłączone</option><option value="1" selected>Delikatne</option><option value="2">Normalne</option><option value="3">Mocniejsze</option></select><div class="actions"><button class="secondary" onclick="testHaptics()">Sprawdź wibrację</button></div><div id="haptics-status" class="setting-caption" aria-live="polite">Ustawienie zostanie zapamiętane na telefonie.</div></div>
+  <div class="card"><h2>O programie</h2><p class="muted">IL Redaktor Smart 1.9.0-test · Niezależna aplikacja Android 8 i nowszy. WordPress.com MCP. Publikacja wymaga potwierdzenia. Zapis jest uznawany za udany dopiero po otrzymaniu identyfikatora WordPress.</p></div>
 </section>
 </main>
 <div id="finish-dialog" class="finish-dialog hidden" role="alertdialog" aria-modal="true" aria-labelledby="finish-title">
@@ -241,11 +297,12 @@ function operationBanner(kind,label){
   const bar=$("working-state");bar.className="operation-status "+kind;
   bar.textContent=(kind==="busy"?"⏳ ":kind==="done"?"✓ ":"✕ ")+label;
 }
-function startOperation(label){operationBanner("busy","TRWA: "+label);}
+function startOperation(label){operationBanner("busy","Trwa: "+label);}
 function endOperation(){if($("working-state").classList.contains("busy"))$("working-state").classList.add("hidden");}
 function operationFinished(ok,title,detail=""){
   operationBanner(ok?"done":"failed",(ok?"SUKCES: ":"BŁĄD: ")+title);
   recordAction(ok?"done":"failed",title,detail);
+  if(window.IL && typeof IL.haptic==="function")IL.haptic(ok?"success":"error");
 }
 function showOutcome(kind,headline,detail,link="",linkLabel="Otwórz w WordPressie"){
   operationFinished(kind==="success",headline,detail.slice(0,260));
@@ -297,9 +354,14 @@ window.onNativeResult=function(id,ok,payload){
     return;
   }
   if(id==="auth-progress"){
-    if(ok){message("auth-output",payload);startOperation(payload);}
+    if(ok){
+      message("auth-output",payload);
+      if(payload.includes("Krok 3/4")){operationBanner("pending","Oczekuję na powrót z WordPress.com");showLoginRecovery(true)}
+      else{startOperation("Autoryzacja WordPress.com");if(payload.includes("Krok 4/4"))showLoginRecovery(false)}
+    }
     else{
       message("auth-output",payload,"error");
+      showLoginRecovery(true);
       showOutcome("error","NIE POWIODŁO SIĘ","Logowanie przez Google / WordPress nie zostało zakończone. "+payload);
     }
     return;
@@ -323,11 +385,23 @@ window.onNativeResult=function(id,ok,payload){
     }catch(e){assistantEnabled=false;message("assistant-mode","Nie udało się sprawdzić trybu asystenta.","error")}
     return;
   }
+  if(id==="login-state"){
+    try{const s=JSON.parse(payload);showLoginRecovery(!!s.pending);if(!s.pending)endOperation()}catch(e){}
+    return;
+  }
+  if(id==="auth-cancel"){
+    showLoginRecovery(false);endOperation();message("auth-output",payload,"ok");return;
+  }
+  if(id==="haptics"){
+    if(ok){try{const s=JSON.parse(payload);$("haptics-select").value=String(s.mode);$("haptics-status").textContent="Ustawienie zapisane: "+["Wyłączone","Delikatne","Normalne","Mocniejsze"][s.mode]+ "."}catch(e){}}
+    else $("haptics-status").textContent=payload;
+    return;
+  }
   if(id==="auth"){
     if(ok){
       let tokenSaved=false;try{tokenSaved=!!JSON.parse(payload).connected}catch(e){}
       connected=false;reflectAuth();
-      if(tokenSaved)message("auth-output","WordPress zatwierdził logowanie. Sprawdzam dostęp do wpisów...");
+      if(tokenSaved){showLoginRecovery(false);message("auth-output","WordPress zatwierdził logowanie. Sprawdzam dostęp do wpisów...");}
       else message("auth-output","Konto rozłączone.","ok");
     } else message("auth-output",payload,"error");
   }
@@ -335,6 +409,7 @@ window.onNativeResult=function(id,ok,payload){
     connected=!!ok;
     reflectAuth();
     if(ok){
+      showLoginRecovery(false);
       message("auth-output","SUKCES! Połączenie potwierdzone przez WordPress.","ok");
       showOutcome("success","POŁĄCZONO","Potwierdzono odczyt artykułów Ispina Lokalnie. Możliwość publikowania weryfikujemy osobno.");
       message("home-connection","Konto WordPress połączone i zweryfikowane. Możesz pracować nad portalem.","ok");
@@ -370,6 +445,12 @@ function reflectAuth(){
   $("settings-state").textContent=connected?"Połączenie przez WordPress MCP potwierdzone (odczyt). Publikacja wymaga własnej kontroli.":"Nie masz zweryfikowanej sesji. Zaloguj się lub sprawdź połączenie.";
   if(connected)message("home-connection","Połączono z WordPressem: Ispina Lokalnie.","ok");
 }
+function showLoginRecovery(show){$("login-recovery").classList.toggle("hidden",!show)}
+function checkLoginState(){if(IL.loginState)IL.loginState()}
+function cancelLoginFlow(){if(IL.cancelLogin)IL.cancelLogin()}
+function finishManualLogin(){const el=$("oauth-return");const url=trim(el.value);el.value="";if(!url){message("auth-output","Wklej pełny adres powrotu (jeżeli jest dostępny w przeglądarce).","error");return}IL.finishLoginWithUrl(url);startOperation("Odbieram potwierdzenie WordPress.com")}
+function setHapticsMode(value){if(IL.setHaptics)IL.setHaptics(Number(value))}
+function testHaptics(){if(IL.haptic)IL.haptic("success")}
 function signInGoogle(){
   if(connected){showOutcome("success","POŁĄCZONO","Odczyt wpisów przez WordPress MCP działa. Możliwość zapisu zostanie sprawdzona przy publikacji.");return}
   message("auth-output","Krok 1/4: rozpoczynam połączenie WordPress.com. Na stronie wybierz swoje konto Google, jeśli jest dostępne.");
@@ -875,6 +956,7 @@ updateMetrics();
 if(actionHistory.length){
   $("activity-feed").innerHTML=actionHistory.map(a=>'<div class="activity-entry '+esc(a.kind)+'"><strong>'+esc(a.at+" · "+a.title)+'</strong><small>'+esc(a.detail)+'</small></div>').join("");
 }
-if(window.IL){IL.status()}else{message("auth-output","Brak mostu Android. Otwórz ten panel wewnątrz APK.","error");}
+if(document.addEventListener){document.addEventListener("click",event=>{const button=event.target&&event.target.closest?event.target.closest("button"):null;if(button&&!button.disabled&&window.IL&&typeof IL.haptic==="function")IL.haptic("tap")},true)}
+if(window.IL){IL.status();if(IL.getHaptics)IL.getHaptics();if(IL.loginState)IL.loginState()}else{message("auth-output","Brak mostu Android. Otwórz ten panel wewnątrz APK.","error");}
 </script>
 </body></html>
