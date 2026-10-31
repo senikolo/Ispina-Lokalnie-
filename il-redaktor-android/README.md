@@ -1,3 +1,18 @@
+# IL Redaktor Smart 1.21.0
+
+Wersja rozwojowa (versionCode 27, stały pakiet `com.ispinalokalnie.redaktorsmart.stable`). **Nie odinstalowuj wcześniejszej APK przed aktualizacją**, dopóki nie zabezpieczysz szkiców i nie potwierdzisz zgodności podpisu certyfikatu. GitHub Actions tworzy debug APK oraz unsigned release; testowa APK debug nie jest automatycznie zgodną aktualizacją prywatnie podpisanej wersji.
+
+## Nowości 1.21 — poprawki po audycie
+
+- WordPress: komunikat sukcesu wymaga zgodności odczytanego tytułu, surowego HTML treści, zajawki i kategorii z zapisanym payloadem. Gdy podano zdjęcie i tagi, ich identyfikatory też są weryfikowane. Jeśli brakuje któregoś pola, wynik to **TREŚĆ NIEPOTWIERDZONA**, bez ponawiania POST. Treść WordPressa może być przez niego przekształcana (np. dodatkowe komentarze bloków); niezgodność kieruje do ręcznego sprawdzenia.
+- Harmonogram: `date_gmt` bez sufiksu UTC jest porównywany jako UTC, a nie czas telefonu. Ustawienie przyszłego terminu nadal wymaga testów na rzeczywistym koncie (zmiana czasu letniego/zimowego).
+- Android: naciśnięcie Wstecz przy próbie zamknięcia edytora oczekuje na potwierdzenie lokalnego zapisu. Wykonujemy też próbę zapisu w onStop, przy utracie widoczności, zmianie pola i utracie fokusu. Żaden mechanizm nie może zagwarantować zapisu w momencie twardego odcięcia zasilania — ważne szkice eksportuj do JSON.
+- **Inteligentny skład lokalny — bezpłatny:** z treści tworzy semantyczny HTML, porządkuje akapity, zachowuje istniejące nagłówki/listy/cytaty, nie dopisuje nowych informacji. Przed przyjęciem otwiera porównanie.
+- **Sformatuj za pomocą AI:** jeśli skonfigurowano backend Gemini, wysyła tekst po jawnej zgodzie i automatycznie przedstawia propozycję porównania. Bez backendu przekazuje polecenie do aplikacji ChatGPT/Gemini; użytkownik wkleja odpowiedź do Redaktora i zatwierdza. Automatyczna kontrola słów odrzuca odpowiedź zmieniającą treść. Funkcja AI nie jest gwarantowaną usługą darmową (backend API może mieć opłaty); aplikacje AI działają zależnie od ich własnych limitów.
+- Brak publikacji bez wyraźnego potwierdzenia redaktora. Testy Node są mockowane i **nie sprawdzają prawdziwego logowania ani zapisu na WordPress.com**. Uruchom prywatny test szkicu w zakładce Połączenie na własnym urządzeniu.
+
+---
+
 # IL Redaktor Smart 1.20.0
 
 Stały applicationId `com.ispinalokalnie.redaktorsmart.stable`, versionCode 26 (1.20.0). Podpisuj tym samym kluczem co poprzednie wydania; nie odinstalowuj przy aktualizacji.
