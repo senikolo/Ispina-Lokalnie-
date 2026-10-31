@@ -647,6 +647,7 @@ test("publication bundle contains only the current draft and its local preflight
 test("native AI handoff prefers ChatGPT, then Gemini, and reads clipboard only on request",()=>{
   const java=fs.readFileSync(path.join(__dirname,"../app/src/main/java/com/ispinalokalnie/redaktor/MainActivity.java"),"utf8");
   assert.ok(java.indexOf('"com.openai.chatgpt"')<java.indexOf('"com.google.android.apps.bard"'));
+  assert.ok(java.indexOf('newPlainText("Polecenie IL",text)')<java.indexOf('"com.openai.chatgpt"'),'the prompt must be copied before trying direct app handoff');
   assert.match(java,/void shareAssistantPrompt/);assert.match(java,/void readAssistantClipboard/);assert.match(java,/Intent\.ACTION_SEND/);
   const manifest=fs.readFileSync(path.join(__dirname,"../app/src/main/AndroidManifest.xml"),"utf8");
   assert.match(manifest,/com\.openai\.chatgpt/);assert.match(manifest,/com\.google\.android\.apps\.bard/);

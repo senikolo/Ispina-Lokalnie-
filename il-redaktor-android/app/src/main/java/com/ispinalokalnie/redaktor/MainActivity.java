@@ -384,6 +384,7 @@ public class MainActivity extends Activity {
             if(text==null||text.trim().isEmpty()||text.length()>18000){callback("assistant-handoff",false,"Polecenie jest puste albo za długie. Skróć je i spróbuj ponownie.");return;}
             ui.post(()->{
                 Intent base=new Intent(Intent.ACTION_SEND);base.setType("text/plain");base.putExtra(Intent.EXTRA_TEXT,text);
+                try{android.content.ClipboardManager clipboard=(android.content.ClipboardManager)getSystemService(CLIPBOARD_SERVICE);if(clipboard!=null)clipboard.setPrimaryClip(android.content.ClipData.newPlainText("Polecenie IL",text));}catch(RuntimeException ignored){/* The direct ACTION_SEND still carries the text. */}
                 String[][] apps={{"com.openai.chatgpt","ChatGPT jest otwarty. Wklej polecenie, jeśli aplikacja o to poprosi; po uzyskaniu odpowiedzi wróć do Redaktora."},{"com.google.android.apps.bard","ChatGPT nie jest dostępny. Otworzyłem Gemini; wklej polecenie, jeśli aplikacja o to poprosi."}};
                 for(String[] app:apps){
                     Intent target=new Intent(base);target.setPackage(app[0]);
