@@ -35,7 +35,7 @@ jobs:
           python -m pip install --quiet Pillow
           python - <<'PY'
           import urllib.request, io, pathlib
-          from PIL import Image
+          from PIL import Image, ImageDraw
           url = 'https://ispinalokalnie.wordpress.com/wp-content/uploads/2026/10/ispina-lokalnie-monogram-il.png'
           raw = urllib.request.urlopen(urllib.request.Request(url, headers={'User-Agent': 'ILRedaktorSmart/1.1'}),timeout=30).read()
           if len(raw)>2_000_000: raise ValueError('Logo is unexpectedly large')
@@ -45,13 +45,27 @@ jobs:
           assets=base/'assets'
           assets.mkdir(parents=True,exist_ok=True)
           (assets/'il-monogram.png').write_bytes(raw)
+          # Official IL monogram stays intact; only the Android launcher gets
+          # a small red identification dot with a narrow white separation ring.
+          launch=im.copy()
+          painter=ImageDraw.Draw(launch)
+          cx,cy=int(im.width*0.83),int(im.height*0.17)
+          radius=int(im.width*0.090)
+          ring=max(5,int(im.width*0.024))
+          painter.ellipse((cx-radius-ring,cy-radius-ring,cx+radius+ring,cy+radius+ring),
+                          fill=(255,255,255,255))
+          painter.ellipse((cx-radius,cy-radius,cx+radius,cy+radius),
+                          fill=(222,43,52,255))
           for density,size in [('mdpi',48),('hdpi',72),('xhdpi',96),('xxhdpi',144),('xxxhdpi',192)]:
               p=base/'res'/('mipmap-'+density)
               p.mkdir(parents=True,exist_ok=True)
-              icon=im.resize((size,size),Image.Resampling.LANCZOS)
+              icon=launch.resize((size,size),Image.Resampling.LANCZOS)
               icon.save(p/'ic_launcher.png')
               icon.save(p/'ic_launcher_round.png')
-          print('Embedded official IL logo:',len(raw),'bytes')
+          check=Image.open(base/'res'/'mipmap-xxxhdpi'/'ic_launcher.png').convert('RGB')
+          dot=check.getpixel((int(192*.83),int(192*.17)))
+          assert dot[0]>195 and dot[1]<90 and dot[2]<100, 'Red launcher dot missing'
+          print('Embedded unchanged IL logo plus small red dot on launcher icon:',len(raw),'bytes')
           PY
       - name: Validate source HTML and JavaScript
         run: |
@@ -71,7 +85,7 @@ jobs:
           mcp=pathlib.Path('il-redaktor-android/app/src/main/java/com/ispinalokalnie/redaktor/WpMcp.java').read_text()
           main=pathlib.Path('il-redaktor-android/app/src/main/java/com/ispinalokalnie/redaktor/MainActivity.java').read_text()
           manifest=pathlib.Path('il-redaktor-android/app/src/main/AndroidManifest.xml').read_text()
-          for expected in ['com.ispinalokalnie.redaktorsmart.mcp151:/callback','code_challenge_method=S256','PENDING_VERIFIER','handleRedirect']:
+          for expected in ['com.ispinalokalnie.redaktorsmart.mcp152:/callback','code_challenge_method=S256','PENDING_VERIFIER','handleRedirect']:
               assert expected in oauth, 'OAuth return missing: '+expected
           for required in ['\"method\", \"initialize\"', 'Mcp-Session-Id', 'notifications/initialized', 'ensureMcpSession(token)', 'ExpiredMcpSession', 'resetSession()']:
               assert required in mcp, 'Missing MCP session lifecycle: ' + required
@@ -82,7 +96,7 @@ jobs:
           assert 'AndroidKeyStore' in main and 'encryptSecret' in main, 'Tokens are not encrypted at rest'
           assert 'JSONArray)data).length() == 0' in main, 'Login must confirm at least one existing article'
           assert 'response_type=token' not in main and 'response_type=token' not in oauth, 'Implicit OAuth flow must not be used'
-          assert 'android:scheme="com.ispinalokalnie.redaktorsmart.mcp151"' in manifest
+          assert 'android:scheme="com.ispinalokalnie.redaktorsmart.mcp152"' in manifest
           for required in ['SUKCES!','NIE POWIODŁO SIĘ','function showOutcome','id="finish-dialog"']:
               assert required in src, 'Feedback UI missing: '+required
           assert 'client_secret' not in oauth and 'client_secret' not in src.lower()
@@ -95,7 +109,7 @@ jobs:
           import json, urllib.request, urllib.error
           url='https://public-api.wordpress.com/oauth2-1/register'
           payload={'client_name':'IL Redaktor Smart Android Redirect CI',
-                   'redirect_uris':['com.ispinalokalnie.redaktorsmart.oauth:/callback'],
+                   'redirect_uris':['com.ispinalokalnie.redaktorsmart.mcp152:/callback'],
                    'grant_types':['authorization_code','refresh_token'],
                    'response_types':['code'],
                    'token_endpoint_auth_method':'none'}
@@ -132,7 +146,7 @@ jobs:
           test -s "$APK"
           test -s il-redaktor-android/app/src/main/assets/il-monogram.png
           "$SDK_ROOT/build-tools/35.0.0/apksigner" verify --verbose "$APK"
-          "$SDK_ROOT/build-tools/35.0.0/aapt" dump badging "$APK" | grep -F "package: name='com.ispinalokalnie.redaktorsmart.mcpsession.test' versionCode='8' versionName='1.5.1-test'"
+          "$SDK_ROOT/build-tools/35.0.0/aapt" dump badging "$APK" | grep -F "package: name='com.ispinalokalnie.redaktorsmart.reddot.test' versionCode='9' versionName='1.5.2-test'"
           unzip -l "$APK" | grep 'assets/il-monogram.png'
       - name: Upload installable APK
         uses: actions/upload-artifact@v4
