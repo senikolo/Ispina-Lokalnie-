@@ -936,13 +936,26 @@ public class MainActivity extends Activity {
             publishedDialog.dismiss();
             return;
         }
-        if (editor.canGoBack()) editor.goBack();
-        else super.onBackPressed();
+        if (editor == null || !webPageReady) { super.onBackPressed(); return; }
+        // Do not destroy the editor until the native AtomicFile store has answered.
+        editor.evaluateJavascript("typeof flushDraftOnExit==='function' ? flushDraftOnExit() : true", value -> {
+            if (!"true".equals(value)) {
+                Toast.makeText(this, "Nie zapisano szkicu. Skopiuj tekst przed wyjściem.", Toast.LENGTH_LONG).show();
+                return;
+            }
+            if (editor != null && editor.canGoBack()) editor.goBack();
+            else MainActivity.super.onBackPressed();
+        });
     }
 
     @Override protected void onPause() {
         if (editor != null && webPageReady) editor.evaluateJavascript("if(typeof flushDraftOnExit==='function')flushDraftOnExit()", null);
         super.onPause();
+    }
+
+    @Override protected void onStop() {
+        if (editor != null && webPageReady) editor.evaluateJavascript("if(typeof flushDraftOnExit==='function')flushDraftOnExit()", null);
+        super.onStop();
     }
 
     @Override protected void onDestroy() {
