@@ -732,7 +732,7 @@ function renderAssistantResult(result){
   const reading=readingRecommendations.length?'<div class="note"><b>Podpowiedzi dla czytelnika IL</b><p>Wybrałem istniejące, opublikowane teksty. Sprawdź, czy pasują do tego artykułu.</p>'+readingRecommendations.map(({post,promo})=>'<div class="note"><b>Przeczytaj także: '+esc(wpPostTitle(post))+'</b><p>'+esc(promo)+'</p><div class="actions"><button class="secondary" onclick="openReadingArticle('+Number(post.id)+')">Pokaż wpis w aplikacji</button><button class="secondary" onclick="copyReadingPromotion('+Number(post.id)+')">Kopiuj zachętę</button><button onclick="appendReadingLink('+Number(post.id)+')">Dodaj link do artykułu</button></div></div>').join('')+'</div>':'';
   const checks=(result.factsToVerify||[]).map(x=>"<li>"+esc(x)+"</li>").join("");
   let action="";
-  if(result.intent==="article_draft"&&result.title)action='<button class="secondary" onclick="acceptAssistantArticle()">Przenieś propozycję do artykułu</button>';
+  if(["article_draft","seo_review"].includes(result.intent)&&(result.title||result.content))action='<button class="secondary" onclick="acceptAssistantArticle()">Porównaj z artykułem</button>';
   if(result.intent==="service_draft"&&result.service)action='<button class="secondary" onclick="acceptAssistantService()">Przenieś propozycję do formularza</button>';
   const body=result.content?'<div class="note" style="white-space:pre-wrap;overflow-wrap:anywhere">'+esc(result.content.slice(0,1200))+'</div>':'';
   const service=result.service&&result.service.name?'<p><b>Firma:</b> '+esc(result.service.name)+'</p>':'';
@@ -767,7 +767,7 @@ async function runAssistant(){
   }
 }
 function acceptAssistantArticle(){
-  const d=assistantDraft;if(!d||d.intent!=="article_draft")return;
+  const d=assistantDraft;if(!d||!["article_draft","seo_review"].includes(d.intent))return;
   if(assistantEditorTarget&&(assistantEditorTarget.id!==activeDraftId||assistantEditorTarget.signature!==draftSignature(captureDraft()))){message("assistant-output","Od przygotowania polecenia zmienił się artykuł. Otwórz właściwy szkic i poproś o nową propozycję.","error");return}
   const proposal={};if(d.title)proposal.title=d.title;if(d.content){proposal.body=d.content;proposal.mode="html"}if(d.excerpt)proposal.excerpt=d.excerpt;if(d.tags?.length)proposal.tags=d.tags.join(", ");if(/histori/i.test(d.category||""))proposal.category="3503";
   showScreen("editor");offerCorrection(proposal,"Propozycja Asystenta. Przeczytaj wszystkie zmiany i sprawdź źródła. Zachowuję numer edytowanego wpisu.");

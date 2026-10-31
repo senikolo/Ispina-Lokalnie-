@@ -17,6 +17,8 @@ public final class ConfirmationInstrumentation extends Instrumentation {
     private MainActivity activity;
     private WebView editor;
     private String mode="confirm";
+    private volatile String diagnosticStage="startup";
+    private volatile boolean diagnosticDone=false;
 
     @Override public void onCreate(Bundle args) { super.onCreate(args); if(args!=null)mode=args.getString("mode","confirm"); start(); }
 
@@ -67,23 +69,32 @@ public final class ConfirmationInstrumentation extends Instrumentation {
             android.graphics.Bitmap top=PhotoEditor.crop(source,16f/9f,50,0),bottom=PhotoEditor.crop(source,16f/9f,50,100);
             if(top.getWidth()!=800||top.getHeight()!=450||top.getPixel(0,0)!=android.graphics.Color.BLUE||bottom.getPixel(0,0)!=android.graphics.Color.GREEN)throw new AssertionError("Crop dimensions / position failed");
             top.recycle();bottom.recycle();source.recycle();
-            android.graphics.Bitmap preview=android.graphics.Bitmap.createBitmap(320,240,android.graphics.Bitmap.Config.ARGB_8888);
-            final boolean[] uploaded={false};PhotoEditor dialog=new PhotoEditor(activity,preview,(image,c,a,t)->{uploaded[0]=true;image.recycle();});dialog.show();if(!dialog.isShowing())throw new AssertionError("Photo editor not visible");dialog.dismiss();if(uploaded[0])throw new AssertionError("Photo cancellation uploaded data");
         }catch(Throwable t){failure.set(t);}});
         if(failure.get()!=null)throw new AssertionError("Native photo tools",failure.get());
+        diagnosticStage="photo dialog";
+        AtomicReference<PhotoEditor> displayed=new AtomicReference<>();java.util.concurrent.atomic.AtomicBoolean uploaded=new java.util.concurrent.atomic.AtomicBoolean(false);
+        runOnMainSync(()->{try{android.graphics.Bitmap preview=android.graphics.Bitmap.createBitmap(320,240,android.graphics.Bitmap.Config.ARGB_8888);PhotoEditor dialog=new PhotoEditor(activity,preview,(image,c,a,t)->{uploaded.set(true);image.recycle();});displayed.set(dialog);dialog.show();}catch(Throwable t){failure.set(t);}});
+        waitForIdleSync();
+        if(failure.get()!=null)throw new AssertionError("Photo dialog creation",failure.get());
+        runOnMainSync(()->{if(displayed.get()==null||!displayed.get().isShowing())failure.set(new AssertionError("Photo editor not visible"));else displayed.get().dismiss();});
+        waitForIdleSync();if(failure.get()!=null)throw new AssertionError("Photo dialog",failure.get());if(uploaded.get())throw new AssertionError("Photo cancellation uploaded data");
+        diagnosticStage="photo EXIF";
         java.io.File sample=new java.io.File(getTargetContext().getCacheDir(),"photo-exif-test.jpg");
         android.graphics.Bitmap raw=android.graphics.Bitmap.createBitmap(120,80,android.graphics.Bitmap.Config.ARGB_8888);
         try(java.io.FileOutputStream out=new java.io.FileOutputStream(sample)){raw.compress(android.graphics.Bitmap.CompressFormat.JPEG,80,out);}raw.recycle();
         android.media.ExifInterface exif=new android.media.ExifInterface(sample.getAbsolutePath());exif.setAttribute(android.media.ExifInterface.TAG_ORIENTATION,"6");exif.saveAttributes();
         android.graphics.Bitmap oriented=PhotoEditor.decode(getTargetContext(),android.net.Uri.fromFile(sample));if(oriented.getWidth()!=80||oriented.getHeight()!=120)throw new AssertionError("EXIF orientation lost");oriented.recycle();sample.delete();
+        diagnosticStage="correction comparison";
         if(!"true".equals(evaluate("$('post-body').value='W Ispini.';offerCorrection({body:'W Ispinie.'},'Test');$('accept-body').checked && $('post-body').value==='W Ispini.'")))throw new AssertionError("Correction comparison changed text before consent");
         if(!"true".equals(evaluate("acceptCorrection();$('post-body').value==='W Ispinie.' && undoEditorialChange() && $('post-body').value==='W Ispini.'")))throw new AssertionError("Correction acceptance / undo failed");
+        diagnosticStage="backup export";
         String payload=(String)new org.json.JSONTokener(evaluate("makeDraftBackup()")).nextValue();
         java.io.File pending=new java.io.File(getTargetContext().getCacheDir(),"il-drafts-export-pending.json"),saved=new java.io.File(getTargetContext().getCacheDir(),"backup-stream-test.json");
         try(java.io.FileOutputStream out=new java.io.FileOutputStream(pending)){out.write(payload.getBytes(java.nio.charset.StandardCharsets.UTF_8));}
         runOnMainSync(()->activity.onActivityResult(1006,Activity.RESULT_OK,new Intent().setData(android.net.Uri.fromFile(saved))));
         waitForScript("$('backup-output').textContent.includes('Zapisano plik kopii')");
         String written=new String(java.nio.file.Files.readAllBytes(saved.toPath()),java.nio.charset.StandardCharsets.UTF_8);if(!payload.equals(written))throw new AssertionError("Backup file differs from draft payload");
+        diagnosticStage="backup import";
         runOnMainSync(()->activity.onActivityResult(1007,Activity.RESULT_OK,new Intent().setData(android.net.Uri.fromFile(saved))));
         waitForScript("pendingBackupImport!==null && !$('backup-dialog').classList.contains('hidden')");evaluate("cancelBackupImport()");saved.delete();
         runOnMainSync(()->editor.requestFocus());waitForIdleSync();
@@ -91,6 +102,7 @@ public final class ConfirmationInstrumentation extends Instrumentation {
 
     @Override public void onStart() {
         Bundle result = new Bundle();
+        Thread trace=new Thread(()->{for(int n=0;n<35&&!diagnosticDone;n++){SystemClock.sleep(2000);if(!diagnosticDone)android.util.Log.i("ILEditorProbe",diagnosticStage+" "+java.util.Arrays.toString(android.os.Looper.getMainLooper().getThread().getStackTrace()));}},"il-test-diagnostics");trace.setDaemon(true);trace.start();
         try {
             Intent launch = new Intent(getTargetContext(), MainActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
             activity = (MainActivity) startActivitySync(launch);
@@ -100,6 +112,7 @@ public final class ConfirmationInstrumentation extends Instrumentation {
                 if (SystemClock.uptimeMillis() >= deadline) throw new AssertionError("Editor did not finish loading");
                 SystemClock.sleep(100);
             }
+            diagnosticStage="editor ready";
             runOnMainSync(() -> editor.requestFocus());
             waitForIdleSync();
             if ("seed".equals(mode)) {
@@ -116,10 +129,12 @@ public final class ConfirmationInstrumentation extends Instrumentation {
                 if(!"true".equals(evaluate("readDraftStore().drafts.some(d=>d.revisions.some(v=>v.snapshot.body==='Pierwsza wersja'))")))throw new AssertionError("Revision history lost");
                 result.putString("stream","IL_UPDATE_DATA_TEST=PASS (1.14 to 1.15 upgrade: drafts, history, preferences)\n");
             } else {
-            verifyEditorFeatures();
+            diagnosticStage="photo crop";verifyEditorFeatures();
+            diagnosticStage="publication review";
             String review=evaluate("$('post-title').value='Podgląd testowy';$('post-body').value='Treść bez publikacji';$('post-category').value='10543';reviewPublication();!$('publish-review').classList.contains('hidden') && !$('review-confirm').disabled && $('review-preview').getAttribute('sandbox')===''");
             if(!"true".equals(review))throw new AssertionError("Publication review failed: "+review);
             evaluate("closeReview();resetEditor()");
+            diagnosticStage="native confirmations";
             // A real Android WebView must pause until native confirmation is selected.
             probe(AlertDialog.BUTTON_NEGATIVE, "\"false:0\"", false);
             probe(AlertDialog.BUTTON_POSITIVE, "\"true:1\"", false);
@@ -131,6 +146,6 @@ public final class ConfirmationInstrumentation extends Instrumentation {
         } catch (Throwable error) {
             result.putString("stream", "IL_WEBVIEW_CONFIRM_TEST=FAIL " + error + "\n" + android.util.Log.getStackTraceString(error));
             finish(Activity.RESULT_CANCELED, result);
-        }
+        } finally { diagnosticDone=true; }
     }
 }

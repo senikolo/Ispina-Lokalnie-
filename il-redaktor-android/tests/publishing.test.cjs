@@ -800,3 +800,7 @@ test('import storage error is visible inside the confirmation dialog',()=>{
 test('published-status lookup for a different article cannot offer the previous article promotion as its own',()=>{
  const a=setup();a.run("rememberPublishedArticle({id:5,title:'Poprzedni'},'https://ispinalokalnie.wordpress.com/?p=5');postId=6;showOutcome('success','Status','Sprawdzono','https://ispinalokalnie.wordpress.com/?p=6','Zobacz',true)");assert.equal(a.node('finish-promotion').classList.contains('hidden'),true);
 });
+
+test('AI SEO correction also opens comparison without silently changing the article',()=>{
+ const a=setup();a.run("renderAssistantResult({intent:'seo_review',title:'',content:'<p>Korekta</p>',internalLinks:[],factsToVerify:[]})");assert.match(a.node('assistant-output').innerHTML,/Porównaj z artykułem/);a.run('acceptAssistantArticle()');assert.equal(a.run('pendingCorrection.changes.body'),'<p>Korekta</p>');assert.equal(a.node('post-body').value,'Treść testowa');
+});

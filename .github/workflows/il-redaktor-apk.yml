@@ -209,14 +209,14 @@ jobs:
             adb install -r /tmp/il-previous-debug.apk
             adb install -r il-redaktor-android/app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk
             adb shell am instrument -w -e mode seed com.ispinalokalnie.redaktorsmart.stable.instrumentation/com.ispinalokalnie.redaktor.ConfirmationInstrumentation | tee /tmp/il-update-seed.txt
-            grep -F 'IL_UPDATE_SEED=PASS' /tmp/il-update-seed.txt || { adb logcat -d -s chromium AndroidRuntime; exit 1; }
+            grep -F 'IL_UPDATE_SEED=PASS' /tmp/il-update-seed.txt || { adb logcat -d -s chromium AndroidRuntime ILEditorProbe ActivityManager; exit 1; }
             adb install -r il-redaktor-android/app/build/outputs/apk/debug/app-debug.apk
             adb shell am force-stop com.ispinalokalnie.redaktorsmart.stable
             adb shell am instrument -w -e mode verify com.ispinalokalnie.redaktorsmart.stable.instrumentation/com.ispinalokalnie.redaktor.ConfirmationInstrumentation | tee /tmp/il-update-data.txt
             grep -F 'IL_UPDATE_DATA_TEST=PASS' /tmp/il-update-data.txt
             adb shell am force-stop com.ispinalokalnie.redaktorsmart.stable
             adb shell am instrument -w com.ispinalokalnie.redaktorsmart.stable.instrumentation/com.ispinalokalnie.redaktor.ConfirmationInstrumentation | tee /tmp/il-confirmation-test.txt
-            grep -F 'IL_WEBVIEW_CONFIRM_TEST=PASS' /tmp/il-confirmation-test.txt || { adb logcat -d -s chromium AndroidRuntime; exit 1; }
+            grep -F 'IL_WEBVIEW_CONFIRM_TEST=PASS' /tmp/il-confirmation-test.txt || { adb logcat -d -s chromium AndroidRuntime ILEditorProbe ActivityManager; exit 1; }
             grep -F 'IL_EDITOR_FEATURES_TEST=PASS' /tmp/il-confirmation-test.txt
       - name: Confirm APK and actual monogram
         run: |
