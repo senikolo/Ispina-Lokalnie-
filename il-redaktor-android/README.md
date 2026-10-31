@@ -1,10 +1,10 @@
 # IL Redaktor Smart
 
-Niezależna aplikacja Android do redagowania portalu Ispina Lokalnie. Nie zmienia aplikacji dla mieszkańców. Aktualna wersja robocza: **1.5.2-test**, pakiet `com.ispinalokalnie.redaktorsmart.reddot.test`, Android 8 i nowszy.
+Niezależna aplikacja Android do redagowania portalu Ispina Lokalnie. Nie zmienia aplikacji dla mieszkańców. Aktualna wersja robocza: **1.5.3-test**, pakiet `com.ispinalokalnie.redaktorsmart.scope153.test`, Android 8 i nowszy.
 
 ## Logowanie WordPress.com
 
-Aplikacja używa oficjalnego OAuth 2.1 WordPress.com: dynamicznie rejestruje publicznego klienta, używa Authorization Code + PKCE, otwiera przeglądarkę systemową i odbiera kod przez lokalny adres `com.ispinalokalnie.redaktorsmart.mcp152:/callback`. Nie ma Client Secret ani hasła w APK. Użytkownik loguje się do WordPress.com i może wybrać Google, jeśli ta metoda jest skonfigurowana dla jego konta.
+Aplikacja używa oficjalnego OAuth 2.1 WordPress.com: dynamicznie rejestruje publicznego klienta, używa Authorization Code + PKCE, otwiera przeglądarkę systemową i odbiera kod przez lokalny adres `com.ispinalokalnie.redaktorsmart.mcp153:/callback`. Nie ma Client Secret ani hasła w APK. Użytkownik loguje się do WordPress.com i może wybrać Google, jeśli ta metoda jest skonfigurowana dla jego konta.
 
 Po wymianie kodu aplikacja szyfruje token dostępu i token odświeżający kluczem Android Keystore. Zalogowanie jest potwierdzone dopiero, gdy aplikacja odczyta co najmniej jeden istniejący, opublikowany wpis przez WordPress.com MCP. Odmowa lub błąd API jest pokazywany wraz z odpowiedzią serwera. Token odświeżający nie jest gwarantowany przez WordPress.com; przy jego braku aplikacja prosi o ponowne logowanie po wygaśnięciu tokenu.
 
@@ -59,3 +59,9 @@ Test CI potwierdza kompilację, obecność cyklu sesji w kodzie i poprawność s
 ## Wyróżnienie ikony 1.5.2-test
 
 Mała czerwona kropka w prawym górnym rogu ikony launchera Android odróżnia Redaktor Smart od aplikacji dla mieszkańców. Monogram IL pozostaje bez zmian na ekranie głównym i wewnątrz aplikacji. Modyfikowane są wyłącznie mipmap/ic_launcher i ic_launcher_round w czasie budowania APK. Osobny identyfikator APK pozwala zainstalować test obok wcześniejszych wersji o innych podpisach debug. Zmieniono również schemat logowania Android, aby system nie kierował odpowiedzi do starszej wersji.
+
+## Poprawka OAuth 1.5.3 (31.10.2026)
+
+Test na telefonie ujawnił błąd: `Required scope: global. Granted scope(s): auth`. Wersja 1.5.2 prosiła w OAuth 2.1 o zakres `auth`, który pozwala tylko na podstawowe uwierzytelnienie i nie uprawnia do WordPress.com MCP content-authoring. Wersja 1.5.3 prosi o `scope=global`, wymuszając ponowne logowanie za pomocą odrębnego identyfikatora APK i nowego adresu powrotu `com.ispinalokalnie.redaktorsmart.mcp153:/callback`. Dostęp `global` jest szeroki: może obejmować inne strony i dane tego konta WordPress.com. Aplikacja sama kieruje operacje wyłącznie do Ispina Lokalnie, ale przyznane uprawnienia są szersze niż jedna witryna. Użytkownik powinien świadomie zaakceptować ten zakres. Tokeny pozostają zaszyfrowane przy użyciu Android Keystore, bez zapisywania haseł.
+
+CI sprawdza obecność `scope=global`, zgodność callback, generowanie ikony z czerwoną kropką i kompilację APK. Ostateczne logowanie i odczyt treści muszą zostać przetestowane na telefonie. Nie scalać PR do main bez udanego testu.
