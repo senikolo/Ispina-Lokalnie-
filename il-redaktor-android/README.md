@@ -1,3 +1,20 @@
+# IL Redaktor Smart 1.15.0
+
+Aktualizacja stabilnego pakietu `com.ispinalokalnie.redaktorsmart.stable`, versionCode 21.
+Podpisuj tym samym prywatnym kluczem co 1.14; odcisk jest przypięty w release-certificate.sha256.
+
+- Plik kopii JSON zawiera wyłącznie szkice i do 12 wersji historii, bez tokenów i ustawień konta. Eksport/import używa systemowego wyboru dokumentu, limit 8 MB. Import pokazuje podsumowanie, wymaga Dołącz szkice, nie nadpisuje istniejących i pomija identyczne kopie. Kopia nie jest szyfrowana: przechowuj ją w swoim bezpiecznym miejscu.
+- Korekty lokalne i propozycje artykułów AI przechodzą przez porównanie przed/po z wyborem pól, kontrolą zmienionego tekstu i cofaniem. Zachowują WordPress ID. Korekta HTML nie modyfikuje atrybutów ani bloków code/pre/script/style.
+- Pomoc przy tekście lokalnie obsługuje nazwy, skracanie zwykłego wstępu do dwóch zdań, tytuł z początku tekstu i szablon zakończenia. Swobodne polecenia wymagają istniejącego, skonfigurowanego backendu AI. Domyślny APK nie ma klucza Gemini ani backendu; abonament Gemini Pro nie udostępnia API. Żaden tekst nie jest wysyłany do AI przez lokalne przyciski.
+- Audyt nazw i faktów wskazuje błędne formy, skrót Niepoł i daty wymagające źródeł. Nie potwierdza automatycznie prawdziwości informacji.
+- Pakiet promocyjny powstaje po potwierdzonym odczycie opublikowanego wpisu: Facebook, krótka wiadomość, zaproszenie. Tekst można zmienić, skopiować lub otworzyć systemowe Udostępnij. Nie publikuje w serwisach społecznościowych.
+- Edytor nowych zdjęć: EXIF, obrót 90°, pełny kadr / 16:9 / 1:1, przesuwanie kadru, podpis, autor i alt. Edytuje kopię do 1600 px, wysyła pojedynczy media.create po świadomym wyborze Dodaj do biblioteki WordPress, bez automatycznego ponawiania. Podpis i autor trafiają do metadanych; widoczność przy zdjęciu wyróżniającym zależy od motywu. Oryginalny plik pozostaje bez zmian. Edycja dotyczy zdjęć Z telefonu; istniejąca galeria pozostaje do wyboru gotowych plików.
+
+Test emulatora buduje poprzednią 1.14 i nową 1.15 tym samym testowym kluczem debug, zapisuje szkice w 1.14 i aktualizuje do 1.15 bez odinstalowania. Sprawdza szkice, historię i znacznik preferencji. Dodatkowe testy uruchamiają rzeczywiste porównanie/cofanie, zapis i odczyt strumieni pliku kopii (testowy URI prywatnego pliku; nie sterują interfejsem dostawcy SAF), kadrowanie, EXIF i anulowanie zdjęcia. Nie używają prawdziwych tokenów ani nie wykonują zapisów do WordPressa.
+
+---
+Dokumentacja wcześniejszej wersji:
+
 # IL Redaktor Smart 1.14.0
 
 Stały pakiet: `com.ispinalokalnie.redaktorsmart.stable`, versionCode 20.

@@ -41,6 +41,9 @@ import android.widget.TextView;
 import org.json.JSONObject;
 
 import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
@@ -353,7 +356,22 @@ public class MainActivity extends Activity {
         } catch (RuntimeException ignored) { /* Vibration may be disabled by the device. */ }
     }
 
+    private boolean backupPickerBusy=false;
+    private PhotoEditor photoEditor;
+    private static final int BACKUP_MAX_BYTES=8_000_000;
     public class Bridge {
+        @JavascriptInterface public void exportDraftBackup(String payload) {
+            if(payload==null||payload.getBytes(StandardCharsets.UTF_8).length>BACKUP_MAX_BYTES){callback("draft-backup",false,"Kopia przekracza limit 8 MB.");return;}
+            try{JSONObject data=new JSONObject(payload);if(!"IL_REDAKTOR_BACKUP".equals(data.optString("format"))||!"ispinalokalnie.wordpress.com".equals(data.optString("site")))throw new Exception();}catch(Exception ex){callback("draft-backup",false,"Nieprawidłowy plik kopii.");return;}
+            ui.post(()->{if(backupPickerBusy)return;backupPickerBusy=true;work.execute(()->{
+                try(FileOutputStream out=new FileOutputStream(new File(getCacheDir(),"il-drafts-export-pending.json"))){out.write(payload.getBytes(StandardCharsets.UTF_8));}
+                catch(Exception ex){ui.post(()->backupPickerBusy=false);callback("draft-backup",false,"Nie udało się przygotować kopii.");return;}
+                ui.post(()->{try{Intent i=new Intent(Intent.ACTION_CREATE_DOCUMENT);i.addCategory(Intent.CATEGORY_OPENABLE);i.setType("application/json");i.putExtra(Intent.EXTRA_TITLE,"IL-szkice-"+new java.text.SimpleDateFormat("yyyy-MM-dd",java.util.Locale.ROOT).format(new java.util.Date())+".json");startActivityForResult(i,1006);}catch(Exception ex){backupPickerBusy=false;new File(getCacheDir(),"il-drafts-export-pending.json").delete();callback("draft-backup",false,"Nie można otworzyć wyboru pliku.");}});
+            });});
+        }
+        @JavascriptInterface public void importDraftBackup(){ui.post(()->{if(backupPickerBusy)return;backupPickerBusy=true;try{Intent i=new Intent(Intent.ACTION_OPEN_DOCUMENT);i.addCategory(Intent.CATEGORY_OPENABLE);i.setType("*/*");i.putExtra(Intent.EXTRA_MIME_TYPES,new String[]{"application/json","text/plain","application/octet-stream"});startActivityForResult(i,1007);}catch(Exception ex){backupPickerBusy=false;callback("draft-import",false,"Nie można otworzyć wyboru pliku.");}});}
+        @JavascriptInterface public void shareText(String text){if(text==null||text.length()>12000)return;ui.post(()->{try{Intent i=new Intent(Intent.ACTION_SEND);i.setType("text/plain");i.putExtra(Intent.EXTRA_TEXT,text);startActivity(Intent.createChooser(i,"Udostępnij zapowiedź artykułu"));}catch(Exception ex){callback("copy",false,"Nie znaleziono aplikacji do udostępnienia. Użyj Kopiuj.");}});}
+
         @JavascriptInterface public void getHaptics() {
             callback("haptics", true, "{\"mode\":" + hapticMode() + "}");
         }
@@ -634,6 +652,18 @@ public class MainActivity extends Activity {
 
     @Override protected void onActivityResult(int request, int result, Intent intent) {
         super.onActivityResult(request, result, intent);
+        if(request==1006||request==1007){
+            backupPickerBusy=false;
+            if(result!=RESULT_OK||intent==null||intent.getData()==null){if(request==1006)new File(getCacheDir(),"il-drafts-export-pending.json").delete();callback(request==1006?"draft-backup":"draft-import",false,"Anulowano wybór pliku. Szkice pozostają bez zmian.");return;}
+            Uri selected=intent.getData();work.execute(()->{
+                File pending=new File(getCacheDir(),"il-drafts-export-pending.json");
+                try{
+                    if(request==1006){try(InputStream in=new FileInputStream(pending);OutputStream out=getContentResolver().openOutputStream(selected,"wt")){if(out==null)throw new Exception();byte[] buffer=new byte[8192];int count;while((count=in.read(buffer))!=-1)out.write(buffer,0,count);out.flush();}callback("draft-backup",true,"Zapisano plik kopii szkiców. Możesz przenieść go na drugi telefon.");}
+                    else{try(InputStream in=getContentResolver().openInputStream(selected);ByteArrayOutputStream out=new ByteArrayOutputStream()){if(in==null)throw new Exception();byte[] buffer=new byte[8192];int count,total=0;while((count=in.read(buffer))!=-1){total+=count;if(total>BACKUP_MAX_BYTES)throw new Exception("Plik przekracza limit 8 MB.");out.write(buffer,0,count);}callback("draft-import",true,out.toString("UTF-8"));}}
+                }catch(Exception ex){callback(request==1006?"draft-backup":"draft-import",false,"Nie udało się "+(request==1006?"zapisać":"odczytać")+" pliku kopii. "+(ex.getMessage()==null?"Sprawdź dostępne miejsce i wybór pliku.":ex.getMessage()));}
+                finally{if(request==1006)pending.delete();}
+            });return;
+        }
         if (request == 1005 && result == RESULT_OK && intent != null) {
             java.util.ArrayList<String> matches =
                 intent.getStringArrayListExtra(android.speech.RecognizerIntent.EXTRA_RESULTS);
@@ -642,7 +672,10 @@ public class MainActivity extends Activity {
         if (request == 1004 && result == RESULT_OK && intent != null && intent.getData() != null) {
             if (!connected()) { callback("upload", false, "Najpierw połącz konto."); return; }
             Uri uri = intent.getData();
-            work.execute(() -> upload(uri));
+            work.execute(() -> {
+                try{Bitmap bitmap=PhotoEditor.decode(MainActivity.this,uri);ui.post(()->{if(isFinishing()){bitmap.recycle();return;}photoEditor=new PhotoEditor(MainActivity.this,bitmap,(edited,caption,author,alt)->work.execute(()->upload(edited,caption,author,alt)));photoEditor.show();if(photoEditor.getWindow()!=null)photoEditor.getWindow().setLayout(-1,-1);});}
+                catch(Exception ex){callback("upload",false,"Nie udało się przygotować zdjęcia: "+ex.getMessage());}
+            });
         }
     }
 
@@ -650,24 +683,8 @@ public class MainActivity extends Activity {
      * Uploads through the SAME authenticated MCP connection as posts.
      * No implicit REST fallback and no retry of an uncertain creation.
      */
-    private void upload(Uri uri) {
+    private void upload(Bitmap bitmap,String caption,String author,String alt) {
         try {
-            BitmapFactory.Options bounds = new BitmapFactory.Options();
-            bounds.inJustDecodeBounds = true;
-            try (InputStream in = getContentResolver().openInputStream(uri)) {
-                BitmapFactory.decodeStream(in, null, bounds);
-            }
-            if (bounds.outWidth <= 0 || bounds.outHeight <= 0)
-                throw new Exception("Nie rozpoznano zdjęcia.");
-            BitmapFactory.Options options = new BitmapFactory.Options();
-            options.inSampleSize = 1;
-            while (Math.max(bounds.outWidth / options.inSampleSize,
-                    bounds.outHeight / options.inSampleSize) > 1600) options.inSampleSize *= 2;
-            Bitmap bitmap;
-            try (InputStream in = getContentResolver().openInputStream(uri)) {
-                bitmap = BitmapFactory.decodeStream(in, null, options);
-            }
-            if (bitmap == null) throw new Exception("Nie można odczytać obrazu.");
             ByteArrayOutputStream jpeg = new ByteArrayOutputStream();
             bitmap.compress(Bitmap.CompressFormat.JPEG, 80, jpeg);
             bitmap.recycle();
@@ -680,6 +697,10 @@ public class MainActivity extends Activity {
                 .put("mime_type", "image/jpeg")
                 .put("file_content_base64", Base64.encodeToString(bytes, Base64.NO_WRAP))
                 .put("user_confirmed", true);
+            String fullCaption=caption+(author.isEmpty()?"":(caption.isEmpty()?"":" · ")+"Fot. "+author);
+            args.put("caption",android.text.TextUtils.htmlEncode(fullCaption));
+            args.put("alt_text",alt);
+            args.put("description",android.text.TextUtils.htmlEncode(author.isEmpty()?"":"Autor / źródło zdjęcia: "+author));
             String token = accessTokenForRequest(false);
             Object result = WpMcp.unwrap(WpMcp.request(token, "media.create", args));
             if (!(result instanceof JSONObject))
@@ -870,6 +891,7 @@ public class MainActivity extends Activity {
     }
 
     @Override protected void onDestroy() {
+        if(photoEditor!=null&&photoEditor.isShowing())photoEditor.dismiss();
         if (editorConfirmation != null) editorConfirmation.dismiss();
         work.shutdownNow();
         if (publishedDialog != null && publishedDialog.isShowing()) publishedDialog.dismiss();

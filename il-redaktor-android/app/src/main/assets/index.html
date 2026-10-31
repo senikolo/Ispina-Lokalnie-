@@ -167,6 +167,8 @@ a{color:#1767a8}:root[data-theme="dark"] a{color:#9ecfff}
 :root[data-effects="off"] *, :root[data-effects="off"] *::before, :root[data-effects="off"] *::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}
 :root[data-battery-saving="on"] *, :root[data-battery-saving="on"] *::before, :root[data-battery-saving="on"] *::after{animation:none!important;transition:none!important}
 :root[data-battery-saving="on"] .card,:root[data-battery-saving="on"] .tile,:root[data-battery-saving="on"] nav{box-shadow:none!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important}
+
+.correction-columns{display:grid;grid-template-columns:1fr 1fr;gap:12px}.correction-columns pre{white-space:pre-wrap;overflow-wrap:anywhere;font:inherit;margin:8px 0;max-height:280px;overflow:auto}.diff-added{background:#d9f1df;color:#153c25;text-decoration:underline}.diff-removed{background:#ffe0df;color:#7d2524;text-decoration:line-through}.correction-field{border-top:1px solid var(--ui-line,#dbe7ef);padding:14px 0}.chat-line{padding:8px 0;overflow-wrap:anywhere}.chat-line strong{display:block}#correction-fields label{display:flex;gap:10px;align-items:center}#correction-fields input[type=checkbox]{width:auto;min-height:24px}.finish-panel{max-height:90vh;overflow:auto}@media(max-width:500px){.correction-columns{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
@@ -214,6 +216,8 @@ a{color:#1767a8}:root[data-theme="dark"] a{color:#9ecfff}
   <div class="card">
     <div class="row" style="justify-content:space-between"><h2 id="editor-heading">Nowy artykuł</h2><span class="badge" id="edit-status">Nowy</span></div>
     <div class="status"><span id="editor-dot" class="dot"></span><span id="editor-auth">Sprawdzanie połączenia...</span></div>
+    <div class="actions"><button class="secondary" onclick="showDraftLibrary()">📂 Moje szkice</button><button class="secondary" onclick="openPromotion()">Promuj opublikowany artykuł</button></div>
+    <details class="note"><summary>💬 Pomoc przy tym tekście</summary><p id="editor-help-mode">Lokalne propozycje działają bez AI: korekta nazw, skrócenie pierwszego akapitu i zakończenie. Swobodne polecenia wymagają skonfigurowanego AI. Gdy jest włączone, takie polecenie wyśle do niego bieżący artykuł i Twoje zadanie.</p><div id="editor-chat-log" role="log" aria-live="polite"></div><label for="editor-command">Co mam zaproponować?</label><input id="editor-command" maxlength="1200" placeholder="Np. skróć początek"><div class="actions"><button class="secondary" onclick="editorHelp('Popraw nazwy')">Popraw nazwy</button><button class="secondary" onclick="editorHelp('Skróć początek')">Skróć początek</button><button class="secondary" onclick="editorHelp('Dodaj cieplejsze zakończenie')">Zakończenie</button><button onclick="editorHelp()">Przygotuj propozycję</button></div><p class="small">Po zatwierdzeniu zmian możesz je cofnąć. Pomoc nie publikuje tekstu.</p></details>
     <label for="post-title">Tytuł artykułu</label><input id="post-title" placeholder="Np. 10 ciekawostek o Ispinie">
     <label for="post-body">Treść artykułu</label><div class="actions"><button class="secondary" onclick="IL.dictate()">🎙 Dyktuj tekst po polsku</button></div><textarea id="post-body" placeholder="Napisz tekst. Pusta linia oddziela akapity. ## oznacza nagłówek."></textarea>
     <div class="row"><label style="flex:1">Kategoria<select id="post-category"><option value="10543">Aktualności</option><option value="3503">Historia</option><option value="21188">Technologia</option></select></label>
@@ -222,9 +226,9 @@ a{color:#1767a8}:root[data-theme="dark"] a{color:#9ecfff}
     <label for="post-tags">Tagi (oddziel przecinkami)</label><input id="post-tags" placeholder="Ispina, historia Ispiny">
     <label for="post-media">Zdjęcie wyróżniające</label>
     <div class="row"><input id="post-media" type="number" min="0" value="0" style="flex:1"><button class="secondary" onclick="IL.chooseImage()">Z telefonu</button><button class="secondary" onclick="showScreen('media');loadMedia()">Z galerii IL</button></div>
-    <div class="actions"><button class="secondary" onclick="suggest()">Korekta i SEO</button><button class="secondary" onclick="assistantFromEditor('Popraw język polski, śródtytuły i zajawkę. Zachowaj sens i wszystkie potwierdzone fakty; nie dopowiadaj informacji o Ispinie.')">Korekta AI</button><button class="secondary" onclick="suggestRelatedReading()">📖 Poleć czytelnikom powiązane teksty IL</button><button class="secondary" onclick="preview()">Podgląd</button><button class="secondary" onclick="showTemplates()">Szablony</button></div>
+    <div class="actions"><button class="secondary" onclick="suggest()">Porównaj korektę i SEO</button><button class="secondary" onclick="auditEditorial()">Sprawdź nazwy i fakty</button><button id="undo-edit" class="secondary hidden" onclick="undoEditorialChange()">Cofnij przyjętą korektę</button><button class="secondary" onclick="assistantFromEditor('Popraw język polski, śródtytuły i zajawkę. Zachowaj sens i wszystkie potwierdzone fakty; nie dopowiadaj informacji o Ispinie.')">Korekta AI</button><button class="secondary" onclick="suggestRelatedReading()">📖 Poleć czytelnikom powiązane teksty IL</button><button class="secondary" onclick="preview()">Podgląd</button><button class="secondary" onclick="showTemplates()">Szablony</button></div>
     <div id="templates-box" class="note hidden"></div>
-    <div id="editor-metrics" class="note">Napisz tekst, aby zobaczyć wskazówki redakcyjne.</div>
+    <div id="editor-audit" role="status" aria-live="polite"></div><div id="editor-metrics" class="note">Napisz tekst, aby zobaczyć wskazówki redakcyjne.</div>
     <div id="reading-suggestions" aria-live="polite" role="region" aria-label="Propozycje lektury dla czytelników"></div>
     <div class="actions"><button class="secondary" onclick="showDraftLibrary()">📂 Moje szkice</button><button class="secondary" onclick="persistDraft(true)">Zapisz na telefonie</button><button class="secondary" onclick="downloadText()">Kopia tekstu</button></div>
     <p id="local-save-status" class="muted small" role="status" aria-live="polite">Zmiany zapisuję automatycznie na tym telefonie.</p><div class="publish-now-card"><h3>Gotowy artykuł?</h3><p>Opublikuj go teraz na Ispina Lokalnie. Nie musisz wybierać daty. Najpierw poproszę Cię o potwierdzenie.</p><button class="wide" onclick="reviewPublication()" id="save-publish">Opublikuj teraz</button><p class="small">Po potwierdzeniu przez WordPress zobaczysz duży napis SUKCES i przycisk do swojego artykułu.</p></div>
@@ -236,7 +240,7 @@ a{color:#1767a8}:root[data-theme="dark"] a{color:#9ecfff}
   <div id="preview-box" class="card hidden"><h2>Podgląd artykułu</h2><iframe sandbox="" id="post-preview" title="Podgląd artykułu"></iframe></div>
 </section>
 
-<section id="screen-drafts" class="panel"><div class="card"><h2>Moje szkice na telefonie</h2><p>Każdy tekst zapisuje się osobno. Historia przechowuje do 12 poprzednich wersji. Kopie lokalne nie są publikowane w WordPressie.</p><label for="draft-search">Szukaj szkicu</label><input id="draft-search" oninput="renderDrafts()" placeholder="Tytuł lub fragment tekstu"><div class="actions"><button onclick="resetEditor();showScreen('editor')">+ Nowy wpis</button><button class="secondary" onclick="showScreen('editor')">Wróć do tekstu</button></div><div id="draft-list"></div><div id="draft-history" aria-live="polite"></div></div></section>
+<section id="screen-drafts" class="panel"><div class="card"><h2>Moje szkice na telefonie</h2><p>Każdy tekst zapisuje się osobno. Historia przechowuje do 12 poprzednich wersji. Kopie lokalne nie są publikowane w WordPressie.</p><label for="draft-search">Szukaj szkicu</label><input id="draft-search" oninput="renderDrafts()" placeholder="Tytuł lub fragment tekstu"><div class="actions"><button onclick="resetEditor();showScreen('editor')">+ Nowy wpis</button><button class="secondary" onclick="showScreen('editor')">Wróć do tekstu</button></div><div class="actions"><button class="secondary" onclick="exportDraftBackup()">Zapisz kopię szkiców do pliku</button><button class="secondary" onclick="importDraftBackup()">Wczytaj kopię z pliku</button></div><p class="small">Plik zawiera teksty i historię, bez danych logowania. Przechowuj go w swoim bezpiecznym miejscu.</p><p id="backup-output" role="status" aria-live="polite"></p><div id="draft-list"></div><div id="draft-history" aria-live="polite"></div></div></section>
 <section id="screen-posts" class="panel">
   <div class="card"><h2>Artykuły na portalu</h2><p class="muted">Pobierz listę, wybierz istniejący wpis i edytuj go bez utraty numeru ID.</p>
   <label for="posts-search">Wyszukaj tytuł lub fragment</label><input id="posts-search" placeholder="Szukaj wpisów..." oninput="renderPosts()">
@@ -314,15 +318,18 @@ a{color:#1767a8}:root[data-theme="dark"] a{color:#9ecfff}
     <label class="setting-row"><input type="checkbox" id="battery-saving" onchange="applyUiPreferences(true)"><span>Tryb oszczędzania baterii</span></label>
     <p id="ui-preferences-status" class="setting-caption" role="status" aria-live="polite">Ustawienia zapisują się na tym telefonie. Systemowe ograniczenie ruchu zawsze ma pierwszeństwo.</p>
   </div>
-  <div class="card"><h2>O programie</h2><p class="muted">IL Redaktor Smart 1.14.0 · Niezależna aplikacja Android 8 i nowszy. WordPress.com MCP. Publikacja wymaga potwierdzenia i ponownego odczytu wpisu.</p></div>
+  <div class="card"><h2>O programie</h2><p class="muted">IL Redaktor Smart 1.15.0 · Niezależna aplikacja Android 8 i nowszy. WordPress.com MCP. Publikacja wymaga potwierdzenia i ponownego odczytu wpisu.</p></div>
 </section>
 </main>
+<div id="correction-dialog" class="finish-dialog hidden" role="dialog" aria-modal="true" aria-labelledby="correction-title"><div class="finish-panel"><h2 id="correction-title">Porównaj propozycję</h2><p id="correction-reason"></p><p class="small">Wybierz zmiany, które chcesz przyjąć. Usunięcia są przekreślone, dodatki podkreślone. Tekst nie zostanie opublikowany.</p><div id="correction-fields"></div><p id="correction-feedback" role="status"></p><div class="actions"><button class="secondary" onclick="dismissCorrection()">Odrzuć</button><button onclick="acceptCorrection()">Zaakceptuj wybrane zmiany</button></div></div></div>
+<div id="backup-dialog" class="finish-dialog hidden" role="dialog" aria-modal="true" aria-labelledby="backup-title"><div class="finish-panel"><h2 id="backup-title">Wczytaj szkice</h2><p id="backup-summary"></p><p>Obecne szkice pozostaną. Identyczne kopie pominę. Niczego nie wyślę do WordPressa.</p><div class="actions"><button class="secondary" onclick="cancelBackupImport()">Anuluj</button><button onclick="mergeDraftBackup()">Dołącz szkice</button></div></div></div>
+<div id="promotion-dialog" class="finish-dialog hidden" role="dialog" aria-modal="true" aria-labelledby="promotion-title"><div class="finish-panel"><h2 id="promotion-title">Promocja artykułu</h2><p id="promotion-source"></p><label for="promotion-kind">Wybierz wersję</label><select id="promotion-kind" onchange="renderPromotion()"><option value="facebook">Facebook</option><option value="short">Krótka wiadomość</option><option value="invitation">Zaproszenie do czytania</option></select><label for="promotion-text">Tekst do sprawdzenia i skopiowania</label><textarea id="promotion-text" style="min-height:200px"></textarea><p id="promotion-output" role="status"></p><div class="actions"><button onclick="copyPromotion()">Kopiuj</button><button class="secondary" onclick="sharePromotion()">Udostępnij…</button><button class="secondary" onclick="closePromotion()">Zamknij</button></div></div></div>
 <div id="publish-review" class="finish-dialog hidden" role="dialog" aria-modal="true" aria-labelledby="review-title"><div class="finish-panel" style="max-height:90vh;overflow:auto"><h2 id="review-title">Przed publikacją</h2><div id="review-summary"></div><iframe id="review-preview" sandbox="" title="Podgląd przed publikacją"></iframe><p id="review-feedback" role="status"></p><div class="actions"><button class="secondary" onclick="closeReview()">Wróć do poprawiania</button><button id="review-confirm" onclick="confirmReviewPublication()">Potwierdzam — opublikuj</button></div></div></div>
 <div id="publication-progress" class="finish-dialog hidden" role="dialog" aria-modal="true" aria-labelledby="progress-title"><div class="finish-panel"><h2 id="progress-title">Publikuję — poczekaj chwilę</h2><p id="progress-step" role="status" aria-live="polite">Przygotowuję artykuł…</p><p class="muted">Poczekaj na potwierdzenie z WordPressa. Przy wolnym połączeniu odpowiedź może potrwać dłużej. Nie wysyłaj wpisu ponownie.</p></div></div>
 <div id="finish-dialog" class="finish-dialog hidden" role="alertdialog" aria-modal="true" aria-labelledby="finish-title">
 <div id="finish-panel" class="finish-panel">
 <div id="finish-symbol" class="finish-symbol">✓</div>
-<h2 id="finish-title" class="finish-title">SUKCES!</h2>
+<button id="finish-promotion" class="secondary hidden" onclick="closeFinish();openPromotion()">Przygotuj zapowiedź tego artykułu</button><h2 id="finish-title" class="finish-title">SUKCES!</h2>
 <p id="finish-detail" class="finish-detail"></p>
 <div class="finish-actions"><button id="finish-preview" class="publication-action hidden" onclick="openPublishedPreview()">📖 Zobacz artykuł na WordPressie</button><button id="finish-open" class="secondary hidden" onclick="openFinishUrl()">Otwórz w przeglądarce</button><button id="finish-edit" class="publication-action secondary hidden" onclick="editPublishedAgain()">Edytuj ponownie</button><button id="finish-home" class="publication-action secondary hidden" onclick="returnToDashboard()">Wróć do pulpitu</button><button class="secondary" onclick="closeFinish()">Zamknij</button></div>
 </div></div>
@@ -359,6 +366,7 @@ function operationFinished(ok,title,detail=""){
   if(window.IL && typeof IL.haptic==="function")IL.haptic(ok?"success":"error");
 }
 function showOutcome(kind,headline,detail,link="",linkLabel="Otwórz w WordPressie",isPublishedArticle=false){
+  $("finish-promotion").classList.toggle("hidden",!(kind==="success"&&isPublishedArticle&&promotionArticle?.id===Number(postId)));
   operationFinished(kind==="success",headline,detail.slice(0,260));
   if(kind==="success"&&isPublishedArticle)operationBanner("done","✓ SUKCES! Artykuł jest opublikowany na WordPressie.");
   finishUrl=link;
@@ -441,6 +449,9 @@ function rpc(method,path,body) {
   });
 }
 window.onNativeResult=function(id,ok,payload){
+  if(id==="draft-backup"){ $("backup-output").textContent=payload;return; }
+  if(id==="draft-import"){if(ok)previewDraftBackup(payload);else $("backup-output").textContent=payload;return;}
+
   if(requests.has(id)) {
     const r=requests.get(id);requests.delete(id);clearTimeout(r.timeout);
     if(!ok){r.reject(new Error(payload));return;}
@@ -596,10 +607,11 @@ function signInGoogle(){
   IL.signInGoogle();
 }
 function oneTapConnect(){signInGoogle();}
-function assistantExample(value){$("assistant-prompt").value=value}
+function assistantExample(value){assistantEditorTarget=null;$("assistant-prompt").value=value}
 function assistantFromEditor(task){
   const title=trim($("post-title").value),body=trim($("post-body").value);
   if(!body){message("assistant-output","Najpierw wpisz treść artykułu albo otwórz istniejący wpis.","error");showScreen("assistant");return}
+  assistantEditorTarget={id:activeDraftId,snapshot:captureDraft(),signature:draftSignature(captureDraft())};
   $("assistant-prompt").value=task+"\n\nTytuł: "+title+"\n\nTreść do opracowania:\n"+body;
   showScreen("assistant");
   message("assistant-output","Skopiowano bieżący tekst do polecenia. Przejrzyj go przed wysłaniem do skonfigurowanego backendu AI.");
@@ -737,6 +749,7 @@ function searchAssistantImage(){
 async function runAssistant(){
   const prompt=trim($("assistant-prompt").value);
   if(!prompt){message("assistant-output","Opisz zadanie, zanim poprosisz o propozycję.","error");return}
+  if(!assistantEditorTarget)assistantEditorTarget={id:activeDraftId,snapshot:captureDraft(),signature:draftSignature(captureDraft())};
   startOperation("Przygotowuję redakcyjną propozycję…");
   message("assistant-output","Sprawdzam kontekst i przygotowuję odpowiedź…");
   try{
@@ -755,12 +768,9 @@ async function runAssistant(){
 }
 function acceptAssistantArticle(){
   const d=assistantDraft;if(!d||d.intent!=="article_draft")return;
-  if(trim($("post-body").value)&&!confirm("Zastąpić aktualny tekst propozycją Asystenta?"))return;
-  if(!resetEditor())return;$("post-title").value=d.title||"";$("post-body").value=d.content||"";$("post-mode").value="html";
-  $("post-excerpt").value=d.excerpt||"";$("post-tags").value=(d.tags||[]).join(", ");
-  if(/histori/i.test(d.category||""))$("post-category").value="3503";
-  updateMetrics();scheduleLocalSave();showScreen("editor");
-  message("post-output","Propozycję przeniesiono do edytora. Sprawdź treść i źródła, a zapis zatwierdź osobno.","ok");
+  if(assistantEditorTarget&&(assistantEditorTarget.id!==activeDraftId||assistantEditorTarget.signature!==draftSignature(captureDraft()))){message("assistant-output","Od przygotowania polecenia zmienił się artykuł. Otwórz właściwy szkic i poproś o nową propozycję.","error");return}
+  const proposal={};if(d.title)proposal.title=d.title;if(d.content){proposal.body=d.content;proposal.mode="html"}if(d.excerpt)proposal.excerpt=d.excerpt;if(d.tags?.length)proposal.tags=d.tags.join(", ");if(/histori/i.test(d.category||""))proposal.category="3503";
+  showScreen("editor");offerCorrection(proposal,"Propozycja Asystenta. Przeczytaj wszystkie zmiany i sprawdź źródła. Zachowuję numer edytowanego wpisu.");
 }
 function acceptAssistantService(){
   const s=assistantDraft?.service;if(!s)return;
@@ -781,7 +791,7 @@ async function testDraftWrite(){
   if(!confirm("Utworzyć w WordPressie prywatny szkic diagnostyczny? Nie będzie publiczny i pozostanie na liście szkiców do ręcznego usunięcia."))return;
   const testButton=$("test-draft-write");
   diagnosticWriteBusy=true;testButton.disabled=true;
-  const title="[TEST IL Redaktor Smart 1.14.0] Sprawdzenie zapisu "+new Date().toLocaleString("pl-PL");
+  const title="[TEST IL Redaktor Smart 1.15.0] Sprawdzenie zapisu "+new Date().toLocaleString("pl-PL");
   const body={title,content:"<p>Test techniczny zapisu z aplikacji IL Redaktor Smart. Ten szkic nie jest przeznaczony do publikacji.</p>",status:"draft",excerpt:"Test techniczny. Nie publikować."};
   let createdId=null;
   startOperation("Test: zapisuję szkic w WordPressie…");
@@ -835,19 +845,13 @@ function preview(){
   $("preview-box").classList.remove("hidden");
 }
 function suggest(){
-  let body=$("post-body").value;
-  const replacements=[[/\bIspinii\b/gi,"Ispiny"],[/\bIspini\b/gi,"Ispiny"],[/\bdo Ispina\b/gi,"do Ispiny"],[/\bz Ispina\b/gi,"z Ispiny"],[/\bw Ispina\b/gi,"w Ispinie"],[/ {2,}/g," "]];
-  replacements.forEach(([rx,newValue])=>body=body.replace(rx,newValue));
-  $("post-body").value=body;
-  updateMetrics();scheduleLocalSave();
-  let title=trim($("post-title").value);
-  if(title&&!/[.!?]$/.test(title)) $("post-title").value=title;
-  const plain=body.replace(/<[^>]+>/g," ").replace(/[#*_]/g,"").replace(/\s+/g," ").trim();
-  if(!$("post-excerpt").value)$("post-excerpt").value=plain.slice(0,155).replace(/\s+\S*$/,"")+(plain.length>155?"…":"");
-  if(!$("post-tags").value)$("post-tags").value="Ispina, gmina Drwinia";
-  if(/190[0-9]|19[0-9]{2}|histori|archiw|dawni|wspomn/i.test(body+" "+title))$("post-category").value="3503";
-  else if(/aplikacj|telefon|technolog|internet/i.test(body+" "+title))$("post-category").value="21188";
-  message("post-output","Wykonano lokalną korektę nazw, przygotowano opis i zasugerowano kategorię. Fakty wymagają osobnej weryfikacji.","ok");
+  const current=captureDraft();const proposal={body:correctLocalNames(current.body,current.mode)};
+  const plain=plainEditorialText(proposal.body);
+  if(!trim(current.excerpt))proposal.excerpt=shortEditorialText(plain,155);
+  if(!trim(current.tags))proposal.tags="Ispina, gmina Drwinia";
+  if(/190[0-9]|19[0-9]{2}|histori|archiw|dawni|wspomn/i.test(plain+" "+current.title))proposal.category="3503";
+  else if(/aplikacj|telefon|technolog|internet/i.test(plain+" "+current.title))proposal.category="21188";
+  offerCorrection(proposal,"Lokalna korekta nazw i propozycje SEO. Daty, nazwiska i wydarzenia wymagają osobnego sprawdzenia.");
 }
 async function ensureTags(list){
   const result=[];
@@ -971,7 +975,7 @@ async function savePost(status,reviewApproval=null){
     const published=status==="publish";
     const link=published?(canonical||"https://ispinalokalnie.wordpress.com/?p="+postId):
       "https://wordpress.com/post/ispinalokalnie.wordpress.com/"+postId;
-    if(published)setPublishedUrl(link);
+    if(published){setPublishedUrl(link);rememberPublishedArticle({id:postId,title,body:$("post-body").value,excerpt:$("post-excerpt").value},link);}
     publicationPhase(published?"SUKCES! WordPress potwierdził publikację. Wybierz „Zobacz artykuł na WordPressie”, aby przeczytać wpis.":status==="future"?"SUKCES! WordPress potwierdził zaplanowaną datę publikacji.":"SUKCES! WordPress potwierdził zapis szkicu.","ok");
     showOutcome("success",summary,detail,link,
       published?"Otwórz w przeglądarce":status==="future"?"Edytuj zaplanowany wpis":"Otwórz szkic w WordPressie",published);
@@ -1017,7 +1021,7 @@ async function verifyLastPublication(){
 }
 function resetEditor(){
   if(publicationBusy||!persistDraft(true))return false;
-  activeDraftId=null;clearTimeout(saveTimer);
+  activeDraftId=null;clearTimeout(saveTimer);clearEditorialContext();
   setPublishedUrl("");publicationPhase("Gotowy do redagowania. Publikacja wymaga potwierdzenia.");
   postId=null;postStatus="";
   ["post-title","post-body","post-excerpt","post-tags","post-schedule"].forEach(id=>$(id).value="");
@@ -1296,7 +1300,7 @@ function persistDraft(checkpoint=false,synced=false){
   catch(e){$("local-save-status").textContent="Nie udało się zapisać na telefonie — możliwy brak miejsca. Skopiuj tekst. Bieżący tekst pozostaje w edytorze.";return false}
 }
 function scheduleLocalSave(){if(restoring)return;clearTimeout(saveTimer);$("local-save-status").textContent="Zapisuję na telefonie…";saveTimer=setTimeout(()=>persistDraft(),450)}
-function applyDraft(s){restoring=true;try{if(s.mediaUrl&&safeMediaUrl(s.mediaUrl))mediaById.set(Number(s.media),{id:Number(s.media),url:safeMediaUrl(s.mediaUrl),name:"Zdjęcie wyróżniające"});for(const [k,id] of Object.entries(draftFields))$(id).value=s[k]??({category:"10543",mode:"text",media:"0"}[k]||"");postId=s.postId||null;postStatus=s.postStatus||"";setPublishedUrl(postStatus==="publish"&&postId?"https://ispinalokalnie.wordpress.com/?p="+Number(postId):"");$("editor-heading").textContent=postId?"Edycja wpisu #"+postId:"Lokalny szkic";$("edit-status").textContent="Kopia na telefonie";$("post-output").innerHTML="";$("preview-box").classList.add("hidden");updateMetrics();}finally{restoring=false}}
+function applyDraft(s){clearEditorialContext();restoring=true;try{if(s.mediaUrl&&safeMediaUrl(s.mediaUrl))mediaById.set(Number(s.media),{id:Number(s.media),url:safeMediaUrl(s.mediaUrl),name:"Zdjęcie wyróżniające"});for(const [k,id] of Object.entries(draftFields))$(id).value=s[k]??({category:"10543",mode:"text",media:"0"}[k]||"");postId=s.postId||null;postStatus=s.postStatus||"";setPublishedUrl(postStatus==="publish"&&postId?"https://ispinalokalnie.wordpress.com/?p="+Number(postId):"");$("editor-heading").textContent=postId?"Edycja wpisu #"+postId:"Lokalny szkic";$("edit-status").textContent="Kopia na telefonie";$("post-output").innerHTML="";$("preview-box").classList.add("hidden");updateMetrics();}finally{restoring=false}}
 function openLocalDraft(id){if(publicationBusy||!persistDraft(true))return;const d=readDraftStore()?.drafts.find(x=>x.id===id);if(!d)return;activeDraftId=d.id;applyDraft(d);persistDraft();showScreen("editor")}
 function restoreLocal(silent=false){if(trim($("post-title").value)||trim($("post-body").value)){if(!silent)showDraftLibrary();return}const store=readDraftStore();if(!store)return;const d=store.drafts.find(x=>x.id===store.activeId)||store.drafts[store.drafts.length-1];if(d){activeDraftId=d.id;applyDraft(d)}}
 function showDraftLibrary(){if(publicationBusy||!persistDraft(true))return;renderDrafts();showScreen("drafts")}
@@ -1307,15 +1311,139 @@ function closeReview(){$("publish-review").classList.add("hidden");reviewSnapsho
 function reviewPublication(){
   if(publicationBusy)return;if(!persistDraft(true))return;
   const s=captureDraft();reviewSnapshot=draftSignature(s);
-  const missing=[];if(!trim(s.title))missing.push("Dodaj tytuł");if(!trim(s.body))missing.push("Dodaj treść");if(!Number(s.category))missing.push("Wybierz kategorię");
+  const missing=[];auditEditorial(false);if(!trim(s.title))missing.push("Dodaj tytuł");if(!trim(s.body))missing.push("Dodaj treść");if(!Number(s.category))missing.push("Wybierz kategorię");
   const categories={10543:"Aktualności",3503:"Historia",21188:"Technologia"};const category=$("post-category").selectedOptions?.[0]?.textContent||categories[s.category]||s.category;
   const photo=Number(s.media);const media=typeof mediaById!=="undefined"?mediaById.get(photo):null;
   $("review-summary").innerHTML='<h3>'+esc(s.title||"Bez tytułu")+'</h3><p>Kategoria: '+esc(category||"Nie wybrano")+'</p><p>Zajawka: '+esc(s.excerpt||"Brak — możesz ją dodać, ale nie jest wymagana.")+'</p><p>Tagi: '+esc(s.tags||"Brak")+'</p>'+(photo?'<p>Zdjęcie wyróżniające: #'+photo+'</p>'+(media?.url?'<img style="max-width:100%" src="'+esc(safeMediaUrl(media.url))+'" alt="Zdjęcie wyróżniające">':'<p>Podgląd zdjęcia będzie dostępny po wczytaniu galerii IL.</p>'):'<p>Brak zdjęcia — możesz opublikować bez zdjęcia.</p>')+'<p>Publikacja będzie publiczna na Ispina Lokalnie. WordPress może powiadomić subskrybentów.</p>';
   $("review-preview").srcdoc='<!doctype html><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="default-src \'none\'; img-src https: data:; style-src \'unsafe-inline\'"><style>body{font:17px sans-serif;padding:14px;line-height:1.6;overflow-wrap:anywhere}img{max-width:100%}</style><h1>'+esc(s.title)+'</h1>'+editorHtml();
-  $("review-feedback").textContent=missing.length?missing.join(". ")+".":"Gotowe do publikacji. Sprawdź treść i potwierdź.";$("review-confirm").disabled=missing.length>0;$("publish-review").classList.remove("hidden");
+  $("review-feedback").textContent=missing.length?missing.join(". ")+".":"Gotowe do publikacji. Sprawdź treść i potwierdź.";$("review-summary").innerHTML+=auditMarkup(editorialChecks(s));$("review-confirm").disabled=missing.length>0;$("publish-review").classList.remove("hidden");
 }
 async function confirmReviewPublication(){const now=draftSignature(captureDraft());if(!reviewSnapshot||now!==reviewSnapshot){reviewPublication();$("review-feedback").textContent="Treść zmieniła się. Sprawdź podsumowanie i potwierdź ponownie.";return}if($("review-confirm").disabled)return;const approval=reviewSnapshot;closeReview();return savePost("publish",approval)}
 window.addEventListener?.("pagehide",()=>persistDraft());
+// Editorial proposals remain local until explicitly accepted. They never call WordPress.
+let pendingCorrection=null,lastEditorialUndo=null,assistantEditorTarget=null,editorChat=[],pendingBackupImport=null;
+const backupLimit=8_000_000;
+const editableLabels={title:"Tytuł",body:"Treść",excerpt:"Zajawka",tags:"Tagi",category:"Kategoria",mode:"Format"};
+function clearEditorialContext(){pendingCorrection=null;lastEditorialUndo=null;assistantEditorTarget=null;editorChat=[];$("editor-chat-log").innerHTML="";$("editor-audit").innerHTML="";$("undo-edit").classList.add("hidden");dismissCorrection();}
+function plainEditorialText(value){return String(value||"").replace(/<script\b[^>]*>[\s\S]*?<\/script\s*>|<style\b[^>]*>[\s\S]*?<\/style\s*>/gi," ").replace(/<[^>]*>/g," ").replace(/&nbsp;|&#160;/g," ").replace(/&amp;/g,"&").replace(/&quot;/g,'"').replace(/&#0*39;|&apos;/g,"'").replace(/&lt;/g,"<").replace(/&gt;/g,">").replace(/^[#*]+\s*/gm,"").replace(/\s+/g," ").trim()}
+function shortEditorialText(value,max=180){const text=plainEditorialText(value);if(text.length<=max)return text;return text.slice(0,max).replace(/\s+\S*$/,"")+"…"}
+function mapTextOutsideMarkup(value,fn){return String(value||"").split(/(<script\b[^>]*>[\s\S]*?<\/script\s*>|<style\b[^>]*>[\s\S]*?<\/style\s*>|<code\b[^>]*>[\s\S]*?<\/code\s*>|<pre\b[^>]*>[\s\S]*?<\/pre\s*>|<[^>]*>)/gi).map((part,i)=>i%2?part:fn(part)).join("")}
+function correctLocalNames(value,mode="text"){
+  const correct=t=>t.replace(/\b(w|o|po)\s+(?:Ispin(?:a|i|ii)|Ispni)\b/gi,(_,p)=>p+" Ispinie").replace(/\b(do|z|od|dla|obok|koło)\s+(?:Ispin(?:a|i|ii)|Ispni)\b/gi,(_,p)=>p+" Ispiny").replace(/\bIspni\b/g,"Ispina").replace(/\bispni\b/g,"Ispina").replace(/ {2,}/g," ");
+  return mode==="html"?mapTextOutsideMarkup(value,correct):correct(String(value||""));
+}
+function editorialChecks(s=captureDraft()){
+  const plain=plainEditorialText(s.title+" "+s.body+" "+s.excerpt),checks=[];
+  if(/\bIspini(?:i)?\b|\bIspni\b|\b(?:w|do|z) Ispina\b/i.test(plain))checks.push("Sprawdź odmianę nazwy: w Ispinie, do Ispiny, z Ispiny. Samodzielne „Ispini/Ispinii” wymaga ustalenia kontekstu zdania.");
+  if(/(^|[^\p{L}])Niepoł(?=$|[^\p{L}])/iu.test(plain))checks.push("Rozwiń skrót „Niepoł” do właściwej pełnej nazwy: Niepołomice albo Podłęże.");
+  const dates=Array.from(new Set(plain.match(/\b(?:18|19|20)\d{2}\b/g)||[])).slice(0,8);
+  if(dates.length)checks.push("Daty do sprawdzenia w źródłach: "+dates.join(", ")+". Sam zapis daty nie potwierdza jej poprawności.");
+  if(/\b(histori|archiw|powódź|powodzi|wspomn|prezes|sekretarz|skarbn|urodz|zmarł)/i.test(plain))checks.push("Sprawdź nazwiska, daty i pochodzenie relacji. Wspomnienia mieszkańców oznacz jako wspomnienia.");
+  checks.push("Kontrola lokalna nie weryfikuje faktów w internecie. Przed publikacją sprawdź źródła, nazwiska i informacje praktyczne.");return checks;
+}
+function auditMarkup(checks){return '<div class="note"><b>Nazwy i fakty — do sprawdzenia</b><ul>'+checks.map(c=>'<li>'+esc(c)+'</li>').join("")+'</ul></div>'}
+function auditEditorial(show=true){const checks=editorialChecks();$("editor-audit").innerHTML=auditMarkup(checks);if(show)$("local-save-status").textContent="Przygotowałem listę do sprawdzenia. Tekst pozostaje bez zmian.";return checks}
+function diffMarkup(before,after){
+  const a=String(before||"").match(/\s+|\S+/g)||[],b=String(after||"").match(/\s+|\S+/g)||[];
+  if(a.length*b.length>180000||a.length+b.length>10000)return '<del class="diff-removed">'+esc(before)+'</del><br><ins class="diff-added">'+esc(after)+'</ins>';
+  const rows=Array.from({length:a.length+1},()=>new Uint16Array(b.length+1));
+  for(let i=a.length-1;i>=0;i--)for(let j=b.length-1;j>=0;j--)rows[i][j]=a[i]===b[j]?rows[i+1][j+1]+1:Math.max(rows[i+1][j],rows[i][j+1]);
+  let i=0,j=0,out="";while(i<a.length||j<b.length){if(i<a.length&&j<b.length&&a[i]===b[j]){out+=esc(a[i]);i++;j++;}else if(j<b.length&&(i===a.length||rows[i][j+1]>=rows[i+1][j]))out+='<ins class="diff-added">'+esc(b[j++])+'</ins>';else out+='<del class="diff-removed">'+esc(a[i++])+'</del>';}
+  return out;
+}
+function offerCorrection(fields,reason){
+  if(publicationBusy)return false;if(!persistDraft(true))return false;
+  const before=captureDraft(),changes={};for(const k of Object.keys(editableLabels))if(typeof fields[k]==="string"&&fields[k]!==before[k])changes[k]=fields[k];
+  if(!Object.keys(changes).length){$("local-save-status").textContent="Nie znalazłem zmian do zaproponowania. Możesz sprawdzić nazwy i fakty.";auditEditorial(false);return false}
+  // HTML and its format must be accepted together, never as independently selectable edits.
+  if(changes.mode&&changes.body===undefined){delete changes.mode;}
+  pendingCorrection={id:activeDraftId,signature:draftSignature(before),before,changes};
+  $("correction-title").textContent="Porównaj propozycję";$("correction-reason").textContent=reason;$("correction-feedback").textContent="";
+  $("correction-fields").innerHTML=Object.entries(changes).filter(([k])=>k!=="mode").map(([k,v])=>'<div class="correction-field"><label><input type="checkbox" id="accept-'+k+'" checked> '+esc(editableLabels[k])+'</label><div class="correction-columns"><div><b>Obecnie</b><pre>'+esc(before[k]||"Brak")+'</pre></div><div><b>Proponowane zmiany</b><pre>'+diffMarkup(before[k],v)+'</pre></div></div></div>').join("");
+  $("correction-dialog").classList.remove("hidden");return true;
+}
+function dismissCorrection(){pendingCorrection=null;$("correction-dialog").classList.add("hidden")}
+function acceptCorrection(){
+  const p=pendingCorrection;if(!p||publicationBusy)return false;
+  if(p.id!==activeDraftId||p.signature!==draftSignature(captureDraft())){$("correction-feedback").textContent="Tekst zmienił się od przygotowania propozycji. Odrzuć ją i przygotuj nową, aby zachować swoje zmiany.";return false}
+  const selected=Object.keys(p.changes).filter(k=>k!=="mode"&&$("accept-"+k).checked);
+  if(!selected.length){$("correction-feedback").textContent="Zaznacz przynajmniej jedną zmianę albo wybierz Odrzuć.";return false}
+  if(!persistDraft(true))return false;
+  for(const k of selected)$(draftFields[k]).value=p.changes[k];if(selected.includes("body")&&p.changes.mode)$("post-mode").value=p.changes.mode;
+  updateMetrics();lastEditorialUndo={id:activeDraftId,before:p.before,after:draftSignature(captureDraft())};
+  const stored=persistDraft(true);dismissCorrection();$("undo-edit").classList.remove("hidden");auditEditorial(false);
+  if(stored)$("local-save-status").textContent="Przyjęto wybrane zmiany i zapisano na telefonie. Możesz cofnąć korektę lub wrócić do historii.";return true;
+}
+function undoEditorialChange(){
+  const u=lastEditorialUndo;if(!u||publicationBusy)return false;
+  if(u.id!==activeDraftId||u.after!==draftSignature(captureDraft())){$("local-save-status").textContent="Po korekcie pojawiły się kolejne zmiany. Skorzystaj z historii szkicu, aby ich nie utracić.";return false}
+  if(!persistDraft(true))return false;const id=activeDraftId;applyDraft(u.before);activeDraftId=id;persistDraft(true);$("local-save-status").textContent="Cofnięto przyjętą korektę. Obie wersje pozostają w historii.";return true;
+}
+function editorChatMessage(who,text){editorChat.push({who,text:String(text).slice(0,1500)});editorChat=editorChat.slice(-8);$("editor-chat-log").innerHTML=editorChat.map(m=>'<div class="chat-line"><strong>'+esc(m.who)+'</strong>'+esc(m.text)+'</div>').join("")}
+async function editorHelp(command){
+  const task=trim(command||$("editor-command").value);if(!task||publicationBusy)return;if(!persistDraft(true))return;
+  editorChatMessage("Ty",task);const s=captureDraft();if(!trim(s.body)){editorChatMessage("Redaktor IL","Najpierw dodaj treść artykułu. Potem przygotuję propozycję do porównania.");return}
+  if(/nazw|odmian|korekt|popraw język/i.test(task)){offerCorrection({body:correctLocalNames(s.body,s.mode),title:correctLocalNames(s.title),excerpt:correctLocalNames(s.excerpt)},"Lokalna korekta nazw. Propozycja do zatwierdzenia, bez zmiany faktów.");editorChatMessage("Redaktor IL","Sprawdziłem formy nazw. Zmiany obejrzysz przed zatwierdzeniem. Nie sprawdzałem faktów w internecie.");return}
+  if(/skróć (początek|wstęp|pierwszy akapit)/i.test(task)){
+    if(s.mode==="html"){editorChatMessage("Redaktor IL","Lokalne skracanie działa dla zwykłego tekstu. W HTML zachowuję bloki; do przebudowy treści użyj skonfigurowanego AI.");return}
+    const parts=s.body.split(/\n\s*\n/),sentences=parts[0].match(/[^.!?]+(?:[.!?]+|$)/g)||[];
+    if(sentences.length<3){editorChatMessage("Redaktor IL","Pierwszy akapit ma już najwyżej dwa zdania. Nie usuwam informacji bez propozycji modelu AI.");return}
+    parts[0]=sentences.slice(0,2).join("").trim();offerCorrection({body:parts.join("\n\n")},"Lokalny wariant: pierwszy akapit skrócony do dwóch zdań. Sprawdź, czy usunięte zdania nie zawierają ważnych informacji.");editorChatMessage("Redaktor IL","Przygotowałem krótszy wstęp z pierwszych dwóch zdań. Sprawdź porównanie; zdecydujesz, czy go przyjąć.");return;
+  }
+  if(/zakończe|zakończe|cieplej|ciepłe|cieplejsze/i.test(task)){const ending="Jeśli ten temat jest Ci bliski, podziel się swoimi wspomnieniami lub informacjami. Łączy nas Ispina.";offerCorrection({body:s.body+(s.mode==="html"?"\n<p>"+esc(ending)+"</p>":"\n\n"+ending)},"Gotowy szablon serdecznego zakończenia. Sprawdź, czy pasuje do tematu artykułu.");editorChatMessage("Redaktor IL","Zaproponowałem zakończenie z zaproszeniem do podzielenia się wspomnieniami. To lokalny szablon, który możesz odrzucić.");return}
+  if(/tytuł/i.test(task)){offerCorrection({title:shortEditorialText(s.body,75)},"Lokalna propozycja tytułu z początku tekstu. Sprawdź, czy trafnie oddaje temat.");editorChatMessage("Redaktor IL","Proponuję tytuł oparty na początku Twojego tekstu. Swobodniejsze warianty wymagają AI.");return}
+  if(!assistantEnabled||!connected){editorChatMessage("Redaktor IL","To polecenie wymaga skonfigurowanego AI. Teraz możesz użyć lokalnej korekty nazw, skrócenia początku lub szablonu zakończenia. Sam abonament Gemini Pro nie włącza API w aplikacji.");return}
+  const signature=draftSignature(s),id=activeDraftId;const prompt="Pracuj wyłącznie nad podanym artykułem. Zwróć intent article_draft i pełną proponowaną treść, zachowaj format HTML/bloków, fakty i znaczenie. Nie publikuj. Polecenie: "+task+"\nTytuł: "+s.title+"\nFormat: "+s.mode+"\nTreść:\n"+s.body;
+  if(prompt.length>6000){editorChatMessage("Redaktor IL","Tekst przekracza limit polecenia AI. Nie wysyłam uciętego artykułu. Użyj lokalnych narzędzi albo opracuj krótszy fragment w Asystencie.");return}
+  $("editor-command").disabled=true;editorChatMessage("Redaktor IL","Wysyłam to polecenie i bieżący artykuł do skonfigurowanego AI. Przygotuję propozycję do porównania.");
+  try{const result=await requestAssistant(prompt,assistantContext());if(id!==activeDraftId||signature!==draftSignature(captureDraft())){editorChatMessage("Redaktor IL","Artykuł zmienił się w trakcie pracy. Nie nakładam odpowiedzi na nowszy tekst. Przygotuj nowe polecenie.");return}if(!result.content){editorChatMessage("Redaktor IL",result.message||"Model nie zwrócił propozycji treści.");return}const changes={body:result.content,mode:"html"};if(result.title)changes.title=result.title;if(result.excerpt)changes.excerpt=result.excerpt;offerCorrection(changes,"Propozycja AI — sprawdź sens, format, daty i nazwiska przed zatwierdzeniem.");editorChatMessage("Redaktor IL",result.message||"Propozycja jest gotowa do porównania.");}catch(e){editorChatMessage("Redaktor IL","Nie udało się przygotować propozycji: "+e.message);}finally{$("editor-command").disabled=false}
+}
+// Backup format is restricted to editorial data; never serialize preferences or auth storage.
+function normalizedBackupSnapshot(raw){
+  if(!raw||typeof raw!=="object"||Array.isArray(raw))throw Error("Nieprawidłowy tekst szkicu.");
+  const out={};for(const k of Object.keys(draftFields)){const v=raw[k];if(v!==undefined&&typeof v!=="string"&&typeof v!=="number")throw Error("Nieprawidłowe pole szkicu: "+k);out[k]=String(v??({category:"10543",mode:"text",media:"0"}[k]||""));if(out[k].length>(k==="body"?400000:10000))throw Error("Pole szkicu jest zbyt długie.");}
+  if(!["text","html"].includes(out.mode))throw Error("Nieprawidłowy format treści.");
+  out.postId=Number.isSafeInteger(Number(raw.postId))&&Number(raw.postId)>0?Number(raw.postId):null;
+  out.postStatus=["publish","draft","future","pending","private"].includes(raw.postStatus)?raw.postStatus:"";
+  out.mediaUrl=safeMediaUrl(raw.mediaUrl||"");return out;
+}
+function normalizedBackupDraft(raw){
+  const d=normalizedBackupSnapshot(raw);if(!Array.isArray(raw.revisions)||raw.revisions.length>12)throw Error("Nieprawidłowa historia szkicu.");
+  d.id=typeof raw.id==="string"&&/^[a-zA-Z0-9_-]{1,100}$/.test(raw.id)?raw.id:draftId();
+  const stamp=t=>Number.isFinite(Number(t))&&Number(t)>0&&Number(t)<Date.now()+86400000?Number(t):Date.now();
+  d.created=stamp(raw.created);d.updated=stamp(raw.updated);d.dirty=true;d.revisions=raw.revisions.map(v=>({at:stamp(v?.at),snapshot:normalizedBackupSnapshot(v?.snapshot)}));return d;
+}
+function makeDraftBackup(){if(!persistDraft(true))throw Error("Najpierw zachowaj bieżący tekst.");const store=readDraftStore();if(!store)throw Error("Nie mogę odczytać biblioteczki.");const data={format:"IL_REDAKTOR_BACKUP",version:1,site:"ispinalokalnie.wordpress.com",createdAt:new Date().toISOString(),drafts:store.drafts.map(normalizedBackupDraft)};const text=JSON.stringify(data);if(new TextEncoder().encode(text).length>backupLimit)throw Error("Kopia przekracza limit 8 MB. Zachowaj duże teksty również w WordPressie.");return text}
+function exportDraftBackup(){try{const data=makeDraftBackup();if(typeof IL.exportDraftBackup!=="function")throw Error("Zaktualizuj aplikację, aby zapisywać kopie do pliku.");$("backup-output").textContent="Wybierz miejsce i nazwę pliku kopii.";IL.exportDraftBackup(data);}catch(e){$("backup-output").textContent=e.message}}
+function importDraftBackup(){if(publicationBusy||!persistDraft(true))return;if(typeof IL.importDraftBackup!=="function"){$("backup-output").textContent="Zaktualizuj aplikację, aby wczytywać pliki kopii.";return}IL.importDraftBackup()}
+function parseDraftBackup(text){if(typeof text!=="string"||new TextEncoder().encode(text).length>backupLimit)throw Error("Plik kopii jest zbyt duży (limit 8 MB).");const data=JSON.parse(text);if(data.format!=="IL_REDAKTOR_BACKUP"||data.version!==1||data.site!=="ispinalokalnie.wordpress.com"||!Array.isArray(data.drafts)||data.drafts.length>500)throw Error("To nie jest obsługiwana kopia szkiców Redaktora IL.");return data.drafts.map(normalizedBackupDraft)}
+function previewDraftBackup(text){try{const drafts=parseDraftBackup(text);pendingBackupImport=drafts;$("backup-summary").textContent="W pliku jest "+drafts.length+" szkiców i "+drafts.reduce((n,d)=>n+d.revisions.length,0)+" wersji historycznych. Dołączyć je do tej biblioteczki?";$("backup-dialog").classList.remove("hidden");}catch(e){pendingBackupImport=null;$("backup-output").textContent="Nie wczytano pliku: "+e.message}}
+function cancelBackupImport(){pendingBackupImport=null;$("backup-dialog").classList.add("hidden")}
+function mergeDraftBackup(){
+  if(!pendingBackupImport||publicationBusy||!persistDraft(true))return false;const next=JSON.parse(JSON.stringify(readDraftStore())),ids=new Set(next.drafts.map(d=>d.id));
+  const fingerprint=d=>draftSignature(d)+JSON.stringify((d.revisions||[]).map(v=>v.snapshot));const known=new Set(next.drafts.map(fingerprint));let added=0,skipped=0;
+  for(const draft of pendingBackupImport){const fp=fingerprint(draft);if(known.has(fp)){skipped++;continue}const d={...draft};if(ids.has(d.id))d.id=draftId();ids.add(d.id);known.add(fp);next.drafts.push(d);added++;}
+  try{localStorage.setItem(draftKey,JSON.stringify(next));draftStore=next;cancelBackupImport();renderDrafts();$("backup-output").textContent="Dołączono szkice: "+added+". Pominięto identyczne kopie: "+skipped+". Obecne teksty zachowano.";return true}catch(e){$("backup-output").textContent="Brak miejsca na dołączenie kopii. Obecna biblioteczka pozostaje bez zmian.";return false}
+}
+// Promotions use only a snapshot captured after a successful read-after-write publication.
+let promotionArticle=null;
+function validPromotionUrl(url,id){try{const u=new URL(url);return u.protocol==="https:"&&u.hostname==="ispinalokalnie.wordpress.com"&&!u.username&&!u.password&&Number(id)>0?u.href:""}catch(e){return ""}}
+function rememberPublishedArticle(record,url){const safe=validPromotionUrl(url,record.id);if(!safe)return;const article={id:Number(record.id),title:plainEditorialText(record.title),excerpt:shortEditorialText(record.excerpt||record.body,220),url:safe,verifiedAt:Date.now()};promotionArticle=article;try{localStorage.setItem("il_last_verified_promotion_v1",JSON.stringify(article))}catch(e){/* Published article remains successful even when this optional local copy cannot be saved. */}}
+function openPromotion(){if(!promotionArticle){try{const raw=JSON.parse(localStorage.getItem("il_last_verified_promotion_v1")||"null");if(raw&&typeof raw.title==="string"&&validPromotionUrl(raw.url,raw.id))promotionArticle=raw}catch(e){}}
+  if(!promotionArticle){$("local-save-status").textContent="Najpierw opublikuj artykuł i poczekaj na potwierdzenie WordPressa. Wtedy przygotuję zapowiedź z jego linkiem.";return false}
+  $("promotion-source").textContent=promotionArticle.title+" · publikację potwierdzono "+new Date(promotionArticle.verifiedAt).toLocaleString("pl-PL")+". Jeśli później zmieniłeś lub wycofałeś wpis, sprawdź jego aktualny stan.";
+  $("promotion-kind").value="facebook";$("promotion-output").textContent="Sprawdź tekst. Kopiowanie ani wybór Udostępnij nie publikuje automatycznie na Facebooku.";renderPromotion();$("promotion-dialog").classList.remove("hidden");return true;
+}
+function promotionText(article,kind){const title=plainEditorialText(article.title),excerpt=shortEditorialText(article.excerpt,220),url=validPromotionUrl(article.url,article.id);if(!url)return "";
+  if(kind==="short")return title+"\nPrzeczytaj na Ispina Lokalnie:\n"+url;
+  if(kind==="invitation")return "Zapraszam do lektury na Ispina Lokalnie: „"+title+"”.\n\n"+url+"\n\nŁączy nas Ispina.";
+  return "Nowy tekst na Ispina Lokalnie: „"+title+"”."+(excerpt?"\n\n"+excerpt:"")+"\n\nPrzeczytaj cały artykuł:\n"+url+"\n\nŁączy nas Ispina.";
+}
+function renderPromotion(){if(promotionArticle)$("promotion-text").value=promotionText(promotionArticle,$("promotion-kind").value)}
+function closePromotion(){$("promotion-dialog").classList.add("hidden")}
+function copyPromotion(){const text=trim($("promotion-text").value);if(text&&IL.copyText){IL.copyText(text);$("promotion-output").textContent="Przekazano tekst do skopiowania. Wklej go do wybranej publikacji."}}
+function sharePromotion(){const text=trim($("promotion-text").value);if(text&&typeof IL.shareText==="function")IL.shareText(text);else $("promotion-output").textContent="Użyj Kopiuj, aby przenieść tekst do wybranej aplikacji."}
+
 function downloadText(){
   const content=trim($("post-title").value)+"\n\n"+trim($("post-body").value);
   IL.copyText(content);

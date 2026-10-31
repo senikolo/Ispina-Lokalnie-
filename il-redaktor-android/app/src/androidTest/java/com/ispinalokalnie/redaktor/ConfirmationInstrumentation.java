@@ -55,6 +55,40 @@ public final class ConfirmationInstrumentation extends Instrumentation {
         if (!expected.equals(actual)) throw new AssertionError("Expected " + expected + ", got " + actual);
     }
 
+    private void waitForScript(String script) throws Exception {
+        long deadline=SystemClock.uptimeMillis()+25000;
+        while(!"true".equals(evaluate(script))){if(SystemClock.uptimeMillis()>deadline)throw new AssertionError("Timed out waiting for "+script);SystemClock.sleep(100);}
+    }
+    private void verifyEditorFeatures() throws Exception {
+        AtomicReference<Throwable> failure=new AtomicReference<>();
+        runOnMainSync(()->{try{
+            android.graphics.Bitmap source=android.graphics.Bitmap.createBitmap(800,600,android.graphics.Bitmap.Config.ARGB_8888);
+            source.setPixel(0,0,android.graphics.Color.BLUE);source.setPixel(0,150,android.graphics.Color.GREEN);
+            android.graphics.Bitmap top=PhotoEditor.crop(source,16f/9f,50,0),bottom=PhotoEditor.crop(source,16f/9f,50,100);
+            if(top.getWidth()!=800||top.getHeight()!=450||top.getPixel(0,0)!=android.graphics.Color.BLUE||bottom.getPixel(0,0)!=android.graphics.Color.GREEN)throw new AssertionError("Crop dimensions / position failed");
+            top.recycle();bottom.recycle();source.recycle();
+            android.graphics.Bitmap preview=android.graphics.Bitmap.createBitmap(320,240,android.graphics.Bitmap.Config.ARGB_8888);
+            final boolean[] uploaded={false};PhotoEditor dialog=new PhotoEditor(activity,preview,(image,c,a,t)->{uploaded[0]=true;image.recycle();});dialog.show();if(!dialog.isShowing())throw new AssertionError("Photo editor not visible");dialog.dismiss();if(uploaded[0])throw new AssertionError("Photo cancellation uploaded data");
+        }catch(Throwable t){failure.set(t);}});
+        if(failure.get()!=null)throw new AssertionError("Native photo tools",failure.get());
+        java.io.File sample=new java.io.File(getTargetContext().getCacheDir(),"photo-exif-test.jpg");
+        android.graphics.Bitmap raw=android.graphics.Bitmap.createBitmap(120,80,android.graphics.Bitmap.Config.ARGB_8888);
+        try(java.io.FileOutputStream out=new java.io.FileOutputStream(sample)){raw.compress(android.graphics.Bitmap.CompressFormat.JPEG,80,out);}raw.recycle();
+        android.media.ExifInterface exif=new android.media.ExifInterface(sample.getAbsolutePath());exif.setAttribute(android.media.ExifInterface.TAG_ORIENTATION,"6");exif.saveAttributes();
+        android.graphics.Bitmap oriented=PhotoEditor.decode(getTargetContext(),android.net.Uri.fromFile(sample));if(oriented.getWidth()!=80||oriented.getHeight()!=120)throw new AssertionError("EXIF orientation lost");oriented.recycle();sample.delete();
+        if(!"true".equals(evaluate("$('post-body').value='W Ispini.';offerCorrection({body:'W Ispinie.'},'Test');$('accept-body').checked && $('post-body').value==='W Ispini.'")))throw new AssertionError("Correction comparison changed text before consent");
+        if(!"true".equals(evaluate("acceptCorrection();$('post-body').value==='W Ispinie.' && undoEditorialChange() && $('post-body').value==='W Ispini.'")))throw new AssertionError("Correction acceptance / undo failed");
+        String payload=(String)new org.json.JSONTokener(evaluate("makeDraftBackup()")).nextValue();
+        java.io.File pending=new java.io.File(getTargetContext().getCacheDir(),"il-drafts-export-pending.json"),saved=new java.io.File(getTargetContext().getCacheDir(),"backup-stream-test.json");
+        try(java.io.FileOutputStream out=new java.io.FileOutputStream(pending)){out.write(payload.getBytes(java.nio.charset.StandardCharsets.UTF_8));}
+        runOnMainSync(()->activity.onActivityResult(1006,Activity.RESULT_OK,new Intent().setData(android.net.Uri.fromFile(saved))));
+        waitForScript("$('backup-output').textContent.includes('Zapisano plik kopii')");
+        String written=new String(java.nio.file.Files.readAllBytes(saved.toPath()),java.nio.charset.StandardCharsets.UTF_8);if(!payload.equals(written))throw new AssertionError("Backup file differs from draft payload");
+        runOnMainSync(()->activity.onActivityResult(1007,Activity.RESULT_OK,new Intent().setData(android.net.Uri.fromFile(saved))));
+        waitForScript("pendingBackupImport!==null && !$('backup-dialog').classList.contains('hidden')");evaluate("cancelBackupImport()");saved.delete();
+        runOnMainSync(()->editor.requestFocus());waitForIdleSync();
+    }
+
     @Override public void onStart() {
         Bundle result = new Bundle();
         try {
@@ -69,17 +103,20 @@ public final class ConfirmationInstrumentation extends Instrumentation {
             runOnMainSync(() -> editor.requestFocus());
             waitForIdleSync();
             if ("seed".equals(mode)) {
+                if(getTargetContext().getPackageManager().getPackageInfo(getTargetContext().getPackageName(),0).versionCode!=20)throw new AssertionError("Seed must run on previous 1.14 versionCode 20");
                 String seeded=evaluate("localStorage.removeItem(draftKey);draftStore=null;activeDraftId=null;$('post-title').value='Pierwszy szkic';$('post-body').value='Pierwsza wersja';persistDraft(true);$('post-body').value='Druga wersja';persistDraft(true);resetEditor();$('post-title').value='Drugi szkic';$('post-body').value='Drugi tekst';persistDraft(true);String(readDraftStore().drafts.length)");
                 if(!"\"2\"".equals(seeded))throw new AssertionError("Draft seeding failed: "+seeded);
                 if(!getTargetContext().getSharedPreferences("il_update_probe",0).edit().putString("marker","preserved").commit())throw new AssertionError("Preferences seeding failed");
                 result.putString("stream","IL_UPDATE_SEED=PASS\n");
             } else if ("verify".equals(mode)) {
+                if(getTargetContext().getPackageManager().getPackageInfo(getTargetContext().getPackageName(),0).versionCode!=21)throw new AssertionError("Verification must run after upgrade to versionCode 21");
                 String restored=evaluate("JSON.stringify(readDraftStore().drafts.map(d=>[d.title,d.body,d.revisions.length]))");
                 if(!restored.contains("Pierwszy szkic")||!restored.contains("Druga wersja")||!restored.contains("Drugi szkic"))throw new AssertionError("Drafts lost after reinstall: "+restored);
                 if(!"preserved".equals(getTargetContext().getSharedPreferences("il_update_probe",0).getString("marker","")))throw new AssertionError("Preferences lost after reinstall");
                 if(!"true".equals(evaluate("readDraftStore().drafts.some(d=>d.revisions.some(v=>v.snapshot.body==='Pierwsza wersja'))")))throw new AssertionError("Revision history lost");
-                result.putString("stream","IL_UPDATE_DATA_TEST=PASS (drafts, history, preferences after adb install -r)\n");
+                result.putString("stream","IL_UPDATE_DATA_TEST=PASS (1.14 to 1.15 upgrade: drafts, history, preferences)\n");
             } else {
+            verifyEditorFeatures();
             String review=evaluate("$('post-title').value='Podgląd testowy';$('post-body').value='Treść bez publikacji';$('post-category').value='10543';reviewPublication();!$('publish-review').classList.contains('hidden') && !$('review-confirm').disabled && $('review-preview').getAttribute('sandbox')===''");
             if(!"true".equals(review))throw new AssertionError("Publication review failed: "+review);
             evaluate("closeReview();resetEditor()");
@@ -87,7 +124,7 @@ public final class ConfirmationInstrumentation extends Instrumentation {
             probe(AlertDialog.BUTTON_NEGATIVE, "\"false:0\"", false);
             probe(AlertDialog.BUTTON_POSITIVE, "\"true:1\"", false);
             probe(AlertDialog.BUTTON_NEGATIVE, "\"false:0\"", true);
-            result.putString("stream", "IL_WEBVIEW_CONFIRM_TEST=PASS (cancel, confirm once, dismiss)\n");
+            result.putString("stream", "IL_WEBVIEW_CONFIRM_TEST=PASS (cancel, confirm once, dismiss)\nIL_EDITOR_FEATURES_TEST=PASS (comparison, undo, backup file streams, photo crop, EXIF, cancel)\n");
             }
             runOnMainSync(() -> activity.finish());
             finish(Activity.RESULT_OK, result);

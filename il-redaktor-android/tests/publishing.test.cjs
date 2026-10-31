@@ -577,9 +577,9 @@ test("AI context exposes published posts only for reader recommendations",()=>{
 test("new build metadata and the PR APK workflow agree",()=>{
   const gradle=fs.readFileSync(path.join(__dirname,"../app/build.gradle"),"utf8");
   const workflow=fs.readFileSync(path.join(__dirname,"../../.github/workflows/il-redaktor-apk.yml"),"utf8");
-  assert.match(gradle,/versionCode 20/);assert.match(gradle,/versionName '1\.14\.0'/);
+  assert.match(gradle,/versionCode 21/);assert.match(gradle,/versionName '1\.15\.0'/);
   assert.match(gradle,/applicationId 'com\.ispinalokalnie\.redaktorsmart\.stable'/);
-  assert.match(workflow,/versionCode='20' versionName='1\.14\.0'/);
+  assert.match(workflow,/versionCode='21' versionName='1\.15\.0'/);
 });
 
 test("AI editor shortcut copies current title and text into a reviewable prompt without sending it",()=>{
@@ -615,10 +615,11 @@ test("AI reading promotions are matched to exact published post IDs before displ
   assert.doesNotMatch(html,/Nieistniejący artykuł/);
 });
 
-test("local language correction applies required Ispina forms",()=>{
-  const a=setup();a.node("post-body").value="w Ispina, do Ispina, z Ispina, Ispinii i Ispini";
-  a.run("suggest()");
-  assert.equal(a.node("post-body").value,"w Ispinie, do Ispiny, z Ispiny, Ispiny i Ispiny");
+test("local language correction is reviewed and keeps context-sensitive Ispina forms",()=>{
+  const a=setup();const before="w Ispini, do Ispinii, z Ispina, Ispinii i Ispini";a.node("post-body").value=before;
+  a.run("suggest()");assert.equal(a.node("post-body").value,before);
+  a.run("$('accept-body').checked=true;acceptCorrection()");
+  assert.equal(a.node("post-body").value,"w Ispinie, do Ispiny, z Ispiny, Ispinii i Ispini");
 });
 
 test("AI contract only returns image search terms, not unverifiable image URLs",()=>{
@@ -643,7 +644,8 @@ test("OAuth DCR, PKCE, deep-link scheme and manifest callback match without a cl
 
 test("photo upload source downsamples and compresses images before sending",()=>{
   const java=fs.readFileSync(path.join(__dirname,"../app/src/main/java/com/ispinalokalnie/redaktor/MainActivity.java"),"utf8");
-  assert.match(java,/inSampleSize = 1/);assert.match(java,/> 1600/);
+  const photo=fs.readFileSync(path.join(__dirname,"../app/src/main/java/com/ispinalokalnie/redaktor/PhotoEditor.java"),"utf8");
+  assert.match(photo,/inSampleSize=1/);assert.match(photo,/>1600/);
   assert.match(java,/Bitmap\.CompressFormat\.JPEG, 80/);assert.match(java,/bytes\.length > 6_000_000/);
 });
 
@@ -709,4 +711,82 @@ test('uploaded featured photo appears in review and survives local reopening',()
  assert.equal(a.run('readDraftStore().drafts[0].mediaUrl'),'https://ispinalokalnie.wordpress.com/wp-content/uploads/photo.jpg');
  a.run('reviewPublication()');assert.match(a.node('review-summary').innerHTML,/<img[^>]+photo.jpg/);
  a.run('closeReview();mediaById.clear();applyDraft(readDraftStore().drafts[0]);reviewPublication()');assert.match(a.node('review-summary').innerHTML,/<img[^>]+photo.jpg/);
+});
+
+test('backup round trip preserves all drafts and revisions without auth or settings',()=>{
+ const a=setup();a.storage.set('token','NEVER-EXPORT-THIS');a.storage.set('il_ui_preferences','PRIVATE-PREFERENCES');
+ a.run("persistDraft();$('post-body').value='Wersja druga';persistDraft(true);resetEditor();$('post-title').value='Drugi';$('post-body').value='Tekst drugi';persistDraft()");
+ const raw=a.run('makeDraftBackup()'),data=JSON.parse(raw);assert.equal(data.drafts.length,2);assert.equal(data.drafts[0].revisions[0].snapshot.body,'Treść testowa');assert.doesNotMatch(raw,/NEVER-EXPORT|PRIVATE-PREFERENCES|token/);
+ a.c.backup=raw;assert.equal(a.run('parseDraftBackup(backup).length'),2);
+});
+test('backup preview and cancel never import automatically',()=>{
+ const a=setup();a.c.backup=a.run('makeDraftBackup()');a.run('previewDraftBackup(backup)');assert.equal(a.run('readDraftStore().drafts.length'),1);a.run('cancelBackupImport()');assert.equal(a.run('pendingBackupImport'),null);
+});
+test('import merges ID collisions without overwrite and skips identical copies',()=>{
+ const a=setup();a.c.data=JSON.parse(a.run('makeDraftBackup()'));a.c.data.drafts[0].title='Z drugiego telefonu';a.c.backup=JSON.stringify(a.c.data);
+ a.run('previewDraftBackup(backup);mergeDraftBackup()');assert.equal(a.run('readDraftStore().drafts.length'),2);assert.equal(a.run('new Set(readDraftStore().drafts.map(d=>d.id)).size'),2);assert.equal(a.node('post-title').value,'Testowy artykuł');
+ a.run('previewDraftBackup(backup);mergeDraftBackup()');assert.equal(a.run('readDraftStore().drafts.length'),2);assert.match(a.node('backup-output').textContent,/Pominięto identyczne kopie: 1/);
+});
+test('malformed or wrong-site backup leaves existing library unchanged',()=>{
+ const a=setup();a.run('persistDraft()');const before=a.storage.get('il_redaktor_drafts_v3');
+ for(const raw of ['{}','broken',JSON.stringify({format:'IL_REDAKTOR_BACKUP',version:1,site:'other.wordpress.com',drafts:[]})]){a.c.raw=raw;a.run('previewDraftBackup(raw)');assert.equal(a.run('pendingBackupImport'),null);assert.equal(a.storage.get('il_redaktor_drafts_v3'),before)}
+});
+test('import quota failure preserves existing library and pending backup for retry',()=>{
+ const a=setup();a.c.data=JSON.parse(a.run('makeDraftBackup()'));a.c.data.drafts[0].title='Import';a.c.backup=JSON.stringify(a.c.data);a.run('previewDraftBackup(backup)');a.c.localStorage.setItem=()=>{throw Error('quota')};
+ assert.equal(a.run('mergeDraftBackup()'),false);assert.equal(a.run('readDraftStore().drafts.length'),1);assert.equal(a.run('pendingBackupImport.length'),1);
+});
+test('backup strips unexpected properties and rejects oversized revision arrays',()=>{
+ const a=setup();a.c.data=JSON.parse(a.run('makeDraftBackup()'));a.c.data.drafts[0].token='PRIVATE';a.c.data.drafts[0].__proto__={injected:'x'};a.c.backup=JSON.stringify(a.c.data);
+ assert.equal(a.run('parseDraftBackup(backup)[0].token'),undefined);a.c.data.drafts[0].revisions=Array(13).fill({});a.c.backup=JSON.stringify(a.c.data);assert.throws(()=>a.run('parseDraftBackup(backup)'),/historia/);
+});
+test('correction selection applies only checked fields and preserves published identity',()=>{
+ const a=setup();a.run("postId=50;postStatus='publish';offerCorrection({title:'Nowy tytuł',body:'Nowa treść'},'Test');$('accept-title').checked=false;$('accept-body').checked=true;acceptCorrection()");
+ assert.equal(a.node('post-title').value,'Testowy artykuł');assert.equal(a.node('post-body').value,'Nowa treść');assert.equal(a.run('postId'),50);assert.equal(a.run('postStatus'),'publish');
+});
+test('discarded correction leaves text unchanged and sends no remote writes',()=>{
+ const a=setup();let calls=0;a.c.rpc=()=>{calls++};a.run("offerCorrection({body:'Inna'},'Test');dismissCorrection()");assert.equal(a.node('post-body').value,'Treść testowa');assert.equal(calls,0);
+});
+test('stale correction cannot overwrite text changed after proposal',()=>{
+ const a=setup();a.run("offerCorrection({body:'Inna'},'Test');$('accept-body').checked=true");a.node('post-body').value='Nowszy tekst';assert.equal(a.run('acceptCorrection()'),false);assert.equal(a.node('post-body').value,'Nowszy tekst');
+});
+test('accepted correction can be undone and both versions remain in history',()=>{
+ const a=setup();a.run("offerCorrection({body:'Inna treść'},'Test');$('accept-body').checked=true;acceptCorrection()");assert.equal(a.run('undoEditorialChange()'),true);assert.equal(a.node('post-body').value,'Treść testowa');assert.equal(a.run("readDraftStore().drafts[0].revisions.some(r=>r.snapshot.body==='Inna treść')"),true);
+});
+test('undo never overwrites later manual changes',()=>{
+ const a=setup();a.run("offerCorrection({body:'Inna'},'Test');$('accept-body').checked=true;acceptCorrection()");a.node('post-body').value='Nowsza zmiana';assert.equal(a.run('undoEditorialChange()'),false);assert.equal(a.node('post-body').value,'Nowsza zmiana');
+});
+test('diff escapes HTML and marks additions and removals',()=>{
+ const a=setup();const out=a.run("diffMarkup('stare <img onerror=x>','nowe <script>')");assert.match(out,/diff-added/);assert.match(out,/diff-removed/);assert.doesNotMatch(out,/<script>|<img/);assert.match(out,/&lt;script&gt;/);
+});
+test('local name correction skips HTML attributes and preserves correct grammatical forms',()=>{
+ const a=setup();a.c.value='<a href="https://example.com/w Ispini">W Ispinii</a><code>w Ispini</code><p>do Ispina, z Ispinii, w Ispinie</p>';
+ const out=a.run("correctLocalNames(value,'html')");assert.match(out,/href="https:\/\/example.com\/w Ispini"/);assert.match(out,/>W Ispinie<\/a>/);assert.match(out,/<code>w Ispini<\/code>/);assert.match(out,/do Ispiny, z Ispiny, w Ispinie/);
+});
+test('fact audit identifies dates and ambiguous names without claiming external verification',()=>{
+ const a=setup();a.node('post-body').value='Historia z 1903 roku w Ispinii. Niepoł.';a.run('auditEditorial()');assert.match(a.node('editor-audit').innerHTML,/1903/);assert.match(a.node('editor-audit').innerHTML,/Niepołomice albo Podłęże/);assert.match(a.node('editor-audit').innerHTML,/nie weryfikuje faktów w internecie/);assert.equal(a.node('post-body').value,'Historia z 1903 roku w Ispinii. Niepoł.');
+});
+test('local editor help prepares a shorter opening for review without changing text',async()=>{
+ const a=setup();a.node('post-body').value='Pierwsze zdanie. Drugie zdanie. Trzecie zdanie.\n\nDrugi akapit.';await a.run("editorHelp('Skróć początek')");assert.match(a.node('post-body').value,/Trzecie/);assert.equal(a.run('pendingCorrection.changes.body'),'Pierwsze zdanie. Drugie zdanie.\n\nDrugi akapit.');
+});
+test('freeform command clearly requires configured AI and does not send text when unavailable',async()=>{
+ const a=setup();let requests=0;a.c.requestAssistant=()=>{requests++};await a.run("editorHelp('Przeanalizuj argumenty i napisz reportaż')");assert.equal(requests,0);assert.match(a.node('editor-chat-log').innerHTML,/wymaga skonfigurowanego AI/);
+});
+test('stale AI response cannot be applied to another draft',async()=>{
+ const a=setup();a.run('assistantEnabled=true');a.c.requestAssistant=async()=>{a.node('post-body').value='Nowy tekst';return {content:'Propozycja',title:'AI'}};await a.run("editorHelp('Przebuduj argumentację')");assert.equal(a.node('post-body').value,'Nowy tekst');assert.equal(a.run('pendingCorrection'),null);assert.match(a.node('editor-chat-log').innerHTML,/zmienił się/);
+});
+test('assistant article acceptance uses comparison and retains current remote ID',()=>{
+ const a=setup();a.run("postId=99;postStatus='publish';assistantDraft={intent:'article_draft',title:'Propozycja',content:'<p>Nowa treść</p>'};acceptAssistantArticle()");assert.equal(a.run('postId'),99);assert.equal(a.node('post-body').value,'Treść testowa');assert.equal(a.run('pendingCorrection.changes.body'),'<p>Nowa treść</p>');
+});
+test('promotion exists only after verified published status, with the canonical link',async()=>{
+ const a=setup();assert.equal(a.run('openPromotion()'),false);a.c.rpc=async()=>({id:61,status:'draft'});await a.run("savePost('publish')");assert.equal(a.run('promotionArticle'),null);
+ a.c.rpc=async()=>({id:61,status:'publish',link:'https://ispinalokalnie.wordpress.com/realny-artykul/'});await a.run("savePost('publish')");assert.equal(a.run('openPromotion()'),true);assert.match(a.node('promotion-text').value,/https:\/\/ispinalokalnie.wordpress.com\/realny-artykul\//);assert.match(a.node('promotion-text').value,/Łączy nas Ispina/);
+});
+test('draft save does not create a public promotion',async()=>{
+ const a=setup();a.c.rpc=async()=>({id:62,status:'draft'});await a.run("savePost('draft')");assert.equal(a.run('promotionArticle'),null);assert.equal(a.storage.has('il_last_verified_promotion_v1'),false);
+});
+test('promotion snapshot remains tied to published article while editing a new draft',()=>{
+ const a=setup();a.run("rememberPublishedArticle({id:63,title:'Opublikowany',body:'Pierwszy'},'https://ispinalokalnie.wordpress.com/?p=63');resetEditor();$('post-title').value='Nowy szkic';openPromotion()");assert.match(a.node('promotion-text').value,/Opublikowany/);assert.doesNotMatch(a.node('promotion-text').value,/Nowy szkic/);
+});
+test('promotion rejects external links and copying shares no data automatically',()=>{
+ const a=setup();a.run("rememberPublishedArticle({id:64,title:'Bad'},'https://example.com/x')");assert.equal(a.run('promotionArticle'),null);let copied='';a.c.IL.copyText=t=>{copied=t};a.run("rememberPublishedArticle({id:64,title:'W Ispinie',body:'Tekst'},'https://ispinalokalnie.wordpress.com/?p=64');openPromotion();copyPromotion()");assert.match(copied,/W Ispinie/);
 });
