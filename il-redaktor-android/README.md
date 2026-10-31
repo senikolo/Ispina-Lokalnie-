@@ -4,6 +4,8 @@ Stały applicationId `com.ispinalokalnie.redaktorsmart.stable`, versionCode 22. 
 
 ## Zmiany
 
+Kopia do pliku ma teraz version 2; aplikacja wczytuje też wcześniejsze kopie version 1. Starszy Redaktor 1.15 odrzuci plik version 2, zamiast pominąć nowe źródła i zdjęcia. Wewnętrzny format biblioteczki pozostaje version 1 dla migracji danych.
+
 - Odczyt pełnej wersji wpisu przed przygotowaniem zapisu oraz ponownie tuż przed posts.update. Wersja odniesienia obejmuje treść, tytuł, zajawkę, kategorie, tagi, zdjęcie, status, datę i znacznik modified. Zmiana lub brak punktu odniesienia zatrzymuje wysłanie wpisu i otwiera porównanie. Wczytanie strony zachowuje starszą kopię lokalną; Zachowaj obie kopie odłącza lokalny szkic od WordPress ID. Zmiana lokalna podczas odczytu przerywa zapis. Nie ma przycisku ślepego nadpisania.
 - Ograniczenie integracji: posts.update w aktualnym schemacie MCP nie oferuje atomowego compare-and-set ani warunku if-unmodified-since. Dwa odczyty wykrywają zmiany widoczne w tych momentach; nie eliminują wyścigu, gdy inny klient zapisze dokładnie między ostatnim GET i POST. Nie jest to serwerowa blokada współbieżnej edycji.
 - Źródła przy szkicu: linki http/https, notatki, ręczny status sprawdzenia i zdjęcia dokumentów. Zdjęcia są pomniejszane i zapisywane wyłącznie w lokalnej biblioteczce (bez media.create). Są dołączane do kopii JSON jako deduplikowane sourceFiles, a historia trzyma tylko odnośniki. Niepublikowane notatki i zdjęcia nie są wysyłane w payload artykułu. Osobny przycisk pozwala jawnie dodać odsyłacz do treści. Do 20 źródeł na szkic, 600 KB na zdjęcie i 8 MB całej biblioteczki/kopii. Pliki niewskazywane już przez żaden szkic lub jego historię są pomijane przy kolejnym zapisie.

@@ -897,3 +897,7 @@ test('changing source photo retains the old image while history still references
 test('orphan research photos are removed only when no current or historical source references them',()=>{
  const a=setup();a.run("persistDraft();draftStore.sourceFiles={unused:{mime:'image/jpeg',base64:'/9j/2Q==',name:'Unused'}};persistDraft()");assert.equal(a.run('Object.keys(readDraftStore().sourceFiles).length'),0);
 });
+
+test('new portable backups use format version 2 to prevent old apps silently dropping research files',()=>{
+ const a=setup();assert.equal(JSON.parse(a.run('makeDraftBackup()')).version,2);a.c.legacy=JSON.stringify({format:'IL_REDAKTOR_BACKUP',version:1,site:'ispinalokalnie.wordpress.com',drafts:[]});assert.equal(a.run('parseDraftBackup(legacy).length'),0);
+});

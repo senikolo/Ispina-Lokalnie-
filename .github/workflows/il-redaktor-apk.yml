@@ -219,7 +219,9 @@ jobs:
             grep -F 'IL_WEBVIEW_CONFIRM_TEST=PASS' /tmp/il-confirmation-test.txt || { adb logcat -d -s chromium AndroidRuntime ILEditorProbe ActivityManager; exit 1; }
             grep -F 'IL_EDITOR_FEATURES_TEST=PASS' /tmp/il-confirmation-test.txt
             grep -F 'IL_WORKSPACE_FEATURES_TEST=PASS' /tmp/il-confirmation-test.txt
-            adb pull /sdcard/Android/data/com.ispinalokalnie.redaktorsmart.stable/files/qa /tmp/il-editor-ui
+            mkdir -p /tmp/il-editor-ui
+            adb exec-out run-as com.ispinalokalnie.redaktorsmart.stable tar -C files/qa -cf - . > /tmp/il-editor-ui.tar
+            tar -xf /tmp/il-editor-ui.tar -C /tmp/il-editor-ui
       - name: Upload emulator UI checks
         uses: actions/upload-artifact@v4
         with:
