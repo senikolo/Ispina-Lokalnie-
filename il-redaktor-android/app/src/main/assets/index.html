@@ -594,6 +594,38 @@ async function savePost(status){
     showOutcome("error","NIE POWIODŁO SIĘ","Nie uzyskano potwierdzenia zapisu z WordPressa. "+e.message+" Jeśli połączenie zostało przerwane, sprawdź listę wpisów przed ponowną próbą, aby uniknąć duplikatu.");
   }finally{publicationButtons(false);}
 }
+async function verifyLastPublication(){
+  if(!connected){message("post-output","Połącz najpierw konto WordPress.","error");return}
+  const attempted=lastPublicationAttempt;
+  const id=Number(attempted?.id||postId)||0;
+  startOperation("Sprawdzam ostatni zapis na WordPress.com…");
+  try{
+    if(id){
+      const p=await rpc("GET","posts/"+id+"?context=edit");
+      if(Number(p.id)!==id)throw Error("WordPress zwrócił nieprawidłowy numer wpisu.");
+      postId=id;postStatus=p.status||"";
+      $("edit-status").textContent="Sprawdzono: "+postStatus;
+      const link=p.link&&p.link.startsWith("https://ispinalokalnie.wordpress.com/")?p.link:"https://ispinalokalnie.wordpress.com/?p="+id;
+      if(p.status==="publish")setPublishedUrl(link);
+      publicationPhase("Odczyt wpisu #"+id+" zakończony. Status: "+postStatus+".","ok");
+      showOutcome("success","STATUS ZWERYFIKOWANY","WordPress zwrócił wpis #"+id+". Status: "+postStatus+".",link,"Otwórz artykuł");
+      lastPublicationAttempt=null;
+      return;
+    }
+    const title=trim(attempted?.title||$("post-title").value);
+    if(!title)throw Error("Nie znam tytułu ani numeru wpisu do sprawdzenia.");
+    const status=attempted?.status||"publish";
+    const found=await rpc("GET","posts?status="+status+"&per_page=40&search="+encodeURIComponent(title));
+    const titles=(Array.isArray(found)?found:[]).filter(p=>String(p.title?.raw||p.title?.rendered||"").replace(/&nbsp;/g," ").trim().toLocaleLowerCase("pl")===title.toLocaleLowerCase("pl"));
+    if(titles.length===1){
+      const foundId=Number(titles[0].id);
+      message("post-output","Znaleziono artykuł o tym tytule (ID "+foundId+"). Otwórz go z listy artykułów, aby upewnić się, że to ostatni zapis. Nie wysyłaj ponownie automatycznie.","ok");
+    } else {
+      message("post-output",titles.length>1?"Znaleziono kilka artykułów o tym tytule. Sprawdź listę, aby nie utworzyć duplikatu.":"Nie znaleziono identycznego tytułu. Przy błędzie sieci wynik może być niepewny.");
+    }
+    operationFinished(true,"Zakończono wyszukiwanie","Wynik wymaga potwierdzenia redaktora.");
+  }catch(e){message("post-output","Nie udało się sprawdzić ostatniego zapisu: "+e.message,"error")}
+}
 function resetEditor(){
   setPublishedUrl("");publicationPhase("Gotowy do redagowania. Publikacja wymaga potwierdzenia.");
   postId=null;postStatus="";
@@ -840,6 +872,9 @@ function chooseMedia(id){
   $(id).addEventListener("change",()=>{updateMetrics();scheduleLocalSave()});
 });
 updateMetrics();
+if(actionHistory.length){
+  $("activity-feed").innerHTML=actionHistory.map(a=>'<div class="activity-entry '+esc(a.kind)+'"><strong>'+esc(a.at+" · "+a.title)+'</strong><small>'+esc(a.detail)+'</small></div>').join("");
+}
 if(window.IL){IL.status()}else{message("auth-output","Brak mostu Android. Otwórz ten panel wewnątrz APK.","error");}
 </script>
 </body></html>
