@@ -178,6 +178,11 @@ jobs:
           assert 'Otwórz w przeglądarce' in ui and 'Edytuj ponownie' in ui and 'Wróć do pulpitu' in ui
           assert 'type="datetime-local"' in ui and 'status==="future"' in ui
           assert 'TERMIN NIEPOTWIERDZONY' in ui
+          assert 'function verifyWordPressPostContents' in ui
+          assert 'function readWordPressScheduleTime' in ui
+          assert 'function formatArticleLocally' in ui and 'function formatArticleWithAI' in ui
+          assert 'TREŚĆ NIEPOTWIERDZONA' in ui
+          assert 'onStop()' in main and 'onBackPressed()' in main
           assert 'assistantFromEditor' in ui and 'copyAssistantFacebook' in ui
           assert 'imageSuggestion: z.object' in Path('il-redaktor-android/backend/api/assistant.ts').read_text()
           assert 'Nie zwracaj adresów URL zdjęć' in Path('il-redaktor-android/backend/api/assistant.ts').read_text()
@@ -245,7 +250,7 @@ jobs:
           test -s "$APK"
           test -s il-redaktor-android/app/src/main/assets/il-monogram.png
           "$SDK_ROOT/build-tools/35.0.0/apksigner" verify --verbose "$APK"
-          "$SDK_ROOT/build-tools/35.0.0/aapt" dump badging "$APK" | grep -F "package: name='com.ispinalokalnie.redaktorsmart.stable' versionCode='26' versionName='1.20.0'"
+          "$SDK_ROOT/build-tools/35.0.0/aapt" dump badging "$APK" | grep -F "package: name='com.ispinalokalnie.redaktorsmart.stable' versionCode='27' versionName='1.21.0'"
           unzip -l "$APK" | grep 'assets/il-monogram.png'
       - name: Upload installable APK
         uses: actions/upload-artifact@v4
