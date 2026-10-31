@@ -576,6 +576,18 @@ public class MainActivity extends Activity {
             work.execute(() -> askAssistantOnServer(rid, prompt, contextJson));
         }
 
+        @JavascriptInterface public void askResearch(String rid, String prompt) {
+            if (rid.length() > 60 || !rid.matches("[A-Za-z0-9_-]+")) return;
+            if (prompt == null || prompt.trim().isEmpty() || prompt.length() > 1800) {
+                callback(rid, false, "Wpisz temat wyszukiwania, maksymalnie 1800 znaków."); return;
+            }
+            if (!connected()) { callback(rid, false, "Połącz konto WordPress, aby użyć wyszukiwania internetowego."); return; }
+            if (BuildConfig.ASSISTANT_ENDPOINT == null || BuildConfig.ASSISTANT_ENDPOINT.trim().isEmpty()) {
+                callback(rid, false, "Wyszukiwanie AI nie jest skonfigurowane. Potrzebny jest backend Gemini z Google Search po stronie serwera."); return;
+            }
+            work.execute(() -> askResearchOnServer(rid, prompt));
+        }
+
         @JavascriptInterface public void dictate() {
             ui.post(() -> {
                 try {
@@ -676,6 +688,47 @@ public class MainActivity extends Activity {
         } catch (Exception ex) {
             if (isAuthenticationFailure(ex)) { verified = false; clearSession(); }
             callback(rid, false, ex.getMessage() == null ? "Nie udało się skontaktować z Asystentem." : ex.getMessage());
+        } finally { if (connection != null) connection.disconnect(); }
+    }
+
+    private void askResearchOnServer(String rid, String prompt) {
+        HttpURLConnection connection = null;
+        try {
+            JSONObject payload = new JSONObject().put("mode", "research").put("prompt", prompt);
+            String token = accessTokenForRequest(false);
+            for (int attempt = 0; attempt < 2; attempt++) {
+                connection = (HttpURLConnection) new URL(BuildConfig.ASSISTANT_ENDPOINT).openConnection();
+                connection.setRequestMethod("POST");
+                connection.setConnectTimeout(15000);
+                connection.setReadTimeout(60000);
+                connection.setInstanceFollowRedirects(false);
+                connection.setRequestProperty("Authorization", "Bearer " + token);
+                connection.setRequestProperty("Content-Type", "application/json; charset=UTF-8");
+                connection.setRequestProperty("Accept", "application/json");
+                connection.setDoOutput(true);
+                try (OutputStream out = connection.getOutputStream()) {
+                    out.write(payload.toString().getBytes(StandardCharsets.UTF_8));
+                }
+                int status = connection.getResponseCode();
+                String response = readReply(connection, status);
+                if (status == 401 && attempt == 0) {
+                    connection.disconnect(); connection = null;
+                    token = accessTokenForRequest(true);
+                    continue;
+                }
+                if (status < 200 || status >= 300)
+                    throw new Exception("Wyszukiwanie internetowe: HTTP " + status + ": " + friendlyError(response));
+                JSONObject result = new JSONObject(response);
+                if (result.optString("text").trim().isEmpty() || result.optJSONArray("sources") == null
+                    || result.optJSONArray("sources").length() == 0)
+                    throw new Exception("Backend nie zwrócił raportu ze źródłami.");
+                callback(rid, true, result.toString());
+                return;
+            }
+            throw new Exception("Nie udało się odświeżyć sesji WordPress dla wyszukiwania.");
+        } catch (Exception ex) {
+            if (isAuthenticationFailure(ex)) { verified = false; clearSession(); }
+            callback(rid, false, ex.getMessage() == null ? "Nie udało się wykonać wyszukiwania." : ex.getMessage());
         } finally { if (connection != null) connection.disconnect(); }
     }
 
