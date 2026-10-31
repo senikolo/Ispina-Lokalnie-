@@ -506,6 +506,16 @@ public class MainActivity extends Activity {
         finally { if (c != null) c.disconnect(); }
     }
 
+    @Override protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        setIntent(intent);
+        if (intent != null && intent.getData() != null &&
+            "ilredaktor".equals(intent.getData().getScheme()) &&
+            "resume".equals(intent.getData().getHost())) {
+            callback("auth-progress",true,"Wrócono do Redaktora. Sprawdzam wynik autoryzacji WordPress…");
+        }
+    }
+
     @Override public void onBackPressed() {
         if (editor.canGoBack()) editor.goBack();
         else super.onBackPressed();
