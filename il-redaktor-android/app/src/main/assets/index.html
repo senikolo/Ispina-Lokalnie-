@@ -237,6 +237,7 @@ header{animation:ilHeader .38s cubic-bezier(.2,.7,.2,1) both}.brand .logo{animat
     <details class="note"><summary>💬 Pomoc przy tym tekście</summary><p id="editor-help-mode">Lokalne propozycje działają bez AI: korekta nazw, skrócenie pierwszego akapitu i zakończenie. Swobodne polecenia wymagają skonfigurowanego AI. Gdy jest włączone, takie polecenie wyśle do niego bieżący artykuł i Twoje zadanie.</p><div id="editor-chat-log" role="log" aria-live="polite"></div><label for="editor-command">Co mam zaproponować?</label><input id="editor-command" maxlength="1200" placeholder="Np. skróć początek"><div class="actions"><button class="secondary" onclick="editorHelp('Popraw nazwy')">Popraw nazwy</button><button class="secondary" onclick="editorHelp('Skróć początek')">Skróć początek</button><button class="secondary" onclick="editorHelp('Dodaj cieplejsze zakończenie')">Zakończenie</button><button onclick="editorHelp()">Przygotuj propozycję</button></div><p class="small">Po zatwierdzeniu zmian możesz je cofnąć. Pomoc nie publikuje tekstu.</p></details>
     <label for="post-title">Tytuł artykułu</label><input id="post-title" placeholder="Np. 10 ciekawostek o Ispinie">
     <label for="post-body">Treść artykułu</label>
+    <div class="note" role="group" aria-label="Inteligentny skład artykułu"><strong>✨ Inteligentne formatowanie</strong><p class="small">Ułóż akapity i istniejące śródtytuły bez zmiany faktów. Każda propozycja otworzy porównanie — tekst nie zmieni się bez zatwierdzenia.</p><div class="actions"><button type="button" onclick="formatArticleLocally()">⚡ Sformatuj automatycznie · bezpłatnie</button><button type="button" class="secondary" onclick="formatArticleWithAI()">✨ Sformatuj za pomocą AI</button></div><p id="auto-format-status" class="small" role="status">Dostępny jest tryb lokalny oraz ChatGPT/Gemini; AI online wymaga skonfigurowanego połączenia.</p></div>
     <div class="format-toolbar" role="toolbar" aria-label="Formatowanie artykułu">
       <button type="button" class="secondary" onclick="formatEditor('bold')"><b>B</b> Pogrub</button><button type="button" class="secondary" onclick="formatEditor('italic')"><i>I</i> Kursywa</button><button type="button" class="secondary" onclick="formatEditor('h2')">Śródtytuł</button><button type="button" class="secondary" onclick="formatEditor('bullets')">Lista punktowana</button><button type="button" class="secondary" onclick="formatEditor('numbers')">Lista numerowana</button><button type="button" class="secondary" onclick="formatEditor('quote')">Cytat</button>
     </div>
@@ -342,7 +343,7 @@ header{animation:ilHeader .38s cubic-bezier(.2,.7,.2,1) both}.brand .logo{animat
     <label class="setting-row"><input type="checkbox" id="battery-saving" onchange="applyUiPreferences(true)"><span>Tryb oszczędzania baterii</span></label>
     <p id="ui-preferences-status" class="setting-caption" role="status" aria-live="polite">Ustawienia zapisują się na tym telefonie. Systemowe ograniczenie ruchu zawsze ma pierwszeństwo.</p>
   </div>
-  <div class="card"><h2>O programie</h2><p class="muted">IL Redaktor Smart 1.20.0 · Niezależna aplikacja Android 8 i nowszy. WordPress.com MCP. Publikacja wymaga potwierdzenia i ponownego odczytu wpisu.</p></div>
+  <div class="card"><h2>O programie</h2><p class="muted">IL Redaktor Smart 1.21.0 · Niezależna aplikacja Android 8 i nowszy. WordPress.com MCP. Publikacja wymaga potwierdzenia i ponownego odczytu wpisu.</p></div>
 </section>
 </main>
 <div id="conflict-dialog" class="finish-dialog hidden" role="dialog" aria-modal="true" aria-labelledby="conflict-title"><div class="finish-panel"><h2 id="conflict-title">Wersja na WordPressie wymaga porównania</h2><p id="conflict-message"></p><p>Nie wysłano zmian artykułu. Twoja praca pozostaje w szkicach na telefonie.</p><button class="secondary" onclick="showConflictComparison()">Porównaj wersje</button><div id="conflict-comparison" class="hidden"></div><p id="conflict-feedback" role="status"></p><div class="actions"><button onclick="resolveRemoteConflict(false)">Wczytaj wersję ze strony</button><button class="secondary" onclick="resolveRemoteConflict(true)">Zachowaj obie kopie</button><button class="secondary" onclick="closeRemoteConflict()">Wróć do tekstu</button></div><p class="small">Wczytanie nie usuwa Twojego szkicu. Zachowaj obie kopie odłączy lokalną wersję od wpisu na stronie.</p></div></div>
@@ -659,7 +660,7 @@ function signInGoogle(){
   IL.signInGoogle();
 }
 function oneTapConnect(){signInGoogle();}
-function assistantExample(value){assistantEditorTarget=null;$("assistant-prompt").value=value}
+function assistantExample(value){aiFormattingPending=false;assistantEditorTarget=null;$("assistant-prompt").value=value}
 function externalAssistantPrompt(){
   const task=trim($("assistant-prompt").value);if(!task)return "";
   return "Jesteś pomocnikiem redaktora lokalnego portalu Ispina Lokalnie. Przygotuj wyłącznie propozycję do sprawdzenia. Nie wymyślaj dat, nazwisk, liczb, źródeł, cytatów ani faktów. Nie twierdź, że coś zweryfikowałeś, jeśli nie dostałeś źródła. Zachowaj sens i poprawną polską odmianę nazwy: w Ispinie, do Ispiny, z Ispiny. Nie zapisuj ani nie publikuj. Jeśli brakuje informacji, wpisz [DO UZUPEŁNIENIA]. Zwróć samą gotową propozycję, bez komentarza o wykonaniu zadania.\n\nZadanie redaktora:\n"+task;
@@ -684,13 +685,20 @@ function compareExternalAssistantResponse(){
     assistantDraft={intent:"question",message:"Propozycja z aplikacji AI. Sprawdź fakty przed użyciem; możesz ją skopiować, nic nie zostało opublikowane.",title:"",content:"",excerpt:"",category:"",tags:[],internalLinks:[],factsToVerify:["Sprawdź każdą datę, liczbę, nazwę i twierdzenie z wiarygodnym źródłem."],service:null,facebookPost:answer,imageSuggestion:null};
     renderAssistantResult(assistantDraft);$("assistant-handoff-status").textContent="Przygotowałem zajawkę do sprawdzenia i skopiowania.";return true;
   }
-  const fields={};fields[target]=answer;if(target==="body")fields.mode="text";
+  const fields={};
+  if(target==="body"&&aiFormattingPending){
+    const original=assistantEditorTarget?.snapshot;
+    const html=answer.replace(/^\s*```(?:html)?\s*/i,"").replace(/\s*```\s*$/,"");
+    if(!original||!formattingMatchesOriginal(original.body,original.mode,html)){$("assistant-handoff-status").textContent="AI zmieniło słowa albo kolejność tekstu. Odrzucono formatowanie; spróbuj ponownie z poleceniem zachowania oryginału.";return false;}
+    fields.body=html;fields.mode="html";aiFormattingPending=false;
+  } else {fields[target]=answer;if(target==="body")fields.mode="text";}
   showScreen("editor");
   const opened=offerCorrection(fields,"Odpowiedź z ChatGPT/Gemini. Porównaj ją ze swoim tekstem; nic nie zmieni się, dopóki nie zatwierdzisz porównania.");
   if(opened)$("assistant-handoff-status").textContent="Otworzyłem porównanie. Zmiany pojawią się w artykule dopiero po Twoim zatwierdzeniu.";
   return opened;
 }
 function assistantFromEditor(task){
+  aiFormattingPending=false;
   const title=trim($("post-title").value),body=trim($("post-body").value);
   if(!body){message("assistant-output","Najpierw wpisz treść artykułu albo otwórz istniejący wpis.","error");showScreen("assistant");return}
   assistantEditorTarget={id:activeDraftId,snapshot:captureDraft(),signature:draftSignature(captureDraft())};
@@ -874,7 +882,7 @@ async function testDraftWrite(){
   if(!confirm("Utworzyć w WordPressie prywatny szkic diagnostyczny? Nie będzie publiczny i pozostanie na liście szkiców do ręcznego usunięcia."))return;
   const testButton=$("test-draft-write");
   diagnosticWriteBusy=true;testButton.disabled=true;
-  const title="[TEST IL Redaktor Smart 1.20.0] Sprawdzenie zapisu "+new Date().toLocaleString("pl-PL");
+  const title="[TEST IL Redaktor Smart 1.21.0] Sprawdzenie zapisu "+new Date().toLocaleString("pl-PL");
   const body={title,content:"<p>Test techniczny zapisu z aplikacji IL Redaktor Smart. Ten szkic nie jest przeznaczony do publikacji.</p>",status:"draft",excerpt:"Test techniczny. Nie publikować."};
   let createdId=null;
   startOperation("Test: zapisuję szkic w WordPressie…");
@@ -981,6 +989,76 @@ function formatEditor(action){
   }
   updateMetrics();scheduleLocalSave();$("local-save-status").textContent="Formatowanie dodano. Treść pozostaje szkicem — sprawdź podgląd.";return true;
 }
+// Formatting may restructure blocks, but it must never silently rewrite the article.
+function formatWords(value,mode){
+  let text=String(value||"");
+  if(mode==="html")text=text.replace(/<\s*br\s*\/?>/gi," ").replace(/<\/(?:p|div|li|h[1-6]|blockquote)>/gi," ");
+  else text=text.replace(/^\s*#{2,3}\s+/gm,"").replace(/^\s*(?:[-*]|\d+[.)]|>)\s+/gm,"")
+    .replace(/\[([^\]]+)\]\(https?:\/\/[^)]+\)/g,"$1").replace(/\*\*([^*]+)\*\*/g,"$1").replace(/_([^_]+)_/g,"$1");
+  return wpPlain(text).normalize("NFC").replace(/\s+/g," ").trim();
+}
+function formattingMatchesOriginal(original,originalMode,formatted){
+  return formatWords(original,originalMode)===formatWords(formatted,"html");
+}
+function localArticleMarkup(value,mode){
+  if(mode==="html")return String(value||""); // Preserve original blocks and attributes.
+  const paragraphs=String(value||"").replace(/\r\n?/g,"\n").trim().split(/\n\s*\n/).filter(Boolean);
+  const result=[];
+  for(const part of paragraphs){
+    const lines=part.split("\n"),joined=part.replace(/\s*\n\s*/g," ").trim();
+    if(lines.length===1&&joined.length>390&&!/^(?:#{2,3}\s+|[-*]\s+|>\s*)/.test(joined)){
+      const sentences=joined.match(/[^.!?]+(?:[.!?]+|$)/g)||[joined];
+      const grouped=[];let paragraph="";
+      for(const raw of sentences){const sentence=raw.trim();if(!sentence)continue;
+        if(paragraph&&paragraph.length+sentence.length>290){grouped.push(paragraph);paragraph="";}
+        paragraph+=(paragraph?" ":"")+sentence;
+      }
+      if(paragraph)grouped.push(paragraph);
+      result.push(grouped.join("\n\n"));
+    }else result.push(part);
+  }
+  return asHtml(result.join("\n\n"));
+}
+function formatArticleLocally(){
+  if(publicationBusy)return false;
+  const current=captureDraft();
+  if(!trim(current.body)){$("auto-format-status").textContent="Najpierw wpisz lub otwórz treść artykułu.";return false;}
+  if(current.mode==="html"){$("auto-format-status").textContent="Tekst jest już w HTML. Nie przebudowuję gotowych bloków bez sprawdzenia; użyj formatowania AI, by przygotować propozycję.";return false;}
+  const formatted=localArticleMarkup(current.body,current.mode);
+  if(!formattingMatchesOriginal(current.body,current.mode,formatted)){$("auto-format-status").textContent="Wstrzymano skład, ponieważ porównanie wykryło różnicę w słowach.";return false;}
+  const opened=offerCorrection({body:formatted,mode:"html"},"Bezpłatne formatowanie lokalne: akapity, istniejące śródtytuły, listy i cytaty. Sprawdziłem zachowanie oryginalnych słów, ale przeczytaj podgląd.");
+  $("auto-format-status").textContent=opened?"Propozycja gotowa — zaakceptuj albo odrzuć zmiany.":"Nie ma zmian do zaproponowania.";
+  return opened;
+}
+let aiFormattingPending=false;
+async function formatArticleWithAI(){
+  if(publicationBusy)return false;
+  const original=captureDraft();
+  if(!trim(original.body)){$("auto-format-status").textContent="Najpierw wpisz treść artykułu.";return false;}
+  if(!persistDraft(true)){$("auto-format-status").textContent="Najpierw zapisz kopię lokalną. Operacja została wstrzymana.";return false;}
+  const task="Wyłącznie SFORMATUJ poniższą treść do semantycznego HTML WordPress: <p>, <h2>, <h3>, <ul>, <ol>, <blockquote>, <strong>, <em>. Zachowaj każde słowo, datę, nazwisko, znak interpunkcyjny i kolejność zdań. Nie dopisuj nagłówków, komentarzy, cytatów, faktów ani nowych linków. Nie usuwaj tekstu. W odpowiedzi podaj tylko gotowy HTML, bez Markdown fences. Jeśli treść ma już formatowanie HTML, zachowaj wszystkie istniejące linki i elementy. Nie publikuj.\n\nOryginał ("+original.mode+"):\n"+original.body;
+  aiFormattingPending=true;
+  assistantEditorTarget={id:activeDraftId,signature:draftSignature(original),snapshot:original};
+  if(assistantEnabled&&connected){
+    if(task.length>6000){$("auto-format-status").textContent="Artykuł przekracza limit AI online. Użyj trybu lokalnego albo opracuj fragment.";return false;}
+    if(!confirm("Wysłać artykuł do skonfigurowanego AI? Treść trafi do dostawcy modelu i mogą obowiązywać opłaty. Nie zostanie opublikowana."))return false;
+    $("auto-format-status").textContent="AI przygotowuje propozycję formatowania. Oryginalny szkic pozostaje bez zmian.";
+    try{
+      const suggestion=await requestAssistant("Zwróć intent article_draft oraz content z formatowaniem HTML. Nie dodawaj ani nie zmieniaj słów. "+task,{posts:[],services:[]});
+      if(!suggestion.content)throw Error("AI nie zwróciło sformatowanego tekstu.");
+      if(assistantEditorTarget.id!==activeDraftId||assistantEditorTarget.signature!==draftSignature(captureDraft()))throw Error("Tekst zmienił się podczas pracy AI — przygotuj propozycję ponownie.");
+      if(!formattingMatchesOriginal(original.body,original.mode,suggestion.content))throw Error("AI zmieniło słowa lub interpunkcję. Odrzuciłem propozycję, aby nie zmieniać faktów.");
+      const ok=offerCorrection({body:suggestion.content,mode:"html"},"Formatowanie AI: automatyczny skład bez ingerencji w słowa. Wymagana Twoja akceptacja.");
+      $("auto-format-status").textContent=ok?"AI przygotowało propozycję. Sprawdź porównanie i zatwierdź.":"AI nie zaproponowało zmian.";
+      aiFormattingPending=false;return ok;
+    }catch(error){$("auto-format-status").textContent="Formatowanie AI nie zostało zastosowane: "+error.message+" Możesz użyć trybu lokalnego.";aiFormattingPending=false;return false;}
+  }
+  $("assistant-prompt").value=task;
+  $("assistant-return-target").value="body";
+  showScreen("assistant");
+  $("assistant-handoff-status").textContent="Wybierz „Otwórz ChatGPT, w razie potrzeby Gemini”. Wklej odpowiedź HTML ze schowka do porównania. To działa bez klucza API i bez automatycznego publikowania.";
+  return true;
+}
 function editorHtml(){return $("post-mode").value==="html"?$("post-body").value:asHtml($("post-body").value)}
 function preview(){
   const title=esc(trim($("post-title").value)||"Bez tytułu");
@@ -1005,6 +1083,26 @@ async function ensureTags(list){
     if(tag.id)result.push(tag.id);
   }
   return result;
+}
+function normalizedPublishedHtml(html){
+  return String(html||"").replace(/<!--\s*\/?wp:[\s\S]*?-->/g,"").replace(/>\s+</g,"><").replace(/\s+/g," ").trim();
+}
+function readWordPressScheduleTime(post){
+  const gmt=String(post.date_gmt||"");
+  if(gmt && gmt!=="0000-00-00T00:00:00")return Date.parse(/[zZ]|[+-]\d{2}:\d{2}$/.test(gmt)?gmt:gmt+"Z");
+  return Date.parse(String(post.date||""));
+}
+function verifyWordPressPostContents(sent,received){
+  const differences=[];
+  const value=v=>typeof v==="string"?v:(typeof v?.raw==="string"?v.raw:null);
+  if(value(received.title)!==sent.title)differences.push("inny lub nieodczytany tytuł");
+  const remoteHtml=value(received.content);
+  if(remoteHtml===null||normalizedPublishedHtml(remoteHtml)!==normalizedPublishedHtml(sent.content))differences.push("inna lub nieodczytana treść HTML");
+  if(value(received.excerpt)!==sent.excerpt)differences.push("inna lub nieodczytana zajawka");
+  if(!Array.isArray(received.categories)||!sent.categories.every(id=>received.categories.map(Number).includes(Number(id))))differences.push("niepotwierdzone kategorie");
+  if(sent.featured_media!==undefined&&Number(received.featured_media)!==Number(sent.featured_media))differences.push("niepotwierdzone zdjęcie");
+  if(Array.isArray(sent.tags)&&(!Array.isArray(received.tags)||!sent.tags.every(id=>received.tags.map(Number).includes(Number(id)))))differences.push("niepotwierdzone tagi");
+  return differences;
 }
 async function savePost(status,reviewApproval=null){
   if(!connected){message("post-output","Najpierw połącz konto WordPress.","error");showScreen("settings");return}
@@ -1104,14 +1202,20 @@ async function savePost(status,reviewApproval=null){
       return;
     }
     if(status==="future"){
-      const confirmedDate=verified.date_gmt||verified.date;
-      const confirmedTime=confirmedDate?Date.parse(confirmedDate):NaN;
+      const confirmedTime=readWordPressScheduleTime(verified);
       if(!Number.isFinite(confirmedTime)||Math.abs(confirmedTime-Date.parse(scheduledDate))>90000){
         $("edit-status").textContent="Do sprawdzenia";
         publicationPhase("WordPress nie potwierdził wybranego terminu publikacji.","error");
         showOutcome("error","TERMIN NIEPOTWIERDZONY","Wpis #"+postId+" ma status zaplanowany, ale odczytana data nie odpowiada wybranemu terminowi. Sprawdź harmonogram w WordPressie przed ponowieniem.");
         return;
       }
+    }
+    const mismatches=verifyWordPressPostContents(data,verified);
+    if(mismatches.length){
+      $("edit-status").textContent="Treść do sprawdzenia";
+      publicationPhase("WordPress potwierdził status, ale nie potwierdził pełnej zgodności artykułu.","error");
+      showOutcome("error","TREŚĆ NIEPOTWIERDZONA","Wpis #"+postId+" istnieje, jednak: "+mismatches.join("; ")+". Nie publikuj ponownie — sprawdź wpis w WordPressie.");
+      return;
     }
     postStatus=verified.status;remoteBaseline=remoteVersion(verified);
     $("edit-status").textContent=status==="publish"?"Opublikowany":status==="future"?"Zaplanowany":"Szkic zapisany";
@@ -1772,10 +1876,12 @@ function chooseMedia(id){
 }
 ["post-title","post-body","post-excerpt","post-tags","post-category","post-mode","post-media","post-schedule","post-sources"].forEach(id=>{
   $(id).addEventListener("input",()=>{updateMetrics();scheduleLocalSave()});
-  $(id).addEventListener("change",()=>{updateMetrics();scheduleLocalSave()});
+  $(id).addEventListener("change",()=>{updateMetrics();if(!persistDraft(true))$("local-save-status").textContent="Nie udało się zapisać ostatnich zmian — użyj Kopia tekstu.";});
 });
 document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="hidden")flushDraftOnExit()});
 window.addEventListener("pagehide",flushDraftOnExit);
+window.addEventListener("beforeunload",flushDraftOnExit);
+document.addEventListener("focusout",event=>{if(event.target&&event.target.id&&Object.values(draftFields).includes(event.target.id))flushDraftOnExit();},true);
 updateMetrics();
 if(actionHistory.length){
   $("activity-feed").innerHTML=actionHistory.map(a=>'<div class="activity-entry '+esc(a.kind)+'"><strong>'+esc(a.at+" · "+a.title)+'</strong><small>'+esc(a.detail)+'</small></div>').join("");
