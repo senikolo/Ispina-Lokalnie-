@@ -223,3 +223,32 @@ test("OAuth waiting indicator is pending, not a forever-spinning progress state"
   assert.match(a.node("working-state").className,/pending/);
   assert.equal(a.node("login-recovery").classList.contains("hidden"),false);
 });
+
+test("diagnostic really creates a draft and verifies it via GET before success",async()=>{
+  const a=setup(),calls=[];
+  a.c.rpc=async(method,path,body)=>{
+    calls.push({method,path,body});
+    return method==="POST"?{id:8801,status:"draft"}:{id:8801,status:"draft"};
+  };
+  await a.run("testDraftWrite()");
+  assert.equal(calls.length,2);
+  assert.equal(calls[0].method,"POST");
+  assert.equal(calls[0].body.status,"draft");
+  assert.equal(calls[0].path,"posts");
+  assert.equal(calls[1].method,"GET");
+  assert.equal(calls[1].path,"posts/8801?context=edit");
+  assert.match(a.node("finish-title").textContent,/TEST ZAPISU: SUKCES/);
+  assert.equal(a.node("test-draft-write").disabled,false);
+});
+test("draft diagnostic never claims success if verification fails and never retries writes",async()=>{
+  const a=setup(),calls=[];
+  a.c.rpc=async(method,path)=>{
+    calls.push({method,path});
+    if(method==="POST")return {id:8802,status:"draft"};
+    throw Error("Serwer odmówił odczytu");
+  };
+  await a.run("testDraftWrite()");
+  assert.equal(calls.filter(x=>x.method==="POST").length,1);
+  assert.match(a.node("finish-title").textContent,/NIEZWERYFIKOWANY/);
+  assert.equal(a.node("test-draft-write").disabled,false);
+});
