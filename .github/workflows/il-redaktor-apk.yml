@@ -87,7 +87,7 @@ jobs:
           manifest=pathlib.Path('il-redaktor-android/app/src/main/AndroidManifest.xml').read_text()
           assert '"&scope=global"' in oauth, 'WordPress MCP requires the global scope, not auth-only'
           assert '"&scope=auth"' not in oauth, 'Auth-only scope cannot access WordPress MCP content'
-          for expected in ['com.ispinalokalnie.redaktorsmart.publish180:/callback','code_challenge_method=S256','PENDING_VERIFIER','handleRedirect']:
+          for expected in ['com.ispinalokalnie.redaktorsmart.publish190:/callback','code_challenge_method=S256','PENDING_VERIFIER','handleRedirect']:
               assert expected in oauth, 'OAuth return missing: '+expected
           for required in ['\"method\", \"initialize\"', 'Mcp-Session-Id', 'notifications/initialized', 'ensureMcpSession(token)', 'ExpiredMcpSession', 'resetSession()']:
               assert required in mcp, 'Missing MCP session lifecycle: ' + required
@@ -98,7 +98,17 @@ jobs:
           assert 'AndroidKeyStore' in main and 'encryptSecret' in main, 'Tokens are not encrypted at rest'
           assert 'JSONArray)data).length() == 0' in main, 'Login must confirm at least one existing article'
           assert 'response_type=token' not in main and 'response_type=token' not in oauth, 'Implicit OAuth flow must not be used'
-          assert 'android:scheme="com.ispinalokalnie.redaktorsmart.publish180"' in manifest
+          assert 'android:scheme="com.ispinalokalnie.redaktorsmart.publish190"' in manifest
+          import re
+          redirect=re.search(r'public static final String REDIRECT = "([^"]+)"',oauth)
+          checked=re.search(r'"(com\\.ispinalokalnie\\.redaktorsmart\\.publish\\d+)"\\.equals\\(uri\\.getScheme\\(\\)\\)',oauth)
+          assert redirect and checked, 'OAuth REDIRECT and callback scheme must be statically inspectable'
+          assert redirect.group(1).split(':')[0] == checked.group(1), 'Critical regression: OAuth callback scheme mismatch'
+          assert 'android:scheme="' + checked.group(1) + '"' in manifest, 'Android manifest callback scheme mismatch'
+          assert 'void finishLoginWithUrl' in main and 'void cancelLogin' in main, 'OAuth fallback controls missing'
+          assert 'android.permission.VIBRATE' in manifest, 'Vibration permission missing'
+          assert 'function setHapticsMode' in src and 'haptics-select' in src, 'Adjustable haptics controls missing'
+          assert 'function finishManualLogin' in src and 'login-recovery' in src, 'Manual OAuth recovery missing'
           for required in ['SUKCES!','NIE POWIODŁO SIĘ','function showOutcome','id="finish-dialog"']:
               assert required in src, 'Feedback UI missing: '+required
           assert 'client_secret' not in oauth and 'client_secret' not in src.lower()
@@ -111,7 +121,7 @@ jobs:
           import json, urllib.request, urllib.error
           url='https://public-api.wordpress.com/oauth2-1/register'
           payload={'client_name':'IL Redaktor Smart Android Redirect CI',
-                   'redirect_uris':['com.ispinalokalnie.redaktorsmart.publish180:/callback'],
+                   'redirect_uris':['com.ispinalokalnie.redaktorsmart.publish190:/callback'],
                    'grant_types':['authorization_code','refresh_token'],
                    'response_types':['code'],
                    'token_endpoint_auth_method':'none'}
@@ -169,7 +179,7 @@ jobs:
           test -s "$APK"
           test -s il-redaktor-android/app/src/main/assets/il-monogram.png
           "$SDK_ROOT/build-tools/35.0.0/apksigner" verify --verbose "$APK"
-          "$SDK_ROOT/build-tools/35.0.0/aapt" dump badging "$APK" | grep -F "package: name='com.ispinalokalnie.redaktorsmart.publish180.test' versionCode='13' versionName='1.8.0-test'"
+          "$SDK_ROOT/build-tools/35.0.0/aapt" dump badging "$APK" | grep -F "package: name='com.ispinalokalnie.redaktorsmart.publish190.test' versionCode='14' versionName='1.9.0-test'"
           unzip -l "$APK" | grep 'assets/il-monogram.png'
       - name: Upload installable APK
         uses: actions/upload-artifact@v4
@@ -233,8 +243,8 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          TAG="il-redaktor-smart-1.8.0-test"
-          FILE="IL-Redaktor-Smart-1.8.0-TEST.apk"
+          TAG="il-redaktor-smart-1.9.0-test"
+          FILE="IL-Redaktor-Smart-1.9.0-TEST.apk"
           test -s android-package/app-debug.apk
           cp android-package/app-debug.apk "$FILE"
           if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
@@ -243,7 +253,7 @@ jobs:
             gh release create "$TAG" "$FILE" \
               --repo "$GITHUB_REPOSITORY" \
               --target "$GITHUB_SHA" \
-              --title "IL Redaktor Smart 1.8.0 TEST (WordPress MCP + status, animacje i audyt)" \
+              --title "IL Redaktor Smart 1.9.0 TEST (WordPress MCP + status, animacje i audyt)" \
               --notes "Wersja testowa Android 8+. Ikona Redaktora z czerwoną kropką. Poprawiona obsługa logowania WordPress.com i sesji MCP. Test na telefonie jest wymagany; nie scalać z main bez weryfikacji." \
               --prerelease
           fi
