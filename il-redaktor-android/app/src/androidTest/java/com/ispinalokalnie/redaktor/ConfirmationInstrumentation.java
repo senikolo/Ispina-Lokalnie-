@@ -95,6 +95,9 @@ public final class ConfirmationInstrumentation extends Instrumentation {
         android.util.AtomicFile interrupted=new android.util.AtomicFile(durablePath);java.io.FileOutputStream partial=interrupted.startWrite();partial.write("partial".getBytes(java.nio.charset.StandardCharsets.UTF_8));interrupted.failWrite(partial);
         if(!valid.equals(new org.json.JSONObject(durable.read()).getString("data")))throw new AssertionError("Atomic rollback lost previous drafts");durablePath.delete();
         if(!"true".equals(evaluate("JSON.parse(IL.readDraftLibrary()).exists && JSON.parse(JSON.parse(IL.readDraftLibrary()).data).drafts.length===readDraftStore().drafts.length")))throw new AssertionError("Editor did not durably migrate/save drafts");
+        diagnosticStage="professional formatting and exit save";
+        String formatAndSave=evaluate("(()=>{resetEditor();$('post-mode').value='text';const text='To jest ważna informacja';$('post-body').value=text;const field=$('post-body');field.setSelectionRange(text.indexOf('ważna'),text.length);formatEditor('bold');const formatted=field.value==='To jest **ważna informacja**'&&editorHtml().includes('<strong>ważna informacja</strong>');$('post-title').value='Szkic zachowany przy wyjściu';field.value='Ostatni tekst przed zamknięciem.';scheduleLocalSave();showScreen('home');const store=JSON.parse(JSON.parse(IL.readDraftLibrary()).data);const saved=store.drafts.find(d=>d.title==='Szkic zachowany przy wyjściu');showScreen('editor');return formatted&&!!saved&&saved.body==='Ostatni tekst przed zamknięciem.'})()");
+        if(!"true".equals(formatAndSave))throw new AssertionError("Professional formatting / exit save failed: "+formatAndSave);captureUi("editor-formatting");
         diagnosticStage="backup export";
         String payload=(String)new org.json.JSONTokener(evaluate("makeDraftBackup()")).nextValue();
         java.io.File pending=new java.io.File(getTargetContext().getCacheDir(),"il-drafts-export-pending.json"),saved=new java.io.File(getTargetContext().getCacheDir(),"backup-stream-test.json");
@@ -157,12 +160,12 @@ public final class ConfirmationInstrumentation extends Instrumentation {
                 if(!getTargetContext().getSharedPreferences("il_update_probe",0).edit().putString("marker","preserved").commit())throw new AssertionError("Preferences seeding failed");
                 result.putString("stream","IL_UPDATE_SEED=PASS\n");
             } else if ("verify".equals(mode)) {
-                if(getTargetContext().getPackageManager().getPackageInfo(getTargetContext().getPackageName(),0).versionCode!=25)throw new AssertionError("Verification must run after upgrade to versionCode 25");
+                if(getTargetContext().getPackageManager().getPackageInfo(getTargetContext().getPackageName(),0).versionCode!=26)throw new AssertionError("Verification must run after upgrade to versionCode 26");
                 String restored=evaluate("JSON.stringify(readDraftStore().drafts.map(d=>[d.title,d.body,d.revisions.length]))");
                 if(!restored.contains("Pierwszy szkic")||!restored.contains("Druga wersja")||!restored.contains("Drugi szkic"))throw new AssertionError("Drafts lost after reinstall: "+restored);
                 if(!"preserved".equals(getTargetContext().getSharedPreferences("il_update_probe",0).getString("marker","")))throw new AssertionError("Preferences lost after reinstall");
                 if(!"true".equals(evaluate("readDraftStore().drafts.some(d=>d.revisions.some(v=>v.snapshot.body==='Pierwsza wersja'))")))throw new AssertionError("Revision history lost");
-                result.putString("stream","IL_UPDATE_DATA_TEST=PASS (1.15 to 1.19 upgrade: drafts, history, preferences)\n");
+                result.putString("stream","IL_UPDATE_DATA_TEST=PASS (1.15 to 1.20 upgrade: drafts, history, preferences)\n");
             } else {
             diagnosticStage="photo crop";verifyEditorFeatures();
             verifyWorkspaceFeatures();
