@@ -226,6 +226,22 @@ public class MainActivity extends Activity {
             work.execute(() -> doRequest(rid, method, path, json));
         }
 
+        @JavascriptInterface public void dictate() {
+            ui.post(() -> {
+                try {
+                    Intent voice = new Intent(android.speech.RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
+                    voice.putExtra(android.speech.RecognizerIntent.EXTRA_LANGUAGE_MODEL,
+                        android.speech.RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
+                    voice.putExtra(android.speech.RecognizerIntent.EXTRA_LANGUAGE, "pl-PL");
+                    voice.putExtra(android.speech.RecognizerIntent.EXTRA_PROMPT,
+                        "Podyktuj treść dla Ispina Lokalnie");
+                    startActivityForResult(voice, 1005);
+                } catch (Exception ex) {
+                    callback("dictate", false, "Na telefonie nie ma dostępnego rozpoznawania mowy.");
+                }
+            });
+        }
+
         @JavascriptInterface public void chooseImage() {
             ui.post(() -> {
                 Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
@@ -382,6 +398,11 @@ public class MainActivity extends Activity {
 
     @Override protected void onActivityResult(int request, int result, Intent intent) {
         super.onActivityResult(request, result, intent);
+        if (request == 1005 && result == RESULT_OK && intent != null) {
+            java.util.ArrayList<String> matches =
+                intent.getStringArrayListExtra(android.speech.RecognizerIntent.EXTRA_RESULTS);
+            if (matches != null && !matches.isEmpty()) callback("dictate", true, matches.get(0));
+        }
         if (request == 1004 && result == RESULT_OK && intent != null && intent.getData() != null) {
             if (!connected()) { callback("upload", false, "Najpierw połącz konto."); return; }
             Uri uri = intent.getData();
