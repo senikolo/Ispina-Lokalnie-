@@ -109,6 +109,9 @@ public final class ConfirmationInstrumentation extends Instrumentation {
     }
 
     private void captureUi(String name)throws Exception{
+        CountDownLatch rendered=new CountDownLatch(1);
+        runOnMainSync(()->editor.postVisualStateCallback(SystemClock.uptimeMillis(),new WebView.VisualStateCallback(){@Override public void onComplete(long requestId){editor.invalidate();editor.postOnAnimation(()->editor.postOnAnimation(rendered::countDown));}}));
+        if(!rendered.await(15,TimeUnit.SECONDS))throw new AssertionError("WebView did not present "+name);
         getUiAutomation().waitForIdle(600,5000);android.graphics.Bitmap shot=getUiAutomation().takeScreenshot();if(shot==null)throw new AssertionError("No screenshot for "+name);
         java.io.File dir=new java.io.File(getTargetContext().getFilesDir(),"qa");dir.mkdirs();try(java.io.FileOutputStream out=new java.io.FileOutputStream(new java.io.File(dir,name+".png"))){shot.compress(android.graphics.Bitmap.CompressFormat.PNG,100,out);}shot.recycle();
     }
@@ -118,15 +121,15 @@ public final class ConfirmationInstrumentation extends Instrumentation {
         android.graphics.Bitmap image=android.graphics.Bitmap.createBitmap(1280,960,android.graphics.Bitmap.Config.ARGB_8888);int[] pixels=new int[1280*960];java.util.Random random=new java.util.Random(17);for(int i=0;i<pixels.length;i++)pixels[i]=0xff000000|random.nextInt(0x1000000);image.setPixels(pixels,0,1280,0,0,1280,960);java.io.ByteArrayOutputStream out=new java.io.ByteArrayOutputStream();image.compress(android.graphics.Bitmap.CompressFormat.JPEG,90,out);image.recycle();
         java.io.File sourceImage=new java.io.File(getTargetContext().getCacheDir(),"source-photo-test.jpg");try(java.io.FileOutputStream file=new java.io.FileOutputStream(sourceImage)){file.write(out.toByteArray());}
         evaluate("sourcePhotoTarget={id:activeDraftId,source:null}");runOnMainSync(()->activity.onActivityResult(1008,Activity.RESULT_OK,new Intent().setData(android.net.Uri.fromFile(sourceImage))));waitForScript("currentSources().length===2 && Object.keys(readDraftStore().sourceFiles||{}).length===1");sourceImage.delete();
-        if(!"true".equals(evaluate("Object.keys(parseDraftBackup(makeDraftBackup()).sourceFiles).length===1")))throw new AssertionError("Portable source photo failed");captureUi("sources");evaluate("closeSources()");
+        if(!"true".equals(evaluate("Object.keys(parseDraftBackup(makeDraftBackup()).sourceFiles).length===1")))throw new AssertionError("Portable source photo failed");if(!"true".equals(evaluate("!$('sources-dialog').classList.contains('hidden') && getComputedStyle($('sources-dialog')).display!=='none'")))throw new AssertionError("Source dialog not visible");captureUi("sources");evaluate("closeSources()");
         diagnosticStage="literal replacement and responsive preview";
         if(!"true".equals(evaluate("$('find-text').value='Ispini';$('replace-text').value='Ispinie';$('find-field').value='body';proposeReplacement();$('post-body').value==='W Ispini.' && acceptCorrection() && $('post-body').value==='W Ispinie.'")))throw new AssertionError("Find/replace confirmation failed");
         if(!"true".equals(evaluate("preview();setPreviewDevice('desktop');$('post-preview').style.width==='1024px'")))throw new AssertionError("Desktop preview width failed");evaluate("setPreviewDevice('phone')");
         diagnosticStage="editorial calendar";
-        if(!"true".equals(evaluate("$('post-schedule').value='2026-11-05T09:30';persistDraft();showCalendar();$('calendar-month').value='2026-11';renderCalendar();$('calendar-entries').textContent.includes('Plan roboczy')")))throw new AssertionError("Local calendar failed");captureUi("calendar");evaluate("showScreen('editor')");
+        if(!"true".equals(evaluate("$('post-schedule').value='2026-11-05T09:30';persistDraft();showCalendar();$('calendar-month').value='2026-11';renderCalendar();$('calendar-entries').textContent.includes('Plan roboczy')")))throw new AssertionError("Local calendar failed");if(!"true".equals(evaluate("$('screen-calendar').classList.contains('active')")))throw new AssertionError("Calendar not active");captureUi("calendar");evaluate("showScreen('editor')");
         diagnosticStage="remote conflict guard";
         evaluate("window.__oldRpc=rpc;window.__oldConnected=connected;window.__fakeRemote={id:98765,status:'publish',title:{raw:'Historia Ispiny'},content:{raw:'Pierwotna wersja na stronie'},excerpt:{raw:''},categories:[10543],tags:[],modified:'old'};postId=98765;postStatus='publish';remoteBaseline=remoteVersion(window.__fakeRemote);persistDraft();window.__fakeRemote={...window.__fakeRemote,modified:'new',content:{raw:'Nowsza wersja z WordPressa'}};rpc=async(method)=>{if(method!=='GET')throw Error('Unexpected write');return window.__fakeRemote};window.__conflictProbe=false;preflightRemote(draftSignature(captureDraft())).then(ok=>{window.__conflictProbe=!ok&&pendingRemoteConflict!==null;showConflictComparison()})");
-        waitForScript("window.__conflictProbe===true");captureUi("conflict");evaluate("closeRemoteConflict();rpc=window.__oldRpc;connected=window.__oldConnected;postId=null;postStatus='';remoteBaseline=null;resetEditor();showScreen('home')");captureUi("home");
+        waitForScript("window.__conflictProbe===true");captureUi("conflict");evaluate("closeRemoteConflict();rpc=window.__oldRpc;connected=window.__oldConnected;postId=null;postStatus='';remoteBaseline=null;resetEditor();showScreen('home')");if(!"true".equals(evaluate("$('screen-home').classList.contains('active') && !$('screen-editor').classList.contains('active')")))throw new AssertionError("Home not active");captureUi("home");
     }
 
     @Override public void onStart() {
