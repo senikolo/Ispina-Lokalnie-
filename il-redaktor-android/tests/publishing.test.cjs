@@ -51,6 +51,30 @@ function setup(initialStorage=[],nativeData) {
   };
   vm.createContext(c);
   vm.runInContext(code,c);
+  // Mock WordPress GET returns the exact article created by the preceding POST.
+  // Tests that explicitly supply a mismatching field keep it for negative checks.
+  let latestPost=null,activeRpc=c.rpc;
+  Object.defineProperty(c,'rpc',{configurable:true,
+    get(){return activeRpc;},
+    set(impl){activeRpc=async(method,url,body)=>{
+      const response=await impl(method,url,body);
+      if(method==='POST'&&/^posts(?:\/\d+)?$/.test(url)&&body&&response&&Number(response.id)>0)
+        latestPost={id:Number(response.id),body};
+      if(method==='GET'&&/^posts\/\d+\?context=edit$/.test(url)&&latestPost&&Number(url.match(/^posts\/(\d+)/)?.[1])===latestPost.id
+         &&response&&typeof response==='object'&&!Array.isArray(response)){
+        const stored=latestPost.body;
+        return {...response,
+          title:Object.prototype.hasOwnProperty.call(response,'title')?response.title:{raw:stored.title,rendered:stored.title},
+          content:Object.prototype.hasOwnProperty.call(response,'content')?response.content:{raw:stored.content},
+          excerpt:Object.prototype.hasOwnProperty.call(response,'excerpt')?response.excerpt:{raw:stored.excerpt},
+          categories:Object.prototype.hasOwnProperty.call(response,'categories')?response.categories:stored.categories,
+          featured_media:Object.prototype.hasOwnProperty.call(response,'featured_media')?response.featured_media:(stored.featured_media||0),
+          tags:Object.prototype.hasOwnProperty.call(response,'tags')?response.tags:(stored.tags||[])
+        };
+      }
+      return response;
+    };}
+  });
   vm.runInContext("connected=true;document.getElementById('post-title').value='Testowy artykuł';document.getElementById('post-body').value='Treść testowa';document.getElementById('post-mode').value='text';document.getElementById('post-category').value='10543';document.getElementById('post-media').value='0';",c);
   return {c,node,storage,documentListeners,run:(script)=>vm.runInContext(script,c)};
 }
@@ -1018,4 +1042,70 @@ test('new portable backups use format version 2 to prevent old apps silently dro
 
 test('dialogs have explicit viewport edges for Android WebViews without CSS inset support',()=>{
  const html=fs.readFileSync(path.join(__dirname,'../app/src/main/assets/index.html'),'utf8');assert.match(html,/\.finish-dialog\{position:fixed;top:0;right:0;bottom:0;left:0;/);assert.match(html,/Witaj w redakcji IL!/);
+});
+
+test("WordPress readback rejects changed article text despite publish status",async()=>{
+  const a=setup();
+  a.c.rpc=async(method,path,body)=>method==="POST"?{id:401,status:"publish"}:
+    {id:401,status:"publish",content:{raw:"<p>Inny tekst niż wysłany</p>"}};
+  await a.run("savePost('publish')");
+  assert.equal(a.node("finish-title").textContent,"TREŚĆ NIEPOTWIERDZONA");
+  assert.match(a.node("finish-detail").textContent,/treść HTML/);
+});
+
+test("WordPress readback rejects missing content even when status matches",async()=>{
+  const a=setup();
+  a.c.rpc=async(method)=>method==="POST"?{id:402,status:"publish"}:{id:402,status:"publish",content:null};
+  await a.run("savePost('publish')");
+  assert.equal(a.node("finish-title").textContent,"TREŚĆ NIEPOTWIERDZONA");
+});
+
+test("WordPress readback detects different media and category",async()=>{
+  const a=setup();a.node("post-media").value="33";
+  a.c.rpc=async(method)=>method==="POST"?{id:403,status:"publish"}:
+    {id:403,status:"publish",featured_media:44,categories:[999]};
+  await a.run("savePost('publish')");
+  assert.equal(a.node("finish-title").textContent,"TREŚĆ NIEPOTWIERDZONA");
+  assert.match(a.node("finish-detail").textContent,/kategorie|zdjęcie/);
+});
+
+test("WordPress UTC date uses Z for Polish local time comparison",()=>{
+  const a=setup();
+  assert.equal(a.run("readWordPressScheduleTime({date_gmt:'2026-10-31T10:00:00'})"),Date.parse("2026-10-31T10:00:00Z"));
+  assert.equal(a.run("readWordPressScheduleTime({date_gmt:'2026-10-31T10:00:00Z'})"),Date.parse("2026-10-31T10:00:00Z"));
+});
+
+test("automated local formatting preserves editorial words and requires review",()=>{
+  const a=setup();a.node("post-body").value="W Ispinie rozpoczęto prace.\n\n## Co wiadomo?\n\n- Pierwszy fakt\n- Drugi fakt";
+  assert.equal(a.run("formatArticleLocally()"),true);
+  assert.equal(a.node("correction-dialog").classList.contains("hidden"),false);
+  assert.match(a.run("pendingCorrection.changes.body"),/<h2>Co wiadomo\?<\/h2>/);
+  assert.equal(a.node("post-mode").value,"text");
+});
+
+test("AI formatting guard rejects fabricated additional information",()=>{
+  const a=setup();
+  assert.equal(a.run("formattingMatchesOriginal('W Ispinie trwa remont.','text','<p>W Ispinie trwa remont. Prace zakończą się jutro.</p>')"),false);
+  assert.equal(a.run("formattingMatchesOriginal('W Ispinie trwa remont.','text','<p>W Ispinie trwa remont.</p>')"),true);
+});
+
+test("free AI formatting handoff preserves original text until accepted",async()=>{
+  const a=setup();
+  a.node("post-body").value="W Ispinie trwa remont.";
+  assert.equal(await a.run("formatArticleWithAI()"),true);
+  assert.equal(a.node("assistant-return-target").value,"body");
+  assert.equal(a.node("post-mode").value,"text");
+  a.node("assistant-return-text").value="<p>W Ispinie trwa remont. Dodatkowe zdanie.</p>";
+  assert.equal(a.run("compareExternalAssistantResponse()"),false);
+  a.node("assistant-return-text").value="<p>W Ispinie trwa remont.</p>";
+  assert.equal(a.run("compareExternalAssistantResponse()"),true);
+  assert.equal(a.node("post-mode").value,"text");
+  assert.equal(a.run("pendingCorrection.changes.mode"),"html");
+});
+
+test("editor change and focusout handlers persist drafts without needing network",()=>{
+  const html=fs.readFileSync(path.join(__dirname,'../app/src/main/assets/index.html'),'utf8');
+  assert.match(html,/document\.addEventListener\("focusout"/);
+  assert.match(html,/window\.addEventListener\("beforeunload",flushDraftOnExit\)/);
+  assert.match(html,/addEventListener\("change",\(\)=>\{updateMetrics\(\);if\(!persistDraft\(true\)\)/);
 });
