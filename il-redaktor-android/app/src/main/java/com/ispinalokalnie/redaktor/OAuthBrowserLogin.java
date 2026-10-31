@@ -32,7 +32,7 @@ public final class OAuthBrowserLogin {
         void failure(String message);
     }
 
-    public static final String REDIRECT = "com.ispinalokalnie.redaktorsmart.publish170:/callback";
+    public static final String REDIRECT = "com.ispinalokalnie.redaktorsmart.publish180:/callback";
     private static final String PREFS = "il_redaktor_settings";
     private static final String PENDING_STATE = "oauth21_pending_state";
     private static final String PENDING_VERIFIER = "oauth21_pending_verifier";
