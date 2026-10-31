@@ -326,8 +326,8 @@ test("every dashboard, navigation and calendar tile tap requests haptic feedback
  const a=setup(),taps=[];a.c.IL.haptic=kind=>taps.push(kind);
  const listener=a.documentListeners.get("click");assert.ok(listener);assert.equal(listener.capture,true);
  const kinds="button.tile, nav button, button.calendar-day";
- for(let i=0;i<12;i++)listener.listener({target:{closest(selector){assert.equal(selector,kinds);return {disabled:false}}}});
- listener.listener({target:{closest(){return {disabled:true}}}});
+ for(let i=0;i<12;i++)assert.equal(listener.listener({target:{closest(selector){assert.equal(selector,kinds);return {disabled:false}}}}),true);
+ assert.equal(a.run("hapticTileTap({target:{closest:()=>({disabled:true})}})"),false);
  assert.equal(taps.length,12);assert.ok(taps.every(kind=>kind==="tap"));
 });
 
