@@ -87,6 +87,14 @@ public final class ConfirmationInstrumentation extends Instrumentation {
         diagnosticStage="correction comparison";
         if(!"true".equals(evaluate("$('post-body').value='W Ispini.';offerCorrection({body:'W Ispinie.'},'Test');$('accept-body').checked && $('post-body').value==='W Ispini.'")))throw new AssertionError("Correction comparison changed text before consent");
         if(!"true".equals(evaluate("acceptCorrection();$('post-body').value==='W Ispinie.' && undoEditorialChange() && $('post-body').value==='W Ispini.'")))throw new AssertionError("Correction acceptance / undo failed");
+        diagnosticStage="durable draft storage";
+        java.io.File durablePath=new java.io.File(getTargetContext().getCacheDir(),"durable-draft-test.json");DurableDraftStore durable=new DurableDraftStore(durablePath);
+        String valid="{\"version\":1,\"drafts\":[{\"title\":\"Trwały szkic\"}]}";
+        if(!new org.json.JSONObject(durable.write(valid)).optBoolean("ok"))throw new AssertionError("Durable write failed");
+        if(new org.json.JSONObject(durable.write("broken")).optBoolean("ok"))throw new AssertionError("Invalid draft data accepted");
+        android.util.AtomicFile interrupted=new android.util.AtomicFile(durablePath);java.io.FileOutputStream partial=interrupted.startWrite();partial.write("partial".getBytes(java.nio.charset.StandardCharsets.UTF_8));interrupted.failWrite(partial);
+        if(!valid.equals(new org.json.JSONObject(durable.read()).getString("data")))throw new AssertionError("Atomic rollback lost previous drafts");durablePath.delete();
+        if(!"true".equals(evaluate("JSON.parse(IL.readDraftLibrary()).exists && JSON.parse(JSON.parse(IL.readDraftLibrary()).data).drafts.length===readDraftStore().drafts.length")))throw new AssertionError("Editor did not durably migrate/save drafts");
         diagnosticStage="backup export";
         String payload=(String)new org.json.JSONTokener(evaluate("makeDraftBackup()")).nextValue();
         java.io.File pending=new java.io.File(getTargetContext().getCacheDir(),"il-drafts-export-pending.json"),saved=new java.io.File(getTargetContext().getCacheDir(),"backup-stream-test.json");
@@ -141,7 +149,10 @@ public final class ConfirmationInstrumentation extends Instrumentation {
             probe(AlertDialog.BUTTON_NEGATIVE, "\"false:0\"", true);
             result.putString("stream", "IL_WEBVIEW_CONFIRM_TEST=PASS (cancel, confirm once, dismiss)\nIL_EDITOR_FEATURES_TEST=PASS (comparison, undo, backup file streams, photo crop, EXIF, cancel)\n");
             }
-            runOnMainSync(() -> activity.finish());
+            // Legacy 1.14 uses asynchronous WebView DOM storage. Let its pending
+            // writes drain before ending the test process, then finish the Activity lifecycle.
+            if("seed".equals(mode))SystemClock.sleep(2000);
+            runOnMainSync(() -> activity.finish());waitForIdleSync();
             finish(Activity.RESULT_OK, result);
         } catch (Throwable error) {
             result.putString("stream", "IL_WEBVIEW_CONFIRM_TEST=FAIL " + error + "\n" + android.util.Log.getStackTraceString(error));

@@ -10,7 +10,7 @@ const fs = require("node:fs");
 const vm = require("node:vm");
 const path = require("node:path");
 
-function setup(initialStorage=[]) {
+function setup(initialStorage=[],nativeData) {
   const html = fs.readFileSync(path.join(__dirname, "../app/src/main/assets/index.html"), "utf8");
   const code = html.match(/<script>([\s\S]*?)<\/script>/)?.[1];
   assert.ok(code, "Missing UI script");
@@ -36,6 +36,7 @@ function setup(initialStorage=[]) {
   }
   const storage = new Map(initialStorage);
   const IL = {status(){},assistantStatus(){},openSite(){},showPublishedPage(){}};
+  if(nativeData!==undefined){let data=nativeData;IL.readDraftLibrary=()=>JSON.stringify({ok:true,exists:data!==null,data});IL.writeDraftLibrary=p=>{data=p;return JSON.stringify({ok:true})};}
   const c = {
     window:{IL, scrollTo(){}},IL,document:{
       getElementById:node,querySelectorAll(){return []},documentElement:{setAttribute(){}}
@@ -803,4 +804,24 @@ test('published-status lookup for a different article cannot offer the previous 
 
 test('AI SEO correction also opens comparison without silently changing the article',()=>{
  const a=setup();a.run("renderAssistantResult({intent:'seo_review',title:'',content:'<p>Korekta</p>',internalLinks:[],factsToVerify:[]})");assert.match(a.node('assistant-output').innerHTML,/Porównaj z artykułem/);a.run('acceptAssistantArticle()');assert.equal(a.run('pendingCorrection.changes.body'),'<p>Korekta</p>');assert.equal(a.node('post-body').value,'Treść testowa');
+});
+
+test('native durable draft write succeeds even when the WebView cache has no space',()=>{
+ const a=setup([],null);a.c.localStorage.setItem=()=>{throw Error('WebView quota')};assert.equal(a.run('persistDraft()'),true);const data=JSON.parse(JSON.parse(a.c.IL.readDraftLibrary()).data);assert.equal(data.drafts[0].title,'Testowy artykuł');
+});
+test('native storage failure blocks editor reset and preserves current text',()=>{
+ const a=setup([],null);a.run('persistDraft()');a.c.IL.writeDraftLibrary=()=>JSON.stringify({ok:false,message:'Disk full'});a.node('post-body').value='Zachowaj ten tekst';assert.equal(a.run('resetEditor()'),false);assert.equal(a.node('post-body').value,'Zachowaj ten tekst');
+});
+test('startup reads native primary library rather than a stale WebView cache',()=>{
+ const native={version:1,activeId:'native',drafts:[{id:'native',title:'Trwały tekst',body:'Nowa wersja',revisions:[]}]};const stale={version:1,activeId:'stale',drafts:[{id:'stale',title:'Stary tekst',body:'Stara wersja',revisions:[]}]};
+ const a=setup([['il_redaktor_drafts_v3',JSON.stringify(stale)]],JSON.stringify(native));assert.equal(a.run('activeDraftId'),'native');assert.equal(a.run('readDraftStore().drafts[0].body'),'Nowa wersja');
+});
+test('existing 1.14 WebView draft library is migrated to native durable storage on startup',()=>{
+ const previous={version:1,activeId:'previous',drafts:[{id:'previous',title:'Tekst z 1.14',body:'Treść',revisions:[]}]};const a=setup([['il_redaktor_drafts_v3',JSON.stringify(previous)]],null);const result=JSON.parse(a.c.IL.readDraftLibrary());assert.equal(result.exists,true);assert.equal(JSON.parse(result.data).drafts[0].title,'Tekst z 1.14');
+});
+test('correction comparison shows readable category names instead of numeric IDs',()=>{
+ const a=setup();a.run("offerCorrection({category:'3503'},'Test')");assert.match(a.node('correction-fields').innerHTML,/Historia/);assert.match(a.node('correction-fields').innerHTML,/Aktualności/);assert.doesNotMatch(a.node('correction-fields').innerHTML,/3503|10543/);
+});
+test('general language request is not misrepresented as completed local grammar correction',async()=>{
+ const a=setup();await a.run("editorHelp('Popraw język polski i usuń powtórzenia')");assert.equal(a.run('pendingCorrection'),null);assert.match(a.node('editor-chat-log').innerHTML,/wymaga skonfigurowanego AI/);
 });

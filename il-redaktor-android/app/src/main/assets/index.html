@@ -1274,12 +1274,21 @@ let activeDraftId=null,draftStore=null,draftStorageBroken=false,reviewSnapshot=n
 function draftId(){return "d"+Date.now().toString(36)+Math.random().toString(36).slice(2,10)}
 function captureDraft(){const s={postId,postStatus};for(const [k,id] of Object.entries(draftFields))s[k]=$(id).value;s.mediaUrl=safeMediaUrl(mediaById.get(Number(s.media))?.url||"");return s}
 function draftSignature(s){return JSON.stringify(Object.fromEntries([...Object.keys(draftFields),"postId","postStatus","mediaUrl"].map(k=>[k,s[k]??""])))}
+function commitDraftStore(next){
+  const payload=JSON.stringify(next);
+  if(typeof IL.writeDraftLibrary==="function"){
+    const result=JSON.parse(IL.writeDraftLibrary(payload));if(!result.ok)throw Error(result.message||"Nie udało się trwale zapisać szkiców.");
+    try{localStorage.setItem(draftKey,payload)}catch(e){/* Native atomic file is authoritative; the WebView cache is optional. */}
+  }else localStorage.setItem(draftKey,payload);
+}
 function readDraftStore(){
   if(draftStore)return draftStore;
   try{
-    const raw=localStorage.getItem(draftKey);
-    if(raw){const d=JSON.parse(raw);if(d.version!==1||!Array.isArray(d.drafts)||d.drafts.some(x=>!x||typeof x.id!=="string"||!Array.isArray(x.revisions)))throw Error("Nieznany format szkiców");draftStore=d;}
-    else {draftStore={version:1,activeId:null,drafts:[]};const old=localStorage.getItem(localKey);if(old){const d=JSON.parse(old);if(d.title||d.body){draftStore.drafts.push({...d,id:draftId(),created:d.updated||Date.now(),updated:d.updated||Date.now(),revisions:[],dirty:true});draftStore.activeId=draftStore.drafts[0].id;localStorage.setItem(draftKey,JSON.stringify(draftStore));}}}
+    let raw=null,nativeMissing=false;
+    if(typeof IL.readDraftLibrary==="function"){const result=JSON.parse(IL.readDraftLibrary());if(!result.ok)throw Error(result.message||"Nie można odczytać szkiców.");if(result.exists)raw=result.data;else nativeMissing=true;}
+    if(raw===null)raw=localStorage.getItem(draftKey);
+    if(raw){const d=JSON.parse(raw);if(d.version!==1||!Array.isArray(d.drafts)||d.drafts.some(x=>!x||typeof x.id!=="string"||!Array.isArray(x.revisions)))throw Error("Nieznany format szkiców");draftStore=d;if(nativeMissing)commitDraftStore(d);}
+    else {draftStore={version:1,activeId:null,drafts:[]};const old=localStorage.getItem(localKey);if(old){const d=JSON.parse(old);if(d.title||d.body){draftStore.drafts.push({...d,id:draftId(),created:d.updated||Date.now(),updated:d.updated||Date.now(),revisions:[],dirty:true});draftStore.activeId=draftStore.drafts[0].id;commitDraftStore(draftStore);}}}
     return draftStore;
   }catch(e){draftStore=null;draftStorageBroken=true;$("local-save-status").textContent="Nie mogę odczytać szkiców. Zachowaj tekst przyciskiem Kopia tekstu. Nie usuwaj danych aplikacji.";return null}
 }
@@ -1296,7 +1305,7 @@ function persistDraft(checkpoint=false,synced=false){
   }
   if(changed||synced){Object.assign(d,snapshot);d.updated=Date.now();d.dirty=!synced;}
   next.activeId=d.id;
-  try{localStorage.setItem(draftKey,JSON.stringify(next));draftStore=next;activeDraftId=d.id;$("local-save-status").textContent=(synced?"Kopia na telefonie i zapis w WordPressie potwierdzone. ":"Zapisano na telefonie. ")+new Date(d.updated).toLocaleTimeString("pl-PL");return true}
+  try{commitDraftStore(next);draftStore=next;activeDraftId=d.id;$("local-save-status").textContent=(synced?"Kopia na telefonie i zapis w WordPressie potwierdzone. ":"Zapisano na telefonie. ")+new Date(d.updated).toLocaleTimeString("pl-PL");return true}
   catch(e){$("local-save-status").textContent="Nie udało się zapisać na telefonie — możliwy brak miejsca. Skopiuj tekst. Bieżący tekst pozostaje w edytorze.";return false}
 }
 function scheduleLocalSave(){if(restoring)return;clearTimeout(saveTimer);$("local-save-status").textContent="Zapisuję na telefonie…";saveTimer=setTimeout(()=>persistDraft(),450)}
@@ -1343,6 +1352,7 @@ function editorialChecks(s=captureDraft()){
 }
 function auditMarkup(checks){return '<div class="note"><b>Nazwy i fakty — do sprawdzenia</b><ul>'+checks.map(c=>'<li>'+esc(c)+'</li>').join("")+'</ul></div>'}
 function auditEditorial(show=true){const checks=editorialChecks();$("editor-audit").innerHTML=auditMarkup(checks);if(show)$("local-save-status").textContent="Przygotowałem listę do sprawdzenia. Tekst pozostaje bez zmian.";return checks}
+function correctionDisplay(key,value){if(key!=="category")return String(value||"");const options=Array.from($("post-category").options||[]),option=options.find(o=>String(o.value)===String(value));return option?.textContent||({10543:"Aktualności",3503:"Historia",21188:"Technologia"}[value])||"Kategoria wybrana w WordPressie";}
 function diffMarkup(before,after){
   const a=String(before||"").match(/\s+|\S+/g)||[],b=String(after||"").match(/\s+|\S+/g)||[];
   if(a.length*b.length>180000||a.length+b.length>10000)return '<del class="diff-removed">'+esc(before)+'</del><br><ins class="diff-added">'+esc(after)+'</ins>';
@@ -1359,7 +1369,7 @@ function offerCorrection(fields,reason){
   if(changes.mode&&changes.body===undefined){delete changes.mode;}
   pendingCorrection={id:activeDraftId,signature:draftSignature(before),before,changes};
   $("correction-title").textContent="Porównaj propozycję";$("correction-reason").textContent=reason;$("correction-feedback").textContent="";
-  $("correction-fields").innerHTML=Object.entries(changes).filter(([k])=>k!=="mode").map(([k,v])=>'<div class="correction-field"><label><input type="checkbox" id="accept-'+k+'" checked> '+esc(editableLabels[k])+'</label><div class="correction-columns"><div><b>Obecnie</b><pre>'+esc(before[k]||"Brak")+'</pre></div><div><b>Proponowane zmiany</b><pre>'+diffMarkup(before[k],v)+'</pre></div></div></div>').join("");
+  $("correction-fields").innerHTML=Object.entries(changes).filter(([k])=>k!=="mode").map(([k,v])=>'<div class="correction-field"><label><input type="checkbox" id="accept-'+k+'" checked> '+esc(editableLabels[k])+'</label><div class="correction-columns"><div><b>Obecnie</b><pre>'+esc(correctionDisplay(k,before[k])||"Brak")+'</pre></div><div><b>Proponowane zmiany</b><pre>'+diffMarkup(correctionDisplay(k,before[k]),correctionDisplay(k,v))+'</pre></div></div></div>').join("");
   $("correction-dialog").classList.remove("hidden");return true;
 }
 function dismissCorrection(){pendingCorrection=null;$("correction-dialog").classList.add("hidden")}
@@ -1383,7 +1393,7 @@ function editorChatMessage(who,text){editorChat.push({who,text:String(text).slic
 async function editorHelp(command){
   const task=trim(command||$("editor-command").value);if(!task||publicationBusy)return;if(!persistDraft(true))return;
   editorChatMessage("Ty",task);const s=captureDraft();if(!trim(s.body)){editorChatMessage("Redaktor IL","Najpierw dodaj treść artykułu. Potem przygotuję propozycję do porównania.");return}
-  if(/nazw|odmian|korekt|popraw język/i.test(task)){offerCorrection({body:correctLocalNames(s.body,s.mode),title:correctLocalNames(s.title),excerpt:correctLocalNames(s.excerpt)},"Lokalna korekta nazw. Propozycja do zatwierdzenia, bez zmiany faktów.");editorChatMessage("Redaktor IL","Sprawdziłem formy nazw. Zmiany obejrzysz przed zatwierdzeniem. Nie sprawdzałem faktów w internecie.");return}
+  if(/nazw|odmian/i.test(task)){offerCorrection({body:correctLocalNames(s.body,s.mode),title:correctLocalNames(s.title),excerpt:correctLocalNames(s.excerpt)},"Lokalna korekta nazw. Propozycja do zatwierdzenia, bez zmiany faktów.");editorChatMessage("Redaktor IL","Sprawdziłem formy nazw. Zmiany obejrzysz przed zatwierdzeniem. Nie sprawdzałem faktów w internecie.");return}
   if(/skróć (początek|wstęp|pierwszy akapit)/i.test(task)){
     if(s.mode==="html"){editorChatMessage("Redaktor IL","Lokalne skracanie działa dla zwykłego tekstu. W HTML zachowuję bloki; do przebudowy treści użyj skonfigurowanego AI.");return}
     const parts=s.body.split(/\n\s*\n/),sentences=parts[0].match(/[^.!?]+(?:[.!?]+|$)/g)||[];
@@ -1423,7 +1433,7 @@ function mergeDraftBackup(){
   if(!pendingBackupImport||publicationBusy)return false;if(!persistDraft(true)){$("backup-feedback").textContent="Nie mogę zachować bieżącego tekstu. Import wstrzymany; obecne szkice pozostają bez zmian. Sprawdź wolne miejsce.";return false}const next=JSON.parse(JSON.stringify(readDraftStore())),ids=new Set(next.drafts.map(d=>d.id));
   const fingerprint=d=>draftSignature(d)+JSON.stringify((d.revisions||[]).map(v=>v.snapshot));const known=new Set(next.drafts.map(fingerprint));let added=0,skipped=0;
   for(const draft of pendingBackupImport){const fp=fingerprint(draft);if(known.has(fp)){skipped++;continue}const d={...draft};if(ids.has(d.id))d.id=draftId();ids.add(d.id);known.add(fp);next.drafts.push(d);added++;}
-  try{localStorage.setItem(draftKey,JSON.stringify(next));draftStore=next;cancelBackupImport();renderDrafts();$("backup-output").textContent="Dołączono szkice: "+added+". Pominięto identyczne kopie: "+skipped+". Obecne teksty zachowano.";return true}catch(e){$("backup-feedback").textContent="Brak miejsca na dołączenie kopii. Obecna biblioteczka pozostaje bez zmian.";return false}
+  try{commitDraftStore(next);draftStore=next;cancelBackupImport();renderDrafts();$("backup-output").textContent="Dołączono szkice: "+added+". Pominięto identyczne kopie: "+skipped+". Obecne teksty zachowano.";return true}catch(e){$("backup-feedback").textContent="Brak miejsca na dołączenie kopii. Obecna biblioteczka pozostaje bez zmian.";return false}
 }
 // Promotions use only a snapshot captured after a successful read-after-write publication.
 let promotionArticle=null;

@@ -358,8 +358,12 @@ public class MainActivity extends Activity {
 
     private boolean backupPickerBusy=false;
     private PhotoEditor photoEditor;
+    private DurableDraftStore durableDraftStore;
+    private synchronized DurableDraftStore draftFiles(){if(durableDraftStore==null)durableDraftStore=new DurableDraftStore(new File(getFilesDir(),"il-drafts-v3.json"));return durableDraftStore;}
     private static final int BACKUP_MAX_BYTES=8_000_000;
     public class Bridge {
+        @JavascriptInterface public String readDraftLibrary(){return draftFiles().read();}
+        @JavascriptInterface public String writeDraftLibrary(String payload){return draftFiles().write(payload);}
         @JavascriptInterface public void exportDraftBackup(String payload) {
             if(payload==null||payload.getBytes(StandardCharsets.UTF_8).length>BACKUP_MAX_BYTES){callback("draft-backup",false,"Kopia przekracza limit 8 MB.");return;}
             try{JSONObject data=new JSONObject(payload);if(!"IL_REDAKTOR_BACKUP".equals(data.optString("format"))||!"ispinalokalnie.wordpress.com".equals(data.optString("site")))throw new Exception();}catch(Exception ex){callback("draft-backup",false,"Nieprawidłowy plik kopii.");return;}

@@ -3,6 +3,7 @@
 Aktualizacja stabilnego pakietu `com.ispinalokalnie.redaktorsmart.stable`, versionCode 21.
 Podpisuj tym samym prywatnym kluczem co 1.14; odcisk jest przypięty w release-certificate.sha256.
 
+- Podstawowa biblioteczka jest zapisywana w natywnym AtomicFile z synchronizacją przed potwierdzeniem zapisu. WebView localStorage jest tylko pamięcią pomocniczą; szkice 1.14 są migrowane przy odczycie. Test starej wersji pozwala jej asynchronicznemu magazynowi DOM dokończyć zapis przed zakończeniem procesu testowego.
 - Plik kopii JSON zawiera wyłącznie szkice i do 12 wersji historii, bez tokenów i ustawień konta. Eksport/import używa systemowego wyboru dokumentu, limit 8 MB. Import pokazuje podsumowanie, wymaga Dołącz szkice, nie nadpisuje istniejących i pomija identyczne kopie. Kopia nie jest szyfrowana: przechowuj ją w swoim bezpiecznym miejscu.
 - Korekty lokalne i propozycje artykułów AI przechodzą przez porównanie przed/po z wyborem pól, kontrolą zmienionego tekstu i cofaniem. Zachowują WordPress ID. Korekta HTML nie modyfikuje atrybutów ani bloków code/pre/script/style.
 - Pomoc przy tekście lokalnie obsługuje nazwy, skracanie zwykłego wstępu do dwóch zdań, tytuł z początku tekstu i szablon zakończenia. Swobodne polecenia wymagają istniejącego, skonfigurowanego backendu AI. Domyślny APK nie ma klucza Gemini ani backendu; abonament Gemini Pro nie udostępnia API. Żaden tekst nie jest wysyłany do AI przez lokalne przyciski.
