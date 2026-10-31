@@ -226,12 +226,14 @@ window.onNativeResult=function(id,ok,payload){
       message("home-connection","Nie udało się potwierdzić dostępu do wpisów.","error");
     }
   }
+  if(id==="copy"){message("post-output",payload,"ok");return;}
   if(id==="upload"){
     if(ok){
       try{
         const media=JSON.parse(payload);
         if(!media.id)throw Error("Brak ID");
         $("post-media").value=media.id;
+        showScreen("editor");updateMetrics();scheduleLocalSave();
         message("post-output","Zdjęcie przesłane do WordPressa. Media ID: "+media.id,"ok");
       }catch(e){message("post-output","Zdjęcie zostało przesłane, ale nie udało się odczytać Media ID.","error")}
     }else message("post-output",payload,"error");
@@ -506,8 +508,7 @@ function restoreLocal(silent=false){
 }
 function downloadText(){
   const content=trim($("post-title").value)+"\n\n"+trim($("post-body").value);
-  if(window.navigator.share){navigator.share({title:"Ispina Lokalnie - kopia artykułu",text:content}).catch(()=>{});}
-  else message("post-output","Kopia jest zachowana lokalnie na telefonie. Możesz zaznaczyć i skopiować tekst w edytorze.");
+  IL.copyText(content);
 }
 function renderPosts(){
   const q=trim($("posts-search").value).toLocaleLowerCase("pl");
