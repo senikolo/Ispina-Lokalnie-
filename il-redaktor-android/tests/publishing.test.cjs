@@ -199,3 +199,27 @@ test("services need read-after-write confirmation and do not retry an uncertain 
   assert.match(a.node("finish-title").textContent,/NIEPOTWIERDZONY/);
   assert.equal(a.node("save-service").disabled,false);
 });
+
+test("OAuth recovery and adjustable haptics controls are present in editor UI",()=>{
+  const a=setup();
+  assert.ok(a.node("haptics-select"));
+  assert.ok(a.node("login-recovery"));
+  a.c.IL.finishLoginWithUrl=(v)=>{a.c.resumeValue=v};
+  a.node("oauth-return").value="com.ispinalokalnie.redaktorsmart.publish190:/callback?code=TEST&state=TEST";
+  a.run("finishManualLogin()");
+  assert.match(a.c.resumeValue,/publish190:\/callback/);
+  assert.equal(a.node("oauth-return").value,"");
+  a.c.IL.setHaptics=(v)=>{a.c.hapticValue=v};
+  a.run("setHapticsMode('0')");
+  assert.equal(a.c.hapticValue,0);
+  a.run("setHapticsMode('3')");
+  assert.equal(a.c.hapticValue,3);
+});
+
+test("OAuth waiting indicator is pending, not a forever-spinning progress state",()=>{
+  const a=setup();
+  a.run('window.onNativeResult("auth-progress",true,"Krok 3/4: oczekuję na powrót.")');
+  assert.match(a.node("working-state").textContent,/Oczekuję/);
+  assert.match(a.node("working-state").className,/pending/);
+  assert.equal(a.node("login-recovery").classList.contains("hidden"),false);
+});
