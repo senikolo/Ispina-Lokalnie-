@@ -42,7 +42,6 @@ import android.security.keystore.KeyProperties;
  * with Android Keystore and are NEVER committed to source control or logged.
  */
 public class MainActivity extends Activity {
-    private static final String API = "https://public-api.wordpress.com/wp/v2/sites/252442125/";
     private static final String SITE = "252442125";
     private static final String PREF = "il_redaktor_settings";
     private static final String KEY = "il_redaktor_oauth_aes_v1";
@@ -375,7 +374,7 @@ public class MainActivity extends Activity {
             callback(rid,true,value.toString());
         } catch(Exception ex) {
             if (isAuthenticationFailure(ex)) { verified=false; clearSession(); }
-            callback(rid,false,"WordPress MCP: "+(ex.getMessage()==null?"Nieznany błąd.":ex.getMessage()));
+            callback(rid,false,"WordPress: "+(ex.getMessage()==null?"Nieznany błąd.":ex.getMessage()));
         }
     }
 
@@ -458,8 +457,11 @@ public class MainActivity extends Activity {
         }
     }
 
+    /**
+     * Uploads through the SAME authenticated MCP connection as posts.
+     * No implicit REST fallback and no retry of an uncertain creation.
+     */
     private void upload(Uri uri) {
-        HttpURLConnection c = null;
         try {
             BitmapFactory.Options bounds = new BitmapFactory.Options();
             bounds.inJustDecodeBounds = true;
@@ -471,43 +473,48 @@ public class MainActivity extends Activity {
             BitmapFactory.Options options = new BitmapFactory.Options();
             options.inSampleSize = 1;
             while (Math.max(bounds.outWidth / options.inSampleSize,
-                    bounds.outHeight / options.inSampleSize) > 1800) options.inSampleSize *= 2;
+                    bounds.outHeight / options.inSampleSize) > 1600) options.inSampleSize *= 2;
             Bitmap bitmap;
             try (InputStream in = getContentResolver().openInputStream(uri)) {
                 bitmap = BitmapFactory.decodeStream(in, null, options);
             }
             if (bitmap == null) throw new Exception("Nie można odczytać obrazu.");
             ByteArrayOutputStream jpeg = new ByteArrayOutputStream();
-            bitmap.compress(Bitmap.CompressFormat.JPEG, 82, jpeg);
+            bitmap.compress(Bitmap.CompressFormat.JPEG, 80, jpeg);
             bitmap.recycle();
             byte[] bytes = jpeg.toByteArray();
-            if (bytes.length > 8_000_000) throw new Exception("Zdjęcie jest za duże.");
-            for (int attempt = 0; attempt < 2; attempt++) {
-                c = (HttpURLConnection) new URL(API + "media").openConnection();
-                c.setRequestMethod("POST");
-                c.setConnectTimeout(17000);
-                c.setReadTimeout(35000);
-                c.setRequestProperty("Authorization", "Bearer " + accessTokenForRequest(attempt > 0));
-                c.setRequestProperty("Content-Type", "image/jpeg");
-                c.setRequestProperty("Content-Disposition", "attachment; filename=\"il-redaktor.jpg\"");
-                c.setDoOutput(true);
-                try (OutputStream o = c.getOutputStream()) { o.write(bytes); }
-                int code = c.getResponseCode();
-                String body = readReply(c, code);
-                if (code == 401 && attempt == 0) {
-                    c.disconnect();
-                    c = null;
-                    continue;
-                }
-                if (code >= 200 && code < 300) callback("upload", true, body);
-                else {
-                    if (code == 401) { clearSession(); callback("upload", false, "Sesja WordPress.com wygasła. Zaloguj konto ponownie."); }
-                    else callback("upload", false, "Przesyłanie: HTTP " + code + ": " + friendlyError(body));
-                }
-                break;
+            if (bytes.length == 0 || bytes.length > 6_000_000)
+                throw new Exception("Zdjęcie jest zbyt duże. Wybierz mniejsze.");
+            JSONObject args = new JSONObject()
+                .put("wpcom_site", WpMcp.SITE)
+                .put("filename", "il-redaktor-" + System.currentTimeMillis() + ".jpg")
+                .put("mime_type", "image/jpeg")
+                .put("file_content_base64", Base64.encodeToString(bytes, Base64.NO_WRAP))
+                .put("user_confirmed", true);
+            String token = accessTokenForRequest(false);
+            Object result = WpMcp.unwrap(WpMcp.request(token, "media.create", args));
+            if (!(result instanceof JSONObject))
+                throw new Exception("WordPress nie zwrócił potwierdzenia zdjęcia.");
+            JSONObject image = (JSONObject) result;
+            int id = image.optInt("id", 0);
+            if (id <= 0)
+                throw new Exception("Zdjęcie mogło zostać przesłane, ale nie ma ID. Sprawdź bibliotekę przed ponowieniem.");
+            try {
+                Object check = WpMcp.unwrap(WpMcp.request(token, "media.get",
+                    new JSONObject().put("id", id)));
+                if (!(check instanceof JSONObject) || ((JSONObject) check).optInt("id", 0) != id)
+                    throw new Exception("Nie znaleziono przesłanego zdjęcia.");
+            } catch (Exception verification) {
+                callback("upload", false, "Zdjęcie ma ID " + id +
+                    ", ale nie udało się sprawdzić jego zapisu. Odszukaj je w galerii przed ponownym wysłaniem. " +
+                    verification.getMessage());
+                return;
             }
-        } catch (Exception ex) { callback("upload", false, ex.getMessage()); }
-        finally { if (c != null) c.disconnect(); }
+            callback("upload", true, image.toString());
+        } catch (Exception ex) {
+            callback("upload", false, "Przesyłanie zdjęcia przez WordPress MCP: " +
+                (ex.getMessage() == null ? "Nieznany błąd." : ex.getMessage()));
+        }
     }
 
     @Override protected void onNewIntent(Intent intent) {
