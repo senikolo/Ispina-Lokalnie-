@@ -32,7 +32,7 @@ public final class OAuthBrowserLogin {
         void failure(String message);
     }
 
-    public static final String REDIRECT = "com.ispinalokalnie.redaktorsmart.publish180:/callback";
+    public static final String REDIRECT = "com.ispinalokalnie.redaktorsmart.publish190:/callback";
     private static final String PREFS = "il_redaktor_settings";
     private static final String PENDING_STATE = "oauth21_pending_state";
     private static final String PENDING_VERIFIER = "oauth21_pending_verifier";
@@ -64,7 +64,7 @@ public final class OAuthBrowserLogin {
 
     public static boolean isCallback(Uri uri) {
         return uri != null &&
-            "com.ispinalokalnie.redaktorsmart.publish170".equals(uri.getScheme()) &&
+            "com.ispinalokalnie.redaktorsmart.publish190".equals(uri.getScheme()) &&
             "/callback".equals(uri.getPath());
     }
 
@@ -122,7 +122,7 @@ public final class OAuthBrowserLogin {
                     Intent browser = new Intent(Intent.ACTION_VIEW, Uri.parse(loginUrl));
                     browser.addCategory(Intent.CATEGORY_BROWSABLE);
                     activity.startActivity(browser);
-                    note("Krok 3/4: po zatwierdzeniu przeglądarka powinna automatycznie otworzyć Redaktora IL.");
+                    note("Krok 3/4: oczekuję na powrót z przeglądarki. Jeśli aplikacja się nie otworzy, skorzystaj z pomocy na ekranie Połączenie.");
                 } catch (Exception ex) {
                     clearPending();
                     fail("Nie udało się otworzyć przeglądarki: " + ex.getMessage());
@@ -134,6 +134,13 @@ public final class OAuthBrowserLogin {
                 (ex.getMessage() == null ? "Nieznany problem." : ex.getMessage()));
         }
     }
+
+    public boolean hasPendingLogin() {
+        return prefs().getLong(PENDING_EXPIRES, 0L) > System.currentTimeMillis() &&
+            !prefs().getString(PENDING_STATE, "").isEmpty();
+    }
+
+    public void cancelLogin() { clearPending(); }
 
     private void clearPending() {
         prefs().edit().remove(PENDING_STATE).remove(PENDING_VERIFIER)
