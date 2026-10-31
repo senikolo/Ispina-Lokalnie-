@@ -998,7 +998,13 @@ function formatWords(value,mode){
   return wpPlain(text).normalize("NFC").replace(/\s+/g," ").trim();
 }
 function formattingMatchesOriginal(original,originalMode,formatted){
-  return formatWords(original,originalMode)===formatWords(formatted,"html");
+  const html=String(formatted||"");
+  const allowed=/<\/?(?:p|h2|h3|ul|ol|li|blockquote|strong|em|br)\s*\/?>|<\/a>|<a\s+href="https?:\/\/[^"]+"\s*(?:rel="noopener noreferrer"\s*)?>/gi;
+  if(html.replace(allowed,"").includes("<")||/<[^>]*on\w+\s*=|javascript:|data:/i.test(html))return false;
+  if(originalMode==="html"&&/<(?:img|iframe|video|table|figure|pre|code|script|style)\b/i.test(original))return false;
+  const outputLinks=[...html.matchAll(/<a\s+href="(https?:\/\/[^"]+)"/gi)].map(m=>m[1]);
+  if(outputLinks.some(url=>!String(original||"").includes(url)))return false;
+  return formatWords(original,originalMode)===formatWords(html,"html");
 }
 function localArticleMarkup(value,mode){
   if(mode==="html")return String(value||""); // Preserve original blocks and attributes.
