@@ -1,50 +1,42 @@
-# IL Redaktor Smart – niezależna aplikacja Android
+# IL Redaktor Smart
 
-Wersja testowa 1.2.0-test. Android 8 i nowsze. Odrębny pakiet testowy com.ispinalokalnie.redaktorsmart.test. Nie koliduje ze starszym testowym wydaniem, ale do aktualizacji tego samego pakietu między kompilacjami konieczny jest stały prywatny klucz podpisujący; standardowy klucz debug w GitHub Actions jest jednorazowy.
+Niezależna aplikacja Android do redagowania portalu Ispina Lokalnie. Nie zmienia aplikacji dla mieszkańców. Aktualna wersja robocza: **1.4.0-test**, pakiet `com.ispinalokalnie.redaktorsmart.loginfix.test`, Android 8 i nowszy.
 
-## Audyt i poprawki
-- Zastąpiono fikcyjny monogram tekstowy oficjalną grafiką IL z WordPressa; ikona aplikacji jest generowana z tego samego źródła.
-- Ujednolicono paletę portalu: #174875, #2d6d98, #f3f7fc, #dbe5ef.
-- Sesja jest potwierdzana rzeczywistym zapytaniem do WordPressa (nie tylko samym otrzymaniem tokenu).
-- Zapis edytowanego już opublikowanego wpisu nie wycofuje go automatycznie z publikacji.
-- Dodano walidację JavaScript i zawartości APK do GitHub Actions.
+## Logowanie WordPress.com
+
+Aplikacja używa oficjalnego OAuth 2.1 WordPress.com: dynamicznie rejestruje publicznego klienta, używa Authorization Code + PKCE, otwiera przeglądarkę systemową i odbiera kod przez lokalny adres `http://localhost:38477/callback`. Nie ma Client Secret ani hasła w APK. Użytkownik loguje się do WordPress.com i może wybrać Google, jeśli ta metoda jest skonfigurowana dla jego konta.
+
+Po wymianie kodu aplikacja szyfruje token dostępu i token odświeżający kluczem Android Keystore. Zalogowanie jest potwierdzone dopiero, gdy aplikacja odczyta co najmniej jeden istniejący, opublikowany wpis przez WordPress.com MCP. Odmowa lub błąd API jest pokazywany wraz z odpowiedzią serwera. Token odświeżający nie jest gwarantowany przez WordPress.com; przy jego braku aplikacja prosi o ponowne logowanie po wygaśnięciu tokenu.
+
+W ustawieniach konta WordPress.com trzeba włączyć dostęp MCP i zatwierdzić odpowiednie uprawnienia do witryny. Zgoda Google uwierzytelnia konto WordPress.com, ale sama nie przyznaje aplikacji dostępu do publikowania.
 
 ## Funkcje
-- Logowanie WordPress.com przez OAuth2; token szyfrowany w Android Keystore. Publiczny Client ID jest potrzebny tylko do pierwszego połączenia, później używa się przycisku logowania.
-- Pulpit z kafelkami, artykuły (wyszukiwanie, opublikowane i szkice), edycja, publikacja z potwierdzeniem ID i statusu.
-- Lokalne automatyczne szkice w pamięci aplikacji, przywracanie i kopiowanie tekstu.
-- Szablony artykułów: aktualności, historia, OSP i wydarzenia, komunikacja.
-- Dyktowanie po polsku przy użyciu dostępnego na urządzeniu rozpoznawania mowy.
-- Tytuły, formatowanie HTML, zajawki, kategorie z WordPressa, tagi, zdjęcia wyróżniające.
-- Wyszukiwanie i wybieranie obrazów z galerii WordPressa.
-- Podstawowe lokalne sugestie redakcyjne i SEO bez modelu AI.
-- Dodawanie i edycja własnych ofert z kategoriami w istniejącym katalogu Usługi w okolicy (strona ID 818). Istniejące ręczne oferty są rozpoznawane i wyświetlane jako podgląd; do ich edycji użyj WordPressa.
 
-## Połączenie z WordPress.com
-Jednorazowo trzeba zarejestrować własną aplikację OAuth w WordPress.com Applications Manager:
-https://developer.wordpress.com/apps/
-Application name: IL Redaktor Smart
-Redirect URI: https://ispinalokalnie.wordpress.com/il-redaktor-auth/
-Następnie w APK należy wpisać PUBLICZNY numeryczny Client ID, przejść autoryzację konta i zatwierdzić dostęp.
-Nie należy wpisywać nigdzie Client Secret ani hasła konta WordPress.
-OAuth implicit może wygasać; wówczas połączenie trzeba odnowić.
+- Pulpit redakcyjny, lista istniejących wpisów i szkiców, edycja wpisu, zapis szkicu i publikacja po dodatkowym potwierdzeniu.
+- Lokalna kopia robocza, podgląd, formatowanie HTML, kategorie, tagi, zajawka i zdjęcie wyróżniające.
+- Odczyt biblioteki mediów, wybór zdjęcia z telefonu i optymalizacja wymiarów przed wysłaniem.
+- Odczyt ręcznie dodanych kart z katalogu „Usługi w okolicy” (strona 818). Ręczne karty są obecnie tylko podglądane; zapis z aplikacji modyfikuje wyłącznie własny, oznaczony obszar Redaktora i przerywa, jeśli strona zmieniła się od ostatniego odczytu.
+- Lokalne wskazówki redakcyjne, szablony i sugestie SEO działają bez usługi AI. Nie zastępują weryfikacji faktów historycznych.
 
-## Kompilacja
-Uruchom workflow GitHub Actions: IL Redaktor Smart - Android APK.
-Artefakt IL-Redaktor-Smart-APK zawiera app-debug.apk.
-Jest to APK podpisany kluczem debug, NIE finalny podpisany build produkcyjny.
-Lokalnie: JDK 17, Android SDK 35, Gradle 8.9; komenda gradle :app:assembleDebug.
+## Kompilacja i podpis
 
-## Granice testowania
-Nie przeprowadzono jeszcze autoryzowanego testu końcowego na telefonie i koncie właściciela WordPress.
-Moduł edycji tekstu ma lokalne podpowiedzi, ale nie korzysta z generatywnego AI.
-W katalogu Usługi tworzy dodatkowy obszar ofert; istniejących, ręcznie wpisanych ofert nie importuje do formularza.
-Złożone bloki Gutenberg wyświetlane są w edycji jako kod HTML/bloków.
-Publikacja wymaga wyraźnego potwierdzenia w aplikacji.
-Nie należy uznawać działania produkcyjnego za zweryfikowane przed zapisem i kontrolą szkicu testowego.
+Workflow **IL Redaktor Smart - Android APK** sprawdza JavaScript, asercje bezpieczeństwa i zawartość APK, buduje APK debug oraz przechowuje artefakt przez 30 dni. APK debug z GitHub Actions nie jest podpisany tym samym kluczem co poprzednie wydania, więc może wymagać odinstalowania wcześniejszej wersji testowej.
 
-## Logowanie WordPress.com / Google od 1.2.0-test
+Aby workflow budował także aktualizowalny APK release, skonfiguruj w GitHub Actions secrets:
 
-Aplikacja otwiera WordPress.com w zewnętrznej przeglądarce. Użytkownik wybiera konto Google, jeżeli jest połączone z kontem WordPress.com, następnie zatwierdza dostęp. Aplikacja rejestruje publicznego klienta OAuth2.1 automatycznie i używa PKCE oraz lokalnego adresu powrotnego 127.0.0.1:38477. Nie wymaga ręcznego Client ID.
+- `IL_RELEASE_KEYSTORE_B64` – keystore w Base64.
+- `IL_RELEASE_KEY_ALIAS`.
+- `IL_RELEASE_KEYSTORE_PASSWORD`.
+- `IL_RELEASE_KEY_PASSWORD`.
 
-Jest to nowa implementacja testowa bez potwierdzonego testu logowania na koncie właściciela. W przypadku odmowy autoryzacji zobaczysz szczegóły błędu. Komunikat SUKCES jest wyświetlany wyłącznie po pozytywnym sprawdzeniu dostępu do wpisów albo potwierdzonym zapisie.
+Te sekrety muszą pochodzić z prywatnego, bezpiecznie przechowywanego klucza podpisującego. Nie dodawaj keystore ani haseł do repozytorium. Bez właściwego klucza nie da się zainstalować nowego APK jako aktualizacji istniejącej instalacji.
+
+## Zakres testów
+
+Workflow potwierdza poprawność składni JavaScript i kompilację APK. Nie zastępuje testu OAuth na telefonie i koncie redaktora. W bieżącym środowisku nie ma emulatora ani podłączonego urządzenia; przed uznaniem logowania za działające produkcyjnie należy wykonać autoryzację na docelowym telefonie Android 8–13. Nie zapisuj testowych treści ani nie modyfikuj publicznego katalogu bez zatwierdzenia redaktora.
+
+## AI
+
+Backend źródłowy jest w `backend/`, ale nie jest jeszcze wdrożony i nie ma skonfigurowanego klucza. APK bez `IL_ASSISTANT_ENDPOINT` działa w trybie podstawowym, bez generatywnego modelu. Do uruchomienia potrzebny jest osobny klucz API Gemini, Vercel Function oraz Upstash Redis do limitowania zapytań; subskrypcja Gemini Pro nie jest kluczem do Gemini API. Nie umieszczaj klucza API ani prywatnego endpointu z uprawnieniami WordPressa w aplikacji.
+
+Cennik Google dla `gemini-3.5-flash-lite` aktualnie podaje bezpłatny limit, a po jego przekroczeniu **0,30 USD za 1 mln tokenów wejściowych** i **2,50 USD za 1 mln tokenów wyjściowych**. W przypadku bezpłatnego poziomu Google może używać przekazanych promptów do ulepszania produktów; płatny poziom nie używa ich w tym celu. Vercel i Upstash są osobnymi usługami i mogą naliczać własne opłaty. Cenniki i limity mogą się zmieniać.

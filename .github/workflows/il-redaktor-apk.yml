@@ -69,10 +69,16 @@ jobs:
           assert 'AndroidKeyStore' in java
           oauth=pathlib.Path('il-redaktor-android/app/src/main/java/com/ispinalokalnie/redaktor/OAuthBrowserLogin.java').read_text()
           mcp=pathlib.Path('il-redaktor-android/app/src/main/java/com/ispinalokalnie/redaktor/WpMcp.java').read_text()
+          main=pathlib.Path('il-redaktor-android/app/src/main/java/com/ispinalokalnie/redaktor/MainActivity.java').read_text()
           manifest=pathlib.Path('il-redaktor-android/app/src/main/AndroidManifest.xml').read_text()
           for expected in ['http://localhost:38477/callback','code_challenge_method=S256','Wróć do Redaktora IL','CountDownLatch']:
               assert expected in oauth, 'OAuth return missing: '+expected
           assert 'response_types' in mcp and 'authorization_code' in mcp
+          assert 'refresh_token' in mcp and 'refresh_token' in main, 'Token refresh is not wired end to end'
+          assert 'putTokens(access,expires,refresh,true)' in main, 'Refresh token is not stored after consent'
+          assert 'AndroidKeyStore' in main and 'encryptSecret' in main, 'Tokens are not encrypted at rest'
+          assert 'JSONArray)data).length() == 0' in main, 'Login must confirm at least one existing article'
+          assert 'response_type=token' not in main and 'response_type=token' not in oauth, 'Implicit OAuth flow must not be used'
           assert 'android:scheme="ilredaktor"' in manifest
           for required in ['SUKCES!','NIE POWIODŁO SIĘ','function showOutcome','id="finish-dialog"']:
               assert required in src, 'Feedback UI missing: '+required
@@ -80,6 +86,16 @@ jobs:
           print('Required features and official IL branding confirmed')
           PY
           node --check /tmp/ilredaktor-ui.js
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: il-redaktor-android/backend/package-lock.json
+      - name: Typecheck optional AI backend
+        working-directory: il-redaktor-android/backend
+        run: |
+          npm ci --ignore-scripts --no-audit --no-fund
+          npm run typecheck
       - name: Compile Android APK
         working-directory: il-redaktor-android
         run: gradle --no-daemon :app:assembleDebug
@@ -93,4 +109,39 @@ jobs:
         with:
           name: IL-Redaktor-Smart-APK
           path: il-redaktor-android/app/build/outputs/apk/debug/app-debug.apk
+          retention-days: 30
+      - name: Check whether release signing is configured
+        id: release-key
+        shell: bash
+        env:
+          IL_RELEASE_KEYSTORE_B64: ${{ secrets.IL_RELEASE_KEYSTORE_B64 }}
+          IL_RELEASE_KEY_ALIAS: ${{ secrets.IL_RELEASE_KEY_ALIAS }}
+          IL_RELEASE_KEYSTORE_PASSWORD: ${{ secrets.IL_RELEASE_KEYSTORE_PASSWORD }}
+          IL_RELEASE_KEY_PASSWORD: ${{ secrets.IL_RELEASE_KEY_PASSWORD }}
+        run: |
+          if [[ -n "$IL_RELEASE_KEYSTORE_B64" && -n "$IL_RELEASE_KEY_ALIAS" && -n "$IL_RELEASE_KEYSTORE_PASSWORD" && -n "$IL_RELEASE_KEY_PASSWORD" ]]; then
+            echo "configured=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+            echo "No release signing key configured; only the debug APK will be built."
+          fi
+      - name: Build signed release APK when a private signing key is configured
+        if: steps.release-key.outputs.configured == 'true'
+        working-directory: il-redaktor-android
+        env:
+          IL_RELEASE_KEYSTORE_B64: ${{ secrets.IL_RELEASE_KEYSTORE_B64 }}
+          IL_RELEASE_KEY_ALIAS: ${{ secrets.IL_RELEASE_KEY_ALIAS }}
+          IL_RELEASE_KEYSTORE_PASSWORD: ${{ secrets.IL_RELEASE_KEYSTORE_PASSWORD }}
+          IL_RELEASE_KEY_PASSWORD: ${{ secrets.IL_RELEASE_KEY_PASSWORD }}
+          IL_RELEASE_KEYSTORE_PATH: ${{ runner.temp }}/il-redaktor-release.jks
+        run: |
+          printf '%s' "$IL_RELEASE_KEYSTORE_B64" | base64 --decode > "$IL_RELEASE_KEYSTORE_PATH"
+          test -s "$IL_RELEASE_KEYSTORE_PATH"
+          gradle --no-daemon :app:assembleRelease
+      - name: Upload signed release APK
+        if: steps.release-key.outputs.configured == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: IL-Redaktor-Smart-Release-APK
+          path: il-redaktor-android/app/build/outputs/apk/release/app-release.apk
           retention-days: 30

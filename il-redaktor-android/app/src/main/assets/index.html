@@ -61,7 +61,6 @@ nav button.active{color:#174875;background:#edf5fb}
 .media-card img{width:100%;height:120px;object-fit:contain;background:#f3f7fc}
 .media-card .media-info{padding:9px}.media-card b{font-size:12px;display:block;word-break:break-word;line-height:1.4}
 .media-card button{width:100%;font-size:12px;margin-top:8px}
-#oauth-setup{border:1px solid #dbe5ef;padding:12px;margin-top:12px;border-radius:12px}
 #editor-metrics{font-size:12px}
 .wide{width:100%}
 @media(max-width:370px){.actions button{flex:1}header h1{font-size:22px}nav button{font-size:10px}}
@@ -87,6 +86,7 @@ nav button.active{color:#174875;background:#edf5fb}
     <div class="actions"><button onclick="resetEditor();showScreen('editor')">+ Nowy artykuł</button><button class="secondary" onclick="showScreen('posts');loadPosts()">Moje artykuły</button></div>
   </div>
   <div class="grid quick-grid">
+    <button class="tile" onclick="showScreen('assistant')"><span class="tile-icon">✦</span><b>Asystent</b><small>Opisz zadanie</small></button>
     <button class="tile" onclick="showScreen('posts');loadPosts()"><span class="tile-icon">▤</span><b>Artykuły</b><small>Wpisy i szkice</small></button>
     <button class="tile" onclick="showScreen('services');loadServices()"><span class="tile-icon">▦</span><b>Usługi</b><small>Katalog firm</small></button>
     <button class="tile" onclick="showScreen('media');loadMedia()"><span class="tile-icon">▣</span><b>Galeria</b><small>Zdjęcia wpisów</small></button>
@@ -94,6 +94,23 @@ nav button.active{color:#174875;background:#edf5fb}
   </div>
   <div class="card"><h2>Wskazówki redakcyjne</h2><p class="muted">Przygotowuj szkice, poprawiaj teksty i publikuj dopiero po sprawdzeniu podglądu. Redaktor zachowa wersję lokalną w tym telefonie, nawet jeśli chwilowo zabraknie Internetu.</p>
   <div class="actions"><button class="secondary" onclick="showScreen('settings')">Połącz z WordPressem</button><button class="secondary" onclick="IL.openSite('https://ispinalokalnie.wordpress.com/')">Otwórz portal</button></div></div>
+</section>
+<section id="screen-assistant" class="panel">
+  <div class="card">
+    <h2>Asystent redakcyjny IL</h2>
+    <p class="muted">Opisz, co chcesz przygotować. Asystent tworzy propozycję; sam nie zapisuje i nie publikuje treści. Przed użyciem podpowiedzi AI aplikacja może odczytać tytuły artykułów i nazwy usług do sprawdzenia kontekstu.</p>
+    <div id="assistant-mode" class="note">Sprawdzam dostępny tryb asystenta…</div>
+    <label for="assistant-prompt">Twoje zadanie</label>
+    <textarea id="assistant-prompt" style="min-height:125px" placeholder="Np. Przygotuj szkic o historii Ispiny. Nie dopisuj niepotwierdzonych dat ani nazwisk."></textarea>
+    <div class="actions">
+      <button class="secondary" onclick="assistantExample('Dodaj artykuł o historii Ispiny, wybierz kategorię Historia i popraw język. Nie wymyślaj faktów.')">Historia Ispiny</button>
+      <button class="secondary" onclick="assistantExample('Dodaj do Usług nową firmę, sprawdź, czy nie ma jej już w katalogu, i przygotuj kartę. Zostaw nieznane dane puste.')">Nowa usługa</button>
+      <button class="secondary" onclick="assistantExample('Przejrzyj ostatnie wpisy i zaproponuj poprawki SEO oraz linkowanie wewnętrzne.')">Przegląd SEO</button>
+    </div>
+    <div class="actions"><button onclick="runAssistant()">Przygotuj propozycję</button></div>
+    <div id="assistant-output" aria-live="polite" role="log"></div>
+    <p class="muted small">W trybie podstawowym dostępne są szablony i lokalne wskazówki. Generatywny model wymaga osobnego backendu i klucza Gemini API; sama subskrypcja Gemini Pro go nie udostępnia.</p>
+  </div>
 </section>
 <section id="screen-editor" class="panel">
   <div class="card">
@@ -158,20 +175,14 @@ nav button.active{color:#174875;background:#edf5fb}
     <h2>Logowanie do WordPressa</h2>
     <p class="muted">Portal: <b>ispinalokalnie.wordpress.com</b><br>Identyfikator witryny: <b>252442125</b></p>
     <div id="settings-state" class="note">Sprawdzanie autoryzacji...</div>
-    <button class="wide primary-login" onclick="signInGoogle()"><span style="display:inline-block;background:#fff;color:#4285f4;border-radius:7px;padding:4px 9px;margin-right:8px;font-weight:900">G</span> Zaloguj do WordPress.com (Google)</button>
-    <p class="muted">Otworzymy WordPress.com w przeglądarce telefonu. Jeżeli Twoje konto WordPress korzysta z Google, wybierz tę metodę. Aby Redaktor mógł także publikować, wybierz w zgodach WordPressa pełny dostęp do odczytu i zapisu. Nie wpisujesz tutaj hasła ani Client ID.</p>
-    <div class="note">Po zaakceptowaniu dostępu wybierz <b>Wróć do Redaktora IL</b> na stronie przeglądarki. W aplikacji pojawi się <b>SUKCES</b> dopiero po odczytaniu uprawnień WordPressa.</div>
-    <button class="secondary" onclick="toggleSetup()">Alternatywne logowanie / ustawienia zaawansowane</button>
-    <div id="oauth-setup" class="hidden">
-    <label for="client-id">Publiczny Client ID WordPress.com (wymagany tylko za pierwszym razem)</label><input id="client-id" inputmode="numeric" placeholder="Numer aplikacji OAuth">
-    <p class="muted">Starsza metoda OAuth2 (alternatywa na wypadek niedostępności logowania przez przeglądarkę). Wymaga ręcznego Client ID i zgodnego adresu powrotnego:</p>
-    <div class="note" style="overflow-wrap:anywhere">https://ispinalokalnie.wordpress.com/il-redaktor-auth/</div>
-    <p class="muted">Nie wpisuj tutaj Client Secret ani hasła do konta. Aplikacja nie przechowuje sekretu OAuth; token jest szyfrowany w Android Keystore.</p>
-    <div class="actions"><button onclick="connect()">Połącz konto WordPress</button><button class="secondary" onclick="IL.openSite('https://developer.wordpress.com/apps/')">Rejestracja aplikacji</button><button class="danger" onclick="disconnect()">Wyloguj</button></div>
-    </div><div id="auth-output" aria-live="polite"></div><p class="muted">Jeżeli WordPress odmawia dostępu, sprawdź w ustawieniach konta WordPress.com, czy dostęp MCP jest włączony, a uprawnienia pozwalają odczytywać i edytować treść.</p>
-    <div class="actions"><button class="secondary" onclick="verifyNow()">Sprawdź dostęp do wpisów</button></div>
+    <button class="wide primary-login" onclick="signInGoogle()"><span style="display:inline-block;background:#fff;color:#4285f4;border-radius:7px;padding:4px 9px;margin-right:8px;font-weight:900">G</span> Zaloguj przez Google / WordPress.com</button>
+    <p class="muted">Autoryzacja odbywa się bezpośrednio w WordPress.com. Na ekranie logowania wybierz Google, jeśli ta metoda jest dostępna dla Twojego konta, a następnie zatwierdź dostęp Redaktora do Ispina Lokalnie. Aplikacja sama rejestruje publiczny klient OAuth; nie wpisujesz Client ID, sekretu ani hasła.</p>
+    <div class="note">Po zaakceptowaniu dostępu wybierz <b>Wróć do Redaktora IL</b> na stronie przeglądarki. Aplikacja pokaże <b>SUKCES</b> dopiero po pobraniu istniejących artykułów z WordPressa. Jeśli połączenie się nie powiedzie, pokaże otrzymany kod HTTP i komunikat WordPressa.</div>
+    <div id="auth-output" aria-live="polite"></div>
+    <p class="muted">Jeżeli WordPress odmawia dostępu, sprawdź, czy w ustawieniach konta WordPress.com jest włączony dostęp MCP i czy wybrane zgody pozwalają czytać oraz edytować treść.</p>
+    <div class="actions"><button class="secondary" onclick="verifyNow()">Sprawdź dostęp do wpisów</button><button class="danger" onclick="disconnect()">Wyloguj</button></div>
   </div>
-  <div class="card"><h2>O programie</h2><p class="muted">IL Redaktor Smart 1.3.0-test · Niezależna aplikacja Android 8–16. WordPress.com REST API. Publikacja wymaga potwierdzenia. Zapis jest uznawany za udany dopiero po otrzymaniu identyfikatora WordPress.</p></div>
+  <div class="card"><h2>O programie</h2><p class="muted">IL Redaktor Smart 1.4.0-test · Niezależna aplikacja Android 8 i nowszy. WordPress.com MCP. Publikacja wymaga potwierdzenia. Zapis jest uznawany za udany dopiero po otrzymaniu identyfikatora WordPress.</p></div>
 </section>
 </main>
 <div id="finish-dialog" class="finish-dialog hidden" role="alertdialog" aria-modal="true" aria-labelledby="finish-title">
@@ -209,7 +220,7 @@ function showOutcome(kind,headline,detail,link=""){
 function closeFinish(){$("finish-dialog").classList.add("hidden");}
 function openFinishUrl(){if(finishUrl)IL.openSite(finishUrl);}
 
-let reqNo=0, connected=false, postId=null, postStatus="", services=[], servicesLoaded=false, servicesRaw="", allPosts=[];
+let reqNo=0, connected=false, postId=null, postStatus="", services=[], servicesLoaded=false, servicesRaw="", legacyServices=[], allPosts=[], assistantEnabled=false, assistantDraft=null;
 const localKey="il_redaktor_draft_v2";let restoring=false, saveTimer=0;
 const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 function message(id,msg,kind=""){ $(id).innerHTML='<div class="note '+kind+'">'+esc(msg)+'</div>'; }
@@ -245,12 +256,21 @@ window.onNativeResult=function(id,ok,payload){
   if(id==="status"){
     try{
       const s=JSON.parse(payload); connected=false;
-      $("client-id").value=s.clientId||"";
       reflectAuth();
+      IL.assistantStatus();
       if(s.connected){message("settings-state","Weryfikuję dostęp do wpisów...");IL.verify();}
       else message("home-connection","Połącz konto WordPress.com, aby odczytać i publikować artykuły.");
       restoreLocal(true);
     }catch(e){message("auth-output","Błąd odczytu stanu autoryzacji.","error")}
+  }
+  if(id==="assistant-ready"){
+    try{
+      assistantEnabled=!!JSON.parse(payload).enabled;
+      message("assistant-mode",assistantEnabled?
+        "Asystent AI jest skonfigurowany. Tekst zadania i odczytany kontekst trafią do backendu oraz Google Gemini API. Asystent przygotowuje tylko propozycję; nie zapisuje jej w WordPressie.":
+        "Tryb podstawowy. AI nie jest skonfigurowane; możesz przygotować lokalny szkielet artykułu i korzystać z korekty oraz SEO.");
+    }catch(e){assistantEnabled=false;message("assistant-mode","Nie udało się sprawdzić trybu asystenta.","error")}
+    return;
   }
   if(id==="auth"){
     if(ok){
@@ -299,7 +319,6 @@ function reflectAuth(){
   $("settings-state").textContent=connected?"Połączenie potwierdzone przez API WordPress.":"Nie masz zweryfikowanej sesji. Zaloguj się lub sprawdź połączenie.";
   if(connected)message("home-connection","Połączono z WordPressem: Ispina Lokalnie.","ok");
 }
-function toggleSetup(){ $("oauth-setup").classList.toggle("hidden"); }
 function signInGoogle(){
   if(connected){showOutcome("success","SUKCES!","Połączenie z WordPressem zostało już potwierdzone.");return}
   message("auth-output","Krok 1/4: rozpoczynam połączenie WordPress.com. Na stronie wybierz swoje konto Google, jeśli jest dostępne.");
@@ -307,6 +326,83 @@ function signInGoogle(){
   IL.signInGoogle();
 }
 function oneTapConnect(){signInGoogle();}
+function assistantExample(value){$("assistant-prompt").value=value}
+function assistantContext(){
+  const posts=allPosts.slice(0,30).map(p=>({id:Number(p.id),title:p.title?.rendered||"",excerpt:String(p.excerpt?.rendered||"").replace(/<[^>]+>/g," ").slice(0,500),status:p.status||""}));
+  const legacy=Array.from(document.querySelectorAll("#legacy-services-list div")).map(n=>n.textContent.replace(/^✓\s*/,"").trim()).filter(Boolean);
+  const owned=services.map(s=>s.name).filter(Boolean);
+  return {posts,services:Array.from(new Set([...legacy,...owned])).slice(0,50)};
+}
+function requestAssistant(prompt,context){
+  return new Promise((resolve,reject)=>{
+    const id="a"+(++reqNo),timeout=setTimeout(()=>{requests.delete(id);reject(new Error("Asystent nie odpowiedział w wyznaczonym czasie."))},65000);
+    requests.set(id,{resolve,reject,timeout});
+    IL.askAssistant(id,prompt,JSON.stringify(context));
+  });
+}
+function localAssistant(prompt){
+  const text=prompt.toLocaleLowerCase("pl");
+  if(/seo|pozycjon|optymaliz/.test(text)){
+    const examples=allPosts.slice(0,5).map(p=>p.title?.rendered||"").filter(Boolean);
+    return {intent:"seo_review",message:examples.length?"Tryb podstawowy nie wysyła treści do modelu. Wczytane wpisy: "+examples.join(" · ")+". Sprawdź dla każdego: jasny tytuł z lokalnym tematem, unikalną zajawkę, śródtytuły, opis zdjęcia i 1–2 pasujące linki wewnętrzne.":"Tryb podstawowy. Najpierw pobierz artykuły, a następnie użyj lokalnej listy SEO w edytorze.",title:"",content:"",excerpt:"",category:"",tags:[],internalLinks:[],factsToVerify:[],service:null};
+  }
+  if(/usług|firm|działalnoś/.test(text)){
+    return {intent:"service_draft",message:"Przygotowałem formularz lokalnie. Wpisz nazwę, opis i dane kontaktowe firmy. Odczytaj katalog i sprawdź podobne nazwy przed zapisem.",title:"",content:"",excerpt:"",category:"",tags:[],internalLinks:[],factsToVerify:["Potwierdź nazwę, zakres usług i zgodę firmy na publikację danych."],service:{name:"",category:"Inne usługi lokalne",description:"",phone:"",url:""}};
+  }
+  if(/histori|artykuł|szkic|wpis/.test(text)){
+    const topic=trim(prompt.replace(/^.*?\bo\s+/i,"").split(/[,.!?]/)[0]);
+    const title=topic?"Historia Ispiny: "+topic:"Historia Ispiny – szkic do uzupełnienia";
+    return {intent:"article_draft",message:"Utworzyłem bezpieczny szkielet. W tym trybie nie generuję faktów historycznych; uzupełnij go na podstawie źródeł i wyraźnie oznacz niepewne informacje.",title,content:"<h2>Temat i kontekst</h2><p>Uzupełnij, czego dotyczy artykuł, korzystając ze sprawdzonych źródeł.</p><h2>Potwierdzone informacje</h2><p>Dodaj wyłącznie fakty potwierdzone w źródłach. Wskaż źródło i datę jego sprawdzenia.</p><h2>Pamięć mieszkańców</h2><p>Jeśli temat opiera się na wspomnieniach, zaznacz to i poproś czytelników o uzupełnienia.</p>",excerpt:"Szkic artykułu o historii Ispiny. Uzupełnij potwierdzone informacje i źródła.",category:"Historia",tags:["Ispina","historia Ispiny"],internalLinks:[],factsToVerify:["Uzupełnij daty, nazwiska i wydarzenia na podstawie źródeł."],service:null};
+  }
+  return {intent:"question",message:"Tryb podstawowy nie korzysta z generatywnego modelu. Wybierz przykład albo opisz szkic artykułu, usługę lub przegląd SEO.",title:"",content:"",excerpt:"",category:"",tags:[],internalLinks:[],factsToVerify:[],service:null};
+}
+function renderAssistantResult(result){
+  assistantDraft=result;
+  const links=(result.internalLinks||[]).map(x=>esc(x.title)+" (ID "+Number(x.postId)+")").join(", ");
+  const checks=(result.factsToVerify||[]).map(x=>"<li>"+esc(x)+"</li>").join("");
+  let action="";
+  if(result.intent==="article_draft"&&result.title)action='<button class="secondary" onclick="acceptAssistantArticle()">Przenieś propozycję do artykułu</button>';
+  if(result.intent==="service_draft"&&result.service)action='<button class="secondary" onclick="acceptAssistantService()">Przenieś propozycję do formularza</button>';
+  const body=result.content?'<div class="note" style="white-space:pre-wrap;overflow-wrap:anywhere">'+esc(result.content.slice(0,1200))+'</div>':'';
+  const service=result.service&&result.service.name?'<p><b>Firma:</b> '+esc(result.service.name)+'</p>':'';
+  $("assistant-output").innerHTML='<div class="card"><h3>Propozycja · '+esc(result.intent||"odpowiedź")+'</h3><p>'+esc(result.message||"")+'</p>'+(result.title?'<p><b>Tytuł:</b> '+esc(result.title)+'</p>':'')+service+body+(links?'<p><b>Linkowanie wewnętrzne:</b> '+links+'</p>':'')+(checks?'<p><b>Do sprawdzenia:</b></p><ul>'+checks+'</ul>':'')+'<div class="actions">'+action+'</div></div>';
+}
+async function runAssistant(){
+  const prompt=trim($("assistant-prompt").value);
+  if(!prompt){message("assistant-output","Opisz zadanie, zanim poprosisz o propozycję.","error");return}
+  startOperation("Przygotowuję redakcyjną propozycję…");
+  message("assistant-output","Sprawdzam kontekst i przygotowuję odpowiedź…");
+  try{
+    if(assistantEnabled&&connected){
+      if(!allPosts.length)await loadPosts();
+      if(!servicesLoaded)await loadServices();
+      const result=await requestAssistant(prompt,assistantContext());
+      endOperation();renderAssistantResult(result);
+    }else{
+      const result=localAssistant(prompt);endOperation();renderAssistantResult(result);
+    }
+  }catch(e){
+    endOperation();message("assistant-output","Nie udało się przygotować propozycji: "+e.message,"error");
+  }
+}
+function acceptAssistantArticle(){
+  const d=assistantDraft;if(!d||d.intent!=="article_draft")return;
+  if(trim($("post-body").value)&&!confirm("Zastąpić aktualny tekst propozycją Asystenta?"))return;
+  resetEditor();$("post-title").value=d.title||"";$("post-body").value=d.content||"";$("post-mode").value="html";
+  $("post-excerpt").value=d.excerpt||"";$("post-tags").value=(d.tags||[]).join(", ");
+  if(/histori/i.test(d.category||""))$("post-category").value="3503";
+  updateMetrics();scheduleLocalSave();showScreen("editor");
+  message("post-output","Propozycję przeniesiono do edytora. Sprawdź treść i źródła, a zapis zatwierdź osobno.","ok");
+}
+function acceptAssistantService(){
+  const s=assistantDraft?.service;if(!s)return;
+  if(!servicesLoaded&&connected){loadServices();}
+  $("service-name").value=s.name||"";$("service-description").value=s.description||"";
+  $("service-phone").value=s.phone||"";$("service-url").value=s.url||"";
+  if(s.category)$("service-category").value=s.category;
+  showScreen("services");
+  message("services-output","Propozycję przeniesiono do formularza. Sprawdź duplikaty i dane przed zatwierdzeniem zapisu.","ok");
+}
 function verifyNow(){message("auth-output","Sprawdzam połączenie z WordPressem...");IL.verify();}
 async function loadCategories(){
   try{
@@ -317,14 +413,8 @@ async function loadCategories(){
     if(categories.some(t=>String(t.id)===previous))$("post-category").value=previous;
   }catch(e){ /* Existing verified category IDs remain usable. */ }
 }
-function connect(){
-  const id=trim($("client-id").value);
-  if(!/^\d{2,20}$/.test(id)){message("auth-output","Podaj numeryczny Client ID.","error");return}
-  message("auth-output","Otwieranie autoryzacji WordPress...");
-  IL.connect(id);
-}
 function disconnect(){
-  if(confirm("Wylogować Redaktora z WordPressa?")){IL.disconnect();connected=false;reflectAuth()}
+  if(confirm("Usunąć lokalnie zapisaną sesję WordPress z tego telefonu? Aby cofnąć zgodę aplikacji, zrób to w ustawieniach dostępu MCP na WordPress.com.")){IL.disconnect();connected=false;reflectAuth()}
 }
 function asHtml(input){
   return input.split(/\n\s*\n/g).map(chunk=>{
@@ -471,6 +561,7 @@ function renderLegacyServices(raw){
     if(h)names.push(h[1]);
     if(names.length>=40)break;
   }
+  legacyServices=names;
   $("legacy-services-list").innerHTML=names.length?
     names.map(n=>'<div style="padding:6px 0">✓ '+esc(n)+'</div>').join(""):
     '<div>Nie znaleziono oznaczonych ofert historycznych.</div>';
@@ -514,6 +605,11 @@ async function saveService(){
   const phone=trim($("service-phone").value),url=trim($("service-url").value),category=trim($("service-category").value);
   if(!name||!description){message("services-output","Wpisz nazwę firmy i opis.","error");return}
   if(url&&!/^https:\/\/[a-z0-9.-]+(?:\/[^\s]*)?$/i.test(url)){message("services-output","Adres strony musi zaczynać się od https://","error");return}
+  const normalizedName=s=>String(s||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLocaleLowerCase("pl").replace(/[^a-z0-9]+/g," ").trim();
+  const targetName=normalizedName(name);
+  const existing=[...services.filter(s=>s.id!==id).map(s=>s.name),...legacyServices];
+  const duplicate=existing.find(s=>{const candidate=normalizedName(s);return candidate===targetName||(candidate.length>=5&&targetName.length>=5&&(candidate.includes(targetName)||targetName.includes(candidate)))});
+  if(duplicate&&!confirm("Możliwy duplikat: „"+duplicate+"”. Sprawdź istniejącą kartę przed dodaniem kolejnej. Czy mimo to chcesz kontynuować?"))return;
   if(!confirm("Zapisać ofertę „"+name+"” na publicznej stronie Usługi w okolicy?"))return;
   startOperation("Zapisuję ofertę w katalogu…");
   message("services-output","Przygotowuję zapis i potwierdzenie WordPressa...");

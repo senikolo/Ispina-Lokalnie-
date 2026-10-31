@@ -1,7 +1,6 @@
 package com.ispinalokalnie.redaktor;
 
 import android.app.Activity;
-import android.app.AlertDialog;
 import android.content.Context;
 import android.content.Intent;
 import android.graphics.Bitmap;
@@ -14,13 +13,9 @@ import android.content.SharedPreferences;
 import android.os.Handler;
 import android.os.Looper;
 import android.util.Base64;
-import android.view.ViewGroup;
-import android.webkit.CookieManager;
 import android.webkit.JavascriptInterface;
-import android.webkit.WebResourceRequest;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
-import android.webkit.WebViewClient;
 import android.widget.Toast;
 
 import org.json.JSONObject;
@@ -30,10 +25,8 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
-import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.security.KeyStore;
-import java.security.SecureRandom;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import javax.crypto.Cipher;
@@ -45,24 +38,19 @@ import android.security.keystore.KeyProperties;
 
 /**
  * IL Redaktor Smart. Only the local UI WebView has a JavaScript bridge.
- * OAuth runs in a SEPARATE WebView with no bridge. Tokens are encrypted with
- * Android Keystore and are NEVER committed to source control or logged.
+ * OAuth runs in the system browser. Access and refresh tokens are encrypted
+ * with Android Keystore and are NEVER committed to source control or logged.
  */
 public class MainActivity extends Activity {
     private static final String API = "https://public-api.wordpress.com/wp/v2/sites/252442125/";
-    private static final String REDIRECT = "https://ispinalokalnie.wordpress.com/il-redaktor-auth/";
     private static final String SITE = "252442125";
     private static final String PREF = "il_redaktor_settings";
     private static final String KEY = "il_redaktor_oauth_aes_v1";
     private final ExecutorService work = Executors.newSingleThreadExecutor();
     private final Handler ui = new Handler(Looper.getMainLooper());
-    private final SecureRandom random = new SecureRandom();
     private WebView editor;
-    private AlertDialog loginDialog;
-    private String oauthState = "";
     private volatile boolean verified = false;
     private boolean loginInProgress = false;
-    private boolean mcpMode(){ return "mcp21".equals(prefs().getString("auth_mode", "legacy")); }
 
     @Override public void onCreate(Bundle state) {
         super.onCreate(state);
@@ -75,16 +63,12 @@ public class MainActivity extends Activity {
         settings.setAllowFileAccessFromFileURLs(false);
         settings.setAllowUniversalAccessFromFileURLs(false);
         settings.setMixedContentMode(WebSettings.MIXED_CONTENT_NEVER_ALLOW);
-        editor.setWebViewClient(new WebViewClient() {
-            @Override public boolean shouldOverrideUrlLoading(WebView v, WebResourceRequest r) {
-                return guard(r.getUrl().toString());
+        editor.setWebViewClient(new android.webkit.WebViewClient() {
+            @Override public boolean shouldOverrideUrlLoading(WebView v, android.webkit.WebResourceRequest r) {
+                return !r.getUrl().toString().startsWith("file:///android_asset/");
             }
             @Override public boolean shouldOverrideUrlLoading(WebView v, String url) {
-                return guard(url);
-            }
-            private boolean guard(String url) {
-                if (url.startsWith("file:///android_asset/")) return false;
-                return true;
+                return !url.startsWith("file:///android_asset/");
             }
         });
         editor.addJavascriptInterface(new Bridge(), "IL");
@@ -93,7 +77,7 @@ public class MainActivity extends Activity {
     }
 
     private SharedPreferences prefs() { return getSharedPreferences(PREF, MODE_PRIVATE); }
-    private String clientId() { return prefs().getString("oauth_client_id", ""); }
+    private String clientId() { return prefs().getString("oauth21_client_id", ""); }
     private long expiry() { return prefs().getLong("expiry", 0L); }
 
     private void callback(String id, boolean success, String payload) {
@@ -107,8 +91,12 @@ public class MainActivity extends Activity {
     }
 
     private String getToken() {
+        return readSecret("token");
+    }
+
+    private String readSecret(String preferenceKey) {
         try {
-            String v = prefs().getString("token", "");
+            String v = prefs().getString(preferenceKey, "");
             if (v.isEmpty()) return "";
             String[] parts = v.split(":");
             byte[] iv = Base64.decode(parts[0], Base64.NO_WRAP);
@@ -122,7 +110,7 @@ public class MainActivity extends Activity {
         } catch (Exception ex) { return ""; }
     }
 
-    private void putToken(String token, long expiresIn) throws Exception {
+    private String encryptSecret(String value) throws Exception {
         KeyStore ks = KeyStore.getInstance("AndroidKeyStore");
         ks.load(null);
         if (!ks.containsAlias(KEY)) {
@@ -136,55 +124,95 @@ public class MainActivity extends Activity {
         SecretKey key = (SecretKey) ks.getKey(KEY, null);
         Cipher cipher = Cipher.getInstance("AES/GCM/NoPadding");
         cipher.init(Cipher.ENCRYPT_MODE, key);
-        String val = Base64.encodeToString(cipher.getIV(), Base64.NO_WRAP) + ":" +
-            Base64.encodeToString(cipher.doFinal(token.getBytes(StandardCharsets.UTF_8)), Base64.NO_WRAP);
-        long exp = System.currentTimeMillis() + Math.max(60L, expiresIn - 120L) * 1000;
-        prefs().edit().putString("token", val).putLong("expiry", exp).apply();
+        return Base64.encodeToString(cipher.getIV(), Base64.NO_WRAP) + ":" +
+            Base64.encodeToString(cipher.doFinal(value.getBytes(StandardCharsets.UTF_8)), Base64.NO_WRAP);
+    }
+
+    private void putTokens(String accessToken, long expiresIn, String refreshToken, boolean clearMissingRefresh) throws Exception {
+        if (accessToken == null || accessToken.trim().isEmpty()) throw new Exception("WordPress nie zwrócił tokenu dostępu.");
+        long lifetime = Math.max(60L, expiresIn);
+        long safetyMargin = Math.min(120L, Math.max(10L, lifetime / 10L));
+        long expiryAt = System.currentTimeMillis() + Math.max(1L, lifetime - safetyMargin) * 1000L;
+        SharedPreferences.Editor edit = prefs().edit()
+            .putString("token", encryptSecret(accessToken))
+            .putLong("expiry", expiryAt);
+        if (refreshToken != null && !refreshToken.trim().isEmpty()) {
+            edit.putString("refresh_token", encryptSecret(refreshToken));
+        } else if (clearMissingRefresh) {
+            edit.remove("refresh_token");
+        }
+        if (!edit.commit()) throw new Exception("Android nie zapisał bezpiecznie sesji WordPress.");
+    }
+
+    private void clearSession() {
+        prefs().edit().remove("token").remove("refresh_token").remove("expiry").apply();
+        verified = false;
     }
 
     private boolean connected() {
-        return expiry() > System.currentTimeMillis() && !getToken().isEmpty();
+        if (getToken().isEmpty()) return false;
+        return expiry() > System.currentTimeMillis() || !readSecret("refresh_token").isEmpty();
+    }
+
+    private boolean isAuthenticationFailure(Exception error) {
+        String message = error.getMessage() == null ? "" : error.getMessage().toLowerCase(java.util.Locale.ROOT);
+        return message.contains("http 401") || message.contains("invalid_token") ||
+            message.contains("token expired") || message.contains("unauthorized");
+    }
+
+    /** Returns a usable access token and rotates refresh credentials when WordPress supplies them. */
+    private synchronized String accessTokenForRequest(boolean forceRefresh) throws Exception {
+        String access = getToken();
+        if (access.isEmpty()) throw new Exception("Brak zapisanej sesji WordPress.com. Zaloguj się ponownie.");
+        if (!forceRefresh && expiry() > System.currentTimeMillis() + 15000L) return access;
+        String refresh = readSecret("refresh_token");
+        String registeredClient = clientId();
+        if (refresh.isEmpty() || registeredClient.isEmpty()) {
+            if (expiry() > System.currentTimeMillis()) return access;
+            clearSession();
+            throw new Exception("Sesja WordPress.com wygasła, a ta autoryzacja nie udostępniła tokenu odświeżającego. Zaloguj się ponownie.");
+        }
+        try {
+            JSONObject refreshed = WpMcp.refresh(registeredClient, refresh);
+            String nextAccess = refreshed.optString("access_token", "");
+            if (nextAccess.isEmpty()) throw new Exception("WordPress nie zwrócił nowego tokenu podczas odświeżania sesji.");
+            putTokens(nextAccess, refreshed.optLong("expires_in", 3600L), refreshed.optString("refresh_token", ""), false);
+            return nextAccess;
+        } catch (Exception ex) {
+            String detail = ex.getMessage() == null ? "Nieznany błąd." : ex.getMessage();
+            String lower = detail.toLowerCase(java.util.Locale.ROOT);
+            if (lower.contains("invalid_grant") || lower.contains("http 400") || lower.contains("http 401")) {
+                clearSession();
+                throw new Exception("WordPress odrzucił token odświeżający. Połącz konto ponownie. Szczegóły: " + detail);
+            }
+            throw new Exception("Nie udało się odświeżyć sesji WordPress.com: " + detail);
+        }
     }
 
     private void verifyConnection() {
         if (!connected()) { callback("verify", false, "Brak aktywnej sesji WordPressa."); return; }
-        if (mcpMode()) {
-            work.execute(() -> {
-                try {
-                    Object data = WpMcp.unwrap(WpMcp.request(getToken(), "posts.list",
-                        new JSONObject().put("per_page",1).put("status",new org.json.JSONArray().put("publish"))));
-                    if (!(data instanceof org.json.JSONArray)) throw new Exception("WordPress nie zwrócił listy artykułów.");
-                    verified=true;
-                    callback("verify",true,"{\"connected\":true}");
-                } catch(Exception ex) {
-                    verified=false;
-                    if (ex.getMessage()!=null && ex.getMessage().contains("HTTP 401"))
-                        prefs().edit().remove("token").remove("expiry").apply();
-                    callback("verify",false,ex.getMessage());
-                }
-            });
-            return;
-        }
         work.execute(() -> {
-            HttpURLConnection c = null;
             try {
-                c = (HttpURLConnection) new URL(API + "posts?context=edit&per_page=1").openConnection();
-                c.setRequestProperty("Authorization", "Bearer " + getToken());
-                c.setConnectTimeout(15000); c.setReadTimeout(18000);
-                int code = c.getResponseCode();
-                String reply = readReply(c, code);
-                if (code >= 200 && code < 300 && reply.trim().startsWith("[")) {
-                    verified = true;
-                    callback("verify", true, "{\"connected\":true}");
-                } else {
-                    verified = false;
-                    if (code == 401 || code == 403) {
-                        prefs().edit().remove("token").remove("expiry").apply();
-                    }
-                    callback("verify", false, "WordPress nie potwierdził dostępu: HTTP " + code + ". " + friendlyError(reply));
+                Object data;
+                String token = accessTokenForRequest(false);
+                try {
+                    data = WpMcp.unwrap(WpMcp.request(token, "posts.list",
+                        new JSONObject().put("per_page", 5).put("status", new org.json.JSONArray().put("publish"))));
+                } catch (Exception first) {
+                    if (!isAuthenticationFailure(first)) throw first;
+                    token = accessTokenForRequest(true);
+                    data = WpMcp.unwrap(WpMcp.request(token, "posts.list",
+                        new JSONObject().put("per_page", 5).put("status", new org.json.JSONArray().put("publish"))));
                 }
-            } catch (Exception ex) { verified=false; callback("verify",false,"Nie udało się sprawdzić konta: "+ex.getMessage()); }
-            finally { if (c != null) c.disconnect(); }
+                if (!(data instanceof org.json.JSONArray) || ((org.json.JSONArray)data).length() == 0)
+                    throw new Exception("WordPress przyjął logowanie, ale nie zwrócił żadnego istniejącego opublikowanego artykułu dla tej witryny.");
+                verified=true;
+                callback("verify",true,"{\"connected\":true,\"articles\":"+((org.json.JSONArray)data).length()+"}");
+            } catch(Exception ex) {
+                verified=false;
+                if (isAuthenticationFailure(ex)) clearSession();
+                callback("verify",false,ex.getMessage()==null?"Nie udało się zweryfikować dostępu do wpisów.":ex.getMessage());
+            }
         });
     }
 
@@ -203,7 +231,6 @@ public class MainActivity extends Activity {
             try {
                 obj.put("connected", connected());
                 obj.put("verified", verified);
-                obj.put("clientId", clientId());
                 obj.put("siteId", SITE);
             } catch (Exception ignored) {}
             callback("status", true, obj.toString());
@@ -222,37 +249,31 @@ public class MainActivity extends Activity {
                     @Override public void success(String access,long expires,String refresh,String clientId){
                         loginInProgress=false;
                         try{
-                            putToken(access,expires);
-                            prefs().edit().putString("auth_mode","mcp21").apply();
+                            putTokens(access,expires,refresh,true);
+                            if (!prefs().edit().putString("oauth21_client_id",clientId).commit())
+                                throw new Exception("Android nie zapisał konfiguracji logowania.");
                             verified=false;
                             callback("auth",true,"{\"connected\":true}");
                             verifyConnection();
                         } catch(Exception ex){
-                            callback("auth-progress",false,"Nie udało się bezpiecznie zapisać logowania.");
+                            callback("auth-progress",false,"Nie udało się bezpiecznie zapisać sesji WordPress.com: "+(ex.getMessage()==null?"błąd Android Keystore.":ex.getMessage()));
                         }
                     }
                 }).start();
             });
         }
 
-        @JavascriptInterface public void connect(String suppliedClientId) {
-            ui.post(() -> {
-                String id = suppliedClientId.trim();
-                if (!id.matches("[0-9]{2,20}")) {
-                    callback("auth", false, "Wpisz numeryczny Client ID z WordPress.com Applications.");
-                    return;
-                }
-                prefs().edit().putString("oauth_client_id", id).remove("auth_mode").apply();
-                verified = false;
-                startOAuth(id);
-            });
+        @JavascriptInterface public void assistantStatus() {
+            callback("assistant-ready", true,
+                BuildConfig.ASSISTANT_ENDPOINT != null && !BuildConfig.ASSISTANT_ENDPOINT.trim().isEmpty()
+                    ? "{\"enabled\":true}" : "{\"enabled\":false}");
         }
 
         @JavascriptInterface public void verify() { verifyConnection(); }
 
         @JavascriptInterface public void disconnect() {
             verified = false;
-            prefs().edit().remove("token").remove("expiry").remove("auth_mode").apply();
+            clearSession();
             callback("auth", true, "{\"connected\":false}");
         }
 
@@ -269,6 +290,18 @@ public class MainActivity extends Activity {
                 callback(rid, false, "Sesja WordPress wygasła. Połącz konto ponownie."); return;
             }
             work.execute(() -> doRequest(rid, method, path, json));
+        }
+
+        @JavascriptInterface public void askAssistant(String rid, String prompt, String contextJson) {
+            if (rid.length() > 60 || !rid.matches("[A-Za-z0-9_-]+")) return;
+            if (prompt == null || prompt.trim().isEmpty() || prompt.length() > 6000) {
+                callback(rid, false, "Opisz zadanie krócej niż 6000 znaków."); return;
+            }
+            if (!connected()) { callback(rid, false, "Połącz konto WordPress, aby użyć Asystenta IL."); return; }
+            if (BuildConfig.ASSISTANT_ENDPOINT == null || BuildConfig.ASSISTANT_ENDPOINT.trim().isEmpty()) {
+                callback(rid, false, "Tryb AI nie jest jeszcze skonfigurowany. Backend Gemini wymaga osobnego wdrożenia i klucza API po stronie serwera. Możesz nadal korzystać z szablonów, korekty i wskazówek SEO w aplikacji."); return;
+            }
+            work.execute(() -> askAssistantOnServer(rid, prompt, contextJson));
         }
 
         @JavascriptInterface public void dictate() {
@@ -309,124 +342,65 @@ public class MainActivity extends Activity {
         }
     }
 
-    private void startOAuth(String id) {
-        oauthState = nonce();
-        String auth = "https://public-api.wordpress.com/oauth2/authorize" +
-            "?client_id=" + Uri.encode(id) +
-            "&redirect_uri=" + Uri.encode(REDIRECT) +
-            "&response_type=token&scope=" + Uri.encode("posts media taxonomy") +
-            "&blog=" + Uri.encode("ispinalokalnie.wordpress.com") +
-            "&state=" + Uri.encode(oauthState);
-        WebView login = new WebView(this);
-        login.getSettings().setJavaScriptEnabled(true);
-        login.getSettings().setDomStorageEnabled(true);
-        login.getSettings().setMixedContentMode(WebSettings.MIXED_CONTENT_NEVER_ALLOW);
-        CookieManager.getInstance().setAcceptThirdPartyCookies(login, true);
-        login.setWebViewClient(new WebViewClient() {
-            @Override public boolean shouldOverrideUrlLoading(WebView w, WebResourceRequest r) {
-                return receive(r.getUrl().toString());
-            }
-            @Override public boolean shouldOverrideUrlLoading(WebView w, String u) {
-                return receive(u);
-            }
-            @Override public void onPageFinished(WebView w, String u) { receive(u); }
-        });
-        loginDialog = new AlertDialog.Builder(this)
-            .setTitle("Połącz z WordPress.com")
-            .setView(login)
-            .setNegativeButton("Anuluj", (dialog, which) -> {
-                callback("auth", false, "Logowanie anulowane.");
-                login.destroy();
-            }).create();
-        loginDialog.setOnDismissListener(dialog -> login.destroy());
-        loginDialog.show();
-        if (loginDialog.getWindow() != null) {
-            loginDialog.getWindow().setLayout(ViewGroup.LayoutParams.MATCH_PARENT,
-                (int)(getResources().getDisplayMetrics().heightPixels * .85f));
-        }
-        login.loadUrl(auth);
-    }
-
-    private boolean receive(String url) {
-        Uri u = Uri.parse(url);
-        if (!REDIRECT.equals(u.getScheme() + "://" + u.getAuthority() + u.getPath())) return false;
-        String fragment = u.getFragment();
-        String error = u.getQueryParameter("error");
-        if (fragment == null || fragment.isEmpty()) {
-            if (error != null) {
-                callback("auth", false, "WordPress odmówił autoryzacji: " + error);
-                ui.post(() -> { if (loginDialog != null) loginDialog.dismiss(); });
-            }
-            return true;
-        }
-        Uri p = Uri.parse("https://local.invalid/cb?" + fragment);
-        String state = p.getQueryParameter("state");
-        String access = p.getQueryParameter("access_token");
-        String siteId = p.getQueryParameter("site_id");
-        if (!oauthState.equals(state) || access == null || access.isEmpty()
-            || (siteId != null && !SITE.equals(siteId))) {
-            callback("auth", false, "Nieudana weryfikacja sesji lub witryny. Spróbuj ponownie.");
-        } else {
-            try {
-                long seconds = Long.parseLong(p.getQueryParameter("expires_in") == null
-                    ? "1209600" : p.getQueryParameter("expires_in"));
-                putToken(access, seconds);
-                callback("auth", true, "{\"connected\":true}");
-            } catch (Exception ex) {
-                callback("auth", false, "Nie udało się bezpiecznie zapisać tokenu.");
-            }
-        }
-        oauthState = "";
-        ui.post(() -> { if (loginDialog != null) loginDialog.dismiss(); });
-        return true;
-    }
-
-    private String nonce() {
-        byte[] bytes = new byte[24];
-        random.nextBytes(bytes);
-        return Base64.encodeToString(bytes, Base64.URL_SAFE | Base64.NO_PADDING | Base64.NO_WRAP);
-    }
-
     private void doRequest(String rid, String method, String path, String body) {
-        if(mcpMode()){
-            try {
-                Object value=WpMcp.mapRestCall(getToken(),method,path,body);
-                callback(rid,true,value.toString());
-            }catch(Exception ex){
-                if(ex.getMessage()!=null && ex.getMessage().contains("HTTP 401")) verified=false;
-                callback(rid,false,"WordPress MCP: "+ex.getMessage());
-            }
-            return;
-        }
-        HttpURLConnection conn = null;
         try {
-            conn = (HttpURLConnection) new URL(API + path).openConnection();
-            conn.setConnectTimeout(17000);
-            conn.setReadTimeout(25000);
-            conn.setRequestMethod(method);
-            conn.setRequestProperty("Authorization", "Bearer " + getToken());
-            conn.setRequestProperty("Accept", "application/json");
-            if ("POST".equals(method)) {
-                conn.setDoOutput(true);
-                conn.setRequestProperty("Content-Type", "application/json; charset=utf-8");
-                byte[] bytes = body.getBytes(StandardCharsets.UTF_8);
-                if (bytes.length > 2_000_000) throw new Exception("Treść przekracza 2 MB.");
-                try (OutputStream o = conn.getOutputStream()) { o.write(bytes); }
+            String token = accessTokenForRequest(false);
+            Object value;
+            try {
+                value = WpMcp.mapRestCall(token,method,path,body);
+            } catch (Exception first) {
+                if (!isAuthenticationFailure(first)) throw first;
+                token = accessTokenForRequest(true);
+                value = WpMcp.mapRestCall(token,method,path,body);
             }
-            int status = conn.getResponseCode();
-            String result = readReply(conn, status);
-            if (status >= 200 && status < 300) {
-                callback(rid, true, result);
-            } else {
-                if (status == 401 || status == 403) {
-                    verified = false;
-                    if (status == 401) prefs().edit().remove("token").remove("expiry").apply();
+            callback(rid,true,value.toString());
+        } catch(Exception ex) {
+            if (isAuthenticationFailure(ex)) { verified=false; clearSession(); }
+            callback(rid,false,"WordPress MCP: "+(ex.getMessage()==null?"Nieznany błąd.":ex.getMessage()));
+        }
+    }
+
+    private void askAssistantOnServer(String rid, String prompt, String contextJson) {
+        HttpURLConnection connection = null;
+        try {
+            JSONObject payload = new JSONObject();
+            payload.put("prompt", prompt);
+            try { payload.put("context", new JSONObject(contextJson == null ? "{}" : contextJson)); }
+            catch (Exception ex) { throw new Exception("Nieprawidłowe dane kontekstu artykułów."); }
+            String token = accessTokenForRequest(false);
+            for (int attempt = 0; attempt < 2; attempt++) {
+                connection = (HttpURLConnection) new URL(BuildConfig.ASSISTANT_ENDPOINT).openConnection();
+                connection.setRequestMethod("POST");
+                connection.setConnectTimeout(15000);
+                connection.setReadTimeout(60000);
+                connection.setInstanceFollowRedirects(false);
+                connection.setRequestProperty("Authorization", "Bearer " + token);
+                connection.setRequestProperty("Content-Type", "application/json; charset=UTF-8");
+                connection.setRequestProperty("Accept", "application/json");
+                connection.setDoOutput(true);
+                try (OutputStream out = connection.getOutputStream()) {
+                    out.write(payload.toString().getBytes(StandardCharsets.UTF_8));
                 }
-                callback(rid, false, "WordPress HTTP " + status + ": " + friendlyError(result));
+                int status = connection.getResponseCode();
+                String response = readReply(connection, status);
+                if (status == 401 && attempt == 0) {
+                    connection.disconnect(); connection = null;
+                    token = accessTokenForRequest(true);
+                    continue;
+                }
+                if (status < 200 || status >= 300)
+                    throw new Exception("Backend asystenta: HTTP " + status + ": " + friendlyError(response));
+                JSONObject result = new JSONObject(response);
+                if (!result.has("intent") || !result.has("message"))
+                    throw new Exception("Backend nie zwrócił kompletnej propozycji.");
+                callback(rid, true, result.toString());
+                return;
             }
+            throw new Exception("Nie udało się odświeżyć sesji WordPress dla Asystenta.");
         } catch (Exception ex) {
-            callback(rid, false, "Błąd komunikacji: " + ex.getMessage());
-        } finally { if (conn != null) conn.disconnect(); }
+            if (isAuthenticationFailure(ex)) { verified = false; clearSession(); }
+            callback(rid, false, ex.getMessage() == null ? "Nie udało się skontaktować z Asystentem." : ex.getMessage());
+        } finally { if (connection != null) connection.disconnect(); }
     }
 
     private String friendlyError(String result) {
@@ -489,19 +463,30 @@ public class MainActivity extends Activity {
             bitmap.recycle();
             byte[] bytes = jpeg.toByteArray();
             if (bytes.length > 8_000_000) throw new Exception("Zdjęcie jest za duże.");
-            c = (HttpURLConnection) new URL(API + "media").openConnection();
-            c.setRequestMethod("POST");
-            c.setConnectTimeout(17000);
-            c.setReadTimeout(35000);
-            c.setRequestProperty("Authorization", "Bearer " + getToken());
-            c.setRequestProperty("Content-Type", "image/jpeg");
-            c.setRequestProperty("Content-Disposition", "attachment; filename=\"il-redaktor.jpg\"");
-            c.setDoOutput(true);
-            try (OutputStream o = c.getOutputStream()) { o.write(bytes); }
-            int code = c.getResponseCode();
-            String body = readReply(c, code);
-            if (code >= 200 && code < 300) callback("upload", true, body);
-            else callback("upload", false, "Przesyłanie: HTTP " + code + ": " + friendlyError(body));
+            for (int attempt = 0; attempt < 2; attempt++) {
+                c = (HttpURLConnection) new URL(API + "media").openConnection();
+                c.setRequestMethod("POST");
+                c.setConnectTimeout(17000);
+                c.setReadTimeout(35000);
+                c.setRequestProperty("Authorization", "Bearer " + accessTokenForRequest(attempt > 0));
+                c.setRequestProperty("Content-Type", "image/jpeg");
+                c.setRequestProperty("Content-Disposition", "attachment; filename=\"il-redaktor.jpg\"");
+                c.setDoOutput(true);
+                try (OutputStream o = c.getOutputStream()) { o.write(bytes); }
+                int code = c.getResponseCode();
+                String body = readReply(c, code);
+                if (code == 401 && attempt == 0) {
+                    c.disconnect();
+                    c = null;
+                    continue;
+                }
+                if (code >= 200 && code < 300) callback("upload", true, body);
+                else {
+                    if (code == 401) { clearSession(); callback("upload", false, "Sesja WordPress.com wygasła. Zaloguj konto ponownie."); }
+                    else callback("upload", false, "Przesyłanie: HTTP " + code + ": " + friendlyError(body));
+                }
+                break;
+            }
         } catch (Exception ex) { callback("upload", false, ex.getMessage()); }
         finally { if (c != null) c.disconnect(); }
     }

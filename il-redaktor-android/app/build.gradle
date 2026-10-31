@@ -8,12 +8,35 @@ android {
         applicationId 'com.ispinalokalnie.redaktorsmart.loginfix.test'
         minSdk 26
         targetSdk 35
-        versionCode 4
-        versionName '1.3.0-test'
+        versionCode 5
+        versionName '1.4.0-test'
     }
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_17
         targetCompatibility JavaVersion.VERSION_17
     }
     buildFeatures { buildConfig true }
+    def assistantEndpoint = System.getenv('IL_ASSISTANT_ENDPOINT') ?: project.findProperty('ilAssistantEndpoint') ?: ''
+    if (assistantEndpoint && !assistantEndpoint.toString().startsWith('https://')) {
+        throw new GradleException('IL_ASSISTANT_ENDPOINT must use HTTPS.')
+    }
+    buildConfigField 'String', 'ASSISTANT_ENDPOINT', '"' + assistantEndpoint.toString().replace('\\', '\\\\').replace('"', '\\"') + '"'
+    signingConfigs {
+        release {
+            def keyPath = System.getenv('IL_RELEASE_KEYSTORE_PATH')
+            if (keyPath != null && !keyPath.isEmpty()) {
+                storeFile file(keyPath)
+                storePassword System.getenv('IL_RELEASE_KEYSTORE_PASSWORD')
+                keyAlias System.getenv('IL_RELEASE_KEY_ALIAS')
+                keyPassword System.getenv('IL_RELEASE_KEY_PASSWORD')
+            }
+        }
+    }
+    buildTypes {
+        release {
+            def keyPath = System.getenv('IL_RELEASE_KEYSTORE_PATH')
+            if (keyPath != null && !keyPath.isEmpty()) signingConfig signingConfigs.release
+            minifyEnabled false
+        }
+    }
 }

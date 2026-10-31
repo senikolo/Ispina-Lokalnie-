@@ -13,6 +13,7 @@ import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.net.InetAddress;
+import java.net.BindException;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.security.MessageDigest;
@@ -31,6 +32,7 @@ public final class OAuthBrowserLogin {
         void failure(String message);
     }
 
+    // WordPress.com documents localhost loopback redirects for native public clients.
     private static final String REDIRECT="http://localhost:38477/callback";
     private static final SecureRandom RANDOM = new SecureRandom();
     private static final int PORT=38477;
@@ -66,8 +68,9 @@ public final class OAuthBrowserLogin {
             if(!REDIRECT.equals(prefs.getString("oauth21_redirect","")))clientId="";
             if (clientId.isEmpty()) {
                 clientId=WpMcp.registerClient(REDIRECT);
-                prefs.edit().putString("oauth21_client_id",clientId)
-                    .putString("oauth21_redirect",REDIRECT).apply();
+                if (!prefs.edit().putString("oauth21_client_id",clientId)
+                    .putString("oauth21_redirect",REDIRECT).commit())
+                    throw new Exception("Android nie zapisał konfiguracji logowania.");
             }
             final String actualClientId=clientId;
             final String state=random(24);
@@ -119,7 +122,7 @@ public final class OAuthBrowserLogin {
                     }
                     String page=correctState&&receivedCode!=null?
                         "<h2>Odebrano odpowiedź WordPress</h2><p>Redaktor sprawdza teraz uprawnienia do strony. Kliknij poniżej, aby wrócić do aplikacji.</p><p><a style='padding:13px;background:#174875;color:white;border-radius:9px;text-decoration:none;display:inline-block' href='ilredaktor://resume'>Wróć do Redaktora IL</a></p>":
-                        "<h2>Nie udało się potwierdzić logowania</h2><p>Wróć do Redaktora i spróbuj ponownie. Sprawdź, czy wybrano właściwe konto WordPress.com.</p>";
+                        "<h2>Nie udało się potwierdzić logowania</h2><p>Wróć do Redaktora i spróbuj ponownie. Sprawdź, czy wybrano właściwe konto WordPress.com.</p><p><a style='padding:13px;background:#174875;color:white;border-radius:9px;text-decoration:none;display:inline-block' href='ilredaktor://resume'>Wróć do Redaktora IL</a></p>";
                     byte[] bytes=("<!DOCTYPE html><html lang=\"pl\"><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width\"><body style=\"font:18px system-ui;padding:22px;color:#174875\">"+page+"</body></html>").getBytes(StandardCharsets.UTF_8);
                     String header="HTTP/1.1 200 OK\r\nContent-Type: text/html; charset=utf-8\r\nCache-Control: no-store\r\nReferrer-Policy: no-referrer\r\nX-Content-Type-Options: nosniff\r\nContent-Security-Policy: default-src 'none'; style-src 'unsafe-inline'\r\nContent-Length: "+bytes.length+"\r\nConnection: close\r\n\r\n";
                     OutputStream out=socket.getOutputStream();
@@ -137,6 +140,8 @@ public final class OAuthBrowserLogin {
             main.post(()->listener.success(token,Math.max(120,seconds),refresh,actualClientId));
         } catch(Exception ex) {
             String message=ex.getMessage()==null?"Nieznany błąd połączenia.":ex.getMessage();
+            if(ex instanceof BindException)
+                message="Lokalny port powrotu jest zajęty przez inną aplikację. Zamknij ją i spróbuj ponownie.";
             if(message.contains("SocketTimeoutException")||message.contains("timed out"))
                 message="Przeglądarka nie wróciła do aplikacji. Spróbuj ponownie i dokończ zatwierdzanie w WordPress.com.";
             if(message.contains("invalid_client") || message.contains("invalid_redirect_uri")) {
