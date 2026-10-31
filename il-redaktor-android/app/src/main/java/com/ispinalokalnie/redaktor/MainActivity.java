@@ -74,6 +74,9 @@ public class MainActivity extends Activity {
         editor.addJavascriptInterface(new Bridge(), "IL");
         setContentView(editor);
         editor.loadUrl("file:///android_asset/index.html");
+        // Deep link may cold-start a new Activity after Android kills the app
+        // while the system browser is in the foreground.
+        handleOAuthCallback(getIntent());
     }
 
     private SharedPreferences prefs() { return getSharedPreferences(PREF, MODE_PRIVATE); }
@@ -216,6 +219,39 @@ public class MainActivity extends Activity {
         });
     }
 
+    private OAuthBrowserLogin newOAuthLogin() {
+        return new OAuthBrowserLogin(MainActivity.this, new OAuthBrowserLogin.Listener() {
+            @Override public void status(String text) {
+                callback("auth-progress", true, text);
+            }
+            @Override public void failure(String text) {
+                loginInProgress = false;
+                callback("auth-progress", false, text);
+            }
+            @Override public void success(String access, long expires, String refresh, String clientId) {
+                loginInProgress = false;
+                try {
+                    putTokens(access, expires, refresh, true);
+                    if (!prefs().edit().putString("oauth21_client_id", clientId).commit())
+                        throw new Exception("Android nie zapisał identyfikatora połączenia.");
+                    verified = false;
+                    callback("auth", true, "{\"connected\":true}");
+                    verifyConnection();
+                } catch (Exception ex) {
+                    callback("auth-progress", false,
+                        "Nie udało się zapisać sesji WordPress.com: " +
+                        (ex.getMessage() == null ? "błąd zabezpieczeń Android." : ex.getMessage()));
+                }
+            }
+        });
+    }
+
+    private void handleOAuthCallback(Intent intent) {
+        if (intent == null || !OAuthBrowserLogin.isCallback(intent.getData())) return;
+        loginInProgress = true;
+        newOAuthLogin().handleRedirect(intent.getData());
+    }
+
     public class Bridge {
         @JavascriptInterface public void copyText(String value) {
             ui.post(() -> {
@@ -240,26 +276,7 @@ public class MainActivity extends Activity {
             ui.post(() -> {
                 if(loginInProgress) { callback("auth-progress",true,"Logowanie jest już w toku.");return; }
                 loginInProgress=true;
-                new OAuthBrowserLogin(MainActivity.this,new OAuthBrowserLogin.Listener(){
-                    @Override public void status(String text){callback("auth-progress",true,text);}
-                    @Override public void failure(String text){
-                        loginInProgress=false;
-                        callback("auth-progress",false,text);
-                    }
-                    @Override public void success(String access,long expires,String refresh,String clientId){
-                        loginInProgress=false;
-                        try{
-                            putTokens(access,expires,refresh,true);
-                            if (!prefs().edit().putString("oauth21_client_id",clientId).commit())
-                                throw new Exception("Android nie zapisał konfiguracji logowania.");
-                            verified=false;
-                            callback("auth",true,"{\"connected\":true}");
-                            verifyConnection();
-                        } catch(Exception ex){
-                            callback("auth-progress",false,"Nie udało się bezpiecznie zapisać sesji WordPress.com: "+(ex.getMessage()==null?"błąd Android Keystore.":ex.getMessage()));
-                        }
-                    }
-                }).start();
+                newOAuthLogin().start();
             });
         }
 
@@ -494,11 +511,7 @@ public class MainActivity extends Activity {
     @Override protected void onNewIntent(Intent intent) {
         super.onNewIntent(intent);
         setIntent(intent);
-        if (intent != null && intent.getData() != null &&
-            "ilredaktor".equals(intent.getData().getScheme()) &&
-            "resume".equals(intent.getData().getHost())) {
-            callback("auth-progress",true,"Wrócono do Redaktora. Sprawdzam wynik autoryzacji WordPress…");
-        }
+        handleOAuthCallback(intent);
     }
 
     @Override public void onBackPressed() {
