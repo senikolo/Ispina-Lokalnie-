@@ -253,6 +253,9 @@ public final class WpMcp {
         } else if("categories".equals(type)) operation="categories.list";
         else if("tags".equals(type)) operation="POST".equals(method)?"tags.create":"tags.list";
         else throw new Exception("Ta operacja nie jest obsługiwana przez WordPress MCP.");
+        if (!"POST".equals(method) && params.has("status") && "posts".equals(type)) {
+            params.put("status",new JSONArray().put(params.optString("status")));
+        }
         if (hasId) params.put("id",Integer.parseInt(parts[1]));
         if ("POST".equals(method)) params.put("user_confirmed",true);
         JSONObject response=request(token,operation,params);
