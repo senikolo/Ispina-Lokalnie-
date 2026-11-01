@@ -18,8 +18,9 @@ const cors = {
 };
 
 const requestSchema = z.object({
-  mode: z.enum(['assistant', 'research']).default('assistant'),
+  mode: z.enum(['assistant', 'research', 'chat']).default('assistant'),
   prompt: z.string().trim().min(1).max(6000),
+  history: z.array(z.object({ role: z.enum(['user', 'assistant']), content: z.string().max(2000) })).max(8).default([]),
   context: z.object({
     posts: z.array(z.object({
       id: z.number().int().positive(),
@@ -79,6 +80,15 @@ function researchLimiter() {
     limiter: Ratelimit.slidingWindow(3, '1 h'),
     analytics: false,
     prefix: 'il-redaktor-research-v1',
+  });
+}
+
+function chatLimiter() {
+  return new Ratelimit({
+    redis: Redis.fromEnv(),
+    limiter: Ratelimit.slidingWindow(10, '1 h'),
+    analytics: false,
+    prefix: 'il-redaktor-chat-v1',
   });
 }
 
@@ -209,7 +219,7 @@ export async function POST(request: Request) {
   }
 
   try {
-    const limiter = input.mode === 'research' ? researchLimiter() : siteLimiter();
+    const limiter = input.mode === 'research' ? researchLimiter() : input.mode === 'chat' ? chatLimiter() : siteLimiter();
     const tokenHash = createHash('sha256').update(token).digest('hex').slice(0, 32);
     const ip = (request.headers.get('x-forwarded-for') || 'unknown').split(',')[0].trim().slice(0, 100);
     const [userLimit, ipLimit] = await Promise.all([
@@ -265,6 +275,40 @@ export async function POST(request: Request) {
         text: verifiedSections.map(section => section.title + '\n' + section.text).join('\n\n'),
         sections, sources, queries, searchedAt: new Date().toISOString(),
         profilesAttempted: RESEARCH_PROFILES.length,
+      });
+    }
+
+    if (input.mode === 'chat') {
+      const transcript = input.history.map(item =>
+        (item.role === 'user' ? 'Użytkownik: ' : 'IL Chat AI: ') + item.content
+      ).join('\n');
+      const result = await generateText({
+        model: google(MODEL), temperature: 0.15, maxOutputTokens: 1800,
+        abortSignal: AbortSignal.timeout(48_000),
+        tools: { google_search: google.tools.googleSearch({}) },
+        system: [
+          'Jesteś IL Chat AI, radarem aktualnych informacji o wsi Ispina w gminie Drwinia w Małopolsce.',
+          'Przy KAŻDYM pytaniu sprawdzaj internet przez Google Search; nie odpowiadaj z pamięci jako na bieżący wynik.',
+          'Najpierw szukaj źródeł urzędowych i dokumentów pierwotnych, następnie wiarygodnych mediów lokalnych.',
+          'Uwzględniaj odmiany Ispina, w Ispinie, do Ispiny, z Ispiny oraz możliwe literówki, lecz oddzielaj informacje o Ispinie od informacji o sąsiednich miejscowościach.',
+          'Odróżniaj datę publikacji od daty wydarzenia. Nie wymyślaj faktów, cytatów, tytułów, dat ani adresów.',
+          'Jeśli nie ma potwierdzonych źródeł, powiedz wprost, że nie udało się potwierdzić informacji. Odpowiadaj po polsku, krótko, ciepło i konkretnie.',
+          'Poprzednie wiadomości pomagają zrozumieć pytanie uzupełniające, ale nie są źródłem faktów.',
+        ].join(' '),
+        prompt: 'Aktualna data: ' + new Date().toISOString().slice(0, 10)
+          + '\n\nHistoria rozmowy:\n' + (transcript || '(to początek rozmowy)')
+          + '\n\nBieżące pytanie do sprawdzenia w internecie: ' + input.prompt,
+      });
+      const sources = normalizeGroundedSources(result.sources);
+      const queries = extractGroundingQueries(result.providerMetadata);
+      const answer = typeof result.text === 'string' ? result.text.trim().slice(0, 5000) : '';
+      const verified = Boolean(answer && sources.length);
+      return json({
+        answer: verified ? answer : '',
+        sources: verified ? sources : [],
+        queries,
+        verified,
+        searchedAt: new Date().toISOString(),
       });
     }
 
