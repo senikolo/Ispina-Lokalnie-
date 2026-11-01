@@ -175,7 +175,7 @@ public final class ConfirmationInstrumentation extends Instrumentation {
             throw new AssertionError("A short follow-up lost the previous subject: "+inherited);
         if(!"Ispina".equals(FreeIspinaSearchClient.resolveConversationPrompt("Ispina",history)))
             throw new AssertionError("An explicit broad query incorrectly inherited a previous subject");
-        if(!"Ispina kapliczki".equals(FreeIspinaSearchClient.resolveConversationPrompt(
+        if(!"Co z kapliczki w Ispinie?".equals(FreeIspinaSearchClient.resolveConversationPrompt(
             "Co z kapliczki w Ispinie?",history)))
             throw new AssertionError("Explicit new topic was overwritten with previous context");
         org.json.JSONArray manual=FreeIspinaSearchClient.parseFeed(xml,0,false);
