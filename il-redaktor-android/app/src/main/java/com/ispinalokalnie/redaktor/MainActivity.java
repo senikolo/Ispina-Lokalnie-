@@ -79,6 +79,8 @@ public class MainActivity extends Activity {
     private boolean webPageReady = false;
     private final java.util.ArrayList<String> waitingJs = new java.util.ArrayList<>();
     private static final String HAPTICS_KEY = "haptics_intensity";
+    private static final int RADAR_NOTIFICATION_PERMISSION = 1010;
+    private String pendingRadarRequestId = "";
     private long lastOutcomeHapticAt = 0;
 
     @Override public void onCreate(Bundle state) {
@@ -623,6 +625,38 @@ public class MainActivity extends Activity {
             work.execute(() -> askIspinaChatOnServer(rid, prompt, historyJson));
         }
 
+        @JavascriptInterface public void getIspinaRadarState(String rid) {
+            if (rid == null || rid.length() > 60 || !rid.matches("[A-Za-z0-9_-]+")) return;
+            callback(rid, true, ispinaRadarState().toString());
+        }
+
+        @JavascriptInterface public void setIspinaRadarEnabled(String rid, boolean enabled) {
+            if (rid == null || rid.length() > 60 || !rid.matches("[A-Za-z0-9_-]+")) return;
+            ui.post(() -> {
+                if (!enabled) {
+                    prefs().edit().putBoolean(IspinaRadarWorker.PREF_ENABLED, false).apply();
+                    IspinaRadarWorker.cancel(MainActivity.this);
+                    callback(rid, true, ispinaRadarState().toString());
+                    return;
+                }
+                if (!connected()) { callback(rid, false, "Połącz Redaktora z WordPressem, aby uruchomić Radar Ispiny."); return; }
+                if (BuildConfig.ASSISTANT_ENDPOINT == null || BuildConfig.ASSISTANT_ENDPOINT.trim().isEmpty()) {
+                    callback(rid, false, "Radar wymaga skonfigurowanego backendu Gemini i Google Search."); return;
+                }
+                if (!notificationsAllowed()) {
+                    if (android.os.Build.VERSION.SDK_INT >= 33 &&
+                        checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) != android.content.pm.PackageManager.PERMISSION_GRANTED) {
+                        pendingRadarRequestId = rid;
+                        requestPermissions(new String[]{android.Manifest.permission.POST_NOTIFICATIONS}, RADAR_NOTIFICATION_PERMISSION);
+                        return;
+                    }
+                    callback(rid, false, "Powiadomienia IL Redaktora są zablokowane w ustawieniach Androida. Włącz je dla aplikacji i spróbuj ponownie.");
+                    return;
+                }
+                enableIspinaRadar(rid);
+            });
+        }
+
         @JavascriptInterface public void dictate() {
             ui.post(() -> {
                 try {
@@ -1053,6 +1087,53 @@ public class MainActivity extends Activity {
             }
             page.loadUrl(target);
         });
+    }
+
+    private boolean notificationsAllowed() {
+        if (android.os.Build.VERSION.SDK_INT >= 33 &&
+            checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) != android.content.pm.PackageManager.PERMISSION_GRANTED)
+            return false;
+        android.app.NotificationManager manager =
+            (android.app.NotificationManager) getSystemService(NOTIFICATION_SERVICE);
+        return manager != null && manager.areNotificationsEnabled();
+    }
+
+    private JSONObject ispinaRadarState() {
+        JSONObject state = new JSONObject();
+        try {
+            state.put("enabled", prefs().getBoolean(IspinaRadarWorker.PREF_ENABLED, false));
+            state.put("intervalHours", 8);
+            state.put("lastChecked", prefs().getLong(IspinaRadarWorker.PREF_LAST_CHECKED, 0L));
+            state.put("lastStatus", prefs().getString(IspinaRadarWorker.PREF_LAST_STATUS, "idle"));
+            state.put("lastMessage", prefs().getString(IspinaRadarWorker.PREF_LAST_MESSAGE, ""));
+        } catch (Exception ignored) { }
+        return state;
+    }
+
+    private void enableIspinaRadar(String rid) {
+        if (!notificationsAllowed()) { callback(rid, false, "Android nie zezwala na powiadomienia IL Redaktora."); return; }
+        try {
+            IspinaRadarWorker.ensureNotificationChannel(this);
+            if (!prefs().edit().putBoolean(IspinaRadarWorker.PREF_ENABLED, true).commit())
+                throw new Exception("Nie udało się zapisać ustawienia radaru.");
+            IspinaRadarWorker.schedule(this);
+            callback(rid, true, ispinaRadarState().toString());
+        } catch (Exception ex) {
+            prefs().edit().putBoolean(IspinaRadarWorker.PREF_ENABLED, false).commit();
+            IspinaRadarWorker.cancel(this);
+            callback(rid, false, ex.getMessage() == null ? "Nie udało się zaplanować radaru." : ex.getMessage());
+        }
+    }
+
+    @Override public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if (requestCode != RADAR_NOTIFICATION_PERMISSION) return;
+        String rid = pendingRadarRequestId;
+        pendingRadarRequestId = "";
+        if (rid.isEmpty()) return;
+        if (grantResults.length > 0 && grantResults[0] == android.content.pm.PackageManager.PERMISSION_GRANTED)
+            enableIspinaRadar(rid);
+        else callback(rid, false, "Nie włączono radaru, bo Android nie przyznał zgody na powiadomienia.");
     }
 
     @Override protected void onNewIntent(Intent intent) {

@@ -261,6 +261,14 @@ header{animation:ilHeader .38s cubic-bezier(.2,.7,.2,1) both}.brand .logo{animat
     <div class="note small">Raport może uruchomić do sześciu osobnych wywołań Gemini z Google Search; każde może wykonać różną liczbę zapytań. Mogą być naliczane osobne opłaty za model i wyszukiwanie. Wyniki są propozycją do sprawdzenia. Zobaczysz źródła przypisane do profilu oraz frazy, jeśli provider je udostępni.</div>
     <details class="small"><summary>Zakres sześciu profili</summary><ul><li>Przetargi i zamówienia dotyczące Ispiny</li><li>Gmina Drwinia, BIP i strony urzędowe</li><li>BZP, e-Zamówienia i inne platformy</li><li>Lokalne i regionalne media</li><li>Drogi, mosty, transport, OSP i infrastruktura</li><li>Odmiany nazwy, materiały archiwalne i pobliskie miejsca z potwierdzonym związkiem</li></ul></details>
     <div class="actions"><button class="secondary" type="button" onclick="runRecentIspinaRadar()">Nowości · ostatnie 30 dni</button><button id="research-button" type="button" disabled onclick="runDeepIspinaResearch()">🔎 Wyszukaj w internecie informacje o Ispinie</button><button id="assistant-check-button" class="secondary" type="button" onclick="checkAssistantAvailability()">Sprawdź backend ponownie</button><button class="secondary" type="button" onclick="clearResearchResults()">Wyczyść wyniki</button></div>
+    <div class="note" id="background-radar-card" role="group" aria-label="Automatyczny radar Ispiny">
+      <strong>🔔 Automatyczny radar Ispiny · IL</strong>
+      <p class="small">Redaktor sprawdzi publiczne źródła co 8 godzin, czyli około 3 razy na dobę. Powiadomienie z ikoną IL pojawi się tylko dla nowej wzmianki ze źródłem.</p>
+      <label style="display:flex;align-items:center;gap:10px"><input id="ispina-radar-enabled" type="checkbox"> Włącz radar w tle i powiadomienia</label>
+      <div class="actions"><button type="button" class="secondary" id="ispina-radar-save" onclick="saveIspinaRadarSettings()">Zapisz ustawienie radaru</button></div>
+      <p id="ispina-radar-status" class="small muted" role="status" aria-live="polite">Radar jest wyłączony. Włączenie wymaga zgody na powiadomienia.</p>
+      <p class="small muted">Skan korzysta z IL Chat AI i Google Search. Wymaga połączenia z WordPressem oraz działającego backendu Gemini. Użycie API może podlegać limitom i opłatom.</p>
+    </div>
     <p id="research-status" class="small muted" role="status" aria-live="polite">Sprawdzam dostępność wyszukiwania AI…</p>
     <div id="research-results" aria-live="polite" role="region" aria-label="Wyniki wyszukiwania o Ispinie"></div>
   </div>
@@ -1042,6 +1050,56 @@ function runRecentIspinaRadar(){
   $("research-query").value="Znajdź informacje o Ispinie opublikowane w ostatnich 30 dniach. Przeszukaj źródła urzędowe, BIP, lokalne media, zamówienia, drogi, most, transport, OSP i usługi. Podaj daty publikacji i oddziel je od dat wydarzeń. Starsze ważne materiały wskaż osobno.";
   return runDeepIspinaResearch();
 }
+function requestIspinaRadarState(){
+  return new Promise((resolve,reject)=>{
+    const id="q"+(++reqNo),timeout=setTimeout(()=>{requests.delete(id);reject(new Error("Nie udało się odczytać ustawień radaru."))},15000);
+    requests.set(id,{resolve,reject,timeout});IL.getIspinaRadarState(id);
+  });
+}
+function requestIspinaRadarEnabled(enabled){
+  return new Promise((resolve,reject)=>{
+    const id="q"+(++reqNo),timeout=setTimeout(()=>{requests.delete(id);reject(new Error("Redaktor nie odpowiedział na zmianę radaru."))},20000);
+    requests.set(id,{resolve,reject,timeout});IL.setIspinaRadarEnabled(id,!!enabled);
+  });
+}
+function renderIspinaRadarState(state){
+  const checkbox=$("ispina-radar-enabled"),status=$("ispina-radar-status");
+  checkbox.checked=!!state?.enabled;
+  const last=Number(state?.lastChecked||0),when=last?new Date(last).toLocaleString("pl-PL"):"";
+  if(state?.enabled){
+    const detail=state.lastStatus==="found"?"Ostatni skan znalazł nową wzmiankę."
+      :state.lastStatus==="none"?"Ostatni skan nie znalazł nowej wzmianki."
+      :state.lastStatus==="error"?"Ostatni skan nie został zakończony: "+String(state.lastMessage||"sprawdź połączenie.")
+      :state.lastStatus==="login"?"Zaloguj ponownie do WordPressa, aby radar mógł działać."
+      :"Oczekuje na pierwszy skan.";
+    status.textContent="Radar aktywny · co 8 godzin. "+detail+(when?" Ostatni skan: "+when+".":"");
+    status.className="small "+(state.lastStatus==="error"||state.lastStatus==="login"?"error":"muted");
+  }else{
+    status.textContent=state?.lastStatus==="notifications_disabled"
+      ?"Powiadomienia Androida są wyłączone. Włącz je w ustawieniach telefonu, aby uruchomić radar."
+      :"Radar jest wyłączony."+(when?" Ostatni skan: "+when+".":"");
+    status.className="small muted";
+  }
+}
+async function refreshIspinaRadarState(){
+  if(!window.IL||typeof IL.getIspinaRadarState!=="function")return;
+  try{renderIspinaRadarState(await requestIspinaRadarState())}
+  catch(error){$("ispina-radar-status").textContent=error.message;$("ispina-radar-status").className="small error"}
+}
+async function saveIspinaRadarSettings(){
+  const checkbox=$("ispina-radar-enabled"),button=$("ispina-radar-save"),enabled=checkbox.checked;
+  if(enabled&&!assistantEnabled){checkbox.checked=false;$("ispina-radar-status").textContent="Radar wymaga działającego backendu Gemini i Google Search.";$("ispina-radar-status").className="small error";return false}
+  if(enabled&&!connected){checkbox.checked=false;$("ispina-radar-status").textContent="Najpierw połącz Redaktora z WordPressem. Radar używa tej bezpiecznej sesji do autoryzacji.";$("ispina-radar-status").className="small error";return false}
+  if(enabled&&!confirm("Włączyć automatyczne sprawdzanie co 8 godzin? Każdy skan uruchamia jedno wyszukiwanie IL Chat AI z Google Search. Gemini/API może naliczać opłaty lub zużywać limit. Powiadomienie pojawi się tylko dla nowego źródła. Wymagana jest zgoda Androida na powiadomienia.")){checkbox.checked=false;return false}
+  button.disabled=true;$("ispina-radar-status").textContent=enabled?"Włączam harmonogram i sprawdzam zgodę na powiadomienia…":"Wyłączam radar w tle…";$("ispina-radar-status").className="small muted";
+  try{
+    const state=await requestIspinaRadarEnabled(enabled);renderIspinaRadarState(state);
+    $("ispina-radar-status").textContent=state.enabled?"Radar włączony. Skanuje co 8 godzin; pierwsze sprawdzenie rozpocznie się wkrótce.":"Radar wyłączony. Nowe skany i powiadomienia zostały zatrzymane.";
+    return true;
+  }catch(error){if(enabled)checkbox.checked=false;$("ispina-radar-status").textContent=error.message;$("ispina-radar-status").className="small error";return false}
+  finally{button.disabled=false}
+}
+
 let researchInProgress=false;
 async function runDeepIspinaResearch(){
   if(researchInProgress)return false;
@@ -2180,6 +2238,6 @@ if(actionHistory.length){
 loadUiPreferences();
 restoreLocal(true);
 $("publication-sound").checked=localStorage.getItem("il_publication_sound")!=="false";
-if(window.IL){IL.status();if(IL.getHaptics)IL.getHaptics();if(IL.getTextZoom)IL.getTextZoom();if(IL.loginState)IL.loginState()}else{message("auth-output","Brak mostu Android. Otwórz ten panel wewnątrz APK.","error");}
+if(window.IL){IL.status();if(IL.getHaptics)IL.getHaptics();if(IL.getTextZoom)IL.getTextZoom();if(IL.loginState)IL.loginState();if(IL.getIspinaRadarState)refreshIspinaRadarState()}else{message("auth-output","Brak mostu Android. Otwórz ten panel wewnątrz APK.","error");}
 </script>
 </body></html>

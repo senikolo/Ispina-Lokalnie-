@@ -1,6 +1,14 @@
-# IL Redaktor Smart 1.24.0
+# IL Redaktor Smart 1.25.0
 
-Wersja rozwojowa (versionCode 32, stały pakiet `com.ispinalokalnie.redaktorsmart.stable`). **Nie odinstalowuj wcześniejszej APK przed aktualizacją**, dopóki nie zabezpieczysz szkiców i nie potwierdzisz zgodności podpisu. CI sprawdza uruchomienie i zachowanie szkiców po reinstalacji na Androidzie 8 (API 26), a przejście ze starej wersji oraz WebView na Androidzie 11 (API 30) i 13 (API 33). Debug APK nie jest automatycznie zgodną aktualizacją prywatnie podpisanej wersji; podpisany plik aktualizacyjny powstaje tylko przy dostępności dotychczasowego klucza.
+Wersja rozwojowa (versionCode 33, stały pakiet `com.ispinalokalnie.redaktorsmart.stable`). **Nie odinstalowuj wcześniejszej APK przed aktualizacją**, dopóki nie zabezpieczysz szkiców i nie potwierdzisz zgodności podpisu. CI sprawdza uruchomienie i zachowanie szkiców po reinstalacji na Androidzie 8 (API 26), a przejście ze starej wersji oraz WebView na Androidzie 11 (API 30) i 13 (API 33). Debug APK nie jest automatycznie zgodną aktualizacją prywatnie podpisanej wersji; podpisany plik aktualizacyjny powstaje tylko przy dostępności dotychczasowego klucza.
+
+## Nowości 1.25.0 — automatyczny Radar Ispiny w tle
+
+- Redaktor może skanować publiczne źródła co 8 godzin (około 3 razy na dobę) i wysyłać powiadomienie Androida z ikoną IL tylko wtedy, gdy pojawi się nowe źródło dotyczące Ispiny.
+- Skan korzysta z IL Chat AI i Google Search, z jednym wywołaniem na sprawdzenie. Obejmuje źródła urzędowe, BIP, lokalne media, transport, inwestycje, OSP i przetargi; zapamiętuje wcześniej widziane adresy, aby nie powtarzać alertów.
+- Harmonogram działa przez Android WorkManager przy dostępnej sieci. Jest wyłączony do świadomego włączenia w karcie wyszukiwania. Android może przesunąć godzinę skanu, np. przez oszczędzanie baterii.
+- Wymaga sesji WordPress.com, backendu Gemini/Google Search oraz zgody Androida na powiadomienia. API może podlegać limitom i opłatom; subskrypcja ChatGPT Plus nie jest potrzebna.
+- Dotknięcie powiadomienia otwiera znalezione źródło; dodatkowa akcja otwiera Redaktora. Radar nie tworzy szkiców ani nie publikuje bez działania redaktora.
 
 ## Nowości 1.24.0 — radar → szkic w ChatGPT/Gemini
 
