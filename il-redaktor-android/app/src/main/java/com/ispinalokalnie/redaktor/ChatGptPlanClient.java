@@ -82,6 +82,49 @@ public final class ChatGptPlanClient {
     private static final SecureRandom RANDOM = new SecureRandom();
     private static final Object TOKEN_LOCK = new Object();
     private static final Object REFRESH_LOCK = new Object();
+    private static final ThreadLocal<SearchControl> ACTIVE_SEARCH = new ThreadLocal<>();
+
+    public static final class SearchControl implements AutoCloseable {
+        private volatile boolean cancelled;
+        private volatile boolean timedOut;
+        private volatile HttpURLConnection connection;
+        final long generation;
+        private final long deadline;
+        private final java.util.Timer timer = new java.util.Timer(true);
+
+        public SearchControl(Context context, long timeoutMs) {
+            generation = prefs(context).getLong(PREF_GENERATION, 0L);
+            deadline = android.os.SystemClock.elapsedRealtime() + timeoutMs;
+            timer.schedule(new java.util.TimerTask() {
+                @Override public void run() { timedOut = true; cancel(); }
+            }, timeoutMs);
+        }
+        public void cancel() {
+            cancelled = true;
+            HttpURLConnection current = connection;
+            if (current != null) new Thread(current::disconnect, "il-search-cancel").start();
+            timer.cancel();
+        }
+        void check() throws Exception {
+            if (timedOut || android.os.SystemClock.elapsedRealtime() >= deadline)
+                throw new Exception("Wyszukiwanie przekroczyło limit 60 sekund. Spróbuj krótszego pytania.");
+            if (cancelled) throw new Exception("Wyszukiwanie anulowane.");
+        }
+        void attach(HttpURLConnection next) throws Exception {
+            connection = next;
+            try { check(); } catch (Exception ex) { next.disconnect(); throw ex; }
+        }
+        @Override public void close() { timer.cancel(); connection = null; }
+    }
+
+    private static void checkSearch() throws Exception {
+        SearchControl control = ACTIVE_SEARCH.get();
+        if (control != null) control.check();
+    }
+    private static void trackSearch(HttpURLConnection connection) throws Exception {
+        SearchControl control = ACTIVE_SEARCH.get();
+        if (control != null) control.attach(connection);
+    }
 
     private ChatGptPlanClient() {}
 
@@ -373,6 +416,24 @@ public final class ChatGptPlanClient {
     }
 
     public static JSONObject ask(Context context, String prompt, JSONArray history, boolean webSearch) throws Exception {
+        return ask(context, prompt, history, webSearch, new SearchControl(context, 60000));
+    }
+
+    public static JSONObject ask(Context context, String prompt, JSONArray history, boolean webSearch, SearchControl control) throws Exception {
+        ACTIVE_SEARCH.set(control);
+        try {
+            control.check();
+            return askWithinDeadline(context, prompt, history, webSearch);
+        } catch (Exception ex) {
+            control.check();
+            throw ex;
+        } finally {
+            ACTIVE_SEARCH.remove();
+            control.close();
+        }
+    }
+
+    private static JSONObject askWithinDeadline(Context context, String prompt, JSONArray history, boolean webSearch) throws Exception {
         if (prompt == null || prompt.trim().isEmpty()) throw new Exception("Wpisz temat wyszukiwania.");
         SharedPreferences p = prefs(context);
         String model = p.getString(PREF_MODEL, "");
@@ -408,16 +469,18 @@ public final class ChatGptPlanClient {
     }
 
     private static JSONObject sendResponse(Context context, JSONObject request) throws Exception {
-        long generation = prefs(context).getLong(PREF_GENERATION, 0L);
+        long generation = ACTIVE_SEARCH.get() == null ? prefs(context).getLong(PREF_GENERATION, 0L) : ACTIVE_SEARCH.get().generation;
+        checkSearch();
         String token = accessToken(context, false, generation);
         for (int attempt = 0; attempt < 2; attempt++) {
             HttpURLConnection connection = null;
             try {
                 ensureCurrentGeneration(prefs(context), generation);
                 connection = (HttpURLConnection) new URL(RESPONSES_URL).openConnection();
+                trackSearch(connection);
                 connection.setRequestMethod("POST");
                 connection.setConnectTimeout(20000);
-                connection.setReadTimeout(180000);
+                connection.setReadTimeout(60000);
                 connection.setInstanceFollowRedirects(false);
                 connection.setRequestProperty("Authorization", "Bearer " + token);
                 connection.setRequestProperty("Content-Type", "application/json; charset=UTF-8");
@@ -471,6 +534,7 @@ public final class ChatGptPlanClient {
                 String answer = text.toString().trim();
                 if (answer.isEmpty()) throw new Exception("ChatGPT zwrócił pustą odpowiedź.");
                 ensureCurrentGeneration(prefs(context), generation);
+                checkSearch();
                 return responseResult(answer, completed);
             } finally {
                 if (connection != null) connection.disconnect();
@@ -568,6 +632,7 @@ public final class ChatGptPlanClient {
 
     private static String accessToken(Context context, boolean forceRefresh, long generation) throws Exception {
         synchronized (REFRESH_LOCK) {
+            checkSearch();
             SharedPreferences p = prefs(context);
             final String refresh;
             final String client;
@@ -642,6 +707,7 @@ public final class ChatGptPlanClient {
     private static JSONObject getJson(String url, String accessToken) throws Exception {
         HttpURLConnection connection = (HttpURLConnection) new URL(url).openConnection();
         try {
+            trackSearch(connection);
             connection.setRequestMethod("GET");
             connection.setConnectTimeout(15000);
             connection.setReadTimeout(20000);
@@ -752,6 +818,7 @@ public final class ChatGptPlanClient {
             byte[] buffer = new byte[4096];
             int read;
             while ((read = in.read(buffer)) != -1) {
+                checkSearch();
                 if (out.size() + read > 1_000_000) throw new Exception("Odpowiedź ChatGPT jest za duża.");
                 out.write(buffer, 0, read);
             }
