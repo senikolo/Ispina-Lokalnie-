@@ -4,7 +4,7 @@ import { Redis } from '@upstash/redis';
 import { generateText, Output } from 'ai';
 import { createHash } from 'node:crypto';
 import { z } from 'zod';
-import { extractGroundingQueries, getBackendReadiness, normalizeGroundedSources, rateLimitExceeded, RESEARCH_PROFILES } from '../lib/assistant-utils.ts';
+import { extractGroundingQueries, getBackendReadiness, getBackendRedisConfig, normalizeGroundedSources, rateLimitExceeded, RESEARCH_PROFILES } from '../lib/assistant-utils.ts';
 
 const MCP_URL = 'https://public-api.wordpress.com/wpcom/v2/mcp/v1';
 const SITE = 'ispinalokalnie.wordpress.com';
@@ -65,9 +65,11 @@ function json(body: unknown, status = 200) {
   });
 }
 
+function redisClient() { return new Redis(getBackendRedisConfig(process.env)); }
+
 function siteLimiter() {
   return new Ratelimit({
-    redis: Redis.fromEnv(),
+    redis: redisClient(),
     limiter: Ratelimit.slidingWindow(20, '1 h'),
     analytics: false,
     prefix: 'il-redaktor-assistant-v1',
@@ -76,7 +78,7 @@ function siteLimiter() {
 
 function researchLimiter() {
   return new Ratelimit({
-    redis: Redis.fromEnv(),
+    redis: redisClient(),
     limiter: Ratelimit.slidingWindow(3, '1 h'),
     analytics: false,
     prefix: 'il-redaktor-research-v1',
@@ -85,7 +87,7 @@ function researchLimiter() {
 
 function chatLimiter() {
   return new Ratelimit({
-    redis: Redis.fromEnv(),
+    redis: redisClient(),
     limiter: Ratelimit.slidingWindow(10, '1 h'),
     analytics: false,
     prefix: 'il-redaktor-chat-v1',

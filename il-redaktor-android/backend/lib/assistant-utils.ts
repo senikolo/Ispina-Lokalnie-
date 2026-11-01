@@ -1,6 +1,15 @@
-export const REQUIRED_BACKEND_ENV = ['GOOGLE_GENERATIVE_AI_API_KEY', 'UPSTASH_REDIS_REST_URL', 'UPSTASH_REDIS_REST_TOKEN'] as const;
+export const REQUIRED_BACKEND_ENV = ['GOOGLE_GENERATIVE_AI_API_KEY'] as const;
+export function getBackendRedisConfig(env: Record<string, string | undefined>) {
+  return {
+    url: env.UPSTASH_REDIS_REST_URL?.trim() || env.KV_REST_API_URL?.trim() || '',
+    token: env.UPSTASH_REDIS_REST_TOKEN?.trim() || env.KV_REST_API_TOKEN?.trim() || '',
+  };
+}
 export function getBackendReadiness(env: Record<string, string | undefined>) {
   const missing = REQUIRED_BACKEND_ENV.filter(name => !env[name]?.trim());
+  const redis = getBackendRedisConfig(env);
+  if (!redis.url) missing.push('UPSTASH_REDIS_REST_URL or KV_REST_API_URL');
+  if (!redis.token) missing.push('UPSTASH_REDIS_REST_TOKEN or KV_REST_API_TOKEN');
   return { ready: missing.length === 0, missing };
 }
 export const RESEARCH_PROFILES = [

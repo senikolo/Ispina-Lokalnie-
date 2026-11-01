@@ -161,7 +161,7 @@ Test suite wykonuje przypadki logiki aplikacji z transportem WordPress zastąpio
 
 ## AI
 
-Backend źródłowy jest w `backend/`, ale nie jest jeszcze wdrożony i nie ma skonfigurowanego klucza. APK bez `IL_ASSISTANT_ENDPOINT` działa w trybie podstawowym, bez generatywnego modelu. Do uruchomienia potrzebny jest osobny klucz API Gemini, Vercel Function oraz Upstash Redis do limitowania zapytań; subskrypcja Gemini Pro nie jest kluczem do Gemini API. Nie umieszczaj klucza API ani prywatnego endpointu z uprawnieniami WordPressa w aplikacji.
+Backend źródłowy jest w `backend/`; APK bez `IL_ASSISTANT_ENDPOINT` działa w trybie podstawowym, bez generatywnego modelu. Do uruchomienia potrzebny jest osobny klucz API Gemini oraz Redis REST do limitowania zapytań. Ustaw `GOOGLE_GENERATIVE_AI_API_KEY` oraz parę `KV_REST_API_URL` i `KV_REST_API_TOKEN` (nazwy z integracji Vercel) albo `UPSTASH_REDIS_REST_URL` i `UPSTASH_REDIS_REST_TOKEN`. Po zmianie zmiennych utwórz nowe wdrożenie Vercel. Subskrypcja Gemini Pro nie jest kluczem do Gemini API. Nie umieszczaj klucza API ani prywatnego endpointu z uprawnieniami WordPressa w aplikacji.
 
 Cennik Google dla `gemini-3.5-flash-lite` aktualnie podaje bezpłatny limit, a po jego przekroczeniu **0,30 USD za 1 mln tokenów wejściowych** i **2,50 USD za 1 mln tokenów wyjściowych**. W przypadku bezpłatnego poziomu Google może używać przekazanych promptów do ulepszania produktów; płatny poziom nie używa ich w tym celu. Vercel i Upstash są osobnymi usługami i mogą naliczać własne opłaty. Cenniki i limity mogą się zmieniać.
 
