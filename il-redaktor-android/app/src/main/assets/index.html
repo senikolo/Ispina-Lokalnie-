@@ -635,8 +635,8 @@ window.onNativeResult=function(id,ok,payload){
       const state=JSON.parse(payload);
       showLoginRecovery(!!state.pending);
       if(state.expired){
-        operationFinished(false,"Logowanie WordPress.com wygasło","Nie otrzymano odpowiedzi w ciągu 5 minut. Możesz bezpiecznie uruchomić nową próbę.");
         message("auth-output","Nie otrzymano potwierdzenia z przeglądarki. Rozpocznij logowanie ponownie.","error");
+        operationFinished(false,"Logowanie WordPress.com wygasło","Nie otrzymano odpowiedzi w ciągu 5 minut. Możesz bezpiecznie uruchomić nową próbę.");
       }else if(state.pending){
         operationBanner("pending","Czekam na potwierdzenie w przeglądarce. Wróć do logowania lub anuluj.");
       }else endOperation();
