@@ -1130,7 +1130,7 @@ function renderResearchResult(result,query){
   const ok=Number(result?.successfulFeeds||0),failed=Number(result?.failedFeeds||0),skipped=Number(result?.skippedFeeds||0),planned=Number(result?.plannedFeeds||0);
   $("research-status").textContent="Zakończono: znaleziono "+totalSources+" linków do sprawdzenia. "+
     (planned?"Profile: "+ok+"/"+planned+" pobranych, "+failed+" niedostępnych, "+skipped+" pominiętych. ":"")+
-    (result?.partialResults?"Wynik częściowy: nie jest to skan całego internetu.":"");
+    (result?.partialResults?"Wynik jest niepełny. Nie jest to skan całego internetu.":"");
   if(result?.partialResults)$("research-status").className="small muted";
   $("research-status").className="small ok";
 }
