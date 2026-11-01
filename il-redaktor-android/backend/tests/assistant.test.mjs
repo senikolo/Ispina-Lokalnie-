@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import assistantHandler, { GET, OPTIONS, POST } from '../api/assistant.ts';
-import { extractGroundingQueries, getBackendReadiness, getBackendRedisConfig, normalizeGroundedSources, rateLimitExceeded, RESEARCH_PROFILES } from '../lib/assistant-utils.js';
+import { extractGroundingQueries, getBackendReadiness, getBackendRedisConfig, normalizeGroundedSources, rateLimitExceeded, RESEARCH_PROFILES, summarizeProviderError } from '../lib/assistant-utils.js';
 test('readiness accepts Upstash and Vercel KV environment names', () => {
   assert.deepEqual(getBackendReadiness({ GOOGLE_GENERATIVE_AI_API_KEY: 'key', UPSTASH_REDIS_REST_URL: 'url', UPSTASH_REDIS_REST_TOKEN: 'token' }), { ready: true, missing: [] });
   assert.deepEqual(getBackendReadiness({ GOOGLE_GENERATIVE_AI_API_KEY: 'key', KV_REST_API_URL: 'https://kv.example', KV_REST_API_TOKEN: 'vercel-token' }), { ready: true, missing: [] });
@@ -40,4 +40,45 @@ test('POST reports an unconfigured backend before WordPress auth', async () => {
   const names=['GOOGLE_GENERATIVE_AI_API_KEY','UPSTASH_REDIS_REST_URL','UPSTASH_REDIS_REST_TOKEN','KV_REST_API_URL','KV_REST_API_TOKEN'],prev=Object.fromEntries(names.map(n=>[n,process.env[n]]));
   try { names.forEach(n=>delete process.env[n]); const r=await POST(new Request('https://example.test/api/assistant',{method:'POST',body:'{}'})); assert.equal(r.status,503); }
   finally { names.forEach(n=>prev[n]===undefined?delete process.env[n]:process.env[n]=prev[n]); }
+});
+
+
+test('provider retry errors expose safe quota diagnostics and redact API keys', () => {
+  const result = summarizeProviderError({
+    name: 'AI_RetryError',
+    lastError: {
+      name: 'AI_APICallError',
+      statusCode: 429,
+      isRetryable: true,
+      responseBody: JSON.stringify({
+        error: {
+          code: 429,
+          status: 'RESOURCE_EXHAUSTED',
+          message: 'Quota exceeded for key=AIza123456789012345678901234567890123456',
+        },
+      }),
+      requestBodyValues: { prompt: 'private prompt must not be returned' },
+    },
+  });
+  assert.deepEqual(result, {
+    category: 'quota',
+    statusCode: 429,
+    providerCode: 'RESOURCE_EXHAUSTED',
+    retryable: true,
+    message: 'Quota exceeded for key=[redacted]',
+  });
+  assert.equal(JSON.stringify(result).includes('private prompt'), false);
+});
+
+test('provider error summary identifies rejected credentials without exposing tokens', () => {
+  const result = summarizeProviderError({
+    lastError: {
+      statusCode: 403,
+      isRetryable: false,
+      responseBody: JSON.stringify({ error: { status: 'PERMISSION_DENIED', message: 'Bearer secret-value denied' } }),
+    },
+  });
+  assert.equal(result.category, 'auth');
+  assert.equal(result.statusCode, 403);
+  assert.equal(result.message.includes('secret-value'), false);
 });

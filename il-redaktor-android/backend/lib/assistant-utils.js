@@ -1,5 +1,81 @@
 export const REQUIRED_BACKEND_ENV = Object.freeze(['GOOGLE_GENERATIVE_AI_API_KEY']);
 
+function asRecord(value) {
+  return value && typeof value === 'object' ? value : null;
+}
+
+function redactProviderMessage(value) {
+  return value
+    .replace(/\\bAIza[0-9A-Za-z_-]{20,}\\b/g, '[redacted]')
+    .replace(/\\bBearer\\s+[^\\s,;]+/gi, 'Bearer [redacted]')
+    .replace(/((?:api[_-]?key|token|secret)\\s*[:=]\\s*)[^\\s,;]+/gi, '$1[redacted]')
+    .replace(/([?&]key=)[^&\\s]+/gi, '$1[redacted]')
+    .replace(/[\\r\\n\\t]+/g, ' ')
+    .replace(/\\s{2,}/g, ' ')
+    .trim()
+    .slice(0, 240);
+}
+
+/**
+ * Extracts only safe, actionable details from AI SDK retry/API errors.
+ * Never includes request bodies, prompts, headers, or credentials.
+ */
+export function summarizeProviderError(error) {
+  const root = asRecord(error);
+  if (!root) return { category: 'unknown', statusCode: null, providerCode: '', retryable: null, message: '' };
+
+  let info = asRecord(root.lastError)
+    || (Array.isArray(root.errors) ? asRecord(root.errors.at(-1)) : null)
+    || asRecord(root.cause)
+    || root;
+  for (let depth = 0; depth < 3; depth++) {
+    if (Number.isInteger(info.statusCode) || info.responseBody) break;
+    const nested = asRecord(info.lastError) || asRecord(info.cause);
+    if (!nested) break;
+    info = nested;
+  }
+
+  let responseError = null;
+  if (typeof info.responseBody === 'string') {
+    try { responseError = asRecord(JSON.parse(info.responseBody)); } catch { /* Ignore unstructured provider responses. */ }
+  } else {
+    responseError = asRecord(info.responseBody);
+  }
+  if (responseError && asRecord(responseError.error)) responseError = asRecord(responseError.error);
+
+  const bodyCode = responseError?.code;
+  const bodyStatus = responseError?.status;
+  const statusFromBody = Number.isInteger(bodyCode) && bodyCode >= 400 && bodyCode <= 599 ? bodyCode : null;
+  const statusCode = Number.isInteger(info.statusCode) ? info.statusCode : statusFromBody;
+  const providerCode = typeof bodyStatus === 'string' ? bodyStatus
+    : typeof bodyCode === 'string' ? bodyCode
+    : typeof info.code === 'string' ? info.code : '';
+  const rawMessage = typeof responseError?.message === 'string' ? responseError.message
+    : typeof info.message === 'string' ? info.message : '';
+  const message = redactProviderMessage(rawMessage);
+  const normalizedCode = providerCode.toUpperCase();
+  const lowerMessage = message.toLowerCase();
+
+  let category = 'unknown';
+  if (statusCode === 429 || normalizedCode === 'RESOURCE_EXHAUSTED'
+    || /quota|rate limit|resource exhausted|billing/.test(lowerMessage)) category = 'quota';
+  else if (statusCode === 401 || statusCode === 403
+    || normalizedCode === 'UNAUTHENTICATED' || normalizedCode === 'PERMISSION_DENIED'
+    || /api key.{0,30}(invalid|expired|denied)|permission denied/.test(lowerMessage)) category = 'auth';
+  else if (statusCode === 400 || normalizedCode === 'INVALID_ARGUMENT') category = 'configuration';
+  else if (statusCode === 404 || normalizedCode === 'NOT_FOUND') category = 'model';
+  else if ((statusCode !== null && statusCode >= 500) || info.isRetryable === true) category = 'transient';
+
+  return {
+    category,
+    statusCode: Number.isInteger(statusCode) ? statusCode : null,
+    providerCode: providerCode.slice(0, 80),
+    retryable: typeof info.isRetryable === 'boolean' ? info.isRetryable : null,
+    message,
+  };
+}
+
+
 export function getBackendRedisConfig(env) {
   return {
     url: env.UPSTASH_REDIS_REST_URL?.trim() || env.KV_REST_API_URL?.trim() || '',
