@@ -72,6 +72,49 @@ public final class OAuthBrowserLogin {
         new Thread(this::beginLogin, "il-oauth-begin").start();
     }
 
+    /** Reopen the original PKCE authorization attempt without rotating state or the verifier. */
+    public void resumePendingLogin() {
+        new Thread(() -> {
+            try {
+                SharedPreferences storage = prefs();
+                String state = storage.getString(PENDING_STATE, "");
+                String verifier = storage.getString(PENDING_VERIFIER, "");
+                String clientId = storage.getString(PENDING_CLIENT, "");
+                if (state.isEmpty() || verifier.isEmpty() || clientId.isEmpty() ||
+                    storage.getLong(PENDING_EXPIRES, 0L) <= System.currentTimeMillis()) {
+                    clearPending();
+                    fail("Poprzednie logowanie wygasło. Kliknij Anuluj i rozpocznij ponownie.");
+                    return;
+                }
+                byte[] sha = MessageDigest.getInstance("SHA-256")
+                    .digest(verifier.getBytes(StandardCharsets.US_ASCII));
+                String challenge = Base64.encodeToString(sha,
+                    Base64.URL_SAFE | Base64.NO_PADDING | Base64.NO_WRAP);
+                String url = WpMcp.AUTHORIZE +
+                    "?response_type=code" +
+                    "&client_id=" + Uri.encode(clientId) +
+                    "&redirect_uri=" + Uri.encode(REDIRECT) +
+                    "&code_challenge=" + Uri.encode(challenge) +
+                    "&code_challenge_method=S256" +
+                    "&scope=global" +
+                    "&state=" + Uri.encode(state);
+                main.post(() -> {
+                    try {
+                        Intent browser = new Intent(Intent.ACTION_VIEW, Uri.parse(url));
+                        browser.addCategory(Intent.CATEGORY_BROWSABLE);
+                        activity.startActivity(browser);
+                        note("Otworzyłem ponownie tę samą próbę logowania. Zatwierdź dostęp w przeglądarce.");
+                    } catch (Exception ex) {
+                        fail("Nie można otworzyć przeglądarki. Wybierz domyślną przeglądarkę w ustawieniach Androida.");
+                    }
+                });
+            } catch (Exception ex) {
+                fail("Nie udało się wznowić logowania: " +
+                    (ex.getMessage() == null ? "błąd urządzenia." : ex.getMessage()));
+            }
+        }, "il-oauth-resume").start();
+    }
+
     private void beginLogin() {
         try {
             note("Krok 1/4: przygotowuję bezpieczne logowanie w aplikacji Android…");
