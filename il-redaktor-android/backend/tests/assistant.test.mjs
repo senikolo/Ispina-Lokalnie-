@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { GET, OPTIONS, POST } from '../api/assistant.ts';
+import assistantHandler, { GET, OPTIONS, POST } from '../api/assistant.ts';
 import { extractGroundingQueries, getBackendReadiness, getBackendRedisConfig, normalizeGroundedSources, rateLimitExceeded, RESEARCH_PROFILES } from '../lib/assistant-utils.ts';
 test('readiness accepts Upstash and Vercel KV environment names', () => {
   assert.deepEqual(getBackendReadiness({ GOOGLE_GENERATIVE_AI_API_KEY: 'key', UPSTASH_REDIS_REST_URL: 'url', UPSTASH_REDIS_REST_TOKEN: 'token' }), { ready: true, missing: [] });
@@ -30,6 +30,12 @@ test('GET readiness does not disclose missing environment variable names', async
   finally { names.forEach(n=>prev[n]===undefined?delete process.env[n]:process.env[n]=prev[n]); }
 });
 test('preflight advertises GET readiness', async () => { const r=await OPTIONS(); assert.equal(r.status,204); assert.match(r.headers.get('Access-Control-Allow-Methods')||'',/\bGET\b/); });
+test('Vercel Fetch API entrypoint dispatches GET readiness', async () => {
+  const response = await assistantHandler.fetch(new Request('https://example.test/api/assistant', { method: 'GET' }));
+  assert.ok(response.status === 200 || response.status === 503);
+  assert.match(response.headers.get('Content-Type') || '', /application\/json/i);
+  assert.equal(typeof (await response.json()).ready, 'boolean');
+});
 test('POST reports an unconfigured backend before WordPress auth', async () => {
   const names=['GOOGLE_GENERATIVE_AI_API_KEY','UPSTASH_REDIS_REST_URL','UPSTASH_REDIS_REST_TOKEN','KV_REST_API_URL','KV_REST_API_TOKEN'],prev=Object.fromEntries(names.map(n=>[n,process.env[n]]));
   try { names.forEach(n=>delete process.env[n]); const r=await POST(new Request('https://example.test/api/assistant',{method:'POST',body:'{}'})); assert.equal(r.status,503); }

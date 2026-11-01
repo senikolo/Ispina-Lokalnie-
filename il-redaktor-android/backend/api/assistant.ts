@@ -337,3 +337,16 @@ Zwróć wyłącznie propozycję. Nie wykonuj żadnych zapisów w WordPressie i n
     return json({ error: 'Model AI jest chwilowo niedostępny. Spróbuj ponownie później.' }, 502);
   }
 }
+
+
+// Vercel's non-framework API Functions use a Fetch API default entry point.
+export default {
+  async fetch(request: Request) {
+    switch (request.method) {
+      case 'OPTIONS': return OPTIONS();
+      case 'GET': return GET();
+      case 'POST': return POST(request);
+      default: return json({ error: 'Metoda HTTP nie jest obsługiwana.' }, 405);
+    }
+  },
+};
