@@ -230,6 +230,27 @@ header{animation:ilHeader .38s cubic-bezier(.2,.7,.2,1) both}.brand .logo{animat
     <div id="assistant-output" aria-live="polite" role="log"></div>
     <p class="muted small">Tryb lokalny jest domyślny i nie korzysta z API. Jeśli dostępne jest skonfigurowane AI online, możesz wybrać je osobno; przed wysłaniem poproszę o zgodę. ChatGPT/Gemini w telefonie nie wymaga klucza API — odpowiedź wraca przez schowek do porównania.</p>
   </div>
+  <div class="card" id="ispina-chat-card">
+    <div class="eyebrow">IL CHAT AI · RADAR INFORMACJI</div>
+    <h2>Zapytaj o Ispinę</h2>
+    <p class="muted">Pytaj po ludzku i dopytuj w tej samej rozmowie. Każda odpowiedź ma wynikać z wyszukiwania internetowego; pokażę też znalezione źródła. Sprawdź daty i treść przed wykorzystaniem.</p>
+    <div class="note small">Wymaga skonfigurowanego backendu AI. Każda wiadomość może uruchomić Gemini i jedno lub więcej wyszukiwań Google. Mogą obowiązywać opłaty i limity dostawcy. Wpisz pytanie i naciśnij „Zapytaj”, aby rozpocząć.</div>
+    <div class="actions">
+      <button class="secondary" type="button" onclick="prefillIspinaChat('Czy są nowe informacje o moście w Ispinie?')">Most</button>
+      <button class="secondary" type="button" onclick="prefillIspinaChat('Czy pojawiły się nowe informacje o transporcie w Ispinie?')">Transport</button>
+      <button class="secondary" type="button" onclick="prefillIspinaChat('Czy są nowe informacje o OSP Ispina?')">OSP</button>
+    </div>
+    <div id="ispina-chat-log" class="source-item" role="log" aria-live="polite" aria-label="Rozmowa IL Chat AI">
+      <p class="muted">Tutaj pojawią się odpowiedzi i źródła. Możesz zadać pytanie uzupełniające.</p>
+    </div>
+    <label for="ispina-chat-input">Twoje pytanie</label>
+    <textarea id="ispina-chat-input" maxlength="2000" style="min-height:92px" placeholder="Np. Czy w ostatnich dniach opublikowano coś o Ispinie?"></textarea>
+    <div class="actions">
+      <button id="ispina-chat-send" type="button" onclick="sendIspinaChat()">Zapytaj IL Chat AI</button>
+      <button class="secondary" type="button" onclick="clearIspinaChat()">Wyczyść rozmowę</button>
+    </div>
+    <p id="ispina-chat-status" class="small muted" role="status" aria-live="polite">Sprawdzam gotowość backendu…</p>
+  </div>
   <div class="card" id="research-card">
     <div class="eyebrow">WYSZUKIWANIE INTERNETOWE</div>
     <h2>Informacje o Ispinie</h2>
@@ -819,6 +840,85 @@ function requestResearch(prompt){
     requests.set(id,{resolve,reject,timeout});
     IL.askResearch(id,prompt);
   });
+}
+function requestIspinaChat(prompt,history){
+  return new Promise((resolve,reject)=>{
+    const id="c"+(++reqNo),timeout=setTimeout(()=>{requests.delete(id);reject(new Error("IL Chat AI nie odpowiedział w wyznaczonym czasie."))},65000);
+    requests.set(id,{resolve,reject,timeout});
+    IL.askIspinaChat(id,prompt,JSON.stringify(history));
+  });
+}
+let ispinaChatMessages=[],ispinaChatInProgress=false,ispinaChatConsent=false;
+function renderIspinaChat(){
+  const target=$("ispina-chat-log");
+  if(!ispinaChatMessages.length){
+    target.innerHTML='<p class="muted">Tutaj pojawią się odpowiedzi i źródła. Możesz zadać pytanie uzupełniające.</p>';
+    return;
+  }
+  target.innerHTML=ispinaChatMessages.map(message=>{
+    const sources=(Array.isArray(message.sources)?message.sources:[]).flatMap(source=>{
+      try{
+        const url=new URL(String(source?.url||""));
+        if(!["http:","https:"].includes(url.protocol)||url.username||url.password)return [];
+        return ['<div class="source-item"><b>'+esc(String(source?.title||url.hostname).slice(0,180))+'</b><small>'+esc(url.hostname)+'</small><div class="actions"><button class="secondary" type="button" data-ispina-chat-link="'+esc(url.href)+'">Otwórz źródło</button></div></div>'];
+      }catch(error){return []}
+    }).join("");
+    return '<div class="chat-line"><strong>'+esc(message.role==="user"?"Ty":"IL Chat AI")+'</strong><div class="research-summary">'+esc(message.content)+'</div>'+(sources?'<div class="source-item"><b>Źródła do tej odpowiedzi</b>'+sources+'</div>':"")+'</div>';
+  }).join("");
+  target.scrollTop=target.scrollHeight;
+}
+$("ispina-chat-log").addEventListener("click",event=>{
+  const button=event.target.closest("[data-ispina-chat-link]");
+  if(button)openResearchSource(button.getAttribute("data-ispina-chat-link"));
+});
+function prefillIspinaChat(prompt){
+  $("ispina-chat-input").value=prompt;
+  return sendIspinaChat();
+}
+function clearIspinaChat(){
+  ispinaChatMessages=[];
+  renderIspinaChat();
+  $("ispina-chat-status").textContent="Rozmowa wyczyszczona. Możesz zacząć od nowego pytania.";
+  $("ispina-chat-status").className="small muted";
+}
+async function sendIspinaChat(){
+  if(ispinaChatInProgress)return false;
+  const prompt=trim($("ispina-chat-input").value);
+  if(!prompt){$("ispina-chat-status").textContent="Wpisz pytanie o Ispinę.";return false}
+  if(!assistantEnabled){$("ispina-chat-status").textContent="IL Chat AI wymaga skonfigurowanego backendu Gemini z Google Search."; $("ispina-chat-status").className="small error";return false}
+  if(!connected){$("ispina-chat-status").textContent="Najpierw połącz Redaktora z kontem WordPress."; $("ispina-chat-status").className="small error";return false}
+  if(!ispinaChatConsent&&!confirm("Wysłać pytanie i maksymalnie osiem ostatnich wiadomości do IL Chat AI? Każda odpowiedź uruchamia wyszukiwanie internetowe; mogą obowiązywać opłaty i limity Gemini/Google."))return false;
+  ispinaChatConsent=true;
+  ispinaChatInProgress=true;
+  const button=$("ispina-chat-send");
+  button.disabled=true;
+  $("ispina-chat-status").textContent="Szukam aktualnych informacji i sprawdzam źródła…";
+  $("ispina-chat-status").className="small muted";
+  startOperation("IL Chat AI sprawdza internet…");
+  try{
+    const history=ispinaChatMessages.filter(message=>message.role==="user"||message.verified===true).slice(-8).map(message=>({role:message.role,content:message.content}));
+    const result=await requestIspinaChat(prompt,history);
+    const answer=String(result?.answer||"").trim();
+    const sources=Array.isArray(result?.sources)?result.sources:[];
+    const verified=result?.verified===true&&!!answer&&sources.length>0;
+    ispinaChatMessages.push({role:"user",content:prompt,verified:true});
+    if(verified)ispinaChatMessages.push({role:"assistant",content:answer,sources,verified:true});
+    else ispinaChatMessages.push({role:"assistant",content:"Tym razem nie udało się potwierdzić odpowiedzi źródłami. Spróbuj zawęzić pytanie lub zapytać innymi słowami.",sources:[],verified:false});
+    renderIspinaChat();
+    $("ispina-chat-input").value="";
+    $("ispina-chat-status").textContent=verified?"Znaleziono "+sources.length+" źródeł. Sprawdź je przed wykorzystaniem informacji.":"Nie znaleziono potwierdzonej odpowiedzi ze źródłami.";
+    $("ispina-chat-status").className=verified?"small ok":"small muted";
+    endOperation();
+    return verified;
+  }catch(error){
+    endOperation();
+    $("ispina-chat-status").textContent="Nie udało się zakończyć wyszukiwania: "+(error?.message||"spróbuj ponownie.");
+    $("ispina-chat-status").className="small error";
+    return false;
+  }finally{
+    ispinaChatInProgress=false;
+    button.disabled=!assistantEnabled||!connected;
+  }
 }
 let assistantCheckTimer=null;
 function checkAssistantAvailability(){
