@@ -139,6 +139,40 @@ public final class ConfirmationInstrumentation extends Instrumentation {
         waitForScript("window.__conflictProbe===true");captureUi("conflict");evaluate("closeRemoteConflict();rpc=window.__oldRpc;connected=window.__oldConnected;postId=null;postStatus='';remoteBaseline=null;resetEditor();showScreen('home')");if(!"true".equals(evaluate("$('screen-home').classList.contains('active') && !$('screen-editor').classList.contains('active')")))throw new AssertionError("Home not active");captureUi("home");
     }
 
+    private void testChatGptLogoutSecurity() throws Exception {
+        android.content.Context ctx = getTargetContext();
+        java.lang.reflect.Method prefMethod = ChatGptPlanClient.class.getDeclaredMethod("prefs", android.content.Context.class);
+        prefMethod.setAccessible(true);
+        android.content.SharedPreferences p = (android.content.SharedPreferences) prefMethod.invoke(null, ctx);
+        java.lang.reflect.Method encrypt = ChatGptPlanClient.class.getDeclaredMethod("encryptSecret", android.content.Context.class, String.class);
+        java.lang.reflect.Method read = ChatGptPlanClient.class.getDeclaredMethod("readSecret", android.content.Context.class, String.class);
+        java.lang.reflect.Method guard = ChatGptPlanClient.class.getDeclaredMethod("ensureCurrentGeneration", android.content.SharedPreferences.class, long.class);
+        encrypt.setAccessible(true); read.setAccessible(true); guard.setAccessible(true);
+        String ciphertext = (String) encrypt.invoke(null, ctx, "local-test-secret");
+        if (ciphertext.contains("local-test-secret")) throw new AssertionError("Token was stored in plain text");
+        long generation = p.getLong("chatgpt_auth_generation", 0L) + 1L;
+        p.edit().putString("chatgpt_access_token", ciphertext)
+            .putString("chatgpt_id_token", ciphertext).putString("chatgpt_email", "test@example.invalid")
+            .putBoolean("chatgpt_email_verified", true).putLong("chatgpt_auth_generation", generation).commit();
+        if (!"local-test-secret".equals(read.invoke(null, ctx, "chatgpt_access_token")))
+            throw new AssertionError("Android Keystore token roundtrip failed");
+        guard.invoke(null, p, generation);
+        ChatGptPlanClient.disconnect(ctx); // No refresh token: never sends a network request.
+        for (String key : new String[]{"chatgpt_access_token","chatgpt_id_token","chatgpt_email","chatgpt_email_verified"})
+            if (p.contains(key)) throw new AssertionError("Logout retained " + key);
+        if (ChatGptPlanClient.isConnected(ctx)) throw new AssertionError("Logout retained connection");
+        try { guard.invoke(null, p, generation); throw new AssertionError("Pending OAuth survived logout"); }
+        catch (java.lang.reflect.InvocationTargetException expected) {
+            if (!(expected.getCause() instanceof Exception)) throw expected;
+        }
+        java.lang.reflect.Method error = ChatGptPlanClient.class.getDeclaredMethod("formatApiError", int.class, String.class);
+        error.setAccessible(true);
+        String transientError = (String) error.invoke(null, 429, "{\"error\":{\"code\":\"rate_limit_exceeded\"}}");
+        String quota = (String) error.invoke(null, 429, "{\"error\":{\"code\":\"subscription_sharing_usage_limit_exceeded\"}}");
+        if (transientError.contains("Limit użycia ChatGPT") || !quota.contains("Limit użycia ChatGPT"))
+            throw new AssertionError("Temporary throttling was confused with exhausted plan usage");
+    }
+
     @Override public void onStart() {
         Bundle result = new Bundle();
         Thread trace=new Thread(()->{for(int n=0;n<35&&!diagnosticDone;n++){SystemClock.sleep(2000);if(!diagnosticDone)android.util.Log.i("ILEditorProbe",diagnosticStage+" "+java.util.Arrays.toString(android.os.Looper.getMainLooper().getThread().getStackTrace()));}},"il-test-diagnostics");trace.setDaemon(true);trace.start();
@@ -160,14 +194,14 @@ public final class ConfirmationInstrumentation extends Instrumentation {
             // document.readyState alone only confirms DOM loading on older WebView.
             captureUi("startup");
             if ("seed".equals(mode) || "seed-current".equals(mode)) {
-                int expectedVersion = "seed-current".equals(mode) ? 35 : 21;
+                int expectedVersion = "seed-current".equals(mode) ? 36 : 21;
                 if(getTargetContext().getPackageManager().getPackageInfo(getTargetContext().getPackageName(),0).versionCode!=expectedVersion)throw new AssertionError("Seed baseline versionCode mismatch: expected "+expectedVersion);
                 String seeded=evaluate("localStorage.removeItem(draftKey);draftStore=null;activeDraftId=null;$('post-title').value='Pierwszy szkic';$('post-body').value='Pierwsza wersja';persistDraft(true);$('post-body').value='Druga wersja';persistDraft(true);resetEditor();$('post-title').value='Drugi szkic';$('post-body').value='Drugi tekst';persistDraft(true);String(readDraftStore().drafts.length)");
                 if(!"\"2\"".equals(seeded))throw new AssertionError("Draft seeding failed: "+seeded);
                 if(!getTargetContext().getSharedPreferences("il_update_probe",0).edit().putString("marker","preserved").commit())throw new AssertionError("Preferences seeding failed");
                 result.putString("stream","IL_UPDATE_SEED=PASS\n");
             } else if ("verify".equals(mode)) {
-                if(getTargetContext().getPackageManager().getPackageInfo(getTargetContext().getPackageName(),0).versionCode!=35)throw new AssertionError("Verification must run after upgrade to versionCode 35");
+                if(getTargetContext().getPackageManager().getPackageInfo(getTargetContext().getPackageName(),0).versionCode!=36)throw new AssertionError("Verification must run after upgrade to versionCode 36");
                 String restored=evaluate("JSON.stringify(readDraftStore().drafts.map(d=>[d.title,d.body,d.revisions.length]))");
                 if(!restored.contains("Pierwszy szkic")||!restored.contains("Druga wersja")||!restored.contains("Drugi szkic"))throw new AssertionError("Drafts lost after reinstall: "+restored);
                 if(!"preserved".equals(getTargetContext().getSharedPreferences("il_update_probe",0).getString("marker","")))throw new AssertionError("Preferences lost after reinstall");
@@ -194,7 +228,8 @@ public final class ConfirmationInstrumentation extends Instrumentation {
             probe(AlertDialog.BUTTON_NEGATIVE, "\"false:0\"", false);
             probe(AlertDialog.BUTTON_POSITIVE, "\"true:1\"", false);
             probe(AlertDialog.BUTTON_NEGATIVE, "\"false:0\"", true);
-            result.putString("stream", "IL_WEBVIEW_CONFIRM_TEST=PASS (cancel, confirm once, dismiss)\nIL_EDITOR_FEATURES_TEST=PASS (comparison, undo, backup file streams, photo crop, EXIF, cancel)\nIL_WORKSPACE_FEATURES_TEST=PASS (sources/photos backup, literal replacement, viewport, calendar, remote conflict)\nIL_HAPTICS_TEST=PASS (every tile tap, motor detection, adjustable intensity, test signal, disabled-mode message)\n");
+            testChatGptLogoutSecurity();
+            result.putString("stream", "IL_CHATGPT_AUTH_SECURITY_TEST=PASS\nIL_WEBVIEW_CONFIRM_TEST=PASS (cancel, confirm once, dismiss)\nIL_EDITOR_FEATURES_TEST=PASS (comparison, undo, backup file streams, photo crop, EXIF, cancel)\nIL_WORKSPACE_FEATURES_TEST=PASS (sources/photos backup, literal replacement, viewport, calendar, remote conflict)\nIL_HAPTICS_TEST=PASS (every tile tap, motor detection, adjustable intensity, test signal, disabled-mode message)\n");
             }
             runOnMainSync(() -> activity.finish());waitForIdleSync();
             finish(Activity.RESULT_OK, result);
