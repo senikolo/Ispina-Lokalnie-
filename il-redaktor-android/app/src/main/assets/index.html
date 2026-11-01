@@ -299,7 +299,7 @@ header{animation:ilHeader .38s cubic-bezier(.2,.7,.2,1) both}.brand .logo{animat
       <option value="all">Wszystkie</option><option value="link_found">Linki do sprawdzenia</option>
       <option value="reviewed">Sprawdzone ręcznie</option>
     </select>
-    <div class="actions"><button type="button" onclick="loadEditorialMemory()">Szukaj w pamięci</button><button class="secondary" type="button" onclick="loadEditorialHistory()">Ostatnie pytania</button><button class="secondary" type="button" onclick="exportEditorialMemory()">Zapisz kopię JSON</button></div>
+    <div class="actions"><button type="button" onclick="loadEditorialMemory()">Szukaj w pamięci</button><button class="secondary" type="button" onclick="loadEditorialHistory()">Ostatnie pytania</button><button class="secondary" type="button" onclick="exportEditorialMemory()">Zapisz kopię JSON</button><button class="secondary" type="button" onclick="importEditorialMemory()">Przywróć kopię JSON</button></div>
     <p id="editorial-memory-status-text" class="small muted" role="status">Przy pierwszym otwarciu zobaczysz tu wcześniej zapisane źródła. Historia sprzed wdrożenia bazy nie jest automatycznie odzyskiwana.</p>
     <div id="editorial-memory-results" role="region" aria-live="polite"></div>
     <div id="editorial-memory-history" role="region" aria-live="polite"></div>
@@ -308,6 +308,7 @@ header{animation:ilHeader .38s cubic-bezier(.2,.7,.2,1) both}.brand .logo{animat
 <section id="screen-editor" class="panel">
   <div class="card">
     <div class="row" style="justify-content:space-between"><h2 id="editor-heading">Nowy artykuł</h2><span class="badge" id="edit-status">Nowy</span></div>
+    <div class="actions" role="navigation" aria-label="Etapy przygotowania artykułu"><button class="secondary" type="button" onclick="focusEditorialStep('post-title')">1. Tekst</button><button class="secondary" type="button" onclick="focusEditorialStep('post-media-summary')">2. Zdjęcia</button><button class="secondary" type="button" onclick="focusEditorialStep('local-seo-audit')">3. Kontrola</button><button class="secondary" type="button" onclick="focusEditorialStep('save-publish')">4. Publikacja</button></div>
     <div class="status"><span id="editor-dot" class="dot"></span><span id="editor-auth">Sprawdzanie połączenia...</span></div>
     <div class="actions"><button class="secondary" onclick="showDraftLibrary()">📂 Moje szkice</button><button class="secondary" onclick="openPromotion()">Promuj opublikowany artykuł</button></div>
     <details class="note"><summary>💬 Pomoc przy tym tekście</summary><p id="editor-help-mode">Lokalne propozycje działają bez AI: korekta nazw, skrócenie pierwszego akapitu i zakończenie. Swobodne polecenia wymagają skonfigurowanego AI. Gdy jest włączone, takie polecenie wyśle do niego bieżący artykuł i Twoje zadanie.</p><div id="editor-chat-log" role="log" aria-live="polite"></div><label for="editor-command">Co mam zaproponować?</label><input id="editor-command" maxlength="1200" placeholder="Np. skróć początek"><div class="actions"><button class="secondary" onclick="editorHelp('Popraw nazwy')">Popraw nazwy</button><button class="secondary" onclick="editorHelp('Skróć początek')">Skróć początek</button><button class="secondary" onclick="editorHelp('Dodaj cieplejsze zakończenie')">Zakończenie</button><button onclick="editorHelp()">Przygotuj propozycję</button></div><p class="small">Po zatwierdzeniu zmian możesz je cofnąć. Pomoc nie publikuje tekstu.</p></details>
@@ -325,7 +326,8 @@ header{animation:ilHeader .38s cubic-bezier(.2,.7,.2,1) both}.brand .logo{animat
     <label for="post-excerpt">Krótki opis / zajawka SEO</label><textarea id="post-excerpt" style="min-height:80px" placeholder="Opis wyświetlany na liście wpisów..."></textarea>
     <label for="post-tags">Tagi (oddziel przecinkami)</label><input id="post-tags" placeholder="Ispina, historia Ispiny">
     <label for="post-media">Zdjęcie wyróżniające</label>
-    <div class="row"><input id="post-media" type="number" min="0" value="0" style="flex:1"><button class="secondary" onclick="IL.chooseImage()">Z telefonu</button><button class="secondary" onclick="showScreen('media');loadMedia()">Z galerii IL</button></div>
+    <input id="post-media" type="hidden" value="0"><p id="post-media-summary" class="small muted">Brak wybranego zdjęcia</p>
+    <div class="actions"><button class="secondary" onclick="IL.chooseImage()">Dodaj zdjęcie z telefonu</button><button class="secondary" onclick="showScreen('media');loadMedia()">Wybierz z galerii IL</button><button class="secondary" onclick="clearPostMedia()">Usuń zdjęcie</button></div>
     <div class="actions"><button class="secondary" onclick="suggest()">Porównaj korektę i SEO</button><button class="secondary" onclick="auditEditorial()">Sprawdź nazwy i fakty</button><button id="undo-edit" class="secondary hidden" onclick="undoEditorialChange()">Cofnij przyjętą korektę</button><button class="secondary" onclick="assistantFromEditor('Popraw język polski, śródtytuły i zajawkę. Zachowaj sens i wszystkie potwierdzone fakty; nie dopowiadaj informacji o Ispinie.')">Korekta AI</button><button class="secondary" onclick="openFacebookTeaser()">📣 Wygeneruj zajawkę na Facebooka</button><button class="secondary" onclick="suggestRelatedReading()">📖 Poleć czytelnikom powiązane teksty IL</button><button class="secondary" onclick="showPublicationBundle()">📦 Pakiet publikacyjny</button><button class="secondary" onclick="preview()">Podgląd</button><button class="secondary" onclick="showTemplates()">Szablony</button></div>
     <div id="templates-box" class="note hidden"></div><div id="publication-bundle" class="note hidden" aria-live="polite"></div>
     <div class="actions"><button class="secondary" onclick="openSources()">Źródła i dokumenty</button><button class="secondary" onclick="openFindReplace()">Szukaj i zamień</button><button class="secondary" onclick="checkRemoteManually()">Porównaj z WordPressem</button></div><input type="hidden" id="post-sources" value="[]"><div id="editor-audit" role="status" aria-live="polite"></div><div id="editor-metrics" class="note">Napisz tekst, aby zobaczyć wskazówki redakcyjne.</div>
@@ -345,7 +347,7 @@ header{animation:ilHeader .38s cubic-bezier(.2,.7,.2,1) both}.brand .logo{animat
 <section id="screen-calendar" class="panel"><div class="card"><div class="eyebrow">PLAN REDAKCJI</div><h2>Kalendarz publikacji</h2><p class="muted">Godziny według telefonu. Terminy robocze nie zlecają publikacji w WordPressie. Listę wpisów ze strony aktualizujesz przyciskiem Odśwież.</p><label for="calendar-month">Miesiąc</label><input id="calendar-month" type="month" onchange="renderCalendar()"><div class="actions"><button class="secondary" onclick="moveCalendar(-1)">← Poprzedni</button><button class="secondary" onclick="moveCalendar(1)">Następny →</button><button onclick="refreshCalendar()">Odśwież z WordPressa</button></div><p id="calendar-output" role="status"></p><div id="calendar-grid" class="calendar-grid" aria-label="Dni miesiąca"></div><div class="actions"><button class="secondary" onclick="selectCalendarDay('')">Pokaż cały miesiąc</button></div><div id="calendar-entries"></div><h3>Tematy bez terminu</h3><div id="calendar-undated"></div></div></section>
 <section id="screen-posts" class="panel">
   <div class="card"><h2>Artykuły na portalu</h2><p class="muted">Pobierz listę, wybierz istniejący wpis i edytuj go bez utraty numeru ID.</p>
-  <label for="posts-search">Wyszukaj tytuł lub fragment</label><input id="posts-search" placeholder="Szukaj wpisów..." oninput="renderPosts()">
+  <label for="posts-search">Wyszukaj tytuł, fragment treści lub ID wpisu</label><input id="posts-search" placeholder="Szukaj wpisów..." oninput="renderPosts()">
   <div class="actions"><button onclick="loadPosts()">Odśwież wpisy</button><button class="secondary" onclick="resetEditor();showScreen('editor')">Nowy artykuł</button></div>
   <div id="posts-access" class="note" role="status">Opublikowane artykuły można przeglądać bez logowania. Edycja i szkice na WordPressie wymagają zalogowania.</div>
   <div id="posts-output" aria-live="polite"></div></div>
@@ -573,6 +575,15 @@ function rpc(method,path,body) {
 window.onNativeResult=function(id,ok,payload){
   if(id==="source-photo"){receiveSourcePhoto(ok,payload);return;}
   if(id==="editorial-export"){if($("editorial-memory-status-text"))$("editorial-memory-status-text").textContent=payload;return;}
+  if(id==="editorial-import"){
+    if(ok)try{
+      const report=JSON.parse(payload);
+      $("editorial-memory-status-text").textContent="Przywrócono: "+Number(report.imported)+" nowych linków, "+Number(report.searches)+" zapytań. Już zapisane: "+Number(report.existing)+", pominięte: "+Number(report.skipped)+". Dotychczasowa pamięć została zachowana.";
+      loadEditorialMemory();loadEditorialHistory();
+    }catch(error){$("editorial-memory-status-text").textContent="Nie można odczytać raportu importu.";}
+    else $("editorial-memory-status-text").textContent=payload;
+    return;
+  }
 
   if(id==="draft-backup"){if(ok)try{localStorage.setItem("il_backup_last_success",String(Date.now()))}catch(e){} showScreen("drafts");renderDrafts();$("backup-output").textContent=payload;return; }
   if(id==="draft-import"){showScreen("drafts");renderDrafts();if(ok)previewDraftBackup(payload);else $("backup-output").textContent=payload;return;}
@@ -1131,8 +1142,7 @@ function renderResearchResult(result,query){
   $("research-status").textContent="Zakończono: znaleziono "+totalSources+" linków do sprawdzenia. "+
     (planned?"Profile: "+ok+"/"+planned+" pobranych, "+failed+" niedostępnych, "+skipped+" pominiętych. ":"")+
     (result?.partialResults?"wynik jest niepełny. Nie jest to skan całego internetu.":"");
-  if(result?.partialResults)$("research-status").className="small muted";
-  $("research-status").className="small ok";
+  $("research-status").className=result?.partialResults?"small muted":"small ok";
 }
 function openResearchSource(url){
   try{
@@ -1784,6 +1794,12 @@ async function verifyLastPublication(){
     operationFinished(true,"Zakończono wyszukiwanie","Wynik wymaga potwierdzenia redaktora.");
   }catch(e){message("post-output","Nie udało się sprawdzić ostatniego zapisu: "+e.message,"error")}
 }
+function focusEditorialStep(id){
+  const element=$(id);if(!element)return false;
+  element.scrollIntoView({behavior:"smooth",block:"center"});
+  if(["post-title","save-publish"].includes(id))element.focus();
+  return true;
+}
 function resetEditor(){
   if(publicationBusy||!persistDraft(true))return false;
   activeDraftId=null;clearTimeout(saveTimer);clearEditorialContext();
@@ -2049,7 +2065,13 @@ function showPublicationBundle(){
 }
 function copyPublicationBundle(){const text=publicationBundleText();if(IL.copyText)IL.copyText(text);$("local-save-status").textContent="Skopiowano pakiet publikacyjny. Sprawdź go przed udostępnieniem.";return text;
 }
+function clearPostMedia(){
+  $("post-media").value="0";updateMetrics();scheduleLocalSave();
+}
 function updateMetrics(){
+  const mediaId=Number($("post-media").value)||0;
+  const mediaSummary=$("post-media-summary");
+  if(mediaSummary)mediaSummary.textContent=mediaId?"Wybrano zdjęcie z biblioteki (ID "+mediaId+").":"Brak wybranego zdjęcia.";
   const body=trim($("post-body").value);
   const words=body?body.split(/\s+/).length:0;
   const title=trim($("post-title").value),excerpt=trim($("post-excerpt").value);
@@ -2408,7 +2430,16 @@ function openPublicPost(id){
 }
 function renderPosts(){
   const q=trim($("posts-search").value).toLocaleLowerCase("pl");
-  const filtered=allPosts.filter(p=>String(p.title?.rendered||"").toLocaleLowerCase("pl").includes(q));
+  const filtered=allPosts.filter(p=>{
+    if(!q)return true;
+    const searchable=[
+      wpPostTitle(p),wpPostExcerpt(p),
+      wpPlain(p.content?.raw||p.content?.rendered||""),
+      String(p.id||""),String(p.status||""),
+      Array.isArray(p.tags)?p.tags.join(" "):""
+    ].join(" ").toLocaleLowerCase("pl");
+    return searchable.includes(q);
+  });
   $("posts-output").innerHTML=filtered.map(p=>{
     const id=Number(p.id),validId=Number.isSafeInteger(id)&&id>0;
     const action=p.readOnly
@@ -2480,6 +2511,15 @@ function editorialTopicKeyword(input){
   const ignore=new Set(["ispinie","ispiny","ispina","informacje","jakie","ostatnio","znaleźliśmy","wyszukaj","sprawdź","temat","wczoraj","dzisiaj","wiadomo","proszę","znajdź","czego","mamy"]);
   return words.find(w=>!ignore.has(w))||"";
 }
+function editorialDisplayDate(raw){
+  if(raw===null||raw===undefined||String(raw).trim()==="")return "BRAK DATY";
+  const input=String(raw).trim();
+  const n=Number(input);
+  const timestamp=/^\d{10,13}$/.test(input)?(input.length===10?n*1000:n):Date.parse(input);
+  if(!Number.isFinite(timestamp)||timestamp<0)return "BRAK DATY";
+  const d=new Date(timestamp);
+  return Number.isNaN(d.getTime())?"BRAK DATY":d.toLocaleDateString("pl-PL",{year:"numeric",month:"long",day:"numeric"});
+}
 async function loadEditorialMemory(){
   const output=$("editorial-memory-results"),state=$("editorial-memory-status-text");
   state.textContent="Przeglądam pamięć telefonu…";
@@ -2488,7 +2528,7 @@ async function loadEditorialMemory(){
     const items=Array.isArray(data.items)?data.items:[];
     output.innerHTML=items.length?items.map(source=>{
       const stamp=Number(source.lastSeen)?new Date(source.lastSeen).toLocaleString("pl-PL"):"nieznana";
-      const published=source.publishedAt?'<small>Publikacja według źródła: '+esc(source.publishedAt)+'</small>':'<small>Data publikacji nieznana</small>';
+      const published='<small>Data publikacji według źródła: '+esc(editorialDisplayDate(source.publishedAt))+'</small>';
       const review=source.status==="reviewed"?"Sprawdzone ręcznie":"Link do sprawdzenia";
       const changed=Number(source.changedAt)?" · zaktualizowany link / metadane":"";
       return '<div class="source-item"><b>'+esc(source.title||source.url)+'</b><small>'+esc(review+changed)+' · Ostatnio odnaleziono: '+stamp+'</small>'+published+
@@ -2527,6 +2567,14 @@ async function loadEditorialHistory(){
       renderIspinaChat();
     }
   }catch(e){output.textContent="Nie odczytano historii: "+e.message;}
+}
+function importEditorialMemory(){
+  if(!window.IL||typeof IL.importEditorialMemory!=="function"){
+    $("editorial-memory-status-text").textContent="Przywracanie pamięci wymaga zaktualizowanej APK.";return;
+  }
+  if(!confirm("Wczytać kopię pamięci redakcyjnej? Nowe źródła i historia zostaną dopisane; istniejące, ręcznie zatwierdzone źródła pozostaną nienaruszone."))return;
+  $("editorial-memory-status-text").textContent="Wybierz plik kopii pamięci JSON. Istniejące dane nie zostaną skasowane.";
+  IL.importEditorialMemory();
 }
 function exportEditorialMemory(){
   if(!window.IL||typeof IL.exportEditorialMemory!=="function"){$("editorial-memory-status-text").textContent="Eksport wymaga nowej APK.";return;}
