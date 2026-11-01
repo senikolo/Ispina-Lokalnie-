@@ -147,6 +147,18 @@ public final class ConfirmationInstrumentation extends Instrumentation {
             +"<item><title>Ispina bez daty</title><link>https://example.org/bez-daty</link></item>"
             +"<item><title>Ispina dawniej</title><link>https://example.org/archiwum</link><pubDate>Sat, 01 Jan 2000 00:00:00 +0000</pubDate></item>"
             +"<item><title>Inna miejscowość</title><link>https://example.org/inna</link></item></channel></rss>";
+        // Atom entries and arbitrary topics must work on Android 8 too.
+        String atom="<feed xmlns=\"http://www.w3.org/2005/Atom\"><entry><title>Kapliczka w Ispinie</title>"
+            +"<link rel=\"alternate\" href=\"https://example.org/kapliczka\"/>"
+            +"<summary>Odnowiona kapliczka</summary><published>2026-10-30T10:20:00Z</published></entry></feed>";
+        org.json.JSONArray atomItems=FreeIspinaSearchClient.parseFeed(atom,0,false);
+        if(atomItems.length()!=1 || !atomItems.getJSONObject(0).getString("url").contains("kapliczka"))
+            throw new AssertionError("Atom feed links were not parsed");
+        if(!"kapliczki".equals(FreeIspinaSearchClient.topic("Wyszukaj informacje o kapliczki w Ispinie")))
+            throw new AssertionError("Unlisted topic was discarded");
+        if(!FreeIspinaSearchClient.matchesTopic(
+            new org.json.JSONObject().put("title","Kapliczka w Ispinie"),"kapliczki"))
+            throw new AssertionError("Inflected Polish subject not matched");
         org.json.JSONArray manual=FreeIspinaSearchClient.parseFeed(xml,0,false);
         org.json.JSONArray background=FreeIspinaSearchClient.parseFeed(xml,now-86400000L,true);
         if(manual.length()!=3 || background.length()!=1)throw new AssertionError("Free RSS location/date/link filtering failed");

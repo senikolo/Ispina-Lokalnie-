@@ -236,7 +236,7 @@ header{animation:ilHeader .38s cubic-bezier(.2,.7,.2,1) both}.brand .logo{animat
   <div class="card" id="free-radar-card">
     <div class="eyebrow">BEZ ABONAMENTU I KLUCZY API</div>
     <h2>Bezpłatny radar Ispiny</h2>
-    <p>Telefon pobiera publiczne kanały Google News, Bing RSS i Eko-Drwinia. Dostępność i kompletność wyników zależą od tych serwisów. Nie korzystamy tutaj z płatnego AI ani planu ChatGPT.</p>
+    <p>Telefon pobiera publiczne kanały Google News, Bing RSS i Eko-Drwinia, w tym dodatkowe wyszukiwania ograniczone do domen urzędowych. Dostępność i kompletność wyników zależą od tych serwisów. Nie korzystamy tutaj z płatnego AI ani planu ChatGPT.</p>
     <p>Wpisz temat, aby dopasować źródła. Wyniki to tytuły, fragmenty i linki do samodzielnego sprawdzenia, bez odpowiedzi generowanej przez model AI.</p>
     <p id="free-search-state" class="small muted" role="status">Sprawdzam gotowość wyszukiwarki…</p>
   </div>
@@ -266,10 +266,13 @@ header{animation:ilHeader .38s cubic-bezier(.2,.7,.2,1) both}.brand .logo{animat
     <div class="eyebrow">WYSZUKIWANIE INTERNETOWE</div>
     <h2>Informacje o Ispinie</h2>
     <p class="muted">Bezpłatny przegląd dostępnych kanałów RSS. Nie obejmuje całego internetu, wszystkich przetargów ani każdego komunikatu urzędowego.</p>
+    <label for="research-days">Zakres dat publikacji</label>
+    <select id="research-days"><option value="7">Ostatnie 7 dni</option><option value="30" selected>Ostatnie 30 dni</option><option value="90">Ostatnie 90 dni</option><option value="365">Ostatni rok</option><option value="0">Wszystkie dostępne (także bez daty)</option></select>
+    <p class="small muted">Przy wybranym okresie pokazujemy wyłącznie wyniki z datą publikacji mieszczącą się w tym zakresie. Data wydarzenia może być inna.</p>
     <label for="research-query">Temat i dodatkowe wskazówki</label>
     <textarea id="research-query" maxlength="1800" style="min-height:115px">Wyszukaj aktualne informacje o Ispinie.</textarea>
-    <div class="note small">Raport pobiera do trzech publicznych kanałów. Awaria części źródeł zostanie oznaczona. Brak wyników nie oznacza braku informacji w internecie.</div>
-    <details class="small"><summary>Dostępne kanały</summary><ul><li>Google News RSS — materiały indeksowane jako wiadomości</li><li>Bing RSS — publiczne wyniki wyszukiwania</li><li>Eko-Drwinia — kanał wiadomości spółki</li></ul><p>To ograniczony przegląd źródeł. Nie zastępuje pełnego monitoringu BIP, przetargów i całego internetu.</p></details>
+    <div class="note small">Raport sprawdza sześć zapytań i kanałów publicznych, w tym odnośniki z domen urzędowych. Nie jest to pełne indeksowanie BIP. Awaria części źródeł zostanie oznaczona. Brak wyników nie oznacza braku informacji w internecie.</div>
+    <details class="small"><summary>Dostępne kanały</summary><ul><li>Google News RSS — materiały indeksowane jako wiadomości</li><li>Bing RSS — publiczne wyniki wyszukiwania</li><li>Eko-Drwinia — kanał wiadomości spółki</li><li>Bing RSS — osobne zapytania ograniczone do domen drwinia.pl, bip.malopolska.pl i ezamowienia.gov.pl (zależne od indeksowania)</li></ul><p>To ograniczony przegląd źródeł. Nie zastępuje pełnego monitoringu BIP, przetargów i całego internetu.</p></details>
     <div class="actions"><button class="secondary" type="button" onclick="runRecentIspinaRadar()">Najnowsze materiały</button><button id="research-button" type="button" disabled onclick="runDeepIspinaResearch()">🔎 Wyszukaj w internecie informacje o Ispinie</button><button id="research-cancel" class="secondary hidden" type="button" onclick="cancelIspinaSearch('research')">Anuluj wyszukiwanie</button><button id="assistant-check-button" class="secondary" type="button" onclick="checkAssistantAvailability()">Gotowość wyszukiwarki</button><button class="secondary" type="button" onclick="clearResearchResults()">Wyczyść wyniki</button></div>
     <div class="note" id="background-radar-card" role="group" aria-label="Automatyczny radar Ispiny">
       <strong>🔔 Automatyczny radar Ispiny · IL</strong>
@@ -307,6 +310,7 @@ header{animation:ilHeader .38s cubic-bezier(.2,.7,.2,1) both}.brand .logo{animat
     <div class="actions"><button class="secondary" onclick="suggest()">Porównaj korektę i SEO</button><button class="secondary" onclick="auditEditorial()">Sprawdź nazwy i fakty</button><button id="undo-edit" class="secondary hidden" onclick="undoEditorialChange()">Cofnij przyjętą korektę</button><button class="secondary" onclick="assistantFromEditor('Popraw język polski, śródtytuły i zajawkę. Zachowaj sens i wszystkie potwierdzone fakty; nie dopowiadaj informacji o Ispinie.')">Korekta AI</button><button class="secondary" onclick="openFacebookTeaser()">📣 Wygeneruj zajawkę na Facebooka</button><button class="secondary" onclick="suggestRelatedReading()">📖 Poleć czytelnikom powiązane teksty IL</button><button class="secondary" onclick="showPublicationBundle()">📦 Pakiet publikacyjny</button><button class="secondary" onclick="preview()">Podgląd</button><button class="secondary" onclick="showTemplates()">Szablony</button></div>
     <div id="templates-box" class="note hidden"></div><div id="publication-bundle" class="note hidden" aria-live="polite"></div>
     <div class="actions"><button class="secondary" onclick="openSources()">Źródła i dokumenty</button><button class="secondary" onclick="openFindReplace()">Szukaj i zamień</button><button class="secondary" onclick="checkRemoteManually()">Porównaj z WordPressem</button></div><input type="hidden" id="post-sources" value="[]"><div id="editor-audit" role="status" aria-live="polite"></div><div id="editor-metrics" class="note">Napisz tekst, aby zobaczyć wskazówki redakcyjne.</div>
+    <div class="note" role="group" aria-label="Asystent SEO Ispina Lokalnie"><strong>🔎 Lokalna kontrola SEO</strong><p class="small">Bezpłatnie oceni długości, nagłówki, odnośniki i zdjęcie. Nie wymyśla słów kluczowych ani nie potwierdza faktów.</p><button class="secondary" type="button" onclick="runLocalSeoAudit()">Sprawdź SEO artykułu</button><div id="local-seo-audit" role="status" aria-live="polite"></div></div>
     <div id="reading-suggestions" aria-live="polite" role="region" aria-label="Propozycje lektury dla czytelników"></div>
     <div class="actions"><button class="secondary" onclick="showDraftLibrary()">📂 Moje szkice</button><button class="secondary" onclick="persistDraft(true)">Zapisz na telefonie</button><button class="secondary" onclick="downloadText()">Kopia tekstu</button></div>
     <p id="local-save-status" class="muted small" role="status" aria-live="polite">Zmiany zapisuję automatycznie na tym telefonie.</p><div class="publish-now-card"><h3>Gotowy artykuł?</h3><p>Opublikuj go teraz na Ispina Lokalnie. Nie musisz wybierać daty. Najpierw poproszę Cię o potwierdzenie.</p><button class="wide" onclick="reviewPublication()" id="save-publish">Opublikuj teraz</button><p class="small">Po potwierdzeniu przez WordPress zobaczysz duży napis SUKCES i przycisk do swojego artykułu.</p></div>
@@ -389,6 +393,7 @@ header{animation:ilHeader .38s cubic-bezier(.2,.7,.2,1) both}.brand .logo{animat
       <div id="test-write-result" role="status" aria-live="polite"></div>
     </div>
   </div>
+  <div class="card settings-soft"><h2>Diagnostyka lokalna</h2><p class="small">Bez wysyłania danych do internetu sprawdzi bibliotekę szkiców, podstawowe funkcje oraz gotowość Radaru. Nie jest to test logowania ani zapisu na WordPressie.</p><button type="button" class="secondary" onclick="runLocalDiagnostics()">Sprawdź aplikację</button><div id="local-diagnostics" role="status" aria-live="polite"></div></div>
   <div class="card settings-soft"><h2>Sygnały i wibracje</h2><label class="setting-row"><input type="checkbox" id="publication-sound" checked onchange="localStorage.setItem('il_publication_sound',String(this.checked))"><span>Sygnał dźwiękowy po potwierdzonej publikacji (z uwzględnieniem trybu cichego telefonu)</span></label><p class="setting-caption">Wibruje przy każdym dotknięciu kafelka pulpitu, zakładki dolnej nawigacji i dnia kalendarza. Daje też sygnał po ważnej operacji lub błędzie.</p><label for="haptics-select">Intensywność wibracji</label><select id="haptics-select" onchange="setHapticsMode(this.value)"><option value="0">Wyłączone</option><option value="1" selected>Delikatne</option><option value="2">Normalne</option><option value="3">Mocniejsze</option></select><div class="actions"><button class="secondary" onclick="testHaptics()">Sprawdź wibrację</button></div><div id="haptics-status" class="setting-caption" aria-live="polite">Ustawienie zostanie zapamiętane na telefonie.</div></div>
   <div class="card settings-soft"><h2>Wygląd i czytelność</h2>
     <label for="theme-select">Motyw</label><select id="theme-select" onchange="applyUiPreferences(true)"><option value="system">Jak w telefonie</option><option value="light">Jasny</option><option value="dark">Ciemny</option></select>
@@ -397,7 +402,7 @@ header{animation:ilHeader .38s cubic-bezier(.2,.7,.2,1) both}.brand .logo{animat
     <label class="setting-row"><input type="checkbox" id="battery-saving" onchange="applyUiPreferences(true)"><span>Tryb oszczędzania baterii</span></label>
     <p id="ui-preferences-status" class="setting-caption" role="status" aria-live="polite">Ustawienia zapisują się na tym telefonie. Systemowe ograniczenie ruchu zawsze ma pierwszeństwo.</p>
   </div>
-  <div class="card"><h2>O programie</h2><p class="muted">IL Redaktor Smart 1.21.0 · Niezależna aplikacja Android 8 i nowszy. WordPress.com MCP. Publikacja wymaga potwierdzenia i ponownego odczytu wpisu.</p></div>
+  <div class="card"><h2>O programie</h2><p class="muted">IL Redaktor Smart 1.28.0 · Niezależna aplikacja Android 8 i nowszy. WordPress.com MCP. Publikacja wymaga potwierdzenia i ponownego odczytu wpisu.</p></div>
 </section>
 </main>
 <div id="conflict-dialog" class="finish-dialog hidden" role="dialog" aria-modal="true" aria-labelledby="conflict-title"><div class="finish-panel"><h2 id="conflict-title">Wersja na WordPressie wymaga porównania</h2><p id="conflict-message"></p><p>Nie wysłano zmian artykułu. Twoja praca pozostaje w szkicach na telefonie.</p><button class="secondary" onclick="showConflictComparison()">Porównaj wersje</button><div id="conflict-comparison" class="hidden"></div><p id="conflict-feedback" role="status"></p><div class="actions"><button onclick="resolveRemoteConflict(false)">Wczytaj wersję ze strony</button><button class="secondary" onclick="resolveRemoteConflict(true)">Zachowaj obie kopie</button><button class="secondary" onclick="closeRemoteConflict()">Wróć do tekstu</button></div><p class="small">Wczytanie nie usuwa Twojego szkicu. Zachowaj obie kopie odłączy lokalną wersję od wpisu na stronie.</p></div></div>
@@ -865,7 +870,7 @@ function requestFreeSearch(kind,prompt,history){
     update();interval=setInterval(update,1000);
     timeout=setTimeout(()=>cancel("Przekroczono limit oczekiwania. Spróbuj później; dotychczasowe wyniki i wpisany temat zachowano."),65000);
     requests.set(id,{resolve:value=>finish(true,value),reject:error=>finish(false,error),timeout});
-    try{if(kind==="chat")IL.askIspinaChat(id,prompt,JSON.stringify(history||[]));else IL.askResearch(id,prompt);}
+    try{if(kind==="chat")IL.askIspinaChat(id,prompt,JSON.stringify(history||[]));else if(typeof IL.askResearchWithDays==="function") IL.askResearchWithDays(id,prompt,Number($("research-days").value));else IL.askResearch(id,prompt);}
     catch(error){finish(false,error);}
   });
 }
@@ -934,7 +939,7 @@ async function sendIspinaChat(){
     else ispinaChatMessages.push({role:"assistant",content:answer||"Nie znaleziono pasujących materiałów w dostępnych kanałach.",sources:[],verified:false});
     renderIspinaChat();
     $("ispina-chat-input").value="";
-    $("ispina-chat-status").textContent=verified?"Znaleziono "+sources.length+" źródeł. Sprawdź daty i treść w oryginalnych witrynach.":"Nie znaleziono potwierdzonej odpowiedzi ze źródłami.";
+    $("ispina-chat-status").textContent=verified?"Znaleziono "+sources.length+" linków DO SPRAWDZENIA. Ich obecność nie potwierdza jeszcze faktów. Sprawdź oryginały.":"Nie znaleziono potwierdzonej odpowiedzi ze źródłami.";
     $("ispina-chat-status").className=verified?"small ok":"small muted";
     endOperation();
     return verified;
@@ -1993,6 +1998,32 @@ function editorialChecks(s=captureDraft()){
   if(!/https?:\/\/|źródł|komunikat|dokument|archiw|protokół|uchwał|regulamin/i.test(plain))checks.push("Nie widzę wskazanego źródła. Dodaj link lub nazwę dokumentu i sprawdź, czy jest aktualny.");
   if(/\b(histori|archiw|powódź|powodzi|wspomn|prezes|sekretarz|skarbn|urodz|zmarł)/i.test(plain))checks.push("Sprawdź nazwiska, daty i pochodzenie relacji. Wspomnienia mieszkańców oznacz jako wspomnienia.");
   checks.push("Kontrola lokalna nie weryfikuje faktów w internecie. Przed publikacją sprawdź źródła, nazwiska i informacje praktyczne.");return checks;
+}
+function runLocalDiagnostics(){
+  const checks=[];
+  try {const raw=IL.readDraftLibrary(),r=JSON.parse(raw);checks.push(r.ok?"Biblioteka szkiców: odczyt działa.":"Biblioteka szkiców: BŁĄD, zrób kopię tekstu i nie kasuj danych aplikacji.");}
+  catch(e){checks.push("Biblioteka szkiców: BŁĄD odczytu. Nie odinstalowuj Redaktora.");}
+  checks.push("Radar RSS: "+(freeSearchReady?"moduł dostępny (nie sprawdzano sieci).":"moduł niedostępny."));
+  checks.push("WordPress: test prawdziwego zapisu szkicu jest osobnym przyciskiem, wymagającym Twojej zgody.");
+  checks.push("Aktualizacja APK: sprawdź zgodność podpisu i wyeksportuj szkice przed reinstalacją.");
+  $("local-diagnostics").innerHTML='<ul>'+checks.map(s=>'<li>'+esc(s)+'</li>').join("")+'</ul>';
+  return checks;
+}
+function runLocalSeoAudit(){
+  const s=captureDraft(),title=plainEditorialText(s.title),body=plainEditorialText(s.body),excerpt=plainEditorialText(s.excerpt);
+  const checks=[];
+  if(title.length<30||title.length>70)checks.push("Tytuł ma "+title.length+" znaków. Zwykle warto rozważyć około 30–70; najważniejsza jest jasność, nie sztywny limit.");
+  if(!/ispin/i.test(title))checks.push("Rozważ podanie Ispiny w tytule, jeśli pasuje do tematu.");
+  if(excerpt.length<90||excerpt.length>170)checks.push("Zajawka ma "+excerpt.length+" znaków. Sprawdź, czy zwięźle wyjaśnia temat (orientacyjnie 90–170).");
+  if(body.length<250)checks.push("Treść jest krótka. Rozwiń ją tylko wtedy, gdy masz potwierdzone informacje.");
+  if(body.length>800 && !/(?:<h2[\s>]|^##\s)/im.test(s.body))checks.push("Przy długim tekście dodaj informacyjne śródtytuły H2.");
+  if(!/https?:\/\/ispinalokalnie\.wordpress\.com|https?:\/\/ispinalokalnie\.com/i.test(s.body))checks.push("Rozważ link do powiązanego, już opublikowanego artykułu IL.");
+  if(Number(s.media||0)<=0)checks.push("Brak wybranego zdjęcia wyróżniającego. Dobierz je tylko z prawem do wykorzystania.");
+  const sources=currentSources();
+  if(!sources.some(x=>x.checked===true))checks.push("Brak źródła oznaczonego przez redaktora jako sprawdzone.");
+  if(!checks.length)checks.push("Nie znalazłem typowych braków formalnych. To nie jest automatyczne potwierdzenie SEO ani faktów.");
+  $("local-seo-audit").innerHTML='<ul>'+checks.map(x=>'<li>'+esc(x)+'</li>').join("")+'</ul>';
+  return checks;
 }
 function auditMarkup(checks){return '<div class="note"><b>Nazwy i fakty — do sprawdzenia</b><ul>'+checks.map(c=>'<li>'+esc(c)+'</li>').join("")+'</ul></div>'}
 function auditEditorial(show=true){const checks=editorialChecks();$("editor-audit").innerHTML=auditMarkup(checks);if(show)$("local-save-status").textContent="Przygotowałem listę do sprawdzenia. Tekst pozostaje bez zmian.";return checks}

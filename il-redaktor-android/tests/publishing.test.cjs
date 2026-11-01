@@ -79,6 +79,18 @@ function setup(initialStorage=[],nativeData) {
   return {c,node,storage,documentListeners,run:(script)=>vm.runInContext(script,c)};
 }
 
+test("1.28.0 free Radar date selector, local SEO and diagnostic actions are exposed",()=>{ 
+  const fs=require("node:fs"),path=require("node:path");
+  const ui=fs.readFileSync(path.join(__dirname,"../app/src/main/assets/index.html"),"utf8");
+  const java=fs.readFileSync(path.join(__dirname,"../app/src/main/java/com/ispinalokalnie/redaktor/MainActivity.java"),"utf8");
+  const rss=fs.readFileSync(path.join(__dirname,"../app/src/main/java/com/ispinalokalnie/redaktor/FreeIspinaSearchClient.java"),"utf8");
+  assert.match(ui,/id="research-days"/);
+  assert.match(ui,/function runLocalSeoAudit/);
+  assert.match(ui,/function runLocalDiagnostics/);
+  assert.match(java,/askResearchWithDays/);
+  assert.match(rss,/entry".equals\(name\)/);
+  assert.match(rss,/sourcesAreFactChecked", false/);
+});
 test("publishing issues exactly one POST and verifies by GET before SUCCESS",async()=>{
   const a=setup(),calls=[];
   a.c.rpc=async(method,p,body)=>{

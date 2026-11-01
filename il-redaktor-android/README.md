@@ -1,3 +1,11 @@
+# IL Redaktor Smart 1.28.0 (projekt zmian po audycie)
+
+Nowe: wybieralny zakres 7/30/90/365 dni lub wszystkie wyniki, sprawdzanie dat publikacji, zapytania ograniczone do domen urzędowych przez RSS wyszukiwarki, elastyczne tematy, wsparcie Atom, lokalne SEO oraz diagnostyka na ekranie ustawień. Wyniki RSS to **linki do sprawdzenia**, a nie zweryfikowane fakty. Nowy kod nie zapewnia pełnego monitoringu BIP czy przetargów, ani płatnej integracji AI. Testy CI nie zastępują sprawdzenia publikowania na prawdziwym WordPressie.
+
+**Bezpieczna aktualizacja:** wersja 1.28.0 wymaga tego samego klucza podpisującego co poprzednia wersja zainstalowana na telefonie. Debug APK z GitHub Actions może nie nadawać się do aktualizacji. Przed reinstalacją wyeksportuj szkice do JSON; nie odinstalowuj programu przed wykonaniem kopii.
+
+---
+
 # IL Redaktor Smart 1.25.0
 
 Wersja rozwojowa (versionCode 33, stały pakiet `com.ispinalokalnie.redaktorsmart.stable`). **Nie odinstalowuj wcześniejszej APK przed aktualizacją**, dopóki nie zabezpieczysz szkiców i nie potwierdzisz zgodności podpisu. CI sprawdza uruchomienie i zachowanie szkiców po reinstalacji na Androidzie 8 (API 26), a przejście ze starej wersji oraz WebView na Androidzie 11 (API 30) i 13 (API 33). Debug APK nie jest automatycznie zgodną aktualizacją prywatnie podpisanej wersji; podpisany plik aktualizacyjny powstaje tylko przy dostępności dotychczasowego klucza.

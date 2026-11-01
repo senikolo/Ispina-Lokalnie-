@@ -34,10 +34,15 @@ public final class FreeIspinaSearchClient {
             }
             String query = "Ispina Drwinia" + (topic.isEmpty() ? "" : " " + topic);
             String encoded = java.net.URLEncoder.encode(query, "UTF-8");
+            // Scope-specific search feeds complement general discovery; they do not
+            // claim to crawl every BIP page or every procurement attachment.
             String[] feeds = {
                 "https://news.google.com/rss/search?q=" + encoded + "&hl=pl&gl=PL&ceid=PL:pl",
                 "https://www.bing.com/search?format=rss&q=" + encoded,
-                "https://eko.drwinia.pl/feed/"
+                "https://eko.drwinia.pl/feed/",
+                "https://www.bing.com/search?format=rss&q=" + java.net.URLEncoder.encode("Ispina site:drwinia.pl " + topic, "UTF-8"),
+                "https://www.bing.com/search?format=rss&q=" + java.net.URLEncoder.encode("Ispina site:bip.malopolska.pl " + topic, "UTF-8"),
+                "https://www.bing.com/search?format=rss&q=" + java.net.URLEncoder.encode("Ispina site:ezamowienia.gov.pl " + topic, "UTF-8")
             };
             LinkedHashMap<String, JSONObject> found = new LinkedHashMap<>();
             int successful = 0, failed = 0;
@@ -56,7 +61,9 @@ public final class FreeIspinaSearchClient {
             if (successful == 0) throw new Exception("Nie udało się pobrać publicznych źródeł. Sprawdź internet i spróbuj później. Nie wykonano zapytania do płatnego AI.");
             JSONArray sources = new JSONArray();
             StringBuilder answer = new StringBuilder();
-            for (JSONObject item : found.values()) {
+            List<JSONObject> ordered = new ArrayList<>(found.values());
+            ordered.sort((a,b) -> Long.compare(b.optLong("publishedAt",0),a.optLong("publishedAt",0)));
+            for (JSONObject item : ordered) {
                 if (sources.length() >= 24) break;
                 sources.put(item);
                 answer.append(sources.length()).append(". ").append(item.getString("title"));
@@ -75,7 +82,10 @@ public final class FreeIspinaSearchClient {
             JSONObject result = new JSONObject().put("freeSearch", true).put("answer", answer.toString())
                 .put("text", answer.toString()).put("sources", sources).put("verified", sources.length()>0)
                 .put("queries", new JSONArray().put(query)).put("searchedAt", System.currentTimeMillis())
-                .put("successfulFeeds", successful).put("failedFeeds", failed);
+                .put("successfulFeeds", successful).put("failedFeeds", failed)
+                .put("sourceReviewStatus", "DO_SPRAWDZENIA")
+                .put("sourcesAreFactChecked", false).put("dateFilterApplied", datedOnly)
+                .put("since", since);
             if (!datedOnly) synchronized (CACHE) {
                 if (CACHE.size() >= 8) CACHE.remove(CACHE.keySet().iterator().next());
                 CACHE.put(topic, new JSONObject(result.toString()));
@@ -84,26 +94,35 @@ public final class FreeIspinaSearchClient {
         } finally { control.close(); }
     }
 
-    private static boolean matchesTopic(JSONObject item, String topic) {
+    static boolean matchesTopic(JSONObject item, String topic) {
         if (topic.isEmpty()) return true;
-        String text=(item.optString("title")+" "+item.optString("snippet")).toLowerCase(Locale.ROOT);
+        String text = (item.optString("title") + " " + item.optString("snippet")).toLowerCase(Locale.ROOT);
         if ("paczkomat".equals(topic)) return text.contains("pacz") || text.contains("inpost");
         if ("transport".equals(topic)) return text.contains("transport") || text.contains("autobus") || text.contains("komunik") || text.contains("linia") || text.contains("mld");
-        if ("OSP".equals(topic)) return text.matches("(?s).*\\bosp\\b.*") || text.contains("straż");
-        return text.contains(topic);
+        if ("osp".equals(topic)) return text.matches("(?s).*\\bosp\\b.*") || text.contains("straż");
+        // Search is broader than an exact substring: suffixes of Polish inflected
+        // words may differ. The provider query still includes the whole subject.
+        int tokens = 0;
+        for (String word : topic.split("\\s+")) {
+            if (word.length() < 4) continue;
+            tokens++;
+            String root = word.substring(0, Math.min(5,word.length()));
+            if (text.contains(root)) return true;
+        }
+        return tokens == 0;
     }
 
-    private static String topic(String prompt) {
-        String text = prompt == null ? "" : prompt.toLowerCase(Locale.ROOT);
-        // Long editorial instructions use the broad radar, rather than leaking the whole prompt to a search provider.
+    static String topic(String prompt) {
+        String text = prompt == null ? "" : prompt.toLowerCase(Locale.ROOT).trim();
+        // Long instructions belong to the broad radar; never send entire
+        // editorial drafts, personal text, or source notes to search providers.
         if (text.length() > 300) return "";
-        if (text.contains("pacz") || text.contains("inpost")) return "paczkomat";
-        if (text.contains("most")) return "most";
-        if (text.contains("transpor") || text.contains("autobus")) return "transport";
-        if (text.contains("osp") || text.contains("straż")) return "OSP";
-        if (text.contains("przetarg")) return "przetarg";
-        if (text.contains("histori")) return "historia";
-        return "";
+        if (text.contains("paczkomat") || text.contains("inpost")) return "paczkomat";
+        if (text.matches("(?s).*\\bosp\\b.*") || text.contains("straż pożarn")) return "osp";
+        if (text.contains("autobus") || text.contains("komunikacj") || text.contains("transport")) return "transport";
+        text = text.replaceAll("(?iu)\\b(?:czy|są|jest|jakie|co|nowego|nowe|informacje|wiadomości|aktualne|aktualności|wyszukaj|znajdź|sprawdź|ostatnie|dni|dniach|tygodniu|miesiącu|temat|dotyczące|dotyczy|o|w|we|na|z|do|i|oraz|dla|ispina|ispinie|ispiny|gminie|gmina|drwinia|drwini|proszę)\\b", " ");
+        text = text.replaceAll("[^\\p{L}\\p{N} ]", " ").trim().replaceAll("\\s+", " ");
+        return text.length() > 100 ? text.substring(0,100).trim() : text;
     }
 
     private static String fetch(String address, ChatGptPlanClient.SearchControl control) throws Exception {
@@ -131,7 +150,8 @@ public final class FreeIspinaSearchClient {
 
     static JSONArray parseFeed(String xml, long since, boolean datedOnly) throws Exception {
         String upper = xml.toUpperCase(Locale.ROOT);
-        if (upper.contains("<!DOCTYPE") || upper.contains("<!ENTITY")) throw new IOException("Niedozwolona deklaracja XML.");
+        if (upper.contains("<!DOCTYPE") || upper.contains("<!ENTITY"))
+            throw new IOException("Niedozwolona deklaracja XML.");
         XmlPullParser parser = Xml.newPullParser();
         parser.setInput(new StringReader(xml));
         JSONArray items = new JSONArray();
@@ -139,30 +159,41 @@ public final class FreeIspinaSearchClient {
         boolean inItem=false, feed=false;
         int scanned=0;
         for (int event=parser.getEventType(); event!=XmlPullParser.END_DOCUMENT; event=parser.next()) {
-            String name = parser.getName();
+            String name=parser.getName();
             if (event==XmlPullParser.START_TAG) {
                 if ("rss".equals(name) || "feed".equals(name)) feed=true;
-                if ("item".equals(name)) { inItem=true; title="";link="";description="";date=""; }
-                else if(inItem) {
+                if ("item".equals(name) || "entry".equals(name)) {
+                    inItem=true; title="";link="";description="";date="";
+                } else if (inItem) {
                     if ("title".equals(name)) title=plain(parser.nextText(),240);
-                    else if("link".equals(name)) link=parser.nextText().trim();
-                    else if("description".equals(name)) description=plain(parser.nextText(),450);
-                    else if("pubDate".equals(name)) date=parser.nextText().trim();
+                    else if ("link".equals(name)) {
+                        String href=parser.getAttributeValue(null,"href");
+                        if (href!=null && !href.isEmpty()) {
+                            String rel=parser.getAttributeValue(null,"rel");
+                            if (rel==null || rel.isEmpty() || "alternate".equals(rel)) link=href.trim();
+                        } else link=parser.nextText().trim();
+                    }
+                    else if ("description".equals(name) || "summary".equals(name) || "content".equals(name))
+                        description=plain(parser.nextText(),450);
+                    else if ("pubDate".equals(name) || "published".equals(name) || "updated".equals(name))
+                        date=parser.nextText().trim();
                 }
-            } else if(event==XmlPullParser.END_TAG && "item".equals(name)) {
+            } else if (event==XmlPullParser.END_TAG && ("item".equals(name) || "entry".equals(name))) {
                 inItem=false;
                 if (++scanned>100) break;
-                if (!(title+" "+description).toLowerCase(Locale.ROOT).contains("ispin")) continue;
+                if (!(title+" "+description).toLowerCase(Locale.ROOT).matches("(?s).*(ispin|ispni).*")) continue;
                 Uri uri=Uri.parse(link);
-                if(uri.getHost()==null || uri.getUserInfo()!=null || !("https".equals(uri.getScheme()) || "http".equals(uri.getScheme()))) continue;
+                if (uri.getHost()==null || uri.getUserInfo()!=null ||
+                    !("https".equals(uri.getScheme()) || "http".equals(uri.getScheme()))) continue;
                 long published=parseDate(date);
-                if(datedOnly && (published<=0L || published<since || published>System.currentTimeMillis()+86400000L)) continue;
-                if(title.isEmpty()) continue;
+                if (datedOnly && (published<=0L || published<since || published>System.currentTimeMillis()+86400000L)) continue;
+                if (title.isEmpty()) continue;
                 items.put(new JSONObject().put("title",title).put("url",link).put("snippet",description)
-                    .put("published",date).put("publishedAt",published));
+                    .put("published",date).put("publishedAt",published)
+                    .put("reviewStatus","DO_SPRAWDZENIA"));
             }
         }
-        if (!feed) throw new IOException("Źródło nie zwróciło kanału RSS.");
+        if (!feed) throw new IOException("Źródło nie zwróciło kanału RSS ani Atom.");
         return items;
     }
     private static String plain(String text, int max) {
@@ -170,8 +201,8 @@ public final class FreeIspinaSearchClient {
         return value.substring(0,Math.min(max,value.length()));
     }
     private static long parseDate(String value) {
-        for(String pattern : new String[]{"EEE, dd MMM yyyy HH:mm:ss Z","EEE, d MMM yyyy HH:mm:ss Z","yyyy-MM-dd'T'HH:mm:ssXXX"}) {
-            try { SimpleDateFormat f=new SimpleDateFormat(pattern,Locale.US); f.setLenient(false); return f.parse(value).getTime(); }
+        for(String pattern : new String[]{"EEE, dd MMM yyyy HH:mm:ss Z","EEE, d MMM yyyy HH:mm:ss Z","yyyy-MM-dd'T'HH:mm:ss.SSSXXX","yyyy-MM-dd'T'HH:mm:ssXXX","yyyy-MM-dd'T'HH:mm:ss'Z'"}) {
+            try { SimpleDateFormat f=new SimpleDateFormat(pattern,Locale.US); f.setLenient(false); f.setTimeZone(TimeZone.getTimeZone("UTC")); return f.parse(value).getTime(); }
             catch(Exception ignored) {}
         }
         return 0L;
