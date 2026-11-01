@@ -1151,3 +1151,13 @@ test("free search displays empty results without an AI login or false source err
  assert.match(a.node("research-results").textContent,/Brak pasujących/);
  assert.equal(a.run("requests.size"),0);assert.equal(a.node("research-button").disabled,false);
 });
+
+test("ChatGPT Free handoff prefers dedicated no-API bridge",()=>{
+  const a=setup();a.node("assistant-prompt").value="Przygotuj propozycję do sprawdzenia";
+  let prompt="";a.c.IL.shareChatGptFreePrompt=text=>{prompt=text};
+  a.c.IL.shareAssistantPrompt=()=>{throw Error("Do not use paid or generic assistant");};
+  assert.equal(a.run("sendAssistantToApps()"),true);
+  assert.match(prompt,/Przygotuj propozycję do sprawdzenia/);
+  assert.match(prompt,/w Ispinie, do Ispiny, z Ispiny/);
+  assert.match(a.node("assistant-handoff-status").textContent,/ChatGPT Free/);
+});
