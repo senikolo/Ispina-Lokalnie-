@@ -14,6 +14,12 @@ Endpoint sprawdza sesję WordPress przez tylko odczyt posts.list dla ispinalokal
 
 Domyślny adres aplikacji: https://il-redaktor-assistant.vercel.app/api/assistant. Można go nadpisać przy kompilacji przez IL_ASSISTANT_ENDPOINT albo właściwość Gradle ilAssistantEndpoint.
 
+## IL Chat AI — radar informacji
+
+Tryb \`chat\` prowadzi krótką rozmowę o Ispinie. Każda wiadomość uruchamia Gemini z Google Search grounding. Odpowiedź jest pokazywana wyłącznie wtedy, gdy provider zwróci również co najmniej jedno źródło; źródła i ich domeny aplikacja prezentuje przy konkretnej odpowiedzi. Odpowiedzi bez potwierdzonych źródeł nie są wyświetlane jako ustalenia.
+
+Żądanie może zawierać do ośmiu ostatnich wiadomości rozmowy. Aplikacja przechowuje je tylko w bieżącej sesji interfejsu i nie zapisuje historii czatu na serwerze. Limit wynosi 10 wiadomości na godzinę na konto WordPress i adres IP. Google Search może wykonać jedno lub więcej zapytań, a Gemini i wyszukiwanie mogą podlegać odrębnym opłatom.
+
 ## Wyszukiwanie internetowe
 
 Raport uruchamia sześć osobnych wywołań Gemini z Google Search grounding, po jednym dla profilu: przetargi, Gmina Drwinia/BIP, platformy postępowań, lokalne media, infrastruktura i usługi publiczne oraz odmiany nazwy i archiwa. Provider może wykonać jedno lub wiele zapytań w profilu; aplikacja nie obiecuje stałej liczby zapytań.
