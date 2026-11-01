@@ -391,7 +391,8 @@ header{animation:ilHeader .38s cubic-bezier(.2,.7,.2,1) both}.brand .logo{animat
     <div id="login-recovery" class="recovery-card hidden" role="region" aria-label="Pomoc przy logowaniu">
       <h3>🔑 Czekam na zakończenie logowania</h3>
       <p>Zatwierdź dostęp w przeglądarce i wybierz otwarcie Redaktora IL, gdy Android o to zapyta. Jeśli jesteś już z powrotem w aplikacji, ale nadal widzisz krok 3/4, skorzystaj z opcji poniżej.</p>
-      <div class="actions"><button class="secondary" onclick="checkLoginState()">Sprawdź stan</button><button class="secondary" onclick="cancelLoginFlow()">Anuluj i spróbuj ponownie</button></div>
+      <p class="setting-caption">Jeżeli wróciłeś do Redaktora bez komunikatu „Sukces”, przeglądarka mogła nie odesłać potwierdzenia. Nic nie publikujemy, dopóki połączenie nie zostanie zweryfikowane.</p>
+      <div class="actions"><button class="secondary" onclick="resumeLoginFlow()">Wróć do logowania</button><button class="secondary" onclick="checkLoginState()">Sprawdź stan</button><button class="secondary" onclick="cancelLoginFlow()">Anuluj i spróbuj ponownie</button></div>
       <details><summary>Zaawansowane: ręczne dokończenie logowania</summary>
         <p>Jeśli przeglądarka pokazuje pełny adres rozpoczynający się od <code>com.ispinalokalnie.redaktorsmart.stable:/callback</code>, możesz wkleić go poniżej. Nie wpisuj tu hasła, kodu z SMS ani zwykłego adresu WordPressa. Nie udostępniaj nikomu tego adresu.</p>
         <label for="oauth-return">Adres powrotu (poufny)</label><input id="oauth-return" type="password" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Wklej pełny adres powrotu z przeglądarki">
@@ -569,6 +570,14 @@ window.onNativeResult=function(id,ok,payload){
     try{r.resolve(JSON.parse(payload));}catch(e){r.reject(new Error("Nieprawidłowa odpowiedź WordPressa."));}
     return;
   }
+  if(id==="auth-return") {
+    if(ok){
+      message("auth-output",payload);
+      operationBanner("pending","Brak potwierdzenia WordPress.com. Wznów logowanie lub anuluj.");
+      showLoginRecovery(true);
+    }
+    return;
+  }
   if(id==="auth-progress"){
     if(ok){
       message("auth-output",payload);
@@ -622,7 +631,7 @@ window.onNativeResult=function(id,ok,payload){
     return;
   }
   if(id==="login-state"){
-    try{const s=JSON.parse(payload);showLoginRecovery(!!s.pending);if(!s.pending)endOperation()}catch(e){}
+    try{const s=JSON.parse(payload);showLoginRecovery(!!s.pending);if(s.pending){operationBanner("pending","Czekam na potwierdzenie w przeglądarce");}else endOperation()}catch(e){}
     return;
   }
   if(id==="auth-cancel"){
@@ -700,6 +709,7 @@ function reflectAuth(){
 function showLoginRecovery(show){$("login-recovery").classList.toggle("hidden",!show)}
 function checkLoginState(){if(IL.loginState)IL.loginState()}
 function cancelLoginFlow(){if(IL.cancelLogin)IL.cancelLogin()}
+function resumeLoginFlow(){if(IL.resumeLogin){message("auth-output","Otwieram ponownie WordPress.com. Sprawdź, czy zatwierdziłeś dostęp.");IL.resumeLogin()}else message("auth-output","Ta wersja nie obsługuje wznowienia. Anuluj i rozpocznij ponownie.","error")}
 function finishManualLogin(){const el=$("oauth-return");const url=trim(el.value);el.value="";if(!url){message("auth-output","Wklej pełny adres powrotu (jeżeli jest dostępny w przeglądarce).","error");return}IL.finishLoginWithUrl(url);startOperation("Odbieram potwierdzenie WordPress.com")}
 function setHapticsMode(value){if(IL.setHaptics)IL.setHaptics(Number(value))}
 function testHaptics(){$("haptics-status").textContent="Sprawdzam ustawienie i silnik wibracyjny…";if(IL.testHaptics)IL.testHaptics();else $("haptics-status").textContent="Test wibracji jest dostępny w aplikacji na Androida."}
