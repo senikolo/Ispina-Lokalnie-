@@ -201,12 +201,13 @@ header{animation:ilHeader .38s cubic-bezier(.2,.7,.2,1) both}.brand .logo{animat
     <div class="actions"><button onclick="resetEditor();showScreen('editor')">+ Nowy artykuł</button><button class="secondary" onclick="showScreen('posts');loadPosts()">Moje artykuły</button></div>
   </div>
   <div class="grid quick-grid">
-    <button class="tile" onclick="showScreen('memory');loadEditorialMemory()"> <span class="tile-icon">◷</span><b>Pamięć redakcyjna</b><small>Historia i źródła</small></button><button class="tile" onclick="showDraftLibrary()"><span class="tile-icon">▱</span><b>Moje szkice</b><small>Twoja biblioteczka</small></button><button class="tile" onclick="showCalendar()"><span class="tile-icon">▦</span><b>Kalendarz</b><small>Tematy i terminy</small></button><button class="tile" onclick="showScreen('assistant')"><span class="tile-icon">✦</span><b>Asystent</b><small>Opisz zadanie</small></button><button class="tile" onclick="showScreen('radar')"><span class="tile-icon">◉</span><b>Radar Ispiny</b><small>Wzmianki · Chat AI</small></button>
+    <button class="tile" onclick="showScreen('memory');loadEditorialMemory()"> <span class="tile-icon">◷</span><b>Pamięć redakcyjna</b><small>Historia i źródła</small></button><button class="tile" onclick="showDraftLibrary()"><span class="tile-icon">▱</span><b>Moje szkice</b><small>Twoja biblioteczka</small></button><button class="tile" onclick="showCalendar()"><span class="tile-icon">▦</span><b>Kalendarz</b><small>Tematy i terminy</small></button><button class="tile" onclick="showScreen('assistant')"><span class="tile-icon">✦</span><b>Asystent</b><small>Opisz zadanie</small></button><button class="tile" onclick="showScreen('radar')"><span class="tile-icon">◉</span><b>Radar Ispiny</b><small>Źródła i wyszukiwanie</small></button>
     <button class="tile" onclick="showScreen('posts');loadPosts()"><span class="tile-icon">▤</span><b>Artykuły</b><small>Wpisy i szkice</small></button>
     <button class="tile" onclick="showScreen('services');loadServices()"><span class="tile-icon">▦</span><b>Usługi</b><small>Katalog firm</small></button>
     <button class="tile" onclick="showScreen('media');loadMedia()"><span class="tile-icon">▣</span><b>Galeria</b><small>Zdjęcia wpisów</small></button>
     <button class="tile" onclick="showScreen('editor');openSources()"><span class="tile-icon">▧</span><b>Źródła</b><small>Materiały do artykułu</small></button><button class="tile" onclick="showScreen('editor');showTemplates()"><span class="tile-icon">✦</span><b>Szablony</b><small>Szybki start</small></button>
   </div>
+  <div class="card"><h2>Na dziś w redakcji</h2><div id="home-editorial-summary" class="note" aria-live="polite">Odczytuję zapisane szkice i materiały…</div><div class="actions"><button class="secondary" onclick="renderEditorialDashboard()">Odśwież podsumowanie</button></div></div>
   <div class="card"><h2>Ostatnie działania</h2><p class="muted">Tutaj sprawdzisz, czy Redaktor pracuje, zakończył zadanie, czy zgłosił błąd. Wynik publikowania wymaga potwierdzenia z WordPressa.</p><div id="activity-feed" role="log" aria-live="polite"><p class="muted">Nie wykonano jeszcze operacji.</p></div></div>
   <div class="card"><h2>Wskazówki redakcyjne</h2><p class="muted">Przygotowuj szkice, poprawiaj teksty i publikuj dopiero po sprawdzeniu podglądu. Redaktor zachowa wersję lokalną w tym telefonie, nawet jeśli chwilowo zabraknie Internetu.</p>
   <div class="actions"><button class="secondary" onclick="showScreen('settings')">Połącz z WordPressem</button><button class="secondary" onclick="IL.openSite('https://ispinalokalnie.wordpress.com/')">Otwórz portal</button></div></div>
@@ -315,10 +316,10 @@ header{animation:ilHeader .38s cubic-bezier(.2,.7,.2,1) both}.brand .logo{animat
     <label for="post-title">Tytuł artykułu</label><input id="post-title" placeholder="Np. 10 ciekawostek o Ispinie">
     <label for="post-body">Treść artykułu</label>
     <div class="note" role="group" aria-label="Inteligentny skład artykułu"><strong>✨ Inteligentne formatowanie</strong><p class="small">Ułóż akapity i istniejące śródtytuły bez zmiany faktów. Każda propozycja otworzy porównanie — tekst nie zmieni się bez zatwierdzenia.</p><div class="actions"><button type="button" onclick="formatArticleLocally()">⚡ Sformatuj automatycznie · bezpłatnie</button><button type="button" class="secondary" onclick="formatArticleWithAI()">✨ Sformatuj za pomocą AI</button></div><p id="auto-format-status" class="small" role="status">Formatowanie lokalne jest bezpłatne. Opcjonalnie możesz ręcznie przekazać tekst do ChatGPT/Gemini.</p></div>
-    <div class="format-toolbar" role="toolbar" aria-label="Formatowanie artykułu">
+    <details class="note"><summary>Narzędzia ręcznego formatowania i odsyłacze</summary><div class="format-toolbar" role="toolbar" aria-label="Formatowanie artykułu">
       <button type="button" class="secondary" onclick="formatEditor('bold')"><b>B</b> Pogrub</button><button type="button" class="secondary" onclick="formatEditor('italic')"><i>I</i> Kursywa</button><button type="button" class="secondary" onclick="formatEditor('h2')">Śródtytuł</button><button type="button" class="secondary" onclick="formatEditor('bullets')">Lista punktowana</button><button type="button" class="secondary" onclick="formatEditor('numbers')">Lista numerowana</button><button type="button" class="secondary" onclick="formatEditor('quote')">Cytat</button>
     </div>
-    <div class="format-link-row"><input id="editor-link-url" type="url" inputmode="url" placeholder="https://adres-źródła.pl" aria-label="Adres linku"><button type="button" class="secondary" onclick="formatEditor('link')">Wstaw link</button></div>
+    <div class="format-link-row"><input id="editor-link-url" type="url" inputmode="url" placeholder="https://adres-źródła.pl" aria-label="Adres linku"><button type="button" class="secondary" onclick="formatEditor('link')">Wstaw link</button></div></details>
     <details class="note editor-rules"><summary>📐 Zasady profesjonalnego składu</summary><ul><li>Zacznij od krótkiego wprowadzenia: co się wydarzyło, gdzie i kiedy.</li><li>Dziel tekst na czytelne akapity; dłuższe artykuły porządkuj śródtytułami.</li><li>List używaj do konkretnych punktów, terminów i instrukcji.</li><li>Pogrubiaj oszczędnie najważniejsze informacje. Cytaty oznaczaj tylko wtedy, gdy są dosłowne i mają wskazane źródło.</li><li>Linkuj opisowy fragment tekstu i sprawdzaj, czy prowadzi do właściwego źródła.</li><li>Nie zmieniaj faktów dla samego formatowania. Daty, nazwiska i liczby sprawdź przed publikacją.</li></ul></details>
     <div class="actions"><button class="secondary" onclick="IL.dictate()">🎙 Dyktuj tekst po polsku</button></div><textarea id="post-body" placeholder="Napisz tekst. Zaznacz fragment i użyj przycisków formatowania. Pusta linia oddziela akapity."></textarea>
     <div class="row"><label style="flex:1">Kategoria<select id="post-category"><option value="10543">Aktualności</option><option value="3503">Historia</option><option value="21188">Technologia</option></select></label>
@@ -557,12 +558,31 @@ function message(id,msg,kind=""){
   }
 }
 function trim(s){return String(s||"").trim()}
+function renderEditorialDashboard(){
+  const target=$("home-editorial-summary");
+  if(!target)return;
+  const drafts=readDraftStore()?.drafts||[];
+  const changed=drafts.filter(d=>d.dirty).length;
+  const latest=drafts.slice().sort((a,b)=>Number(b.updated||0)-Number(a.updated||0))[0];
+  target.innerHTML='<p><b>Szkice na telefonie:</b> '+drafts.length+' · Do synchronizacji: '+changed+'</p>'+
+    (latest?'<p>Ostatni tekst: <strong>'+esc(latest.title||"Bez tytułu")+'</strong></p>':'<p>Brak rozpoczętych szkiców.</p>')+
+    '<p id="home-memory-summary" class="small muted">Sprawdzam lokalną pamięć źródeł…</p>'+
+    '<div class="actions"><button class="secondary" onclick="showDraftLibrary()">Otwórz szkice</button><button class="secondary" onclick="showScreen(\'memory\');loadEditorialMemory()">Źródła do sprawdzenia</button></div>';
+  if(window.IL&&typeof IL.editorialMemory==="function"){
+    editorialRequest("browse",{status:"link_found",topic:""}).then(data=>{
+      const total=Array.isArray(data.items)?data.items.length:0;
+      const element=$("home-memory-summary");
+      if(element)element.textContent="Materiały do weryfikacji w ostatnich 50 rekordach: "+total+".";
+    }).catch(error=>{const element=$("home-memory-summary");if(element)element.textContent="Nie odczytano pamięci: "+error.message});
+  }else $("home-memory-summary").textContent="Źródła będą dostępne po uruchomieniu aplikacji Android.";
+}
 function showScreen(key){
   if(key!=="editor"&&typeof draftStore!=="undefined"&&!flushDraftOnExit())return false;
   document.querySelectorAll(".panel").forEach(n=>n.classList.toggle("active",n.id==="screen-"+key));
   const navKey=({drafts:"editor",calendar:"home",media:"editor",memory:"radar"}[key]||key);
   document.querySelectorAll("nav button").forEach(n=>{const active=n.id==="nav-"+navKey;n.classList.toggle("active",active);if(active)n.setAttribute("aria-current","page");else n.removeAttribute("aria-current");});
   window.scrollTo(0,0);
+  if(key==="home")renderEditorialDashboard();
 }
 function rpc(method,path,body) {
   return new Promise((resolve,reject)=>{
@@ -2525,7 +2545,7 @@ async function loadMedia(){
     mediaById=new Map(list.map(m=>[Number(m.id),{id:Number(m.id),url:safeMediaUrl(m.source_url||""),name:m.title?.rendered||"Zdjęcie"}]));
     $("media-output").innerHTML='<div class="media-grid">'+list.map(m=>{
       const src=m.media_details?.sizes?.thumbnail?.source_url||m.source_url||"";
-      return '<div class="media-card"><img loading="lazy" src="'+esc(src)+'" alt="'+esc(m.alt_text||"Zdjęcie IL")+'"><div class="media-info"><b>'+esc(m.title?.rendered||"Zdjęcie")+'</b><button onclick="chooseMedia('+Number(m.id)+')">Wybierz zdjęcie</button></div></div>';
+      return '<div class="media-card"><img loading="lazy" src="'+esc(src)+'" alt="'+esc(m.alt_text||"Zdjęcie IL")+'"><div class="media-info"><b>'+esc(m.title?.rendered||"Zdjęcie")+'</b><small>'+esc(m.alt_text||"Brak tekstu alternatywnego ALT")+'</small><button onclick="chooseMedia('+Number(m.id)+')">Wybierz zdjęcie</button></div></div>';
     }).join("")+'</div>';
     if(!list.length)message("media-output","Nie znaleziono zdjęć.");
     operationFinished(true,"Odczytano galerię",list.length+" fotografii na tej stronie.");
@@ -2600,6 +2620,7 @@ async function loadEditorialMemory(){
       return '<div class="source-item"><b>'+esc(source.title||source.url)+'</b><small>'+esc(review+changed)+' · Ostatnio odnaleziono: '+stamp+'</small>'+published+
         '<div class="actions"><button type="button" class="secondary" data-memory-action="open" data-memory-url="'+esc(source.url)+'">Otwórz</button>'+
         (source.status==="reviewed"?'':'<button type="button" class="secondary" data-memory-action="review" data-memory-url="'+esc(source.url)+'">Sprawdzone ręcznie</button>')+
+        '<button type="button" class="secondary" data-memory-action="draft" data-memory-url="'+esc(source.url)+'" data-memory-title="'+esc(source.title||source.url)+'">Do szkicu</button>'+
         '<button type="button" class="secondary" data-memory-action="delete" data-memory-url="'+esc(source.url)+'">Usuń</button></div></div>';
     }).join(""):'<div class="note">Brak zapisanych źródeł dla tego filtra. Uruchom Radar i zapisz pierwsze wyszukiwanie.</div>';
     state.textContent="Odczytano "+items.length+" źródeł z pamięci telefonu. Dane nie zostały pobrane ponownie z internetu.";
@@ -2609,6 +2630,19 @@ $("editorial-memory-results").addEventListener("click",async event=>{
   const b=event.target.closest("[data-memory-action]");if(!b)return;
   const url=b.getAttribute("data-memory-url"),action=b.getAttribute("data-memory-action");
   if(action==="open"){openResearchSource(url);return;}
+  if(action==="draft"){
+    if(!persistDraft(true)){$("editorial-memory-status-text").textContent="Nie mogę zabezpieczyć szkicu. Źródło nie zostało przeniesione.";return}
+    const current=currentSources();
+    if(current.some(s=>s.url===url)){$("editorial-memory-status-text").textContent="Ten link już znajduje się w bieżącym szkicu.";return}
+    if(current.length>=20){$("editorial-memory-status-text").textContent="Szkic ma już 20 źródeł. Usuń niepotrzebne przed dodaniem nowego.";return}
+    const title=b.getAttribute("data-memory-title")||url;
+    const entry={id:draftId(),name:title,url,notes:"Źródło z lokalnej pamięci. Sprawdź pełny tekst, daty i kontekst przed publikacją.",checked:false,verifiedAt:0,photo:""};
+    if(storeSources([...current,entry])){
+      $("editorial-memory-status-text").textContent="Źródło dołączono do bieżącego szkicu, bez publikowania.";
+      showScreen("editor");
+    }else $("editorial-memory-status-text").textContent="Nie udało się powiązać źródła ze szkicem.";
+    return;
+  }
   const sure=action==="review"?
     confirm("Czy otworzyłeś oryginalne źródło i sprawdziłeś jego treść? Status nie oznacza automatycznej weryfikacji faktów."):
     confirm("Usunąć ten link z lokalnego archiwum? Nie wpłynie to na szkice ani wpisy w WordPressie.");
@@ -2654,6 +2688,7 @@ if(actionHistory.length){
 }
 loadUiPreferences();
 restoreLocal(true);
+renderEditorialDashboard();
 $("publication-sound").checked=localStorage.getItem("il_publication_sound")!=="false";
 if(window.IL){IL.status();if(IL.getHaptics)IL.getHaptics();if(IL.getTextZoom)IL.getTextZoom();if(IL.loginState)IL.loginState();if(IL.getIspinaRadarState)refreshIspinaRadarState();if(IL.editorialMemory)loadEditorialHistory()}else{message("auth-output","Brak mostu Android. Otwórz ten panel wewnątrz APK.","error");}
 </script>
