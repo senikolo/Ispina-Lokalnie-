@@ -1,6 +1,13 @@
-# IL Redaktor Smart 1.23.0
+# IL Redaktor Smart 1.24.0
 
-Wersja rozwojowa (versionCode 31, stały pakiet `com.ispinalokalnie.redaktorsmart.stable`). **Nie odinstalowuj wcześniejszej APK przed aktualizacją**, dopóki nie zabezpieczysz szkiców i nie potwierdzisz zgodności podpisu. CI sprawdza uruchomienie i zachowanie szkiców po reinstalacji na Androidzie 8 (API 26), a przejście ze starej wersji oraz WebView na Androidzie 11 (API 30) i 13 (API 33). Debug APK nie jest automatycznie zgodną aktualizacją prywatnie podpisanej wersji; podpisany plik aktualizacyjny powstaje tylko przy dostępności dotychczasowego klucza.
+Wersja rozwojowa (versionCode 32, stały pakiet `com.ispinalokalnie.redaktorsmart.stable`). **Nie odinstalowuj wcześniejszej APK przed aktualizacją**, dopóki nie zabezpieczysz szkiców i nie potwierdzisz zgodności podpisu. CI sprawdza uruchomienie i zachowanie szkiców po reinstalacji na Androidzie 8 (API 26), a przejście ze starej wersji oraz WebView na Androidzie 11 (API 30) i 13 (API 33). Debug APK nie jest automatycznie zgodną aktualizacją prywatnie podpisanej wersji; podpisany plik aktualizacyjny powstaje tylko przy dostępności dotychczasowego klucza.
+
+## Nowości 1.24.0 — radar → szkic w ChatGPT/Gemini
+
+- Z odpowiedzi IL Chat AI i sześcioprofilowego raportu można jednym przyciskiem utworzyć osobny lokalny szkic, zachowując bieżący artykuł.
+- Znalezione odnośniki są zapisywane przy szkicu jako źródła „Do sprawdzenia”. Redaktor nie oznacza ich jako ręcznie zweryfikowanych i niczego sam nie publikuje.
+- Raport wraz z materiałem i zasadami redakcyjnymi można przekazać do aplikacji ChatGPT; jeśli nie jest dostępna, aplikacja może zaproponować Gemini. Po powrocie odpowiedź wkleja się ze schowka i zatwierdza przez porównanie.
+- Szybki radar „Nowości · ostatnie 30 dni” stawia najnowsze komunikaty i dokładne daty na pierwszym miejscu.
 
 ## Nowości 1.23.0 — IL Chat AI
 
