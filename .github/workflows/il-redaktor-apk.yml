@@ -91,8 +91,8 @@ jobs:
           mcp=pathlib.Path('il-redaktor-android/app/src/main/java/com/ispinalokalnie/redaktor/WpMcp.java').read_text()
           main=pathlib.Path('il-redaktor-android/app/src/main/java/com/ispinalokalnie/redaktor/MainActivity.java').read_text()
           manifest=pathlib.Path('il-redaktor-android/app/src/main/AndroidManifest.xml').read_text()
-          assert '"&scope=global"' in oauth, 'WordPress MCP requires the global scope, not auth-only'
-          assert '"&scope=auth"' not in oauth, 'Auth-only scope cannot access WordPress MCP content'
+          assert '"&scope=auth"' in oauth, 'WordPress MCP documented auth scope missing'
+          assert '"&scope=global"' not in oauth, 'Legacy global scope must not be used for WordPress MCP OAuth'
           for expected in ['com.ispinalokalnie.redaktorsmart.stable:/callback','code_challenge_method=S256','PENDING_VERIFIER','handleRedirect']:
               assert expected in oauth, 'OAuth return missing: '+expected
           for required in ['\"method\", \"initialize\"', 'Mcp-Session-Id', 'notifications/initialized', 'ensureMcpSession(token)', 'ExpiredMcpSession', 'resetSession()']:
