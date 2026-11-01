@@ -603,6 +603,31 @@ public class MainActivity extends Activity {
             });
         }
 
+        // User-selected lookback, not an unverified "last 30 days" label.
+        @JavascriptInterface public void askResearchWithDays(String rid, String prompt, int days) {
+            if (rid == null || !rid.matches("[A-Za-z0-9_-]{1,60}")) return;
+            if (prompt == null || prompt.trim().isEmpty() || prompt.length() > 1800) {
+                callback(rid, false, "Wpisz temat wyszukiwania, maksymalnie 1800 znaków."); return;
+            }
+            if (days != 0 && days != 7 && days != 30 && days != 90 && days != 365) {
+                callback(rid, false, "Nieprawidłowy zakres dat."); return;
+            }
+            final long since = days == 0 ? 0L :
+                System.currentTimeMillis() - java.util.concurrent.TimeUnit.DAYS.toMillis(days);
+            ChatGptPlanClient.SearchControl control = new ChatGptPlanClient.SearchControl(MainActivity.this, 60000);
+            searches.put(rid, control);
+            aiWork.execute(() -> {
+                try {
+                    JSONObject result = FreeIspinaSearchClient.search(MainActivity.this, prompt,
+                        control, since, days != 0);
+                    callback(rid, true, result.toString());
+                } catch (Exception ex) {
+                    callback(rid, false, ex.getMessage() == null ?
+                        "Nie udało się pobrać publicznych źródeł." : ex.getMessage());
+                } finally { searches.remove(rid, control); }
+            });
+        }
+
         @JavascriptInterface public void askIspinaChat(String rid, String prompt, String historyJson) {
             if (rid == null || rid.length() > 60 || !rid.matches("[A-Za-z0-9_-]+")) return;
             if (prompt == null || prompt.trim().isEmpty() || prompt.length() > 2000) {
@@ -622,7 +647,8 @@ public class MainActivity extends Activity {
             searches.put(rid, control);
             aiWork.execute(() -> {
                 try {
-                    JSONObject result = FreeIspinaSearchClient.ask(MainActivity.this, prompt, control);
+                    JSONObject result = FreeIspinaSearchClient.askConversation(MainActivity.this, prompt,
+                        safeHistory, control);
                     callback(rid, true, result.toString());
                 } catch (Exception ex) {
                     callback(rid, false, ex.getMessage() == null ? "Nie udało się pobrać publicznych źródeł." : ex.getMessage());
