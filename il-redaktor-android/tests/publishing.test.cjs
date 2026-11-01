@@ -86,7 +86,7 @@ test("backup reminder only records a completed export, never a canceled picker",
   assert.match(ui,/id="backup-health"/);
   assert.match(ui,/function renderBackupHealth/);
 });
-test("1.28.0 free Radar date selector, local SEO and diagnostic actions are exposed",()=>{ 
+test("1.29.0-test.1 free Radar date selector, local SEO and diagnostic actions are exposed",()=>{ 
   const fs=require("node:fs"),path=require("node:path");
   const ui=fs.readFileSync(path.join(__dirname,"../app/src/main/assets/index.html"),"utf8");
   const java=fs.readFileSync(path.join(__dirname,"../app/src/main/java/com/ispinalokalnie/redaktor/MainActivity.java"),"utf8");
@@ -654,9 +654,9 @@ test("AI context exposes published posts only for reader recommendations",()=>{
 test("new build metadata and the PR APK workflow agree",()=>{
   const gradle=fs.readFileSync(path.join(__dirname,"../app/build.gradle"),"utf8");
   const workflow=fs.readFileSync(path.join(__dirname,"../../.github/workflows/il-redaktor-apk.yml"),"utf8");
-  assert.match(gradle,/versionCode 38/);assert.match(gradle,/versionName '1\.28\.0'/);assert.match(gradle,/https:\/\/il-redaktor-assistant\.vercel\.app\/api\/assistant/);
+  assert.match(gradle,/versionCode 39/);assert.match(gradle,/versionName '1\.28\.0'/);assert.match(gradle,/https:\/\/il-redaktor-assistant\.vercel\.app\/api\/assistant/);
   assert.match(gradle,/applicationId 'com\.ispinalokalnie\.redaktorsmart\.stable'/);
-  assert.match(workflow,/versionCode='38' versionName='1\.28\.0'/);
+  assert.match(workflow,/versionCode='39' versionName='1\.28\.0'/);
 });
 
 test("AI editor shortcut copies current title and text into a reviewable prompt without sending it",()=>{
