@@ -1081,6 +1081,7 @@ async function refreshChatGptState(){
     const account=$("chatgpt-account-status");
     if(chatGptConnected){
       account.textContent="Konto ChatGPT używane przez IL Chat i Radar: "+(email||"adres e-mail niedostępny")+(model?" · model: "+model:"")+"."; if(!email)account.textContent+=" Sprawdź konto wybrane w przeglądarce albo odłącz je i zaloguj się ponownie."
+      if(email)account.textContent+=state.emailVerified?" Adres potwierdzony przez OpenAI.":" OpenAI nie potwierdziło weryfikacji tego adresu.";
       account.className="small ok";
       $("ispina-chat-status").textContent="ChatGPT jest połączony. IL Chat może szukać aktualnych informacji i pokazywać źródła.";
       $("ispina-chat-status").className="small muted";
