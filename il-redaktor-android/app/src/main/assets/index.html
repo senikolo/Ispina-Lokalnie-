@@ -229,7 +229,7 @@ header{animation:ilHeader .38s cubic-bezier(.2,.7,.2,1) both}.brand .logo{animat
     </div>
     <div class="actions"><button onclick="runAssistant()">Przygotuj lokalnie — bez opłat</button><button id="assistant-online-button" class="secondary hidden" onclick="runAssistantWithConfiguredAI()">Użyj AI online (może być płatne)</button></div>
     <div id="assistant-output" aria-live="polite" role="log"></div>
-    <p class="muted small">Tryb lokalny jest domyślny i nie korzysta z API. Jeśli dostępne jest skonfigurowane AI online, możesz wybrać je osobno; przed wysłaniem poproszę o zgodę. ChatGPT/Gemini w telefonie nie wymaga klucza API — odpowiedź wraca przez schowek do porównania.</p>
+    <p class="muted small">Tryb lokalny i Radar nie korzystają z płatnego AI ani płatnego API. ChatGPT/Gemini w telefonie nie wymaga klucza API — odpowiedź wraca przez schowek do porównania.</p>
   </div>
 </section>
 <section id="screen-radar" class="panel">
@@ -249,7 +249,7 @@ header{animation:ilHeader .38s cubic-bezier(.2,.7,.2,1) both}.brand .logo{animat
       <button class="secondary" type="button" onclick="prefillIspinaChat('Czy są nowe informacje o moście w Ispinie?')">Most</button>
       <button class="secondary" type="button" onclick="prefillIspinaChat('Czy pojawiły się nowe informacje o transporcie w Ispinie?')">Transport</button>
       <button class="secondary" type="button" onclick="prefillIspinaChat('Czy są nowe informacje o OSP Ispina?')">OSP</button>
-      <button class="secondary" type="button" onclick="prefillIspinaChat('Co nowego o Ispinie w ostatnich 30 dniach? Sprawdź komunikaty urzędowe, lokalne media, transport, inwestycje i OSP. Podaj daty oraz źródła.')">Nowości · 30 dni</button>
+      <button class="secondary" type="button" onclick="prefillIspinaChat('Co nowego o Ispinie w ostatnich 30 dniach? Sprawdź komunikaty urzędowe, lokalne media, transport, inwestycje i OSP. Podaj daty oraz źródła.')">Najnowsze materiały</button>
     </div>
     <div id="ispina-chat-log" class="source-item" role="log" aria-live="polite" aria-label="Rozmowa IL Wyszukiwarka">
       <p class="muted">Tutaj pojawią się odpowiedzi i źródła. Możesz zadać pytanie uzupełniające.</p>
@@ -262,8 +262,6 @@ header{animation:ilHeader .38s cubic-bezier(.2,.7,.2,1) both}.brand .logo{animat
     </div>
     <p id="ispina-chat-status" class="small muted" role="status" aria-live="polite">Przygotowuję wyszukiwarkę…</p>
   </div>
-    
-  </div>
   <div class="card" id="research-card">
     <div class="eyebrow">WYSZUKIWANIE INTERNETOWE</div>
     <h2>Informacje o Ispinie</h2>
@@ -271,7 +269,7 @@ header{animation:ilHeader .38s cubic-bezier(.2,.7,.2,1) both}.brand .logo{animat
     <label for="research-query">Temat i dodatkowe wskazówki</label>
     <textarea id="research-query" maxlength="1800" style="min-height:115px">Wyszukaj aktualne informacje o Ispinie.</textarea>
     <div class="note small">Raport pobiera do trzech publicznych kanałów. Awaria części źródeł zostanie oznaczona. Brak wyników nie oznacza braku informacji w internecie.</div>
-    <details class="small"><summary>Zakres tematyczny</summary><ul><li>Przetargi i zamówienia dotyczące Ispiny</li><li>Gmina Drwinia, BIP i strony urzędowe</li><li>BZP, e-Zamówienia i inne platformy</li><li>Lokalne i regionalne media</li><li>Drogi, mosty, transport, OSP i infrastruktura</li><li>Odmiany nazwy, materiały archiwalne i pobliskie miejsca z potwierdzonym związkiem</li></ul></details>
+    <details class="small"><summary>Dostępne kanały</summary><ul><li>Google News RSS — materiały indeksowane jako wiadomości</li><li>Bing RSS — publiczne wyniki wyszukiwania</li><li>Eko-Drwinia — kanał wiadomości spółki</li></ul><p>To ograniczony przegląd źródeł. Nie zastępuje pełnego monitoringu BIP, przetargów i całego internetu.</p></details>
     <div class="actions"><button class="secondary" type="button" onclick="runRecentIspinaRadar()">Najnowsze materiały</button><button id="research-button" type="button" disabled onclick="runDeepIspinaResearch()">🔎 Wyszukaj w internecie informacje o Ispinie</button><button id="research-cancel" class="secondary hidden" type="button" onclick="cancelIspinaSearch('research')">Anuluj wyszukiwanie</button><button id="assistant-check-button" class="secondary" type="button" onclick="checkAssistantAvailability()">Gotowość wyszukiwarki</button><button class="secondary" type="button" onclick="clearResearchResults()">Wyczyść wyniki</button></div>
     <div class="note" id="background-radar-card" role="group" aria-label="Automatyczny radar Ispiny">
       <strong>🔔 Automatyczny radar Ispiny · IL</strong>
@@ -509,7 +507,7 @@ function explainPublicationFailure(error,stage,id){
   return "Nie udało mi się dokończyć publikacji. Zatrzymałem się na etapie: "+stage+".\n\n"+next+"\n\nSzczegóły z WordPressa: "+raw+(id?"\nNumer wpisu do sprawdzenia: #"+id:"\nJeśli WordPress zdążył zapisać wpis przed przerwaniem połączenia, wyszukaj go po tytule: „"+trim(lastPublicationAttempt?.title||$("post-title").value)+"”.");
 }
 
-let reqNo=0, connected=false, postId=null, postStatus="", services=[], servicesLoaded=false, servicesRaw="", legacyServices=[], allPosts=[], assistantEnabled=false, chatGptConnected=false, assistantDraft=null, mediaSelectionTarget="post", mediaById=new Map();
+let reqNo=0, connected=false, postId=null, postStatus="", services=[], servicesLoaded=false, servicesRaw="", legacyServices=[], allPosts=[], assistantEnabled=false, freeSearchReady=false, assistantDraft=null, mediaSelectionTarget="post", mediaById=new Map();
 const localKey="il_redaktor_draft_v2";let restoring=false, saveTimer=0;
 const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 function message(id,msg,kind=""){
@@ -579,11 +577,11 @@ window.onNativeResult=function(id,ok,payload){
         ?"Pomoc redakcyjna online jest gotowa."
         :"Tryb bezpłatny: formatowanie lokalne i publiczne źródła. Abonament AI nie jest wymagany.",
         assistantEnabled?"":"");
-      refreshChatGptState();
+      refreshFreeSearchState();
     }catch(e){
       assistantEnabled=false;$("assistant-online-button").classList.add("hidden");
       message("assistant-mode","Tryb bezpłatny: formatowanie lokalne i publiczne źródła.","");
-      refreshChatGptState();
+      refreshFreeSearchState();
     }
     return;
   }
@@ -906,6 +904,7 @@ function prefillIspinaChat(prompt){
   return sendIspinaChat();
 }
 function clearIspinaChat(){
+  cancelIspinaSearch("chat");
   ispinaChatMessages=[];
   renderIspinaChat();
   $("ispina-chat-status").textContent="Rozmowa wyczyszczona. Możesz zacząć od nowego pytania.";
@@ -915,7 +914,7 @@ async function sendIspinaChat(){
   if(ispinaChatInProgress)return false;
   const prompt=trim($("ispina-chat-input").value);
   if(!prompt){$("ispina-chat-status").textContent="Wpisz pytanie o Ispinę.";return false}
-  if(!chatGptConnected){$("ispina-chat-status").textContent="Wyszukiwanie wymaga aplikacji Android i internetu."; $("ispina-chat-status").className="small error";return false}
+  if(!freeSearchReady){$("ispina-chat-status").textContent="Wyszukiwanie wymaga aplikacji Android i internetu."; $("ispina-chat-status").className="small error";return false}
   
   ispinaChatConsent=true;
   ispinaChatInProgress=true;
@@ -935,7 +934,7 @@ async function sendIspinaChat(){
     else ispinaChatMessages.push({role:"assistant",content:answer||"Nie znaleziono pasujących materiałów w dostępnych kanałach.",sources:[],verified:false});
     renderIspinaChat();
     $("ispina-chat-input").value="";
-    $("ispina-chat-status").textContent=verified?"Znaleziono "+sources.length+" źródeł. Sprawdź je przed wykorzystaniem informacji.":"Nie znaleziono potwierdzonej odpowiedzi ze źródłami.";
+    $("ispina-chat-status").textContent=verified?"Znaleziono "+sources.length+" źródeł. Sprawdź daty i treść w oryginalnych witrynach.":"Nie znaleziono potwierdzonej odpowiedzi ze źródłami.";
     $("ispina-chat-status").className=verified?"small ok":"small muted";
     endOperation();
     return verified;
@@ -946,12 +945,13 @@ async function sendIspinaChat(){
     return false;
   }finally{
     ispinaChatInProgress=false;
-    button.disabled=!chatGptConnected;
+    button.disabled=!freeSearchReady;
   }
 }
 let assistantCheckTimer=null;
-function checkAssistantAvailability(){return refreshChatGptState();}
+function checkAssistantAvailability(){return refreshFreeSearchState();}
 function clearResearchResults(){
+  cancelIspinaSearch("research");
   $("research-results").innerHTML="";
   latestResearchMaterial=null;
   $("research-status").textContent="Wyniki wyczyszczono. Możesz rozpocząć nowe wyszukiwanie.";
@@ -1056,71 +1056,14 @@ function runRecentIspinaRadar(){
   $("research-query").value="Znajdź informacje o Ispinie opublikowane w ostatnich 30 dniach. Przeszukaj źródła urzędowe, BIP, lokalne media, zamówienia, drogi, most, transport, OSP i usługi. Podaj daty publikacji i oddziel je od dat wydarzeń. Starsze ważne materiały wskaż osobno.";
   return runDeepIspinaResearch();
 }
-function requestChatGptState(){
-  return new Promise((resolve,reject)=>{
-    const id="o"+(++reqNo),timeout=setTimeout(()=>{requests.delete(id);reject(new Error("Nie udało się odczytać połączenia z ChatGPT."))},15000);
-    requests.set(id,{resolve,reject,timeout});IL.getChatGptState(id);
-  });
-}
-function requestConnectChatGpt(){
-  return new Promise((resolve,reject)=>{
-    const id="o"+(++reqNo),timeout=setTimeout(()=>{requests.delete(id);reject(new Error("Logowanie ChatGPT trwało zbyt długo. Wróć do aplikacji i spróbuj ponownie."))},360000);
-    requests.set(id,{resolve,reject,timeout});IL.connectChatGpt(id);
-  });
-}
-function requestDisconnectChatGpt(){
-  return new Promise((resolve,reject)=>{
-    const id="o"+(++reqNo),timeout=setTimeout(()=>{requests.delete(id);reject(new Error("Nie udało się odłączyć konta ChatGPT."))},30000);
-    requests.set(id,{resolve,reject,timeout});IL.disconnectChatGpt(id);
-  });
-}
-function openChatGptUsage(){
-  if(window.IL&&typeof IL.openChatGptUsage==="function")IL.openChatGptUsage();
-}
-async function refreshChatGptState(){
-  chatGptConnected=!!(window.IL&&typeof IL.askResearch==="function"&&typeof IL.askIspinaChat==="function");
-  $("free-search-state").textContent=chatGptConnected?"Wyszukiwarka gotowa. Dostęp do kanałów sprawdzimy po uruchomieniu wyszukiwania.":"Wyszukiwanie działa w aplikacji Android.";
-  $("ispina-chat-send").disabled=!chatGptConnected||ispinaChatInProgress;
-  $("research-button").disabled=!chatGptConnected||researchInProgress;
+async function refreshFreeSearchState(){
+  freeSearchReady=!!(window.IL&&typeof IL.askResearch==="function"&&typeof IL.askIspinaChat==="function");
+  $("free-search-state").textContent=freeSearchReady?"Wyszukiwarka gotowa. Dostęp do kanałów sprawdzimy po uruchomieniu wyszukiwania.":"Wyszukiwanie działa w aplikacji Android.";
+  $("ispina-chat-send").disabled=!freeSearchReady||ispinaChatInProgress;
+  $("research-button").disabled=!freeSearchReady||researchInProgress;
   $("assistant-check-button").disabled=false;
   await refreshIspinaRadarState();
-  return {connected:chatGptConnected,freeSearch:true};
-}
-async function connectChatGpt(){
-  if(!window.IL||typeof IL.connectChatGpt!=="function"){
-    $("chatgpt-account-status").textContent="Połączenie ChatGPT wymaga aplikacji IL Redaktor na Androidzie.";
-    $("chatgpt-account-status").className="small error";
-    return false;
-  }
-  const button=$("chatgpt-connect");
-  button.disabled=true;
-  $("chatgpt-account-status").textContent="Otwieram bezpieczne logowanie. Wybierz konto ChatGPT i zaakceptuj użycie jego planu w IL Redaktorze.";
-  $("chatgpt-account-status").className="small muted";
-  try{
-    await requestConnectChatGpt();
-    await refreshChatGptState();
-    return chatGptConnected;
-  }catch(error){
-    $("chatgpt-account-status").textContent=error?.message||"Nie udało się połączyć z ChatGPT.";
-    $("chatgpt-account-status").className="small error";
-    return false;
-  }finally{button.disabled=false}
-}
-async function disconnectChatGpt(){
-  if(!chatGptConnected||!confirm("Odłączyć konto ChatGPT? Radar w tle zostanie zatrzymany, a lokalne tokeny usunięte. Potem możesz zalogować inne konto. Połączenie WordPress pozostanie bez zmian."))return false;
-  const button=$("chatgpt-disconnect");button.disabled=true;
-  try{
-    const state=await requestDisconnectChatGpt();
-    chatGptConnected=false;
-    await refreshChatGptState();
-    if(state?.revocationConfirmed===false)
-      $("chatgpt-account-status").textContent="Odłączono konto lokalnie. Jeśli telefon był offline, usuń dostęp IL Redaktora także w ustawieniach ChatGPT.";$("chatgpt-account-status").className="small muted";
-    return true;
-  }catch(error){
-    $("chatgpt-account-status").textContent=error?.message||"Nie udało się odłączyć ChatGPT.";
-    $("chatgpt-account-status").className="small error";
-    return false;
-  }finally{button.disabled=false}
+  return {connected:freeSearchReady,freeSearch:true};
 }
 function requestIspinaRadarState(){
   return new Promise((resolve,reject)=>{
@@ -1142,13 +1085,13 @@ function renderIspinaRadarState(state){
     const detail=state.lastStatus==="found"?"Ostatni skan znalazł nową wzmiankę."
       :state.lastStatus==="none"?"Ostatni skan nie znalazł nowej wzmianki."
       :state.lastStatus==="error"?"Ostatni skan nie został zakończony: "+String(state.lastMessage||"sprawdź połączenie.")
-      :state.lastStatus==="login"?"Połącz ponownie konto ChatGPT, aby radar mógł działać."
+      :state.lastStatus==="login"?"Włącz ponownie bezpłatny Radar po aktualizacji."
       :"Oczekuje na pierwszy skan.";
     status.textContent="Radar aktywny · co 8 godzin. "+detail+(when?" Ostatni skan: "+when+".":"");
     status.className="small "+(state.lastStatus==="error"||state.lastStatus==="login"?"error":"muted");
   }else{
     status.textContent=state?.lastStatus==="usage_limit"
-      ?"Radar został zatrzymany po osiągnięciu limitu ChatGPT. Sprawdź ustawienia użycia i włącz go ponownie."
+      ?"Poprzednia wersja zatrzymała Radar. Możesz go teraz włączyć bez konta ChatGPT."
       :state?.lastStatus==="notifications_disabled"
         ?"Powiadomienia Androida są wyłączone. Włącz je w ustawieniach telefonu, aby uruchomić radar."
         :"Radar jest wyłączony."+(when?" Ostatni skan: "+when+".":"");
@@ -1162,8 +1105,8 @@ async function refreshIspinaRadarState(){
 }
 async function saveIspinaRadarSettings(){
   const checkbox=$("ispina-radar-enabled"),button=$("ispina-radar-save"),enabled=checkbox.checked;
-  if(enabled&&!chatGptConnected){checkbox.checked=false;$("ispina-radar-status").textContent="Połącz konto ChatGPT, aby uruchomić Radar Ispiny.";$("ispina-radar-status").className="small error";return false}
-  if(enabled&&!confirm("Włączyć automatyczne sprawdzanie co 8 godzin? Każdy skan używa wyszukiwania ChatGPT i limitu połączonego konta. Powiadomienie pojawi się tylko dla nowej wzmianki ze źródłem. Wymagana jest zgoda Androida na powiadomienia.")){checkbox.checked=false;return false}
+  if(enabled&&!freeSearchReady){checkbox.checked=false;$("ispina-radar-status").textContent="Uruchom wyszukiwarkę w aplikacji Android.";$("ispina-radar-status").className="small error";return false}
+  if(enabled&&!confirm("Włączyć automatyczne sprawdzanie co 8 godzin? Każdy skan pobiera publiczne kanały bez konta ChatGPT i płatnego API. Powiadomienie pojawi się tylko dla nowej wzmianki ze źródłem. Wymagana jest zgoda Androida na powiadomienia.")){checkbox.checked=false;return false}
   button.disabled=true;$("ispina-radar-status").textContent=enabled?"Włączam harmonogram i sprawdzam zgodę na powiadomienia…":"Wyłączam radar w tle…";$("ispina-radar-status").className="small muted";
   try{
     const state=await requestIspinaRadarEnabled(enabled);renderIspinaRadarState(state);
@@ -1178,7 +1121,7 @@ async function runDeepIspinaResearch(){
   if(researchInProgress)return false;
   const prompt=trim($("research-query").value);
   if(!prompt){$("research-status").textContent="Wpisz temat do wyszukania.";return false;}
-  if(!chatGptConnected){$("research-status").textContent="Wyszukiwanie wymaga aplikacji Android i internetu.";$("research-status").className="small error";return false;}
+  if(!freeSearchReady){$("research-status").textContent="Wyszukiwanie wymaga aplikacji Android i internetu.";$("research-status").className="small error";return false;}
   
   researchInProgress=true;
   $("research-button").disabled=true;
@@ -1197,7 +1140,7 @@ async function runDeepIspinaResearch(){
     return false;
   }finally{
     researchInProgress=false;
-    $("research-button").disabled=!chatGptConnected;
+    $("research-button").disabled=!freeSearchReady;
   }
 }
 
