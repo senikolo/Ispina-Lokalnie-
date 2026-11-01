@@ -669,10 +669,12 @@ public class MainActivity extends Activity {
                 prefs().edit().putBoolean(IspinaRadarWorker.PREF_ENABLED, false).apply();
                 IspinaRadarWorker.cancel(MainActivity.this);
                 new Thread(() -> {
+                    try {
                     boolean revoked = ChatGptPlanClient.disconnect(MainActivity.this);
                     JSONObject state = ChatGptPlanClient.state(MainActivity.this);
                     try { state.put("revocationConfirmed", revoked); } catch (Exception ignored) {}
                     callback(rid, true, state.toString());
+                    } catch (Exception ex) { callback(rid, false, ex.getMessage()); }
                 }, "il-chatgpt-disconnect").start();
             });
         }
