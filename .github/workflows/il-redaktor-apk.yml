@@ -203,6 +203,19 @@ jobs:
       - name: Compile Android APK
         working-directory: il-redaktor-android
         run: gradle --no-daemon :app:assembleDebug :app:assembleDebugAndroidTest
+      - name: Verify and upload test APK before emulator tests
+        run: |
+          APK="il-redaktor-android/app/build/outputs/apk/debug/app-debug.apk"
+          test -s "$APK"
+          SDK_ROOT="${ANDROID_HOME:-/usr/local/lib/android/sdk}"
+          "$SDK_ROOT/build-tools/35.0.0/apksigner" verify --verbose "$APK"
+          "$SDK_ROOT/build-tools/35.0.0/aapt" dump badging "$APK" | grep -F "package: name='com.ispinalokalnie.redaktorsmart.stable' versionCode='41' versionName='1.29.2-test.1'"
+      - name: Upload test APK for manual login diagnostics
+        uses: actions/upload-artifact@v4
+        with:
+          name: IL-Redaktor-Preview-APK
+          path: il-redaktor-android/app/build/outputs/apk/debug/app-debug.apk
+          retention-days: 30
       - name: Build previous 1.15 debug APK with the same CI debug signing key
         run: |
           git fetch --depth=1 origin 17333f654fae324384b5c09dd1a7fd94da8e4359
