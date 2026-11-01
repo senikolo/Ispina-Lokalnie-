@@ -143,7 +143,7 @@ public final class ConfirmationInstrumentation extends Instrumentation {
             activity = (MainActivity) startActivitySync(launch);
             editor = (WebView) field("editor");
             long deadline = SystemClock.uptimeMillis() + 45000;
-            while (!"true".equals(evaluate("location.href==='file:///android_asset/index-android.html' && document.readyState==='complete'"))) {
+            while (!"true".equals(evaluate("location.href==='file:///android_asset/index.html' && document.readyState==='complete'"))) {
                 if (SystemClock.uptimeMillis() >= deadline) throw new AssertionError("Editor did not finish loading");
                 SystemClock.sleep(100);
             }
@@ -165,7 +165,7 @@ public final class ConfirmationInstrumentation extends Instrumentation {
                 if(!restored.contains("Pierwszy szkic")||!restored.contains("Druga wersja")||!restored.contains("Drugi szkic"))throw new AssertionError("Drafts lost after reinstall: "+restored);
                 if(!"preserved".equals(getTargetContext().getSharedPreferences("il_update_probe",0).getString("marker","")))throw new AssertionError("Preferences lost after reinstall");
                 if(!"true".equals(evaluate("readDraftStore().drafts.some(d=>d.revisions.some(v=>v.snapshot.body==='Pierwsza wersja'))")))throw new AssertionError("Revision history lost");
-                result.putString("stream","IL_UPDATE_DATA_TEST=PASS (1.15 to 1.22 upgrade: drafts, history, preferences)\n");
+                result.putString("stream","IL_UPDATE_DATA_TEST=PASS (drafts, history and preferences preserved across install)\n");
             } else {
             diagnosticStage="photo crop";verifyEditorFeatures();
             verifyWorkspaceFeatures();

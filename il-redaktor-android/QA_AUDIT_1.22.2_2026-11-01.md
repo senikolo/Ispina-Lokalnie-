@@ -15,7 +15,7 @@ Wersja: versionName 1.22.2, versionCode 30, minSdk 26.
 - Źródła są przypisane do sekcji. Sekcje bez potwierdzonych źródeł nie pokazują niezweryfikowanej treści.
 - Potwierdzenie wyszukiwania opisuje do sześciu wywołań Gemini oraz możliwe dodatkowe zapytania i koszty Google Search.
 - CI sprawdza redirect OAuth statycznie; nie tworzy osieroconych rejestracji klientów na WordPress.com.
-- WebView i ścieżka aktualizacji są sprawdzane na Androidzie 8/API 26, Androidzie 11/API 30 i Androidzie 13/API 33.
+- Android 8/API 26 sprawdza zgodność bieżącego WebView, uruchomienie i zachowanie danych po reinstalacji. Emulator API 26 nie uruchamia historycznego APK 1.15 w swoim WebView; aktualizację z 1.15 sprawdzają API 30 i 33.
 
 ## Wyniki
 
@@ -26,9 +26,9 @@ Workflow 1.22.2 uruchamia testy backendu, typecheck, kompilację APK i emulator�
 | Testy backendu gotowości, CORS, limitów i źródeł | Oczekuje na workflow 1.22.2 |
 | TypeScript backendu | Oczekuje na workflow 1.22.2 |
 | Kompilacja APK i AndroidTest | Oczekuje na workflow 1.22.2 |
-| Android 8 / API 26 | Oczekuje na workflow 1.22.2 |
-| Android 11 / API 30 | Oczekuje na workflow 1.22.2 |
-| Android 13 / API 33 | Oczekuje na workflow 1.22.2 |
+| Android 8 / API 26: uruchomienie i reinstalacja | Oczekuje na workflow 1.22.2 |
+| Android 11 / API 30: aktualizacja 1.15 → 1.22 | Oczekuje na workflow 1.22.2 |
+| Android 13 / API 33: aktualizacja 1.15 → 1.22 | Oczekuje na workflow 1.22.2 |
 | OAuth i publikacja na prawdziwym koncie WordPress | Nie wykonano; wymagane konto redaktora |
 | Gemini i Google Search na produkcji | Nie wykonano; wymagany gotowy backend i limity Upstash |
 | Zgodność instalacji z APK podpisanym wcześniejszym kluczem | Zależy od wcześniejszego klucza CI i testu na telefonie |

@@ -1,6 +1,6 @@
 # IL Redaktor Smart 1.22.2
 
-Wersja rozwojowa (versionCode 30, stały pakiet `com.ispinalokalnie.redaktorsmart.stable`). **Nie odinstalowuj wcześniejszej APK przed aktualizacją**, dopóki nie zabezpieczysz szkiców i nie potwierdzisz zgodności podpisu. CI sprawdza WebView i aktualizację na Androidzie 8 (API 26), 11 (API 30) i 13 (API 33). Debug APK nie jest automatycznie zgodną aktualizacją prywatnie podpisanej wersji; podpisany plik aktualizacyjny powstaje tylko przy dostępności dotychczasowego klucza.
+Wersja rozwojowa (versionCode 30, stały pakiet `com.ispinalokalnie.redaktorsmart.stable`). **Nie odinstalowuj wcześniejszej APK przed aktualizacją**, dopóki nie zabezpieczysz szkiców i nie potwierdzisz zgodności podpisu. CI sprawdza uruchomienie i zachowanie szkiców po reinstalacji na Androidzie 8 (API 26), a przejście ze starej wersji oraz WebView na Androidzie 11 (API 30) i 13 (API 33). Debug APK nie jest automatycznie zgodną aktualizacją prywatnie podpisanej wersji; podpisany plik aktualizacyjny powstaje tylko przy dostępności dotychczasowego klucza.
 
 ## Nowości 1.22.2 — poprawki po audycie
 
@@ -9,11 +9,6 @@ Wersja rozwojowa (versionCode 30, stały pakiet `com.ispinalokalnie.redaktorsmar
 - Potwierdzenie badania wyjaśnia do sześciu wywołań Gemini i możliwe osobne opłaty za model i wyszukiwanie.
 - Backend ma testy gotowości, CORS, limitowania i walidacji źródeł. CI nie rejestruje zdalnego klienta OAuth przy każdym uruchomieniu.
 - Nowy raport QA oddziela wynik CI od testów wymagających konta WordPress lub telefonu.
-- Gradle generuje plik WebView w składni ES2018 i dodaje brakujące polyfille dla Androida 8; test kompilatora wyłapuje regresję nowoczesnej składni.
-
-## Budowanie lokalne
-
-Przed uruchomieniem Gradle wykonaj `npm ci --ignore-scripts --no-audit --no-fund` w katalogu `backend/`. Kompilator TypeScript jest przypięty w lockfile i podczas budowania tworzy zgodny ze starszym WebView asset `index-android.html`; nie edytuj go ręcznie.
 
 ## Nowości 1.21 — poprawki po audycie
 

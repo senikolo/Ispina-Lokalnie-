@@ -206,7 +206,7 @@ jobs:
           cp "$RUNNER_TEMP/il-previous/il-redaktor-android/app/build/outputs/apk/debug/app-debug.apk" /tmp/il-previous-debug.apk
       - name: Enable Android emulator acceleration
         run: sudo chmod a+rw /dev/kvm
-      - name: Test Android 8 (API 26) WebView and update flow without WordPress writes
+      - name: Test Android 8 (API 26) WebView and data preservation without WordPress writes
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: 26
