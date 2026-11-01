@@ -375,6 +375,20 @@ test("every dashboard, navigation and calendar tile tap requests haptic feedback
  assert.equal(taps.length,12);assert.ok(taps.every(kind=>kind==="tap"));
 });
 
+test("OAuth recovery offers re-opening the same browser flow and diagnoses missing callback",()=>{
+  const a=setup();
+  let resumed=0;
+  a.c.IL.resumeLogin=()=>{resumed++};
+  a.run("window.onNativeResult('auth-return',true,'Wrócono bez potwierdzenia WordPress')");
+  assert.match(a.node("working-state").textContent,/Brak potwierdzenia/);
+  assert.match(a.node("working-state").className,/pending/);
+  assert.equal(a.node("login-recovery").classList.contains("hidden"),false);
+  a.run("resumeLoginFlow()");
+  assert.equal(resumed,1);
+  a.run('window.onNativeResult("login-state",true,JSON.stringify({pending:true}))');
+  assert.match(a.node("working-state").textContent,/Czekam na potwierdzenie/);
+});
+
 test("OAuth waiting indicator is pending, not a forever-spinning progress state",()=>{
   const a=setup();
   a.run('window.onNativeResult("auth-progress",true,"Krok 3/4: oczekuję na powrót.")');
