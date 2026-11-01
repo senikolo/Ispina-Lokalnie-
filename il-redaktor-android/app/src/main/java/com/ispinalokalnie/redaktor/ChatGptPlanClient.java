@@ -396,8 +396,15 @@ public final class ChatGptPlanClient {
             .put("input", input)
             .put("store", false)
             .put("stream", true);
-        if (webSearch) request.put("tools", new JSONArray().put(new JSONObject().put("type", "web_search")));
+        configureWebSearch(request, webSearch);
         return sendResponse(context, request);
+    }
+
+    private static void configureWebSearch(JSONObject request, boolean webSearch) throws Exception {
+        if (!webSearch) return;
+        request.put("tools", new JSONArray().put(new JSONObject().put("type", "web_search")))
+            .put("tool_choice", "required")
+            .put("include", new JSONArray().put("web_search_call.action.sources"));
     }
 
     private static JSONObject sendResponse(Context context, JSONObject request) throws Exception {
