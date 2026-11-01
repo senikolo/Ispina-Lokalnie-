@@ -1,4 +1,5 @@
 planner/node_modules/
+**/node_modules/
 planner/output/
 planner/base-R14-3.apk
 planner/visual-*/
