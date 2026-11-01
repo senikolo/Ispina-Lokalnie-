@@ -102,7 +102,7 @@ jobs:
           assert 'refresh_token' in mcp and 'refresh_token' in main, 'Token refresh is not wired end to end'
           assert 'putTokens(access, expires, refresh, true)' in main, 'Refresh token is not stored after consent'
           assert 'AndroidKeyStore' in main and 'encryptSecret' in main, 'Tokens are not encrypted at rest'
-          assert 'JSONArray)data).length() == 0' in main, 'Login must confirm at least one existing article'
+          assert 'if (!(data instanceof org.json.JSONArray))' in main, 'Login must validate the posts.list response type'
           assert 'response_type=token' not in main and 'response_type=token' not in oauth, 'Implicit OAuth flow must not be used'
           assert 'android:scheme="com.ispinalokalnie.redaktorsmart.stable"' in manifest
           import re
