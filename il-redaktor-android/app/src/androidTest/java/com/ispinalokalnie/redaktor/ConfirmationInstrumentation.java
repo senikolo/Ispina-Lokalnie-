@@ -168,6 +168,16 @@ public final class ConfirmationInstrumentation extends Instrumentation {
         if(!"".equals(FreeIspinaSearchClient.topic(
             "Co nowego o Ispinie w ostatnich 30 dniach? Sprawdź źródła urzędowe, BIP, lokalne media i przetargi.")))
             throw new AssertionError("Broad multi-source brief was treated as a narrow topic");
+        org.json.JSONArray history=new org.json.JSONArray().put(new org.json.JSONObject()
+            .put("role","user").put("content","Co wiadomo o moście w Ispinie?"));
+        String inherited=FreeIspinaSearchClient.resolveConversationPrompt("A kiedy?",history);
+        if(!"Ispina most".equals(inherited))
+            throw new AssertionError("A short follow-up lost the previous subject: "+inherited);
+        if(!"Ispina".equals(FreeIspinaSearchClient.resolveConversationPrompt("Ispina",history)))
+            throw new AssertionError("An explicit broad query incorrectly inherited a previous subject");
+        if(!"Ispina kapliczki".equals(FreeIspinaSearchClient.resolveConversationPrompt(
+            "Co z kapliczki w Ispinie?",history)))
+            throw new AssertionError("Explicit new topic was overwritten with previous context");
         org.json.JSONArray manual=FreeIspinaSearchClient.parseFeed(xml,0,false);
         org.json.JSONArray background=FreeIspinaSearchClient.parseFeed(xml,now-86400000L,true);
         if(manual.length()!=3 || background.length()!=1)throw new AssertionError("Free RSS location/date/link filtering failed");

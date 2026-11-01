@@ -243,7 +243,7 @@ header{animation:ilHeader .38s cubic-bezier(.2,.7,.2,1) both}.brand .logo{animat
   <div class="card" id="ispina-chat-card">
     <div class="eyebrow">WYSZUKIWARKA · RADAR INFORMACJI</div>
     <h2>Znajdź źródła o Ispinie</h2>
-    <p class="muted">Wpisz temat, np. most, transport, OSP lub paczkomat. Aplikacja pobierze publiczne wyniki dotyczące Ispiny. Sprawdź daty i treść w oryginalnych witrynach.</p>
+    <p class="muted">Wpisz temat, np. most, transport, OSP lub paczkomat. Aplikacja pobierze publiczne wyniki dotyczące Ispiny. Krótkie pytanie uzupełniające bez nowego tematu może odziedziczyć temat poprzedniego pytania. To wyszukiwarka RSS, nie rozmowa z modelem AI. Sprawdź daty i treść w oryginalnych witrynach.</p>
     <div class="note small">Wyszukiwanie nie wymaga konta ChatGPT ani abonamentu AI. Powtórzenie tego samego tematu może użyć wyników zapisanych przez ostatnie 5 minut.</div>
     <div class="actions">
       <button class="secondary" type="button" onclick="prefillIspinaChat('Czy są nowe informacje o moście w Ispinie?')">Most</button>
@@ -939,7 +939,8 @@ async function sendIspinaChat(){
     else ispinaChatMessages.push({role:"assistant",content:answer||"Nie znaleziono pasujących materiałów w dostępnych kanałach.",sources:[],verified:false});
     renderIspinaChat();
     $("ispina-chat-input").value="";
-    $("ispina-chat-status").textContent=verified?"Znaleziono "+sources.length+" linków DO SPRAWDZENIA. Ich obecność nie potwierdza jeszcze faktów. Sprawdź oryginały.":"Nie znaleziono pasujących linków w dostępnych kanałach. Nie oznacza to braku informacji w internecie.";
+    const inherited=result?.contextInherited===true&&result?.contextTopic?"Kontynuacja tematu „"+String(result.contextTopic).slice(0,80)+"”. ":"";
+    $("ispina-chat-status").textContent=inherited+(verified?"Znaleziono "+sources.length+" linków DO SPRAWDZENIA. Ich obecność nie potwierdza jeszcze faktów. Sprawdź oryginały.":"Nie znaleziono pasujących linków w dostępnych kanałach. Nie oznacza to braku informacji w internecie.");
     $("ispina-chat-status").className=verified?"small ok":"small muted";
     endOperation();
     return verified;

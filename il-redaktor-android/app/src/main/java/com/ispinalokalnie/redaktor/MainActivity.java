@@ -647,7 +647,8 @@ public class MainActivity extends Activity {
             searches.put(rid, control);
             aiWork.execute(() -> {
                 try {
-                    JSONObject result = FreeIspinaSearchClient.ask(MainActivity.this, prompt, control);
+                    JSONObject result = FreeIspinaSearchClient.askConversation(MainActivity.this, prompt,
+                        safeHistory, control);
                     callback(rid, true, result.toString());
                 } catch (Exception ex) {
                     callback(rid, false, ex.getMessage() == null ? "Nie udało się pobrać publicznych źródeł." : ex.getMessage());

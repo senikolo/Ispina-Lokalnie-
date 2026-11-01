@@ -1132,6 +1132,14 @@ test("editor change and focusout handlers persist drafts without needing network
 });
 
 
+test("short free RSS chat followups use preceding user topic without paid AI",()=>{
+ const fs=require("node:fs"),path=require("node:path");
+ const java=fs.readFileSync(path.join(__dirname,"../app/src/main/java/com/ispinalokalnie/redaktor/MainActivity.java"),"utf8");
+ const rss=fs.readFileSync(path.join(__dirname,"../app/src/main/java/com/ispinalokalnie/redaktor/FreeIspinaSearchClient.java"),"utf8");
+ assert.match(java,/askConversation\(MainActivity\.this, prompt,/);
+ assert.match(rss,/resolveConversationPrompt/);
+ assert.match(rss,/contextInherited/);
+});
 test("free radar never claims RSS results are fact-checked and latest query applies 30 days",()=>{
  const a=setup();
  const found={freeSearch:true,sourceLinksFound:true,verified:true,sources:[{title:"Most w Ispinie",url:"https://example.org/most"}],text:"Most w Ispinie",answer:"Most w Ispinie",successfulFeeds:4,failedFeeds:2,partialResults:true};

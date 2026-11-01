@@ -1,5 +1,7 @@
 # IL Redaktor Smart 1.28.0 — drugi audyt źródeł i testów
 
+Dodatkowo naprawiono ignorowaną wcześniej historię pytań w lokalnym IL Chat. Krótkie pytanie uzupełniające bez własnego tematu dziedziczy ostatni konkretny temat użytkownika, np. „A kiedy?” po pytaniu o most. Nie wysyłamy historii konwersacji do RSS ani nie przedstawiamy wyników jako odpowiedzi AI.
+
 Audyt uzupełniający w tym samym PR: poprawiono wielowyrazowe dopasowanie tematów (brak fałszywych trafień po jednym słowie), ogólne zapytanie „Najnowsze materiały” ustawiające rzeczywisty zakres 30 dni oraz komunikaty opisujące RSS jako linki do ręcznego sprawdzenia, a nie sprawdzone fakty. W automatycznym Radarze częściowy błąd kanałów nie przesuwa ostatniego **pełnego** sprawdzenia, co ogranicza ryzyko pominięcia informacji po przerwie w dostępie do serwisów.
 
 ---

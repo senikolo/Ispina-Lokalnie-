@@ -126,9 +126,41 @@ public final class FreeIspinaSearchClient {
         if (text.contains("paczkomat") || text.contains("inpost")) return "paczkomat";
         if (text.matches("(?s).*\\bosp\\b.*") || text.contains("straż pożarn")) return "osp";
         if (text.contains("autobus") || text.contains("komunikacj") || text.contains("transport")) return "transport";
-        text = text.replaceAll("(?iu)\\b(?:czy|są|jest|jakie|co|nowego|nowe|informacje|wiadomości|aktualne|aktualności|wyszukaj|znajdź|sprawdź|ostatnie|ostatnich|ostatnim|dni|dniach|tygodniu|miesiącu|temat|dotyczące|dotyczy|poszukaj|szukam|szukaj|materiały|materiałów|archiwalne|archiwalnych|źródła|źródeł|opublikowano|wydarzenia|zdarzenia|wieś|wsi|o|w|we|na|z|do|i|oraz|dla|ispina|ispinie|ispiny|gminie|gmina|drwinia|drwini|proszę)\\b", " ");
+        text = text.replaceAll("(?iu)\\b(?:czy|są|jest|jakie|co|nowego|nowe|informacje|wiadomości|aktualne|aktualności|wyszukaj|znajdź|sprawdź|ostatnie|ostatnich|ostatnim|dni|dniach|tygodniu|miesiącu|temat|dotyczące|dotyczy|a|no|kiedy|gdzie|ile|jak|dlaczego|kto|więcej|jeszcze|najnowsze|nowości|poszukaj|szukam|szukaj|materiały|materiałów|archiwalne|archiwalnych|źródła|źródeł|opublikowano|wydarzenia|zdarzenia|wieś|wsi|o|w|we|na|z|do|i|oraz|dla|ispina|ispinie|ispiny|gminie|gmina|drwinia|drwini|proszę)\\b", " ");
+        text = text.replaceAll("(?iu)\\bmoście\\b", "most");
         text = text.replaceAll("\\b[0-9]{1,3}\\b", " ").replaceAll("[^\\p{L}\\p{N} ]", " ").trim().replaceAll("\\s+", " ");
         return text.length() > 100 ? text.substring(0,100).trim() : text;
+    }
+
+    /**
+     * Free RSS search is not a conversational LLM. Only an explicit short
+     * follow-up without a new subject inherits the last user's concrete topic.
+     * Never send the full chat history to an external RSS provider.
+     */
+    static String resolveConversationPrompt(String prompt, JSONArray history) {
+        if (history == null || history.length() == 0 || prompt == null) return prompt;
+        String normalized = prompt.toLowerCase(Locale.ROOT).trim();
+        if (!topic(normalized).isEmpty()) return prompt;
+        if (!normalized.matches("(?su)^(?:a\\b|i\\b|no\\b|kiedy\\b|gdzie\\b|jak\\b|ile\\b|co\\b|czy\\b|dlaczego\\b).*"))
+            return prompt;
+        for (int i = history.length()-1; i >= 0; i--) {
+            JSONObject entry = history.optJSONObject(i);
+            if (entry == null || !"user".equals(entry.optString("role"))) continue;
+            String previous = topic(entry.optString("content",""));
+            if (!previous.isEmpty() && previous.length() <= 80)
+                return "Ispina " + previous;
+        }
+        return prompt;
+    }
+
+    public static JSONObject askConversation(Context context, String prompt, JSONArray history,
+                                             ChatGptPlanClient.SearchControl control) throws Exception {
+        String effectivePrompt = resolveConversationPrompt(prompt, history);
+        JSONObject result = search(context, effectivePrompt, control, 0L, false);
+        boolean inherited = !effectivePrompt.equals(prompt);
+        result.put("contextInherited", inherited)
+              .put("contextTopic", inherited ? topic(effectivePrompt) : "");
+        return result;
     }
 
     private static String fetch(String address, ChatGptPlanClient.SearchControl control) throws Exception {
