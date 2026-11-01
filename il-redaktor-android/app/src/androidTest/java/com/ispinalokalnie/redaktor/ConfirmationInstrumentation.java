@@ -165,6 +165,22 @@ public final class ConfirmationInstrumentation extends Instrumentation {
         catch (java.lang.reflect.InvocationTargetException expected) {
             if (!(expected.getCause() instanceof Exception)) throw expected;
         }
+        java.lang.reflect.Method configure = ChatGptPlanClient.class.getDeclaredMethod("configureWebSearch", org.json.JSONObject.class, boolean.class);
+        configure.setAccessible(true);
+        org.json.JSONObject request = new org.json.JSONObject();
+        configure.invoke(null, request, true);
+        if (!"required".equals(request.getString("tool_choice")) ||
+            !"web_search_call.action.sources".equals(request.getJSONArray("include").getString(0)))
+            throw new AssertionError("Radar did not require web search with sources");
+        java.lang.reflect.Method parse = ChatGptPlanClient.class.getDeclaredMethod("responseResult", String.class, org.json.JSONObject.class);
+        parse.setAccessible(true);
+        org.json.JSONObject source = new org.json.JSONObject().put("url", "https://example.org/ispina").put("title", "Ispina");
+        org.json.JSONObject call = new org.json.JSONObject().put("type", "web_search_call")
+            .put("action", new org.json.JSONObject().put("sources", new org.json.JSONArray().put(source)));
+        org.json.JSONObject parsed = (org.json.JSONObject) parse.invoke(null, "Raport testowy",
+            new org.json.JSONObject().put("output", new org.json.JSONArray().put(call)));
+        if (!parsed.getBoolean("verified") || parsed.getJSONArray("sources").length() != 1)
+            throw new AssertionError("Radar discarded returned search sources");
         java.lang.reflect.Method error = ChatGptPlanClient.class.getDeclaredMethod("formatApiError", int.class, String.class);
         error.setAccessible(true);
         String transientError = (String) error.invoke(null, 429, "{\"error\":{\"code\":\"rate_limit_exceeded\"}}");
