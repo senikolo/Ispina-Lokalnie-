@@ -386,8 +386,8 @@ header{animation:ilHeader .38s cubic-bezier(.2,.7,.2,1) both}.brand .logo{animat
     <h2>Logowanie do WordPressa</h2>
     <p class="muted">Portal: <b>ispinalokalnie.wordpress.com</b><br>Identyfikator witryny: <b>252442125</b></p>
     <div id="settings-state" class="note">Sprawdzanie autoryzacji...</div>
-    <button class="wide primary-login" onclick="signInGoogle()"><span style="display:inline-block;background:#fff;color:#4285f4;border-radius:7px;padding:4px 9px;margin-right:8px;font-weight:900">G</span> Zaloguj przez Google / WordPress.com</button>
-    <p class="setting-caption">Bezpieczne logowanie otwiera WordPress.com w przeglądarce. Wybierz Google, jeśli Twoje konto korzysta z tej metody.</p>
+    <button class="wide primary-login" onclick="signInGoogle()"><span style="display:inline-block;background:#fff;color:#4285f4;border-radius:7px;padding:4px 9px;margin-right:8px;font-weight:900">G</span> Zaloguj do WordPress.com (także przez Google)</button>
+    <p class="setting-caption">Logowanie otworzy stronę WordPress.com w przeglądarce. Tam możesz wybrać konto Google. Radar, IL Chat i szkice lokalne nie wymagają zalogowania do WordPressa.</p>
     <div id="login-recovery" class="recovery-card hidden" role="region" aria-label="Pomoc przy logowaniu">
       <h3>🔑 Czekam na zakończenie logowania</h3>
       <p>Zatwierdź dostęp w przeglądarce i wybierz otwarcie Redaktora IL, gdy Android o to zapyta. Jeśli jesteś już z powrotem w aplikacji, ale nadal widzisz krok 3/4, skorzystaj z opcji poniżej.</p>
@@ -531,6 +531,17 @@ function explainPublicationFailure(error,stage,id){
   return "Nie udało mi się dokończyć publikacji. Zatrzymałem się na etapie: "+stage+".\n\n"+next+"\n\nSzczegóły z WordPressa: "+raw+(id?"\nNumer wpisu do sprawdzenia: #"+id:"\nJeśli WordPress zdążył zapisać wpis przed przerwaniem połączenia, wyszukaj go po tytule: „"+trim(lastPublicationAttempt?.title||$("post-title").value)+"”.");
 }
 
+let authWaitTimer=0;
+function stopAuthWaitTimer(){if(authWaitTimer){clearTimeout(authWaitTimer);authWaitTimer=0}}
+function startAuthWaitTimer(){
+  stopAuthWaitTimer();
+  authWaitTimer=setTimeout(()=>{
+    authWaitTimer=0;
+    showLoginRecovery(true);
+    operationBanner("pending","Brak potwierdzenia logowania. Sprawdź przeglądarkę lub anuluj.");
+    message("auth-output","Od ponad minuty nie otrzymałem odpowiedzi z WordPress.com. Sprawdź kartę w przeglądarce i zatwierdź dostęp. Jeśli wróciłeś już do aplikacji, wybierz Sprawdź stan albo Anuluj i spróbuj ponownie.","error");
+  },75000);
+}
 let reqNo=0, connected=false, postId=null, postStatus="", services=[], servicesLoaded=false, servicesRaw="", legacyServices=[], allPosts=[], assistantEnabled=false, freeSearchReady=false, assistantDraft=null, mediaSelectionTarget="post", mediaById=new Map();
 const localKey="il_redaktor_draft_v2";let restoring=false, saveTimer=0;
 const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
@@ -571,6 +582,7 @@ window.onNativeResult=function(id,ok,payload){
     return;
   }
   if(id==="auth-return") {
+    stopAuthWaitTimer();
     if(ok){
       message("auth-output",payload);
       operationBanner("pending","Brak potwierdzenia WordPress.com. Wznów logowanie lub anuluj.");
@@ -581,10 +593,11 @@ window.onNativeResult=function(id,ok,payload){
   if(id==="auth-progress"){
     if(ok){
       message("auth-output",payload);
-      if(payload.includes("Krok 3/4")){operationBanner("pending","Oczekuję na powrót z WordPress.com");showLoginRecovery(true)}
-      else{startOperation("Autoryzacja WordPress.com");if(payload.includes("Krok 4/4"))showLoginRecovery(false)}
+      if(payload.includes("Krok 3/4")){operationBanner("pending","Oczekuję na powrót z WordPress.com");showLoginRecovery(true);startAuthWaitTimer();$("settings-state").className="note";$("settings-state").textContent="Logowanie otwarte w przeglądarce. Oczekuję na potwierdzenie WordPress.com."}
+      else{startOperation("Autoryzacja WordPress.com");if(payload.includes("Krok 4/4")){stopAuthWaitTimer();showLoginRecovery(false)}}
     }
     else{
+      stopAuthWaitTimer();
       message("auth-output",payload,"error");
       showLoginRecovery(true);
       showOutcome("error","NIE POWIODŁO SIĘ","Logowanie przez Google / WordPress nie zostało zakończone. "+payload);
@@ -598,6 +611,7 @@ window.onNativeResult=function(id,ok,payload){
       IL.assistantStatus();
       if(s.connected){message("settings-state","Weryfikuję dostęp do wpisów...");IL.verify();}
       else message("home-connection","Połącz konto WordPress.com, aby odczytać i publikować artykuły.");
+      if(IL.loginState)IL.loginState();
       restoreLocal(true);
     }catch(e){message("auth-output","Błąd odczytu stanu autoryzacji.","error")}
   }
@@ -631,11 +645,11 @@ window.onNativeResult=function(id,ok,payload){
     return;
   }
   if(id==="login-state"){
-    try{const s=JSON.parse(payload);showLoginRecovery(!!s.pending);if(s.pending){operationBanner("pending","Czekam na potwierdzenie w przeglądarce");}else endOperation()}catch(e){}
+    try{const s=JSON.parse(payload);showLoginRecovery(!!s.pending);if(s.pending){operationBanner("pending","Czekam na potwierdzenie w przeglądarce");startAuthWaitTimer();}else{stopAuthWaitTimer();endOperation()}}catch(e){}
     return;
   }
   if(id==="auth-cancel"){
-    showLoginRecovery(false);endOperation();message("auth-output",payload,"ok");return;
+    stopAuthWaitTimer();showLoginRecovery(false);endOperation();message("auth-output",payload,"ok");return;
   }
   if(id==="haptics"){
     if(ok){try{const s=JSON.parse(payload);$("haptics-select").value=String(s.mode);$("haptics-status").textContent=s.available?"Ustawienie: "+["Wyłączone","Delikatne","Normalne","Mocniejsze"][s.mode]+". Telefon zgłasza silnik wibracyjny.":"Ustawienie: "+["Wyłączone","Delikatne","Normalne","Mocniejsze"][s.mode]+". Telefon nie zgłasza silnika wibracyjnego."}catch(e){}}
@@ -649,6 +663,7 @@ window.onNativeResult=function(id,ok,payload){
     return;
   }
   if(id==="auth"){
+    stopAuthWaitTimer();
     if(ok){
       let tokenSaved=false;try{tokenSaved=!!JSON.parse(payload).connected}catch(e){}
       connected=false;reflectAuth();
@@ -657,6 +672,7 @@ window.onNativeResult=function(id,ok,payload){
     } else message("auth-output",payload,"error");
   }
   if(id==="verify"){
+    stopAuthWaitTimer();
     connected=!!ok;
     reflectAuth();
     if(ok){
@@ -753,6 +769,7 @@ function signInGoogle(){
   if(connected){showOutcome("success","✓ Zalogowano pomyślnie do Ispina Lokalnie.","Odczyt wpisów przez WordPress MCP działa. Możliwość publikowania weryfikujemy osobno.");return}
   message("auth-output","Krok 1/4: rozpoczynam połączenie WordPress.com. Na stronie wybierz swoje konto Google, jeśli jest dostępne.");
   startOperation("Logowanie przez WordPress.com / Google…");
+  startAuthWaitTimer();
   IL.signInGoogle();
 }
 function oneTapConnect(){signInGoogle();}

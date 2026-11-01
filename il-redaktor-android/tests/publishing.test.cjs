@@ -387,6 +387,7 @@ test("OAuth recovery offers re-opening the same browser flow and diagnoses missi
   assert.equal(resumed,1);
   a.run('window.onNativeResult("login-state",true,JSON.stringify({pending:true}))');
   assert.match(a.node("working-state").textContent,/Czekam na potwierdzenie/);
+  a.run("stopAuthWaitTimer()");
 });
 
 test("OAuth waiting indicator is pending, not a forever-spinning progress state",()=>{
@@ -395,6 +396,18 @@ test("OAuth waiting indicator is pending, not a forever-spinning progress state"
   assert.match(a.node("working-state").textContent,/Oczekuję/);
   assert.match(a.node("working-state").className,/pending/);
   assert.equal(a.node("login-recovery").classList.contains("hidden"),false);
+  a.run("stopAuthWaitTimer()");
+});
+
+test("OAuth waiting shows recovery, then clears it on cancellation",()=>{
+  const a=setup();
+  a.run('window.onNativeResult("auth-progress",true,"Krok 3/4: oczekuję na powrót.")');
+  assert.match(a.node("settings-state").textContent,/Logowanie otwarte/);
+  assert.equal(a.node("login-recovery").classList.contains("hidden"),false);
+  a.run('window.onNativeResult("auth-return",true,"Powrót bez potwierdzenia")');
+  assert.match(a.node("working-state").textContent,/Brak potwierdzenia/);
+  a.run('window.onNativeResult("auth-cancel",true,"Anulowano")');
+  assert.equal(a.node("login-recovery").classList.contains("hidden"),true);
 });
 
 test("diagnostic really creates a draft and verifies it via GET before success",async()=>{
@@ -781,7 +794,7 @@ test("OAuth DCR, PKCE, deep-link scheme and manifest callback match without a cl
   const oauth=fs.readFileSync(path.join(root,"java/com/ispinalokalnie/redaktor/OAuthBrowserLogin.java"),"utf8");
   const wp=fs.readFileSync(path.join(root,"java/com/ispinalokalnie/redaktor/WpMcp.java"),"utf8");
   const manifest=fs.readFileSync(path.join(root,"AndroidManifest.xml"),"utf8");
-  assert.match(oauth,/scope=global/);assert.match(oauth,/code_challenge_method=S256/);
+  assert.match(oauth,/scope=auth/);assert.doesNotMatch(oauth,/scope=global/);assert.match(oauth,/code_challenge_method=S256/);
   assert.match(oauth,/stable:\/callback/);assert.match(manifest,/com\.ispinalokalnie\.redaktorsmart\.stable/);
   assert.match(wp,/token_endpoint_auth_method", "none"/);assert.match(wp,/code_verifier/);
   assert.doesNotMatch(wp,/put\("client_secret"/);
