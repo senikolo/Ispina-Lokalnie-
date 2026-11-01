@@ -387,6 +387,7 @@ test("OAuth recovery offers re-opening the same browser flow and diagnoses missi
   assert.equal(resumed,1);
   a.run('window.onNativeResult("login-state",true,JSON.stringify({pending:true}))');
   assert.match(a.node("working-state").textContent,/Czekam na potwierdzenie/);
+  a.run("stopAuthWaitTimer()");
 });
 
 test("OAuth waiting indicator is pending, not a forever-spinning progress state",()=>{
@@ -395,6 +396,7 @@ test("OAuth waiting indicator is pending, not a forever-spinning progress state"
   assert.match(a.node("working-state").textContent,/Oczekuję/);
   assert.match(a.node("working-state").className,/pending/);
   assert.equal(a.node("login-recovery").classList.contains("hidden"),false);
+  a.run("stopAuthWaitTimer()");
 });
 
 test("OAuth waiting shows recovery, then clears it on cancellation",()=>{
