@@ -89,7 +89,7 @@ public final class FreeIspinaSearchClient {
         String text=(item.optString("title")+" "+item.optString("snippet")).toLowerCase(Locale.ROOT);
         if ("paczkomat".equals(topic)) return text.contains("pacz") || text.contains("inpost");
         if ("transport".equals(topic)) return text.contains("transport") || text.contains("autobus") || text.contains("komunik") || text.contains("linia") || text.contains("mld");
-        if ("OSP".equals(topic)) return text.matches("(?s).*\\\\bosp\\\\b.*") || text.contains("straż");
+        if ("OSP".equals(topic)) return text.matches("(?s).*\\bosp\\b.*") || text.contains("straż");
         return text.contains(topic);
     }
 
