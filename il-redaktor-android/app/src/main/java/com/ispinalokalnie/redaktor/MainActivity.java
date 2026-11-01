@@ -543,6 +543,8 @@ public class MainActivity extends Activity {
             callback("assistant-ready", true, new org.json.JSONObject().toString());
         }
 
+        @JavascriptInterface public void verify() { verifyConnection(); }
+
         @JavascriptInterface public void disconnect() {
             verified = false;
             clearSession();
@@ -581,7 +583,7 @@ public class MainActivity extends Activity {
                     JSONObject result = FreeIspinaSearchClient.ask(MainActivity.this, prompt, control);
                     callback(rid, true, result.toString());
                 } catch (Exception ex) {
-                    callback(rid, false, ex.getMessage() == null ? "Nie udało się wykonać wyszukiwania ChatGPT." : ex.getMessage());
+                    callback(rid, false, ex.getMessage() == null ? "Nie udało się pobrać publicznych źródeł." : ex.getMessage());
                 } finally { searches.remove(rid, control); }
             });
         }
@@ -608,7 +610,7 @@ public class MainActivity extends Activity {
                     JSONObject result = FreeIspinaSearchClient.ask(MainActivity.this, prompt, control);
                     callback(rid, true, result.toString());
                 } catch (Exception ex) {
-                    callback(rid, false, ex.getMessage() == null ? "Nie udało się połączyć z ChatGPT." : ex.getMessage());
+                    callback(rid, false, ex.getMessage() == null ? "Nie udało się pobrać publicznych źródeł." : ex.getMessage());
                 } finally { searches.remove(rid, control); }
             });
         }
