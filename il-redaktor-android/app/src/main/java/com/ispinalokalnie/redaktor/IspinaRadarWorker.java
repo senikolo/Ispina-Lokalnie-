@@ -103,7 +103,9 @@ public final class IspinaRadarWorker extends Worker {
             JSONArray array = result.optJSONArray("sources");
             boolean sourceLinksFound = result.optBoolean("sourceLinksFound", result.optBoolean("verified", false))
                 && !answer.isEmpty() && array != null && array.length() > 0;
-            boolean partial = result.optInt("failedFeeds", 0) > 0;
+            boolean partial = result.optBoolean("partialResults", false)
+                || result.optInt("failedFeeds", 0) > 0
+                || result.optInt("skippedFeeds", 0) > 0;
             ArrayList<Source> sources = sourceLinksFound ? parseSources(array) : new ArrayList<>();
             LinkedHashSet<String> seen = readSeen(prefs);
             ArrayList<Source> newSources = new ArrayList<>();
@@ -115,6 +117,19 @@ public final class IspinaRadarWorker extends Worker {
             }
             while (seen.size() > 500) seen.remove(seen.iterator().next());
             writeSeen(prefs, seen);
+
+            // Persist automatic discoveries in the same editorial database as manual searches.
+            // The source status remains link_found; recording a link never verifies its facts.
+            try (EditorialMemory memory = new EditorialMemory(context)) {
+                JSONObject record = new JSONObject()
+                    .put("question", "Automatyczny Radar Ispiny")
+                    .put("answer", answer)
+                    .put("sources", array == null ? new JSONArray() : array);
+                memory.execute("save", record);
+            } catch (Exception memoryError) {
+                // Monitoring must continue even if local archival storage is unavailable.
+                android.util.Log.w("ILRadar", "Nie zapisano historii radaru");
+            }
 
             if (containsNoNews(answer)) newSources.clear();
             if (!prefs.getBoolean(PREF_ENABLED, false)) return Result.success();
