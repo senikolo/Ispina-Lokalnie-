@@ -395,7 +395,7 @@ test("expired WordPress OAuth attempt ends the wait and offers a fresh attempt",
   assert.match(a.node("working-state").textContent,/Logowanie WordPress.com wygasło/);
   assert.match(a.node("working-state").className,/failed/);
   assert.equal(a.node("login-recovery").classList.contains("hidden"),true);
-  assert.match(a.node("auth-output").textContent,/Rozpocznij logowanie ponownie/);
+  assert.match(a.node("auth-output").innerHTML,/Rozpocznij logowanie ponownie/);
 });
 
 test("Android OAuth expiry recovery does not silently weaken WordPress MCP scope",()=>{
