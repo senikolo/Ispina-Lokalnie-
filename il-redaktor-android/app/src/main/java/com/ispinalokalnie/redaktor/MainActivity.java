@@ -111,7 +111,7 @@ public class MainActivity extends Activity {
         // Every confirmed write must wait for the user's real native response.
         editor.setWebChromeClient(new WebChromeClient() {
             @Override public boolean onJsConfirm(WebView view, String url, String message, JsResult result) {
-                if (view != editor || !"file:///android_asset/index.html".equals(url) || isFinishing()) {
+                if (view != editor || !"file:///android_asset/index-android.html".equals(url) || isFinishing()) {
                     result.cancel();
                     return true;
                 }
@@ -139,7 +139,7 @@ public class MainActivity extends Activity {
         });
         editor.addJavascriptInterface(new Bridge(), "IL");
         setContentView(editor);
-        editor.loadUrl("file:///android_asset/index.html");
+        editor.loadUrl("file:///android_asset/index-android.html");
         // Deep link may cold-start a new Activity after Android kills the app
         // while the system browser is in the foreground.
         handleOAuthCallback(getIntent());

@@ -857,7 +857,7 @@ function renderResearchResult(result){
     rendered='<div class="source-item research-summary">'+esc(aggregate)+'</div>'+queryMarkup(allQueries)+'<h3>Źródła znalezione w wyszukiwarce ('+topSources.length+')</h3>'+renderSources(topSources);
   }
   if(!totalSources)throw new Error("Raport nie zawiera potwierdzonych źródeł. Nie pokazuję niepotwierdzonych wyników.");
-  const searchedAt=new Date(result.searchedAt||Date.now()),dateLabel=Number.isNaN(searchedAt.getTime())?"":searchedAt.toLocaleString("pl-PL",{dateStyle:"medium",timeStyle:"short"});
+  const searchedAt=new Date(result.searchedAt||Date.now()),dateLabel=Number.isNaN(searchedAt.getTime())?"":searchedAt.toLocaleString("pl-PL");
   const profileLabel=sections.length?"Zweryfikowane profile: "+verifiedCount+" z "+sections.length+". ":"";
   $("research-results").innerHTML='<div class="note ok"><b>Raport gotowy</b><p class="small">'+esc(profileLabel+'Wyszukano '+totalSources+' potwierdzonych stron.')+'</p>'+(dateLabel?'<p class="small">Wyszukano: '+esc(dateLabel)+'</p>':"")+'</div>'+rendered+'<p class="muted small">Każde źródło jest przypisane do profilu. Sprawdź datę, treść i aktualność materiału w oryginalnej witrynie; wynik AI nie zastępuje dokumentu źródłowego.</p>';
   $("research-status").textContent="Wyszukiwanie zakończone. "+verifiedCount+" profili ma potwierdzone źródła; znaleziono "+totalSources+" stron.";

@@ -9,6 +9,11 @@ Wersja rozwojowa (versionCode 30, stały pakiet `com.ispinalokalnie.redaktorsmar
 - Potwierdzenie badania wyjaśnia do sześciu wywołań Gemini i możliwe osobne opłaty za model i wyszukiwanie.
 - Backend ma testy gotowości, CORS, limitowania i walidacji źródeł. CI nie rejestruje zdalnego klienta OAuth przy każdym uruchomieniu.
 - Nowy raport QA oddziela wynik CI od testów wymagających konta WordPress lub telefonu.
+- Gradle generuje plik WebView w składni ES2018 i dodaje brakujące polyfille dla Androida 8; test kompilatora wyłapuje regresję nowoczesnej składni.
+
+## Budowanie lokalne
+
+Przed uruchomieniem Gradle wykonaj `npm ci --ignore-scripts --no-audit --no-fund` w katalogu `backend/`. Kompilator TypeScript jest przypięty w lockfile i podczas budowania tworzy zgodny ze starszym WebView asset `index-android.html`; nie edytuj go ręcznie.
 
 ## Nowości 1.21 — poprawki po audycie
 

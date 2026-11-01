@@ -1111,3 +1111,23 @@ test("editor change and focusout handlers persist drafts without needing network
   assert.match(html,/window\.addEventListener\("beforeunload",flushDraftOnExit\)/);
   assert.match(html,/addEventListener\("change",\(\)=>\{updateMetrics\(\);if\(!persistDraft\(true\)\)/);
 });
+
+
+test("research UI shows only source-backed section text and safe source links",()=>{
+  const a=setup();
+  const result={
+    searchedAt:"2026-11-01T12:00:00Z",
+    text:"Zbiorcze podsumowanie",
+    sources:[],
+    sections:[
+      {status:"ok",title:"Profil potwierdzony",text:"Treść potwierdzona",sources:[{title:"Dokument",url:"https://example.com/raport"}],queries:["Ispina raport"]},
+      {status:"inconclusive",title:"Profil bez potwierdzenia",text:"Ukryj tę niepotwierdzoną treść",sources:[],queries:[]}
+    ]
+  };
+  a.run("renderResearchResult("+JSON.stringify(result)+")");
+  const rendered=a.node("research-results").innerHTML;
+  assert.match(rendered,/Profil potwierdzony/);
+  assert.match(rendered,/data-research-link="https:\/\/example\.com\/raport"/);
+  assert.match(rendered,/Profil bez potwierdzonych źródeł/);
+  assert.doesNotMatch(rendered,/Ukryj tę niepotwierdzoną treść|Zbiorcze podsumowanie/);
+});

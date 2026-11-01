@@ -8,6 +8,8 @@ Wersja: versionName 1.22.2, versionCode 30, minSdk 26.
 
 ## Zakres poprawek
 
+- Błąd składni JavaScript wykryty na Androidzie 8 jest naprawiany na etapie budowania: TypeScript transpile do ES2018 oraz polyfille brakujących metod. Test sprawdza wyjściowy skrypt bez uruchamiania zdalnych usług.
+
 - Gotowość backendu sprawdza GET /api/assistant. Endpoint nie ujawnia sekretów i zwraca 503 bez pełnej konfiguracji. Android wyłącza AI online do czasu ready:true i pozwala ponowić sprawdzenie.
 - Raport składa się z sześciu profili i uruchamia osobne wywołanie modelu dla każdego. Nie gwarantuje stałej liczby zapytań Google; interfejs i dokumentacja wyjaśniają ograniczenie.
 - Źródła są przypisane do sekcji. Sekcje bez potwierdzonych źródeł nie pokazują niezweryfikowanej treści.

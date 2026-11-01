@@ -1,6 +1,20 @@
 plugins {
     id 'com.android.application'
 }
+
+// The modern editor source is transpiled for the Android 8 system WebView before packaging.
+def generatedWebViewAssets = file("$buildDir/generated/webview-assets")
+android.sourceSets.main.assets.srcDir(generatedWebViewAssets)
+def transpileWebViewForLegacyAndroid = tasks.register("transpileWebViewForLegacyAndroid", Exec) {
+    def inputHtml = file("app/src/main/assets/index.html")
+    def transpiler = file("scripts/transpile-webview.cjs")
+    def typescriptCompiler = file("backend/node_modules/typescript/lib/typescript.js")
+    def generatedHtml = new File(generatedWebViewAssets, "index-android.html")
+    inputs.files(inputHtml, transpiler, typescriptCompiler)
+    outputs.file(generatedHtml)
+    commandLine "node", transpiler.absolutePath, inputHtml.absolutePath, generatedHtml.absolutePath
+}
+tasks.named("preBuild").configure { dependsOn(transpileWebViewForLegacyAndroid) }
 android {
     namespace 'com.ispinalokalnie.redaktor'
     compileSdk 35

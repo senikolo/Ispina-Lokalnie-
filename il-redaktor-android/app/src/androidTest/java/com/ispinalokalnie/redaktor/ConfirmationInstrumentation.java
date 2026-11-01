@@ -143,7 +143,7 @@ public final class ConfirmationInstrumentation extends Instrumentation {
             activity = (MainActivity) startActivitySync(launch);
             editor = (WebView) field("editor");
             long deadline = SystemClock.uptimeMillis() + 45000;
-            while (!"true".equals(evaluate("location.href==='file:///android_asset/index.html' && document.readyState==='complete'"))) {
+            while (!"true".equals(evaluate("location.href==='file:///android_asset/index-android.html' && document.readyState==='complete'"))) {
                 if (SystemClock.uptimeMillis() >= deadline) throw new AssertionError("Editor did not finish loading");
                 SystemClock.sleep(100);
             }
