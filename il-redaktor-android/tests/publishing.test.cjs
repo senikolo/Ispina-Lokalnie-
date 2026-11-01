@@ -704,9 +704,9 @@ test("AI context exposes published posts only for reader recommendations",()=>{
 test("new build metadata and the PR APK workflow agree",()=>{
   const gradle=fs.readFileSync(path.join(__dirname,"../app/build.gradle"),"utf8");
   const workflow=fs.readFileSync(path.join(__dirname,"../../.github/workflows/il-redaktor-apk.yml"),"utf8");
-  assert.match(gradle,/versionCode 42/);assert.match(gradle,/versionName '1\.29\.3-test\.1'/);assert.match(gradle,/https:\/\/il-redaktor-assistant\.vercel\.app\/api\/assistant/);
+  assert.match(gradle,/versionCode 43/);assert.match(gradle,/versionName '1\.29\.4-test\.1'/);assert.match(gradle,/https:\/\/il-redaktor-assistant\.vercel\.app\/api\/assistant/);
   assert.match(gradle,/applicationId 'com\.ispinalokalnie\.redaktorsmart\.stable'/);
-  assert.match(workflow,/versionCode='42' versionName='1\.29\.3-test\.1'/);
+  assert.match(workflow,/versionCode='43' versionName='1\.29\.4-test\.1'/);
 });
 
 test("AI editor shortcut copies current title and text into a reviewable prompt without sending it",()=>{
@@ -1196,6 +1196,23 @@ test("short free RSS chat followups use preceding user topic without paid AI",()
  assert.match(java,/askConversation\(MainActivity\.this, prompt,/);
  assert.match(rss,/resolveConversationPrompt/);
  assert.match(rss,/contextInherited/);
+});
+test("wide radar has 15 public source profiles and explicit scope coverage",()=>{
+  const native=fs.readFileSync(path.join(__dirname,"../app/src/main/java/com/ispinalokalnie/redaktor/FreeIspinaSearchClient.java"),"utf8");
+  for(const host of ["drwinia.pl","bip.malopolska.pl","powiat.bochnia.pl","zdw.krakow.pl","ezamowienia.gov.pl","bochnianin.pl","e-bochnia.pl","radiokrakow.pl","kolejemalopolskie.com.pl"])
+    assert.ok(native.includes("site:"+host),host);
+  assert.match(native,/plannedFeeds/);assert.match(native,/skippedFeeds/);
+  assert.match(native,/System\.currentTimeMillis\(\) - started > 51000L/);
+  const ui=fs.readFileSync(path.join(__dirname,"../app/src/main/assets/index.html"),"utf8");
+  assert.match(ui,/buildRadarChatGptPrompt/);assert.match(ui,/openRadarInChatGpt/);
+  assert.match(ui,/copyRadarChatGptPrompt/);
+  const a=setup();a.node("research-days").value="90";a.node("research-query").value="most i komunikacja";
+  const prompt=a.run("buildRadarChatGptPrompt()");
+  assert.match(prompt,/site:drwinia.pl/);assert.match(prompt,/site:bip.malopolska.pl/);assert.match(prompt,/site:bochnianin.pl/);
+  assert.match(prompt,/most i komunikacja/);
+  assert.match(prompt,/Nie wymyślaj faktów/);
+  a.node("research-days").value="0";
+  assert.match(a.run("buildRadarChatGptPrompt()"),/Cały dostępny zakres archiwum/);
 });
 test("free radar never claims RSS results are fact-checked and latest query applies 30 days",()=>{
  const a=setup();

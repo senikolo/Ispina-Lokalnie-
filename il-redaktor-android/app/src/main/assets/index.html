@@ -265,15 +265,16 @@ header{animation:ilHeader .38s cubic-bezier(.2,.7,.2,1) both}.brand .logo{animat
   <div class="card" id="research-card">
     <div class="eyebrow">WYSZUKIWANIE INTERNETOWE</div>
     <h2>Informacje o Ispinie</h2>
-    <p class="muted">Bezpłatny przegląd dostępnych kanałów RSS. Nie obejmuje całego internetu, wszystkich przetargów ani każdego komunikatu urzędowego.</p>
+    <p class="muted">Szeroki, bezpłatny radar wzmianek o Ispinie: wyszukiwarki, serwisy samorządowe, BIP, przetargi, drogi i lokalne media. Wyszukuje w indeksach publicznych stron, bez gwarancji objęcia całego internetu.</p>
     <label for="research-days">Zakres dat publikacji</label>
-    <select id="research-days"><option value="7">Ostatnie 7 dni</option><option value="30" selected>Ostatnie 30 dni</option><option value="90">Ostatnie 90 dni</option><option value="365">Ostatni rok</option><option value="0">Wszystkie dostępne (także bez daty)</option></select>
+    <select id="research-days" onchange="updateRadarPromptPreview()"><option value="7">Ostatnie 7 dni</option><option value="30" selected>Ostatnie 30 dni</option><option value="90">Ostatnie 90 dni</option><option value="0">Cały dostępny zakres (także bez daty)</option></select>
     <p class="small muted">Przy wybranym okresie pokazujemy wyłącznie wyniki z datą publikacji mieszczącą się w tym zakresie. Data wydarzenia może być inna. Wybór daty dotyczy wyszukiwania na tym ekranie.</p>
     <label for="research-query">Temat i dodatkowe wskazówki</label>
-    <textarea id="research-query" maxlength="1800" style="min-height:115px">Wyszukaj aktualne informacje o Ispinie.</textarea>
-    <div class="note small">Raport sprawdza sześć zapytań i kanałów publicznych, w tym odnośniki z domen urzędowych. Nie jest to pełne indeksowanie BIP. Awaria części źródeł zostanie oznaczona. Brak wyników nie oznacza braku informacji w internecie.</div>
-    <details class="small"><summary>Dostępne kanały</summary><ul><li>Google News RSS — materiały indeksowane jako wiadomości</li><li>Bing RSS — publiczne wyniki wyszukiwania</li><li>Eko-Drwinia — kanał wiadomości spółki</li><li>Bing RSS — osobne zapytania ograniczone do domen drwinia.pl, bip.malopolska.pl i ezamowienia.gov.pl (zależne od indeksowania)</li></ul><p>To ograniczony przegląd źródeł. Nie zastępuje pełnego monitoringu BIP, przetargów i całego internetu.</p></details>
-    <div class="actions"><button class="secondary" type="button" onclick="runRecentIspinaRadar()">Najnowsze materiały</button><button id="research-button" type="button" disabled onclick="runDeepIspinaResearch()">🔎 Wyszukaj w internecie informacje o Ispinie</button><button id="research-cancel" class="secondary hidden" type="button" onclick="cancelIspinaSearch('research')">Anuluj wyszukiwanie</button><button id="assistant-check-button" class="secondary" type="button" onclick="checkAssistantAvailability()">Gotowość wyszukiwarki</button><button class="secondary" type="button" onclick="clearResearchResults()">Wyczyść wyniki</button></div>
+    <textarea id="research-query" maxlength="1800" style="min-height:115px" oninput="updateRadarPromptPreview()">Wyszukaj aktualne informacje o Ispinie.</textarea>
+    <div class="note small">Radar sprawdza do 15 profili: urzędy, BIP, zamówienia, drogi, transport, media oraz wyszukiwanie ogólne. Pokazuje nieudane i pominięte źródła. Zakres czasu jest filtrem rzeczywistej daty publikacji, nie daty wydarzenia. Wyniki wymagają przeczytania w oryginale.</div>
+    <details class="small"><summary>Gdzie szukamy?</summary><p>Google News i Bing RSS oraz osobne zapytania do: drwinia.pl, bip.malopolska.pl, powiat.bochnia.pl, zdw.krakow.pl, ezamowienia.gov.pl, bochnianin.pl, e-bochnia.pl, radiokrakow.pl, malopolska.pl, kolejemalopolskie.com.pl, gov.pl, Eko-Drwinia. Wyniki zależą od indeksowania i dostępności RSS; nie jest to robot odwiedzający każdą podstronę.</p></details>
+    <details class="small"><summary>Dokładne polecenie dla ChatGPT Free</summary><p>Utwórz precyzyjne polecenie zgodne z wybranym okresem. ChatGPT może szukać szerzej, jeżeli ma dostęp do przeglądania internetu; aplikacja nie przekazuje mu żadnego płatnego klucza.</p><textarea id="radar-gpt-prompt" readonly style="min-height:170px" aria-label="Polecenie do ChatGPT"></textarea><div class="actions"><button type="button" class="secondary" onclick="copyRadarChatGptPrompt()">Kopiuj polecenie</button><button type="button" class="secondary" onclick="openRadarInChatGpt()">Otwórz w ChatGPT</button></div><p id="radar-gpt-status" class="small muted" role="status"></p></details>
+    <div class="actions"><button class="secondary" type="button" onclick="runRecentIspinaRadar()">Najnowsze materiały</button><button id="research-button" type="button" disabled onclick="runDeepIspinaResearch()">🔎 Wyszukaj w internecie informacje o Ispinie</button><button id="research-cancel" class="secondary hidden" type="button" onclick="cancelIspinaSearch('research')">Anuluj wyszukiwanie</button><button id="assistant-check-button" class="secondary" type="button" onclick="checkAssistantAvailability()">Gotowość wyszukiwarki</button><button class="secondary" type="button" onclick="clearResearchResults()">Wyczyść wyniki</button><button class="secondary" type="button" onclick="openRadarInChatGpt()">🌐 Głębokie wyszukiwanie w ChatGPT</button></div>
     <div class="note" id="background-radar-card" role="group" aria-label="Automatyczny radar Ispiny">
       <strong>🔔 Automatyczny radar Ispiny · IL</strong>
       <p class="small">Redaktor sprawdzi publiczne źródła co 8 godzin, czyli około 3 razy na dobę. Powiadomienie z ikoną IL pojawi się dla nowego linku z datą publikacji. Android może opóźnić sprawdzenie w trybie oszczędzania baterii.</p>
@@ -422,7 +423,7 @@ header{animation:ilHeader .38s cubic-bezier(.2,.7,.2,1) both}.brand .logo{animat
     <label class="setting-row"><input type="checkbox" id="battery-saving" onchange="applyUiPreferences(true)"><span>Tryb oszczędzania baterii</span></label>
     <p id="ui-preferences-status" class="setting-caption" role="status" aria-live="polite">Ustawienia zapisują się na tym telefonie. Systemowe ograniczenie ruchu zawsze ma pierwszeństwo.</p>
   </div>
-  <div class="card"><h2>O programie</h2><p class="muted">IL Redaktor Smart 1.29.3-test.1 · Niezależna aplikacja Android 8 i nowszy. WordPress.com MCP. Publikacja wymaga potwierdzenia i ponownego odczytu wpisu.</p></div>
+  <div class="card"><h2>O programie</h2><p class="muted">IL Redaktor Smart 1.29.4-test.1 · Niezależna aplikacja Android 8 i nowszy. WordPress.com MCP. Publikacja wymaga potwierdzenia i ponownego odczytu wpisu.</p></div>
 </section>
 </main>
 <div id="conflict-dialog" class="finish-dialog hidden" role="dialog" aria-modal="true" aria-labelledby="conflict-title"><div class="finish-panel"><h2 id="conflict-title">Wersja na WordPressie wymaga porównania</h2><p id="conflict-message"></p><p>Nie wysłano zmian artykułu. Twoja praca pozostaje w szkicach na telefonie.</p><button class="secondary" onclick="showConflictComparison()">Porównaj wersje</button><div id="conflict-comparison" class="hidden"></div><p id="conflict-feedback" role="status"></p><div class="actions"><button onclick="resolveRemoteConflict(false)">Wczytaj wersję ze strony</button><button class="secondary" onclick="resolveRemoteConflict(true)">Zachowaj obie kopie</button><button class="secondary" onclick="closeRemoteConflict()">Wróć do tekstu</button></div><p class="small">Wczytanie nie usuwa Twojego szkicu. Zachowaj obie kopie odłączy lokalną wersję od wpisu na stronie.</p></div></div>
@@ -935,6 +936,45 @@ function requestFreeSearch(kind,prompt,history){
     catch(error){finish(false,error);}
   });
 }
+function buildRadarChatGptPrompt(){
+  const days=Number($("research-days").value),now=new Date(),start=new Date(now.getTime()-days*86400000);
+  const fmt=d=>d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
+  const range=days===0?"Cały dostępny zakres archiwum, także materiały bez daty (oznacz je osobno).":"Od "+fmt(start)+" do "+fmt(now)+" włącznie, według daty publikacji.";
+  const topic=trim($("research-query").value).slice(0,500)||"Wszystkie nowe wzmianki o Ispinie";
+  const queries=[
+    '"Ispina" "Drwinia"', '"w Ispinie" OR "do Ispiny" OR "z Ispiny"',
+    'site:drwinia.pl "Ispina"', 'site:bip.malopolska.pl "Ispina"',
+    'site:powiat.bochnia.pl "Ispina"', 'site:zdw.krakow.pl "Ispina"',
+    'site:ezamowienia.gov.pl "Ispina"', 'site:gov.pl "Ispina" "Drwinia"',
+    'site:bochnianin.pl "Ispina"', 'site:e-bochnia.pl "Ispina"',
+    'site:radiokrakow.pl "Ispina"', 'site:kolejemalopolskie.com.pl "Ispina"',
+    '"Ispina" przetarg OR zamówienie OR inwestycja', '"Ispina" most OR DW775 OR DW964',
+    '"Ispina" A4 OR A7 OR A65 OR autobus', '"OSP Ispina" OR "Ispina Wiślisko"'
+  ];
+  return "Jesteś bardzo dokładnym researcherem portalu Ispina Lokalnie. Wykonaj AKTUALNE wyszukiwanie w otwartym internecie, nie tylko w znanych wcześniej źródłach.\n"
+    +"MIEJSCE: wieś Ispina, gmina Drwinia, powiat bocheński, Małopolska. Nie myl jej z innymi miejscami.\n"
+    +"TEMAT: "+topic+"\nOKRES: "+range+"\n"
+    +"PRIORYTET: strony samorządowe, BIP, uchwały, protokoły, ogłoszenia, plany, dokumenty PDF i przetargi. Następnie lokalne portale, transport, drogi, most, OSP, InPost, kultura i historia.\n"
+    +"Wykonaj po kolei precyzyjne kwerendy (oraz ich sensowne warianty):\n"+queries.map((q,i)=>(i+1)+". "+q).join("\n")+"\n"
+    +"Przejrzyj również inne witryny, których nie ma na tej liście. Użyj wariantów: Ispina, Ispinie, Ispiny, Ispinii (błędna odmiana w źródle), Ispnia (literówka). Nie odrzucaj dokumentu, jeśli miejscowość jest wymieniona w załączniku.\n"
+    +"Dla każdej pozycji podaj: dokładny tytuł, instytucję/portal, bezpośredni URL, datę publikacji, oddzielnie datę wydarzenia, 1–2 zdania o związku z Ispiną oraz status wiarygodności i dostępności dokumentu. Grupuj: Samorząd/BIP, Przetargi, Drogi/Most, Transport, Lokalne media, Inne. Usuń duplikaty URL.\n"
+    +"Nie wymyślaj faktów, numerów postępowań, dat, cytatów ani linków. Jeśli data jest nieznana, oznacz BRAK DATY, a przy zakresie 7/30/90 dni oddziel poza wyniki okresu. Jeśli nie masz przeglądania internetu, zgłoś to wprost zamiast udawać wyszukiwanie.\n"
+    +"Na końcu przedstaw tabelę: źródło, zapytanie, znalezione linki, brak odpowiedzi / ograniczenie indeksu. Podaj liczbę nowych i wcześniej znanych wzmianek, o ile istnieje porównywalny raport; inaczej zaznacz, że brak punktu odniesienia. Nie publikuj i niczego nie zapisuj na portalu.";
+}
+function updateRadarPromptPreview(){const target=$("radar-gpt-prompt");if(target)target.value=buildRadarChatGptPrompt()}
+function copyRadarChatGptPrompt(){
+  const prompt=buildRadarChatGptPrompt();updateRadarPromptPreview();
+  if(IL.copyText){IL.copyText(prompt);$("radar-gpt-status").textContent="Skopiowano dokładne zapytania. Wklej je do ChatGPT.";}else $("radar-gpt-status").textContent="Nie udało się skopiować. Zaznacz polecenie ręcznie.";
+  return prompt;
+}
+function openRadarInChatGpt(){
+  const prompt=buildRadarChatGptPrompt();updateRadarPromptPreview();
+  if(IL.shareChatGptFreePrompt)IL.shareChatGptFreePrompt(prompt);
+  else if(IL.shareAssistantPrompt)IL.shareAssistantPrompt(prompt);
+  else if(IL.copyText)IL.copyText(prompt);
+  $("radar-gpt-status").textContent="Przekazuję szczegółowe zapytania do ChatGPT. Jeśli aplikacja nie otworzy się, skopiuj polecenie i wklej je ręcznie.";
+  return true;
+}
 function requestResearch(prompt){return requestFreeSearch("research",prompt,[]);}
 function requestIspinaChat(prompt,history){return requestFreeSearch("chat",prompt,history);}
 let ispinaChatMessages=[],ispinaChatInProgress=false,ispinaChatConsent=false;
@@ -1087,8 +1127,11 @@ function renderResearchResult(result,query){
   latestResearchMaterial={query:String(typeof query==="string"?query:$("research-query").value||"").trim().slice(0,1800),searchedAt:String(result?.searchedAt||new Date().toISOString()),sections:materialSections,sources:materialSources};
   const draftAction='<div class="actions"><button class="secondary" type="button" data-research-compose>📝 Opracuj szkic w ChatGPT/Gemini</button></div><p class="small muted">Utworzę osobny szkic lokalny i zachowam linki jako źródła „Do sprawdzenia”.</p>';
   $("research-results").innerHTML='<div class="note"><b>Wyniki do sprawdzenia</b><p class="small">'+esc(profileLabel+'Znaleziono '+totalSources+' odnośników, bez weryfikacji faktów.')+'</p>'+(dateLabel?'<p class="small">Wyszukano: '+esc(dateLabel)+'</p>':"")+'</div>'+rendered+'<p class="muted small">Każde źródło jest przypisane do profilu. Sprawdź datę, treść i aktualność materiału w oryginalnej witrynie; fragment z kanału RSS nie zastępuje dokumentu źródłowego.</p>'+draftAction;
-  $("research-status").textContent="Zakończono pobieranie: "+verifiedCount+" profili zawiera linki; znaleziono "+totalSources+" stron do sprawdzenia."+
-    (result?.partialResults?" Część kanałów nie odpowiedziała, wynik jest niepełny.":"");
+  const ok=Number(result?.successfulFeeds||0),failed=Number(result?.failedFeeds||0),skipped=Number(result?.skippedFeeds||0),planned=Number(result?.plannedFeeds||0);
+  $("research-status").textContent="Zakończono: znaleziono "+totalSources+" linków do sprawdzenia. "+
+    (planned?"Profile: "+ok+"/"+planned+" pobranych, "+failed+" niedostępnych, "+skipped+" pominiętych. ":"")+
+    (result?.partialResults?"wynik jest niepełny. Nie jest to skan całego internetu.":"");
+  if(result?.partialResults)$("research-status").className="small muted";
   $("research-status").className="small ok";
 }
 function openResearchSource(url){
