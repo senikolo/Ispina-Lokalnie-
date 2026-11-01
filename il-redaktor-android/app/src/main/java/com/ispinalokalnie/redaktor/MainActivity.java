@@ -540,31 +540,8 @@ public class MainActivity extends Activity {
         }
 
         @JavascriptInterface public void assistantStatus() {
-            if (BuildConfig.ASSISTANT_ENDPOINT == null || BuildConfig.ASSISTANT_ENDPOINT.trim().isEmpty()) {
-                callback("assistant-ready", true, "{\"enabled\":false,\"message\":\"Tryb AI nie jest skonfigurowany.\"}");
-                return;
-            }
-            work.execute(() -> {
-                HttpURLConnection connection = null;
-                try {
-                    connection = (HttpURLConnection) new URL(BuildConfig.ASSISTANT_ENDPOINT).openConnection();
-                    connection.setRequestMethod("GET");
-                    connection.setConnectTimeout(8000);
-                    connection.setReadTimeout(8000);
-                    connection.setInstanceFollowRedirects(false);
-                    connection.setRequestProperty("Accept", "application/json");
-                    int status = connection.getResponseCode();
-                    JSONObject response = new JSONObject(readReply(connection, status));
-                    boolean enabled = status >= 200 && status < 300 && response.optBoolean("ready", false);
-                    String message = response.optString("message", enabled ? "Backend asystenta jest gotowy." : "Backend asystenta nie jest gotowy.");
-                    callback("assistant-ready", true, new JSONObject().put("enabled", enabled).put("message", message).toString());
-                } catch (Exception ex) {
-                    callback("assistant-ready", true, "{\"enabled\":false,\"message\":\"Nie udało się połączyć z backendem AI. Sprawdź połączenie i spróbuj ponownie.\"}");
-                } finally { if (connection != null) connection.disconnect(); }
-            });
+            callback("assistant-ready", true, new org.json.JSONObject().toString());
         }
-
-        @JavascriptInterface public void verify() { verifyConnection(); }
 
         @JavascriptInterface public void disconnect() {
             verified = false;
@@ -648,15 +625,7 @@ public class MainActivity extends Activity {
         }
 
         @JavascriptInterface public void connectChatGpt(String rid) {
-            if (rid == null || rid.length() > 60 || !rid.matches("[A-Za-z0-9_-]+")) return;
-            ChatGptPlanClient.connect(MainActivity.this, new ChatGptPlanClient.ConnectListener() {
-                @Override public void success(JSONObject state) {
-                    callback(rid, true, state.toString());
-                }
-                @Override public void failure(String message) {
-                    callback(rid, false, message);
-                }
-            });
+            callback(rid, false, "Bezpłatny Radar nie wymaga logowania do ChatGPT.");
         }
 
         @JavascriptInterface public void disconnectChatGpt(String rid) {
