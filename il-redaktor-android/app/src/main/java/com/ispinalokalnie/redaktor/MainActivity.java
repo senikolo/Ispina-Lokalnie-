@@ -70,6 +70,8 @@ public class MainActivity extends Activity {
     private static final String KEY = "il_redaktor_oauth_aes_v1";
     private static final String TEXT_ZOOM_KEY = "ui_text_zoom";
     private final ExecutorService work = Executors.newSingleThreadExecutor();
+    private final ExecutorService aiWork = Executors.newFixedThreadPool(2);
+    private final java.util.concurrent.ConcurrentHashMap<String, ChatGptPlanClient.SearchControl> searches = new java.util.concurrent.ConcurrentHashMap<>();
     private final Handler ui = new Handler(Looper.getMainLooper());
     private WebView editor;
     private Dialog publishedDialog;
@@ -605,16 +607,18 @@ public class MainActivity extends Activity {
             if (!ChatGptPlanClient.isConnected(MainActivity.this)) {
                 callback(rid, false, "Połącz konto ChatGPT w Radarze, aby użyć wyszukiwania internetowego."); return;
             }
-            work.execute(() -> {
+            ChatGptPlanClient.SearchControl control = new ChatGptPlanClient.SearchControl(MainActivity.this, 60000);
+            searches.put(rid, control);
+            aiWork.execute(() -> {
                 try {
-                    JSONObject result = ChatGptPlanClient.ask(MainActivity.this, prompt, new org.json.JSONArray(), true);
+                    JSONObject result = ChatGptPlanClient.ask(MainActivity.this, prompt, new org.json.JSONArray(), true, control);
                     if (result.optString("text").trim().isEmpty()
                         || result.optJSONArray("sources") == null || result.optJSONArray("sources").length() == 0)
                         throw new Exception("ChatGPT nie zwrócił raportu ze źródłami.");
                     callback(rid, true, result.toString());
                 } catch (Exception ex) {
                     callback(rid, false, ex.getMessage() == null ? "Nie udało się wykonać wyszukiwania ChatGPT." : ex.getMessage());
-                }
+                } finally { searches.remove(rid, control); }
             });
         }
 
@@ -636,14 +640,22 @@ public class MainActivity extends Activity {
                 callback(rid, false, "Połącz konto ChatGPT w Radarze, aby użyć IL Chat AI."); return;
             }
             org.json.JSONArray safeHistory = history;
-            work.execute(() -> {
+            ChatGptPlanClient.SearchControl control = new ChatGptPlanClient.SearchControl(MainActivity.this, 60000);
+            searches.put(rid, control);
+            aiWork.execute(() -> {
                 try {
-                    JSONObject result = ChatGptPlanClient.ask(MainActivity.this, prompt, safeHistory, true);
+                    JSONObject result = ChatGptPlanClient.ask(MainActivity.this, prompt, safeHistory, true, control);
                     callback(rid, true, result.toString());
                 } catch (Exception ex) {
                     callback(rid, false, ex.getMessage() == null ? "Nie udało się połączyć z ChatGPT." : ex.getMessage());
-                }
+                } finally { searches.remove(rid, control); }
             });
+        }
+
+        @JavascriptInterface public void cancelIspinaSearch(String rid) {
+            if (rid == null || !rid.matches("[A-Za-z0-9_-]{1,60}")) return;
+            ChatGptPlanClient.SearchControl control = searches.remove(rid);
+            if (control != null) control.cancel();
         }
 
         @JavascriptInterface public void getChatGptState(String rid) {
@@ -1237,6 +1249,9 @@ public class MainActivity extends Activity {
     @Override protected void onDestroy() {
         if(photoEditor!=null&&photoEditor.isShowing())photoEditor.dismiss();
         if (editorConfirmation != null) editorConfirmation.dismiss();
+        for (ChatGptPlanClient.SearchControl control : searches.values()) control.cancel();
+        searches.clear();
+        aiWork.shutdownNow();
         work.shutdownNow();
         if (publishedDialog != null && publishedDialog.isShowing()) publishedDialog.dismiss();
         if (editor != null) editor.destroy();
