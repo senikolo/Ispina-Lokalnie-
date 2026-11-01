@@ -1078,7 +1078,7 @@ async function refreshChatGptState(){
     const email=String(state?.email||"").trim(),model=String(state?.model||"").trim();
     const account=$("chatgpt-account-status");
     if(chatGptConnected){
-      account.textContent="Połączono z ChatGPT"+(email?": "+email:"")+(model?" · model: "+model:"")+".";
+      account.textContent="Połączono z ChatGPT"+(email?": "+email:"")+(model?" · model: "+model:"")+". IL Chat i Radar używają planu ChatGPT.";
       account.className="small ok";
       $("ispina-chat-status").textContent="ChatGPT jest połączony. IL Chat może szukać aktualnych informacji i pokazywać źródła.";
       $("ispina-chat-status").className="small muted";
@@ -1103,6 +1103,10 @@ async function refreshChatGptState(){
     chatGptConnected=false;
     $("chatgpt-account-status").textContent=error?.message||"Nie udało się odczytać połączenia ChatGPT.";
     $("chatgpt-account-status").className="small error";
+    $("ispina-chat-status").textContent="Nie udało się sprawdzić połączenia ChatGPT.";
+    $("ispina-chat-status").className="small error";
+    $("research-status").textContent="Nie udało się sprawdzić połączenia ChatGPT.";
+    $("research-status").className="small error";
     $("chatgpt-connect").classList.remove("hidden");
     $("chatgpt-disconnect").classList.add("hidden");
     $("ispina-chat-send").disabled=true;

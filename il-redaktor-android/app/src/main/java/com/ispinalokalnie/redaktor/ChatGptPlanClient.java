@@ -432,8 +432,9 @@ public final class ChatGptPlanClient {
                             JSONObject response = event.optJSONObject("response");
                             JSONObject error = event.optJSONObject("error");
                             if (error == null && response != null) error = response.optJSONObject("error");
-                            streamError = error == null ? "Odpowiedź ChatGPT nie została zakończona." :
-                                error.optString("message", error.optString("code", "Odpowiedź ChatGPT nie została zakończona."));
+                            if (error == null) streamError = "Odpowiedź ChatGPT nie została zakończona.";
+                            else streamError = formatStreamError(error.optString("code", ""),
+                                error.optString("message", error.optString("code", "Odpowiedź ChatGPT nie została zakończona.")));
                             break;
                         } else if ("response.incomplete".equals(type)) {
                             streamError = "Odpowiedź ChatGPT została przerwana przed ukończeniem.";
@@ -712,6 +713,17 @@ public final class ChatGptPlanClient {
             }
             return out.toString(StandardCharsets.UTF_8.name());
         }
+    }
+
+    private static String formatStreamError(String code, String message) {
+        if ("subscription_sharing_usage_limit_exceeded".equals(code))
+            return "Limit użycia ChatGPT dla IL Redaktora został osiągnięty. Sprawdź limity w ustawieniach użycia ChatGPT.";
+        if ("subscription_sharing_usage_unavailable".equals(code))
+            return "Połączenie z ChatGPT jest chwilowo niedostępne. Spróbuj później.";
+        if ("subscription_sharing_user_not_eligible".equals(code))
+            return "To konto ChatGPT lub wybrana przestrzeń robocza nie może używać planu ChatGPT w IL Redaktorze.";
+        return message == null || message.trim().isEmpty()
+            ? "Odpowiedź ChatGPT nie została zakończona." : message;
     }
 
     private static String formatApiError(int status, String body) {
