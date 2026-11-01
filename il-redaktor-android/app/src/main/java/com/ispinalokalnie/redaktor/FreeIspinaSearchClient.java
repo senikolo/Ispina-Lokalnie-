@@ -32,30 +32,61 @@ public final class FreeIspinaSearchClient {
                 if (previous != null && System.currentTimeMillis() - previous.optLong("searchedAt") < 300000L)
                     return new JSONObject(previous.toString()).put("cached", true);
             }
-            String query = "Ispina Drwinia" + (topic.isEmpty() ? "" : " " + topic);
-            String encoded = java.net.URLEncoder.encode(query, "UTF-8");
-            // Scope-specific search feeds complement general discovery; they do not
-            // claim to crawl every BIP page or every procurement attachment.
-            String[] feeds = {
-                "https://news.google.com/rss/search?q=" + encoded + "&hl=pl&gl=PL&ceid=PL:pl",
-                "https://www.bing.com/search?format=rss&q=" + encoded,
-                "https://eko.drwinia.pl/feed/",
-                "https://www.bing.com/search?format=rss&q=" + java.net.URLEncoder.encode("Ispina site:drwinia.pl " + topic, "UTF-8"),
-                "https://www.bing.com/search?format=rss&q=" + java.net.URLEncoder.encode("Ispina site:bip.malopolska.pl " + topic, "UTF-8"),
-                "https://www.bing.com/search?format=rss&q=" + java.net.URLEncoder.encode("Ispina site:ezamowienia.gov.pl " + topic, "UTF-8")
+            // Search several independent indexes and source-specific domains. No paid API key.
+            // Indexed results are NOT a guarantee of exhaustive BIP or PDF coverage.
+            String baseQuery = "Ispina Drwinia" + (topic.isEmpty() ? "" : " " + topic);
+            String[][] profiles = {
+                {"Google News", "news", baseQuery},
+                {"Bing ogólny", "bing", baseQuery},
+                {"Urząd Gminy Drwinia", "bing", "Ispina site:drwinia.pl " + topic},
+                {"BIP Małopolska", "bing", "Ispina site:bip.malopolska.pl " + topic},
+                {"Powiat bocheński", "bing", "Ispina site:powiat.bochnia.pl " + topic},
+                {"Zarząd Dróg Wojewódzkich", "bing", "Ispina site:zdw.krakow.pl " + topic},
+                {"Zamówienia publiczne", "bing", "Ispina site:ezamowienia.gov.pl " + topic},
+                {"Bochnianin", "bing", "Ispina site:bochnianin.pl " + topic},
+                {"E-Bochnia", "bing", "Ispina site:e-bochnia.pl " + topic},
+                {"Radio Kraków", "bing", "Ispina site:radiokrakow.pl " + topic},
+                {"Małopolska", "bing", "Ispina site:malopolska.pl " + topic},
+                {"Koleje Małopolskie", "bing", "Ispina site:kolejemalopolskie.com.pl " + topic},
+                {"Ministerstwa i instytucje", "bing", "Ispina site:gov.pl " + topic},
+                {"Odmiana nazwy", "bing", "\"w Ispinie\" OR \"do Ispiny\" OR \"z Ispiny\" Drwinia " + topic},
+                {"Eko-Drwinia", "rss", "https://eko.drwinia.pl/feed/"}
             };
             LinkedHashMap<String, JSONObject> found = new LinkedHashMap<>();
-            int successful = 0, failed = 0;
-            for (String feed : feeds) {
+            JSONArray searchedQueries = new JSONArray(), profileResults = new JSONArray();
+            int successful = 0, failed = 0, skipped = 0;
+            long started = System.currentTimeMillis();
+            for (int index=0; index<profiles.length; index++) {
                 control.check();
+                // Leave enough time to assemble the report and return partial results.
+                if (System.currentTimeMillis() - started > 51000L) {
+                    skipped = profiles.length - index;
+                    break;
+                }
+                String[] profile = profiles[index];
+                String address = "rss".equals(profile[1]) ? profile[2] :
+                    ("news".equals(profile[1]) ?
+                        "https://news.google.com/rss/search?q=" + java.net.URLEncoder.encode(profile[2],"UTF-8") + "&hl=pl&gl=PL&ceid=PL:pl" :
+                        "https://www.bing.com/search?format=rss&q=" + java.net.URLEncoder.encode(profile[2],"UTF-8"));
+                searchedQueries.put(profile[2]);
                 try {
-                    JSONArray items = parseFeed(fetch(feed, control), since, datedOnly);
+                    JSONArray items = parseFeed(fetch(address, control), since, datedOnly);
                     successful++;
+                    int matching = 0;
                     for (int i=0; i<items.length(); i++) {
                         JSONObject item = items.getJSONObject(i);
-                        if (matchesTopic(item, topic)) found.put(item.getString("url"), item);
+                        if (matchesTopic(item, topic)) {
+                            String key = item.getString("url");
+                            if (!found.containsKey(key)) matching++;
+                            found.put(key, item);
+                        }
                     }
-                } catch (Exception ex) { control.check(); failed++; }
+                    profileResults.put(new JSONObject().put("name",profile[0]).put("status","ok").put("newLinks",matching));
+                } catch (Exception ex) {
+                    control.check();
+                    failed++;
+                    profileResults.put(new JSONObject().put("name",profile[0]).put("status","unavailable"));
+                }
             }
             control.check();
             if (successful == 0) throw new Exception("Nie udało się pobrać publicznych źródeł. Sprawdź internet i spróbuj później. Nie wykonano zapytania do płatnego AI.");
@@ -64,7 +95,7 @@ public final class FreeIspinaSearchClient {
             List<JSONObject> ordered = new ArrayList<>(found.values());
             ordered.sort((a,b) -> Long.compare(b.optLong("publishedAt",0),a.optLong("publishedAt",0)));
             for (JSONObject item : ordered) {
-                if (sources.length() >= 24) break;
+                if (sources.length() >= 50) break;
                 sources.put(item);
                 answer.append(sources.length()).append(". ").append(item.getString("title"));
                 String date = item.optString("published", "");
@@ -78,12 +109,16 @@ public final class FreeIspinaSearchClient {
                     .append(datedOnly ? " z potwierdzoną datą publikacji w badanym okresie." : ".")
                     .append(" To nie oznacza, że w internecie nie ma innych informacji.");
             else answer.insert(0, "Znalezione materiały do przeczytania w oryginalnych źródłach. To lista wyników, bez automatycznej oceny prawdziwości.\n\n");
-            if (failed > 0) answer.append("\nCzęść kanałów jest chwilowo niedostępna: ").append(failed).append(".");
+            if (failed > 0 || skipped > 0)
+                answer.append("\nSkan częściowy: niedostępne kanały: ").append(failed)
+                      .append(", pominięte z powodu limitu czasu: ").append(skipped).append(".");
             JSONObject result = new JSONObject().put("freeSearch", true).put("answer", answer.toString())
                 .put("text", answer.toString()).put("sources", sources).put("verified", sources.length()>0)
-                .put("queries", new JSONArray().put(query)).put("searchedAt", System.currentTimeMillis())
+                .put("queries", searchedQueries).put("searchedAt", System.currentTimeMillis())
+                .put("profiles", profileResults).put("plannedFeeds",profiles.length)
                 .put("successfulFeeds", successful).put("failedFeeds", failed)
-                .put("partialResults", failed > 0).put("sourceLinksFound", sources.length()>0)
+                .put("skippedFeeds", skipped).put("partialResults", failed > 0 || skipped > 0)
+                .put("sourceLinksFound", sources.length()>0)
                 .put("sourceReviewStatus", "DO_SPRAWDZENIA")
                 .put("sourcesAreFactChecked", false).put("dateFilterApplied", datedOnly)
                 .put("since", since);
@@ -167,8 +202,8 @@ public final class FreeIspinaSearchClient {
         HttpURLConnection connection = (HttpURLConnection) new URL(address).openConnection();
         try {
             control.attach(connection);
-            connection.setConnectTimeout(5000);
-            connection.setReadTimeout(7000);
+            connection.setConnectTimeout(3500);
+            connection.setReadTimeout(4500);
             connection.setInstanceFollowRedirects(false);
             connection.setRequestProperty("Accept", "application/rss+xml, application/xml, text/xml");
             connection.setRequestProperty("User-Agent", "IL-Redaktor-Smart/1.28 PublicRSS");
