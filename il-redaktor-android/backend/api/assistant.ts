@@ -4,7 +4,7 @@ import { Redis } from '@upstash/redis';
 import { generateText, Output } from 'ai';
 import { createHash } from 'node:crypto';
 import { z } from 'zod';
-import { extractGroundingQueries, getBackendReadiness, getBackendRedisConfig, normalizeGroundedSources, rateLimitExceeded, RESEARCH_PROFILES } from '../lib/assistant-utils.ts';
+import { extractGroundingQueries, getBackendReadiness, getBackendRedisConfig, normalizeGroundedSources, rateLimitExceeded, RESEARCH_PROFILES } from '../lib/assistant-utils.js';
 
 const MCP_URL = 'https://public-api.wordpress.com/wpcom/v2/mcp/v1';
 const SITE = 'ispinalokalnie.wordpress.com';

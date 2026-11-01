@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import assistantHandler, { GET, OPTIONS, POST } from '../api/assistant.ts';
-import { extractGroundingQueries, getBackendReadiness, getBackendRedisConfig, normalizeGroundedSources, rateLimitExceeded, RESEARCH_PROFILES } from '../lib/assistant-utils.ts';
+import { extractGroundingQueries, getBackendReadiness, getBackendRedisConfig, normalizeGroundedSources, rateLimitExceeded, RESEARCH_PROFILES } from '../lib/assistant-utils.js';
 test('readiness accepts Upstash and Vercel KV environment names', () => {
   assert.deepEqual(getBackendReadiness({ GOOGLE_GENERATIVE_AI_API_KEY: 'key', UPSTASH_REDIS_REST_URL: 'url', UPSTASH_REDIS_REST_TOKEN: 'token' }), { ready: true, missing: [] });
   assert.deepEqual(getBackendReadiness({ GOOGLE_GENERATIVE_AI_API_KEY: 'key', KV_REST_API_URL: 'https://kv.example', KV_REST_API_TOKEN: 'vercel-token' }), { ready: true, missing: [] });
