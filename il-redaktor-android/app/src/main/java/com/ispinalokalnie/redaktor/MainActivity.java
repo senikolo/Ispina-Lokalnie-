@@ -713,30 +713,39 @@ public class MainActivity extends Activity {
             });
         }
 
-        @JavascriptInterface public void publicPosts() {
+        @JavascriptInterface public void publicPosts() { publicPostsPage(1); }
+        @JavascriptInterface public void publicPostsPage(int page) {
+            if (page < 1 || page > 100) {
+                callback("public-posts-more", false, "Nieprawidłowa strona listy artykułów.");
+                return;
+            }
+            final String event = page == 1 ? "public-posts" : "public-posts-more";
             work.execute(() -> {
                 java.net.HttpURLConnection connection = null;
                 try {
                     java.net.URL url = new java.net.URL(
                         "https://public-api.wordpress.com/wp/v2/sites/252442125/posts" +
-                        "?per_page=30&orderby=modified&order=desc&_fields=id,title,modified,status,link");
+                        "?per_page=30&page=" + page + "&orderby=modified&order=desc" +
+                        "&_fields=id,title,excerpt,content,modified,status,link,featured_media");
                     connection = (java.net.HttpURLConnection) url.openConnection();
                     connection.setRequestMethod("GET");
                     connection.setConnectTimeout(12000);
                     connection.setReadTimeout(18000);
                     connection.setRequestProperty("Accept", "application/json");
                     int status = connection.getResponseCode();
+                    if (page > 1 && status == 400) {
+                        callback(event, true, "[]"); return;
+                    }
                     if (status < 200 || status >= 300)
                         throw new Exception("Odczyt publicznych wpisów: HTTP " + status);
                     String reply = WpMcp.readReply(connection);
                     org.json.JSONArray posts = new org.json.JSONArray(reply);
                     if (posts.length() > 30) throw new Exception("Nieprawidłowa liczba wpisów.");
-                    callback("public-posts", true, posts.toString());
+                    callback(event, true, posts.toString());
                 } catch (Exception ex) {
                     String detail = ex.getMessage() == null ? "Błąd sieci." : ex.getMessage();
-                    callback("public-posts", false,
-                        "Nie udało się pobrać publicznych artykułów. " + detail +
-                        ". Spróbuj ponownie albo otwórz portal w przeglądarce.");
+                    callback(event, false, "Nie udało się pobrać publicznych artykułów. " +
+                        detail + ". Spróbuj ponownie albo otwórz portal w przeglądarce.");
                 } finally {
                     if (connection != null) connection.disconnect();
                 }
