@@ -567,8 +567,15 @@ public class MainActivity extends Activity {
         }
 
         @JavascriptInterface public void loginState() {
-            boolean pending = newOAuthLogin().hasPendingLogin();
-            callback("login-state", true, "{\"pending\":" + pending + "}");
+            OAuthBrowserLogin login = newOAuthLogin();
+            boolean expired = login.hasExpiredPendingLogin();
+            if (expired) {
+                login.cancelLogin();
+                loginInProgress = false;
+            }
+            boolean pending = login.hasPendingLogin();
+            callback("login-state", true, "{\"pending\":" + pending +
+                ",\"expired\":" + expired + "}");
         }
 
         @JavascriptInterface public void finishLoginWithUrl(String raw) {
@@ -633,6 +640,9 @@ public class MainActivity extends Activity {
                     callback("auth-progress", true, "Oczekuję na zakończenie poprzedniego logowania. Użyj przycisku Anuluj i spróbuj ponownie, jeśli poprzednia próba utknęła.");
                     return;
                 }
+                // A stale in-memory flag must never block a fresh OAuth attempt.
+                if (loginInProgress && !newOAuthLogin().hasPendingLogin())
+                    loginInProgress = false;
                 if(loginInProgress) { callback("auth-progress",true,"Logowanie jest już w toku.");return; }
                 loginInProgress=true;
                 oauthCallbackArrived=false;
@@ -1345,10 +1355,20 @@ public class MainActivity extends Activity {
         if (oauthBrowserWasOpened) {
             oauthBrowserWasOpened = false;
             ui.postDelayed(() -> {
-                if (!oauthCallbackArrived && newOAuthLogin().hasPendingLogin()) {
-                    callback("auth-return", true,
-                        "Wrócono z przeglądarki bez potwierdzenia WordPress.com. " +
-                        "Otwórz ponownie logowanie i zaakceptuj dostęp albo anuluj tę próbę.");
+                if (!oauthCallbackArrived) {
+                    OAuthBrowserLogin login = newOAuthLogin();
+                    if (login.hasExpiredPendingLogin()) {
+                        login.cancelLogin();
+                        loginInProgress = false;
+                        callback("auth-progress", false,
+                            "Minęło 5 minut bez odpowiedzi WordPress.com. Próba wygasła. " +
+                            "Rozpocznij logowanie ponownie i dokończ je w przeglądarce.");
+                    } else if (login.hasPendingLogin()) {
+                        callback("auth-return", true,
+                            "Wrócono z przeglądarki bez potwierdzenia WordPress.com. " +
+                            "Wznów zgodę w przeglądarce lub anuluj próbę. " +
+                            "Upewnij się, że Android może otworzyć Redaktora IL z przeglądarki.");
+                    }
                 }
             }, 1000);
         }
