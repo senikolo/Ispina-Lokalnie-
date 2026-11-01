@@ -61,6 +61,22 @@ public final class ConfirmationInstrumentation extends Instrumentation {
         long deadline=SystemClock.uptimeMillis()+25000;
         while(!"true".equals(evaluate(script))){if(SystemClock.uptimeMillis()>deadline)throw new AssertionError("Timed out waiting for "+script);SystemClock.sleep(100);}
     }
+    private byte[] jpegWithExifOrientation(byte[] jpeg, int orientation) throws java.io.IOException {
+        if (jpeg.length < 2 || (jpeg[0] & 0xff) != 0xff || (jpeg[1] & 0xff) != 0xd8) {
+            throw new AssertionError("JPEG fixture encoder returned invalid data");
+        }
+        byte[] app1 = new byte[] {
+            (byte)0xff, (byte)0xe1, 0, 34,
+            'E','x','i','f',0,0, 'I','I',42,0, 8,0,0,0, 1,0,
+            0x12,0x01, 3,0, 1,0,0,0, (byte)orientation,0,0,0, 0,0,0,0
+        };
+        java.io.ByteArrayOutputStream out = new java.io.ByteArrayOutputStream(jpeg.length + app1.length);
+        out.write(jpeg, 0, 2);
+        out.write(app1);
+        out.write(jpeg, 2, jpeg.length - 2);
+        return out.toByteArray();
+    }
+
     private void verifyEditorFeatures() throws Exception {
         AtomicReference<Throwable> failure=new AtomicReference<>();
         runOnMainSync(()->{try{
@@ -80,9 +96,11 @@ public final class ConfirmationInstrumentation extends Instrumentation {
         waitForIdleSync();if(failure.get()!=null)throw new AssertionError("Photo dialog",failure.get());if(uploaded.get())throw new AssertionError("Photo cancellation uploaded data");
         diagnosticStage="photo EXIF";
         java.io.File sample=new java.io.File(getTargetContext().getCacheDir(),"photo-exif-test.jpg");
-        android.graphics.Bitmap raw=android.graphics.Bitmap.createBitmap(120,80,android.graphics.Bitmap.Config.ARGB_8888);
-        try(java.io.FileOutputStream out=new java.io.FileOutputStream(sample)){raw.compress(android.graphics.Bitmap.CompressFormat.JPEG,80,out);}raw.recycle();
-        android.media.ExifInterface exif=new android.media.ExifInterface(sample.getAbsolutePath());exif.setAttribute(android.media.ExifInterface.TAG_ORIENTATION,"6");exif.saveAttributes();
+        java.io.ByteArrayOutputStream encoded=new java.io.ByteArrayOutputStream();
+        android.graphics.Bitmap raw=android.graphics.Bitmap.createBitmap(120,80,android.graphics.Bitmap.Config.RGB_565);
+        if(!raw.compress(android.graphics.Bitmap.CompressFormat.JPEG,90,encoded))throw new AssertionError("JPEG fixture encoding failed");raw.recycle();
+        byte[] orientedJpeg=jpegWithExifOrientation(encoded.toByteArray(),6);
+        try(java.io.FileOutputStream out=new java.io.FileOutputStream(sample)){out.write(orientedJpeg);}
         android.graphics.Bitmap oriented=PhotoEditor.decode(getTargetContext(),android.net.Uri.fromFile(sample));if(oriented.getWidth()!=80||oriented.getHeight()!=120)throw new AssertionError("EXIF orientation lost");oriented.recycle();sample.delete();
         diagnosticStage="correction comparison";
         if(!"true".equals(evaluate("$('post-body').value='W Ispini.';offerCorrection({body:'W Ispinie.'},'Test');$('accept-body').checked && $('post-body').value==='W Ispini.'")))throw new AssertionError("Correction comparison changed text before consent");
