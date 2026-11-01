@@ -238,8 +238,9 @@ header{animation:ilHeader .38s cubic-bezier(.2,.7,.2,1) both}.brand .logo{animat
     <p id="chatgpt-account-status" class="small muted" role="status" aria-live="polite">Sprawdzam połączenie z ChatGPT…</p>
     <div class="actions">
       <button id="chatgpt-connect" type="button" onclick="connectChatGpt()">Kontynuuj z ChatGPT</button>
-      <button id="chatgpt-disconnect" class="secondary hidden" type="button" onclick="disconnectChatGpt()">Odłącz konto</button>
+      <button id="chatgpt-disconnect" class="secondary hidden" type="button" onclick="disconnectChatGpt()">Odłącz / zmień konto</button>
       <button class="secondary" type="button" onclick="openChatGptUsage()">Zarządzaj użyciem ChatGPT</button>
+    <p class="small muted">To połączenie jest osobne od WordPress.com i aplikacji ChatGPT. Pokazany adres to konto, którego plan wykorzystują IL Chat i Radar. Aby je zmienić, wybierz „Odłącz / zmień konto”, a potem zaloguj się ponownie.</p>
     </div>
   <div class="card" id="ispina-chat-card">
     <div class="eyebrow">IL CHAT AI · RADAR INFORMACJI</div>
@@ -1078,14 +1079,14 @@ async function refreshChatGptState(){
     const email=String(state?.email||"").trim(),model=String(state?.model||"").trim();
     const account=$("chatgpt-account-status");
     if(chatGptConnected){
-      account.textContent="Połączono z ChatGPT"+(email?": "+email:"")+(model?" · model: "+model:"")+". IL Chat i Radar używają planu ChatGPT.";
+      account.textContent="Konto ChatGPT używane przez IL Chat i Radar: "+(email||"adres e-mail niedostępny")+(model?" · model: "+model:"")+"."; if(!email)account.textContent+=" Sprawdź konto wybrane w przeglądarce albo odłącz je i zaloguj się ponownie."
       account.className="small ok";
       $("ispina-chat-status").textContent="ChatGPT jest połączony. IL Chat może szukać aktualnych informacji i pokazywać źródła.";
       $("ispina-chat-status").className="small muted";
       $("research-status").textContent="ChatGPT jest połączony. Możesz wyszukiwać aktualne informacje o Ispinie.";
       $("research-status").className="small muted";
     }else{
-      account.textContent="Nie połączono ChatGPT. Zaloguj się na właściwe konto i zezwól na użycie planu w IL Redaktorze.";
+      account.textContent="Nie połączono ChatGPT. Przy logowaniu wybierz konto, którego plan ma używać IL Chat i Radar."
       account.className="small muted";
       $("ispina-chat-status").textContent="Połącz konto ChatGPT, aby używać IL Chat AI.";
       $("ispina-chat-status").className="small muted";
@@ -1136,7 +1137,7 @@ async function connectChatGpt(){
   }finally{button.disabled=false}
 }
 async function disconnectChatGpt(){
-  if(!chatGptConnected||!confirm("Odłączyć konto ChatGPT? Radar w tle zostanie zatrzymany, a IL Redaktor usunie lokalne tokeny logowania."))return false;
+  if(!chatGptConnected||!confirm("Odłączyć konto ChatGPT? Radar w tle zostanie zatrzymany, a lokalne tokeny usunięte. Potem możesz zalogować inne konto. Połączenie WordPress pozostanie bez zmian."))return false;
   const button=$("chatgpt-disconnect");button.disabled=true;
   try{
     const state=await requestDisconnectChatGpt();
