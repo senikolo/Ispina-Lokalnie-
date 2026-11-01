@@ -3,7 +3,7 @@ name: IL Redaktor Smart - Android APK
 on:
   push:
     branches:
-      - codex/il-redaktor-native-android-20261031
+      - 'codex/**'
     paths:
       - "il-redaktor-android/**"
       - ".github/workflows/il-redaktor-apk.yml"

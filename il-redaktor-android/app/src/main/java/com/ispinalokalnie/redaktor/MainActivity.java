@@ -598,31 +598,95 @@ public class MainActivity extends Activity {
         }
 
         @JavascriptInterface public void askResearch(String rid, String prompt) {
-            if (rid.length() > 60 || !rid.matches("[A-Za-z0-9_-]+")) return;
+            if (rid == null || rid.length() > 60 || !rid.matches("[A-Za-z0-9_-]+")) return;
             if (prompt == null || prompt.trim().isEmpty() || prompt.length() > 1800) {
                 callback(rid, false, "Wpisz temat wyszukiwania, maksymalnie 1800 znaków."); return;
             }
-            if (!connected()) { callback(rid, false, "Połącz konto WordPress, aby użyć wyszukiwania internetowego."); return; }
-            if (BuildConfig.ASSISTANT_ENDPOINT == null || BuildConfig.ASSISTANT_ENDPOINT.trim().isEmpty()) {
-                callback(rid, false, "Wyszukiwanie AI nie jest skonfigurowane. Potrzebny jest backend Gemini z Google Search po stronie serwera."); return;
+            if (!ChatGptPlanClient.isConnected(MainActivity.this)) {
+                callback(rid, false, "Połącz konto ChatGPT w Radarze, aby użyć wyszukiwania internetowego."); return;
             }
-            work.execute(() -> askResearchOnServer(rid, prompt));
+            work.execute(() -> {
+                try {
+                    JSONObject result = ChatGptPlanClient.ask(MainActivity.this, prompt, new org.json.JSONArray(), true);
+                    if (result.optString("text").trim().isEmpty()
+                        || result.optJSONArray("sources") == null || result.optJSONArray("sources").length() == 0)
+                        throw new Exception("ChatGPT nie zwrócił raportu ze źródłami.");
+                    callback(rid, true, result.toString());
+                } catch (Exception ex) {
+                    callback(rid, false, ex.getMessage() == null ? "Nie udało się wykonać wyszukiwania ChatGPT." : ex.getMessage());
+                }
+            });
         }
 
         @JavascriptInterface public void askIspinaChat(String rid, String prompt, String historyJson) {
-            if (rid.length() > 60 || !rid.matches("[A-Za-z0-9_-]+")) return;
+            if (rid == null || rid.length() > 60 || !rid.matches("[A-Za-z0-9_-]+")) return;
             if (prompt == null || prompt.trim().isEmpty() || prompt.length() > 2000) {
                 callback(rid, false, "Wpisz pytanie o Ispinę, maksymalnie 2000 znaków."); return;
             }
+            org.json.JSONArray history;
             try {
-                org.json.JSONArray history = new org.json.JSONArray(historyJson == null ? "[]" : historyJson);
-                if (history.length() > 8) { callback(rid, false, "Historia rozmowy jest za długa. Wyczyść czat i spróbuj ponownie."); return; }
-            } catch (Exception ex) { callback(rid, false, "Nieprawidłowa historia rozmowy."); return; }
-            if (!connected()) { callback(rid, false, "Połącz konto WordPress, aby użyć IL Chat AI."); return; }
-            if (BuildConfig.ASSISTANT_ENDPOINT == null || BuildConfig.ASSISTANT_ENDPOINT.trim().isEmpty()) {
-                callback(rid, false, "Radar wymaga skonfigurowanego backendu Gemini z Google Search."); return;
+                history = new org.json.JSONArray(historyJson == null ? "[]" : historyJson);
+                if (history.length() > 8) {
+                    callback(rid, false, "Historia rozmowy jest za długa. Wyczyść czat i spróbuj ponownie."); return;
+                }
+            } catch (Exception ex) {
+                callback(rid, false, "Nieprawidłowa historia rozmowy."); return;
             }
-            work.execute(() -> askIspinaChatOnServer(rid, prompt, historyJson));
+            if (!ChatGptPlanClient.isConnected(MainActivity.this)) {
+                callback(rid, false, "Połącz konto ChatGPT w Radarze, aby użyć IL Chat AI."); return;
+            }
+            org.json.JSONArray safeHistory = history;
+            work.execute(() -> {
+                try {
+                    JSONObject result = ChatGptPlanClient.ask(MainActivity.this, prompt, safeHistory, true);
+                    callback(rid, true, result.toString());
+                } catch (Exception ex) {
+                    callback(rid, false, ex.getMessage() == null ? "Nie udało się połączyć z ChatGPT." : ex.getMessage());
+                }
+            });
+        }
+
+        @JavascriptInterface public void getChatGptState(String rid) {
+            if (rid == null || rid.length() > 60 || !rid.matches("[A-Za-z0-9_-]+")) return;
+            callback(rid, true, ChatGptPlanClient.state(MainActivity.this).toString());
+        }
+
+        @JavascriptInterface public void connectChatGpt(String rid) {
+            if (rid == null || rid.length() > 60 || !rid.matches("[A-Za-z0-9_-]+")) return;
+            ChatGptPlanClient.connect(MainActivity.this, new ChatGptPlanClient.ConnectListener() {
+                @Override public void success(JSONObject state) {
+                    callback(rid, true, state.toString());
+                }
+                @Override public void failure(String message) {
+                    callback(rid, false, message);
+                }
+            });
+        }
+
+        @JavascriptInterface public void disconnectChatGpt(String rid) {
+            if (rid == null || rid.length() > 60 || !rid.matches("[A-Za-z0-9_-]+")) return;
+            ui.post(() -> {
+                prefs().edit().putBoolean(IspinaRadarWorker.PREF_ENABLED, false).apply();
+                IspinaRadarWorker.cancel(MainActivity.this);
+                work.execute(() -> {
+                    boolean revoked = ChatGptPlanClient.disconnect(MainActivity.this);
+                    JSONObject state = ChatGptPlanClient.state(MainActivity.this);
+                    try { state.put("revocationConfirmed", revoked); } catch (Exception ignored) {}
+                    callback(rid, true, state.toString());
+                });
+            });
+        }
+
+        @JavascriptInterface public void openChatGptUsage() {
+            ui.post(() -> {
+                try {
+                    Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse("https://chatgpt.com/settings/usage"));
+                    intent.addCategory(Intent.CATEGORY_BROWSABLE);
+                    startActivity(intent);
+                } catch (Exception ex) {
+                    Toast.makeText(MainActivity.this, "Nie udało się otworzyć ustawień użycia ChatGPT.", Toast.LENGTH_LONG).show();
+                }
+            });
         }
 
         @JavascriptInterface public void getIspinaRadarState(String rid) {
@@ -639,9 +703,8 @@ public class MainActivity extends Activity {
                     callback(rid, true, ispinaRadarState().toString());
                     return;
                 }
-                if (!connected()) { callback(rid, false, "Połącz Redaktora z WordPressem, aby uruchomić Radar Ispiny."); return; }
-                if (BuildConfig.ASSISTANT_ENDPOINT == null || BuildConfig.ASSISTANT_ENDPOINT.trim().isEmpty()) {
-                    callback(rid, false, "Radar wymaga skonfigurowanego backendu Gemini i Google Search."); return;
+                if (!ChatGptPlanClient.isConnected(MainActivity.this)) {
+                    callback(rid, false, "Najpierw połącz konto ChatGPT w Radarze Ispiny."); return;
                 }
                 if (!notificationsAllowed()) {
                     if (android.os.Build.VERSION.SDK_INT >= 33 &&
