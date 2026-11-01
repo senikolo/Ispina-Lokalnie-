@@ -33,6 +33,12 @@ import java.util.concurrent.TimeUnit;
 
 /** Checks public, source-grounded Ispina mentions and alerts only on new source links. */
 public final class IspinaRadarWorker extends Worker {
+    private volatile ChatGptPlanClient.SearchControl activeSearch;
+    @Override public void onStopped() {
+        ChatGptPlanClient.SearchControl current = activeSearch;
+        if (current != null) current.cancel();
+        super.onStopped();
+    }
     public static final String PREF_ENABLED = "ispina_radar_enabled";
     public static final String PREF_LAST_CHECKED = "ispina_radar_last_checked";
     public static final String PREF_LAST_STATUS = "ispina_radar_last_status";
@@ -90,8 +96,9 @@ public final class IspinaRadarWorker extends Worker {
             long last = prefs.getLong(PREF_LAST_CHECKED, 0L);
             long since = last > 0 ? Math.max(0L, last - TimeUnit.HOURS.toMillis(24))
                 : now - TimeUnit.HOURS.toMillis(24);
-            JSONObject result = FreeIspinaSearchClient.search(context, "Ispina",
-                new ChatGptPlanClient.SearchControl(context, 60000), since, true);
+            activeSearch = new ChatGptPlanClient.SearchControl(context, 60000);
+            JSONObject result = FreeIspinaSearchClient.search(context, "Ispina", activeSearch, since, true);
+            if (isStopped() || !prefs.getBoolean(PREF_ENABLED, false)) return Result.success();
             String answer = clean(result.optString("answer", ""));
             JSONArray array = result.optJSONArray("sources");
             boolean verified = result.optBoolean("verified", false) && !answer.isEmpty()
@@ -124,16 +131,8 @@ public final class IspinaRadarWorker extends Worker {
             return Result.success();
         } catch (Exception ex) {
             String message = ex.getMessage() == null ? "Sprawdź połączenie i ustawienia radaru." : ex.getMessage();
-            String lower = message.toLowerCase(Locale.ROOT);
-            long failedAt = System.currentTimeMillis();
-            if (lower.contains("limit użycia chatgpt") || lower.contains("subscription_sharing_usage_limit_exceeded")) {
-                prefs.edit().putBoolean(PREF_ENABLED, false).commit();
-                saveStatus(prefs, "usage_limit", "Limit użycia ChatGPT został osiągnięty. Sprawdź ustawienia użycia, a potem włącz Radar ponownie.", false, failedAt);
-                cancel(context);
-            } else if (lower.contains("sesja chatgpt wygasła") || lower.contains("połącz konto chatgpt")
-                || lower.contains("nie przyznano zgody") || lower.contains("brak wymaganej zgody")) {
-                saveStatus(prefs, "login", "Połącz ponownie konto ChatGPT w Radarze.", false, failedAt);
-            } else saveStatus(prefs, "error", message, false, failedAt);
+            if (isStopped() || !prefs.getBoolean(PREF_ENABLED, false)) return Result.success();
+            saveStatus(prefs, "error", message, false, System.currentTimeMillis());
             return Result.success();
         }
     }
