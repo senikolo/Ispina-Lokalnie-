@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - 'codex/**'
+      - 'fix/il-redaktor-audit-remediation-20261101'
     paths:
       - "il-redaktor-android/**"
       - ".github/workflows/il-redaktor-apk.yml"
@@ -233,7 +234,7 @@ jobs:
           arch: x86_64
           disable-animations: true
           emulator-options: -no-window -gpu swiftshader -feature -Vulkan -no-snapshot -noaudio -no-boot-anim -camera-back none
-          ram-size: 3072M
+          ram-size: 2048M
           script: bash il-redaktor-android/scripts/run-emulator-smoke.sh 26
       - name: Test Android 11 (API 30) WebView and update flow without WordPress writes
         uses: reactivecircus/android-emulator-runner@v2
@@ -243,7 +244,7 @@ jobs:
           arch: x86_64
           disable-animations: true
           emulator-options: -no-window -gpu swiftshader -feature -Vulkan -no-snapshot -noaudio -no-boot-anim -camera-back none
-          ram-size: 3072M
+          ram-size: 2048M
           script: bash il-redaktor-android/scripts/run-emulator-smoke.sh 30
       - name: Test Android 13 (API 33) WebView and update flow without WordPress writes
         uses: reactivecircus/android-emulator-runner@v2
@@ -253,7 +254,7 @@ jobs:
           arch: x86_64
           disable-animations: true
           emulator-options: -no-window -gpu swiftshader -feature -Vulkan -no-snapshot -noaudio -no-boot-anim -camera-back none
-          ram-size: 3072M
+          ram-size: 2048M
           script: bash il-redaktor-android/scripts/run-emulator-smoke.sh 33
       - name: Upload emulator UI checks
         uses: actions/upload-artifact@v4
