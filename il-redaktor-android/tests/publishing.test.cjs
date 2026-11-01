@@ -398,7 +398,7 @@ test("OAuth waiting indicator is pending, not a forever-spinning progress state"
 });
 
 test("OAuth missing callback stops waiting after 60 seconds and leaves recovery controls",()=>{
-  const a=setup();let expire;
+  const a=setup();a.run("connected=false");let expire;
   a.c.setTimeout=(fn,delay)=>{assert.equal(delay,60000);expire=fn;return {unref(){}};};
   a.c.clearTimeout=()=>{};
   a.run('window.onNativeResult("auth-progress",true,"Krok 3/4: oczekuję na powrót.")');
