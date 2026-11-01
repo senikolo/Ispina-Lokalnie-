@@ -4,7 +4,7 @@ import { Redis } from '@upstash/redis';
 import { generateText, Output } from 'ai';
 import { createHash } from 'node:crypto';
 import { z } from 'zod';
-import { extractGroundingQueries, getBackendReadiness, getBackendRedisConfig, normalizeGroundedSources, rateLimitExceeded, RESEARCH_PROFILES } from '../lib/assistant-utils.js';
+import { extractGroundingQueries, getBackendReadiness, getBackendRedisConfig, normalizeGroundedSources, rateLimitExceeded, RESEARCH_PROFILES, summarizeProviderError } from '../lib/assistant-utils.js';
 
 const MCP_URL = 'https://public-api.wordpress.com/wpcom/v2/mcp/v1';
 const SITE = 'ispinalokalnie.wordpress.com';
@@ -66,6 +66,22 @@ function json(body: unknown, status = 200) {
 }
 
 function redisClient() { return new Redis(getBackendRedisConfig(process.env)); }
+
+function providerErrorResponse(failure: ReturnType<typeof summarizeProviderError>) {
+  const messages: Record<string, string> = {
+    quota: 'Google Gemini zgłosiło limit lub brak dostępnego przydziału. Sprawdź limity i rozliczenia Google AI.',
+    auth: 'Google Gemini odrzuciło klucz API lub jego uprawnienia. Sprawdź klucz GOOGLE_GENERATIVE_AI_API_KEY w Vercel.',
+    configuration: 'Google Gemini odrzuciło konfigurację zapytania. Sprawdź model i ustawienia wyszukiwania Google.',
+    model: 'Google Gemini nie znalazło skonfigurowanego modelu. Sprawdź ID modelu w backendzie.',
+    transient: 'Usługa Google Gemini jest chwilowo niedostępna. Spróbuj ponownie za chwilę.',
+    unknown: 'Nie udało się uzyskać odpowiedzi z Google Gemini. Sprawdź połączenie i spróbuj ponownie.',
+  };
+  const details = [failure.providerCode, failure.statusCode ? `HTTP ${failure.statusCode}` : '']
+    .filter(Boolean).join(', ');
+  const suffix = details ? ` (${details})` : '';
+  return json({ error: (messages[failure.category] || messages.unknown) + suffix }, failure.category === 'quota' ? 429 : 502);
+}
+
 
 function siteLimiter() {
   return new Ratelimit({
@@ -240,6 +256,7 @@ export async function POST(request: Request) {
 
     if (input.mode === 'research') {
       const topic = JSON.stringify(input.prompt);
+      const providerFailures: Array<{ profile: string; failure: ReturnType<typeof summarizeProviderError> }> = [];
       const sections = await Promise.all(RESEARCH_PROFILES.map(async profile => {
         try {
           const result = await generateText({
@@ -264,13 +281,22 @@ export async function POST(request: Request) {
           const text = typeof result.text === 'string' ? result.text.trim().slice(0, 9000) : '';
           const verified = Boolean(text && sources.length);
           return { id: profile.id, title: profile.title, status: verified ? 'ok' : (queries.length || text ? 'inconclusive' : 'unverified'), text: verified ? text : '', sources, queries };
-        } catch {
+        } catch (error) {
+          const failure = summarizeProviderError(error);
+          providerFailures.push({ profile: profile.id, failure });
+          console.error('IL Radar research profile failed:', JSON.stringify({ profile: profile.id, ...failure }));
           return { id: profile.id, title: profile.title, status: 'failed', text: '', sources: [], queries: [] };
         }
       }));
       const verifiedSections = sections.filter(section => section.status === 'ok');
-      if (!verifiedSections.length)
+      if (!verifiedSections.length) {
+        if (providerFailures.length) {
+          const priority: Record<string, number> = { auth: 0, quota: 1, configuration: 2, model: 3, transient: 4, unknown: 5 };
+          providerFailures.sort((a, b) => (priority[a.failure.category] ?? 5) - (priority[b.failure.category] ?? 5));
+          return providerErrorResponse(providerFailures[0].failure);
+        }
         return json({ error: 'Nie udało się potwierdzić źródeł w żadnym profilu wyszukiwania. Spróbuj z konkretniejszym tematem.' }, 502);
+      }
       const sources = normalizeGroundedSources(verifiedSections.flatMap(section => section.sources));
       const queries = [...new Set(verifiedSections.flatMap(section => section.queries))].slice(0, 60);
       return json({
@@ -332,9 +358,13 @@ Zwróć wyłącznie propozycję. Nie wykonuj żadnych zapisów w WordPressie i n
 
     return json(output);
   } catch (error) {
-    // Do not log credentials, prompt text, or provider request bodies.
-    console.error('IL Redaktor assistant request failed:', error instanceof Error ? error.name : 'unknown');
-    return json({ error: 'Model AI jest chwilowo niedostępny. Spróbuj ponownie później.' }, 502);
+    // Log only sanitized provider diagnostics; never log credentials, prompts, or request bodies.
+    const failure = summarizeProviderError(error);
+    console.error('IL Redaktor assistant request failed:', JSON.stringify({
+      name: error instanceof Error ? error.name : 'unknown',
+      ...failure,
+    }));
+    return providerErrorResponse(failure);
   }
 }
 

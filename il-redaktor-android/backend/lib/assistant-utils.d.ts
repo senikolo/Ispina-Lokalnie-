@@ -1,6 +1,8 @@
 export type GroundedSource = { title: string; url: string };
 
 export declare const REQUIRED_BACKEND_ENV: readonly ['GOOGLE_GENERATIVE_AI_API_KEY'];
+export type ProviderErrorSummary = { category: 'quota' | 'auth' | 'configuration' | 'model' | 'transient' | 'unknown'; statusCode: number | null; providerCode: string; retryable: boolean | null; message: string };
+export declare function summarizeProviderError(error: unknown): ProviderErrorSummary;
 export declare function getBackendRedisConfig(env: Record<string, string | undefined>): { url: string; token: string };
 export declare function getBackendReadiness(env: Record<string, string | undefined>): { ready: boolean; missing: string[] };
 
