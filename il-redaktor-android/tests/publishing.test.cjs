@@ -652,7 +652,7 @@ test("ChatGPT/Gemini handoff adds fact guardrails and sends only after the user 
   const a=setup();let sent="";a.node("assistant-prompt").value="Skróć tekst artykułu";a.c.IL.shareAssistantPrompt=text=>{sent=text};
   assert.equal(a.run("sendAssistantToApps()"),true);
   assert.match(sent,/w Ispinie, do Ispiny, z Ispiny/);assert.match(sent,/Nie wymyślaj dat/);assert.match(sent,/Skróć tekst artykułu/);
-  assert.equal(a.node("assistant-handoff-status").textContent,"Próbuję otworzyć ChatGPT. Jeśli nie będzie dostępny, spróbuję Gemini.");
+  assert.match(a.node("assistant-handoff-status").textContent,/otwieram ChatGPT Free/);
 });
 
 test("configured AI backend is not used by the default free local button",async()=>{
