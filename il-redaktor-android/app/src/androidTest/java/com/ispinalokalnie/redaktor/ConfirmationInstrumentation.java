@@ -160,14 +160,14 @@ public final class ConfirmationInstrumentation extends Instrumentation {
             // document.readyState alone only confirms DOM loading on older WebView.
             captureUi("startup");
             if ("seed".equals(mode) || "seed-current".equals(mode)) {
-                int expectedVersion = "seed-current".equals(mode) ? 33 : 21;
+                int expectedVersion = "seed-current".equals(mode) ? 34 : 21;
                 if(getTargetContext().getPackageManager().getPackageInfo(getTargetContext().getPackageName(),0).versionCode!=expectedVersion)throw new AssertionError("Seed baseline versionCode mismatch: expected "+expectedVersion);
                 String seeded=evaluate("localStorage.removeItem(draftKey);draftStore=null;activeDraftId=null;$('post-title').value='Pierwszy szkic';$('post-body').value='Pierwsza wersja';persistDraft(true);$('post-body').value='Druga wersja';persistDraft(true);resetEditor();$('post-title').value='Drugi szkic';$('post-body').value='Drugi tekst';persistDraft(true);String(readDraftStore().drafts.length)");
                 if(!"\"2\"".equals(seeded))throw new AssertionError("Draft seeding failed: "+seeded);
                 if(!getTargetContext().getSharedPreferences("il_update_probe",0).edit().putString("marker","preserved").commit())throw new AssertionError("Preferences seeding failed");
                 result.putString("stream","IL_UPDATE_SEED=PASS\n");
             } else if ("verify".equals(mode)) {
-                if(getTargetContext().getPackageManager().getPackageInfo(getTargetContext().getPackageName(),0).versionCode!=33)throw new AssertionError("Verification must run after upgrade to versionCode 33");
+                if(getTargetContext().getPackageManager().getPackageInfo(getTargetContext().getPackageName(),0).versionCode!=34)throw new AssertionError("Verification must run after upgrade to versionCode 34");
                 String restored=evaluate("JSON.stringify(readDraftStore().drafts.map(d=>[d.title,d.body,d.revisions.length]))");
                 if(!restored.contains("Pierwszy szkic")||!restored.contains("Druga wersja")||!restored.contains("Drugi szkic"))throw new AssertionError("Drafts lost after reinstall: "+restored);
                 if(!"preserved".equals(getTargetContext().getSharedPreferences("il_update_probe",0).getString("marker","")))throw new AssertionError("Preferences lost after reinstall");
