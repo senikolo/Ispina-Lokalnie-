@@ -28,8 +28,8 @@ button:disabled{opacity:.5}button.secondary{background:#e7f2fc;color:#14538f}but
 .row{display:flex;gap:10px;align-items:center}.row>*{min-width:0}
 .post{padding:12px 0;border-bottom:1px solid #e6ebf3}.post:last-child{border:0}
 .post b{display:block;line-height:1.45}.post span{display:block;font-size:12px;color:#637894;margin:3px 0 7px}
-nav{position:fixed;z-index:5;bottom:0;left:0;right:0;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));background:white;border-top:1px solid #e0e9f5;box-shadow:0 -5px 20px #153f6810;padding:8px 4px max(9px,env(safe-area-inset-bottom))}
-nav button{background:none;color:#627b99;border-radius:12px;font-weight:700;font-size:10px;padding:7px 1px;min-width:0}
+nav{position:fixed;z-index:5;bottom:0;left:0;right:0;display:grid;grid-template-columns:repeat(6,minmax(0,1fr));background:white;border-top:1px solid #e0e9f5;box-shadow:0 -5px 20px #153f6810;padding:8px 4px max(9px,env(safe-area-inset-bottom))}
+nav button{background:none;color:#627b99;border-radius:12px;font-weight:700;font-size:9px;padding:7px 1px;min-width:0}
 nav button.active{color:#095eb6;background:#edf6ff}nav button .sym{display:block;font-size:22px;margin-bottom:3px}
 .grid{display:grid;grid-template-columns:1fr 1fr;gap:9px}
 .badge{display:inline-block;background:#eaf4ff;color:#1758a1;border-radius:50px;padding:3px 10px;font-size:12px}
@@ -63,7 +63,7 @@ nav button.active{color:#174875;background:#edf5fb}
 .media-card button{width:100%;font-size:12px;margin-top:8px}
 #editor-metrics{font-size:12px}
 .wide{width:100%}
-@media(max-width:370px){.actions button{flex:1}header h1{font-size:22px}nav button{font-size:10px}}
+@media(max-width:370px){.actions button{flex:1}header h1{font-size:22px}nav button{font-size:9px}}
 .finish-dialog{position:fixed;top:0;right:0;bottom:0;left:0;inset:0;background:#112e4db5;z-index:20;display:flex;align-items:center;justify-content:center;padding:20px}
 .finish-panel{width:100%;max-width:470px;background:#fff;border-radius:22px;padding:24px;box-shadow:0 20px 60px #001b3650}
 .finish-symbol{font-size:35px;line-height:1;color:#148450}.finish-panel.error .finish-symbol{color:#b03f3a}
@@ -200,7 +200,7 @@ header{animation:ilHeader .38s cubic-bezier(.2,.7,.2,1) both}.brand .logo{animat
     <div class="actions"><button onclick="resetEditor();showScreen('editor')">+ Nowy artykuł</button><button class="secondary" onclick="showScreen('posts');loadPosts()">Moje artykuły</button></div>
   </div>
   <div class="grid quick-grid">
-    <button class="tile" onclick="showDraftLibrary()"><span class="tile-icon">▱</span><b>Moje szkice</b><small>Twoja biblioteczka</small></button><button class="tile" onclick="showCalendar()"><span class="tile-icon">▦</span><b>Kalendarz</b><small>Tematy i terminy</small></button><button class="tile" onclick="showScreen('assistant')"><span class="tile-icon">✦</span><b>Asystent</b><small>Opisz zadanie</small></button>
+    <button class="tile" onclick="showDraftLibrary()"><span class="tile-icon">▱</span><b>Moje szkice</b><small>Twoja biblioteczka</small></button><button class="tile" onclick="showCalendar()"><span class="tile-icon">▦</span><b>Kalendarz</b><small>Tematy i terminy</small></button><button class="tile" onclick="showScreen('assistant')"><span class="tile-icon">✦</span><b>Asystent</b><small>Opisz zadanie</small></button><button class="tile" onclick="showScreen('radar')"><span class="tile-icon">◉</span><b>Radar Ispiny</b><small>Wzmianki · Chat AI</small></button>
     <button class="tile" onclick="showScreen('posts');loadPosts()"><span class="tile-icon">▤</span><b>Artykuły</b><small>Wpisy i szkice</small></button>
     <button class="tile" onclick="showScreen('services');loadServices()"><span class="tile-icon">▦</span><b>Usługi</b><small>Katalog firm</small></button>
     <button class="tile" onclick="showScreen('media');loadMedia()"><span class="tile-icon">▣</span><b>Galeria</b><small>Zdjęcia wpisów</small></button>
@@ -230,6 +230,8 @@ header{animation:ilHeader .38s cubic-bezier(.2,.7,.2,1) both}.brand .logo{animat
     <div id="assistant-output" aria-live="polite" role="log"></div>
     <p class="muted small">Tryb lokalny jest domyślny i nie korzysta z API. Jeśli dostępne jest skonfigurowane AI online, możesz wybrać je osobno; przed wysłaniem poproszę o zgodę. ChatGPT/Gemini w telefonie nie wymaga klucza API — odpowiedź wraca przez schowek do porównania.</p>
   </div>
+</section>
+<section id="screen-radar" class="panel">
   <div class="card" id="ispina-chat-card">
     <div class="eyebrow">IL CHAT AI · RADAR INFORMACJI</div>
     <h2>Zapytaj o Ispinę</h2>
@@ -409,6 +411,7 @@ header{animation:ilHeader .38s cubic-bezier(.2,.7,.2,1) both}.brand .logo{animat
 <nav aria-label="Główne zakładki">
 <button id="nav-home" class="active" onclick="showScreen('home')"><span class="sym">⌂</span>Pulpit</button>
 <button id="nav-editor" onclick="showScreen('editor')"><span class="sym">✎</span>Redaktor</button>
+<button id="nav-radar" onclick="showScreen('radar')"><span class="sym">◉</span>Radar</button>
 <button id="nav-posts" onclick="showScreen('posts')"><span class="sym">▤</span>Artykuły</button>
 <button id="nav-services" onclick="showScreen('services')"><span class="sym">▦</span>Usługi</button>
 <button id="nav-settings" onclick="showScreen('settings')"><span class="sym">⚙</span>Połączenie</button>
