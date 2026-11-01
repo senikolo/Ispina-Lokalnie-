@@ -704,9 +704,9 @@ test("AI context exposes published posts only for reader recommendations",()=>{
 test("new build metadata and the PR APK workflow agree",()=>{
   const gradle=fs.readFileSync(path.join(__dirname,"../app/build.gradle"),"utf8");
   const workflow=fs.readFileSync(path.join(__dirname,"../../.github/workflows/il-redaktor-apk.yml"),"utf8");
-  assert.match(gradle,/versionCode 41/);assert.match(gradle,/versionName '1\.29\.2-test\.1'/);assert.match(gradle,/https:\/\/il-redaktor-assistant\.vercel\.app\/api\/assistant/);
+  assert.match(gradle,/versionCode 42/);assert.match(gradle,/versionName '1\.29\.3-test\.1'/);assert.match(gradle,/https:\/\/il-redaktor-assistant\.vercel\.app\/api\/assistant/);
   assert.match(gradle,/applicationId 'com\.ispinalokalnie\.redaktorsmart\.stable'/);
-  assert.match(workflow,/versionCode='41' versionName='1\.29\.2-test\.1'/);
+  assert.match(workflow,/versionCode='42' versionName='1\.29\.3-test\.1'/);
 });
 
 test("AI editor shortcut copies current title and text into a reviewable prompt without sending it",()=>{
@@ -812,12 +812,19 @@ test("AI contract only returns image search terms, not unverifiable image URLs",
   assert.match(backend,/wyłącznie do przekazanych wpisów ze statusem publish/);
 });
 
+test("WordPress MCP rejects auth-only tokens and requires global scope",()=>{
+  const main=fs.readFileSync(path.join(__dirname,"../app/src/main/java/com/ispinalokalnie/redaktor/MainActivity.java"),"utf8");
+  const oauth=fs.readFileSync(path.join(__dirname,"../app/src/main/java/com/ispinalokalnie/redaktor/OAuthBrowserLogin.java"),"utf8");
+  assert.equal((oauth.match(/&scope=global/g)||[]).length,2,"Start and resume must both request global");
+  assert.match(main,/AUTH_SCOPE: WordPress przyznał tylko podstawowy zakres auth/);
+  assert.match(main,/required scope/);
+});
 test("OAuth DCR, PKCE, deep-link scheme and manifest callback match without a client secret",()=>{
   const root=path.join(__dirname,"../app/src/main");
   const oauth=fs.readFileSync(path.join(root,"java/com/ispinalokalnie/redaktor/OAuthBrowserLogin.java"),"utf8");
   const wp=fs.readFileSync(path.join(root,"java/com/ispinalokalnie/redaktor/WpMcp.java"),"utf8");
   const manifest=fs.readFileSync(path.join(root,"AndroidManifest.xml"),"utf8");
-  assert.match(oauth,/scope=auth/);assert.doesNotMatch(oauth,/scope=global/);assert.match(oauth,/code_challenge_method=S256/);
+  assert.match(oauth,/scope=global/);assert.doesNotMatch(oauth,/scope=auth/);assert.match(oauth,/code_challenge_method=S256/);
   assert.match(oauth,/stable:\/callback/);assert.match(manifest,/com\.ispinalokalnie\.redaktorsmart\.stable/);
   assert.match(wp,/token_endpoint_auth_method", "none"/);assert.match(wp,/code_verifier/);
   assert.doesNotMatch(wp,/put\("client_secret"/);
