@@ -24,8 +24,8 @@ android {
         testInstrumentationRunner 'com.ispinalokalnie.redaktor.ConfirmationInstrumentation'
         minSdk 26
         targetSdk 35
-        versionCode 36
-        versionName '1.26.1'
+        versionCode 37
+        versionName '1.27.0'
         def assistantEndpoint = System.getenv('IL_ASSISTANT_ENDPOINT') ?: project.findProperty('ilAssistantEndpoint') ?: 'https://il-redaktor-assistant.vercel.app/api/assistant'
         if (assistantEndpoint && !assistantEndpoint.toString().startsWith('https://')) {
             throw new GradleException('IL_ASSISTANT_ENDPOINT must use HTTPS.')
