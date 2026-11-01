@@ -79,6 +79,13 @@ function setup(initialStorage=[],nativeData) {
   return {c,node,storage,documentListeners,run:(script)=>vm.runInContext(script,c)};
 }
 
+test("backup reminder only records a completed export, never a canceled picker",()=>{
+  const fs=require("node:fs"),path=require("node:path");
+  const ui=fs.readFileSync(path.join(__dirname,"../app/src/main/assets/index.html"),"utf8");
+  assert.match(ui,/if\(id==="draft-backup"\)\{if\(ok\)/);
+  assert.match(ui,/id="backup-health"/);
+  assert.match(ui,/function renderBackupHealth/);
+});
 test("1.28.0 free Radar date selector, local SEO and diagnostic actions are exposed",()=>{ 
   const fs=require("node:fs"),path=require("node:path");
   const ui=fs.readFileSync(path.join(__dirname,"../app/src/main/assets/index.html"),"utf8");

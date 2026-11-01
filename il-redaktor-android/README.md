@@ -2,6 +2,8 @@
 
 Nowe: wybieralny zakres 7/30/90/365 dni lub wszystkie wyniki, sprawdzanie dat publikacji, zapytania ograniczone do domen urzędowych przez RSS wyszukiwarki, elastyczne tematy, wsparcie Atom, lokalne SEO oraz diagnostyka na ekranie ustawień. Wyniki RSS to **linki do sprawdzenia**, a nie zweryfikowane fakty. Nowy kod nie zapewnia pełnego monitoringu BIP czy przetargów, ani płatnej integracji AI. Testy CI nie zastępują sprawdzenia publikowania na prawdziwym WordPressie.
 
+**Dodatkowa ochrona szkiców:** zakładka „Moje szkice” przypomina o eksporcie, jeśli nie potwierdzono go wcześniej lub ostatnia kopia jest starsza niż 7 dni. Aplikacja zapisuje datę dopiero po zakończonym eksporcie, nigdy po samym otwarciu wyboru pliku. Automatyczny eksport poza aplikację wymaga osobnego, świadomego wyboru miejsca przez właściciela telefonu.
+
 **Bezpieczna aktualizacja:** wersja 1.28.0 wymaga tego samego klucza podpisującego co poprzednia wersja zainstalowana na telefonie. Debug APK z GitHub Actions może nie nadawać się do aktualizacji. Przed reinstalacją wyeksportuj szkice do JSON; nie odinstalowuj programu przed wykonaniem kopii.
 
 ---
