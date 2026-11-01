@@ -48,7 +48,7 @@ public final class FreeIspinaSearchClient {
                     successful++;
                     for (int i=0; i<items.length(); i++) {
                         JSONObject item = items.getJSONObject(i);
-                        found.put(item.getString("url"), item);
+                        if (matchesTopic(item, topic)) found.put(item.getString("url"), item);
                     }
                 } catch (Exception ex) { control.check(); failed++; }
             }
@@ -82,6 +82,15 @@ public final class FreeIspinaSearchClient {
             }
             return result;
         } finally { control.close(); }
+    }
+
+    private static boolean matchesTopic(JSONObject item, String topic) {
+        if (topic.isEmpty()) return true;
+        String text=(item.optString("title")+" "+item.optString("snippet")).toLowerCase(Locale.ROOT);
+        if ("paczkomat".equals(topic)) return text.contains("pacz") || text.contains("inpost");
+        if ("transport".equals(topic)) return text.contains("transport") || text.contains("autobus") || text.contains("komunik") || text.contains("linia") || text.contains("mld");
+        if ("OSP".equals(topic)) return text.matches("(?s).*\\\\bosp\\\\b.*") || text.contains("straż");
+        return text.contains(topic);
     }
 
     private static String topic(String prompt) {
