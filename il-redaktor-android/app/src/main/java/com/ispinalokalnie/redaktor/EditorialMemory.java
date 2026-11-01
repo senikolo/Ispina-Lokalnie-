@@ -58,6 +58,7 @@ public final class EditorialMemory extends SQLiteOpenHelper {
         if ("delete".equals(action)) return deleteSource(arg);
         if ("history".equals(action)) return history();
         if ("export".equals(action)) return exportAll();
+        if ("import".equals(action)) return importAll(arg);
         throw new IllegalArgumentException("Nieobsługiwana operacja pamięci.");
     }
 
@@ -225,6 +226,77 @@ public final class EditorialMemory extends SQLiteOpenHelper {
             throw new IllegalArgumentException("Usunięcie wymaga potwierdzenia.");
         int deleted = getWritableDatabase().delete("sources", "url=?", new String[]{url});
         return new JSONObject().put("deleted",deleted);
+    }
+
+
+    /**
+     * Imports a versioned export transactionally, without clearing existing sources or
+     * searches. Existing reviewed links are not overwritten by older backup metadata.
+     * Returns counts for a clear user-facing restoration summary.
+     */
+    private JSONObject importAll(JSONObject archive) throws Exception {
+        if (!"IL_EDITORIAL_MEMORY_V1".equals(archive.optString("format")))
+            throw new IllegalArgumentException("Nieobsługiwany format kopii pamięci.");
+        JSONArray sources = archive.optJSONArray("sources");
+        JSONArray searches = archive.optJSONArray("searches");
+        if (sources == null || searches == null || sources.length() > 6000 ||
+            searches.length() > 3000)
+            throw new IllegalArgumentException("Niepoprawna struktura lub rozmiar archiwum.");
+        int inserted=0, existing=0, skipped=0, restoredSearches=0;
+        SQLiteDatabase db = getWritableDatabase();
+        db.beginTransaction();
+        try {
+            for (int i=0; i<sources.length(); i++) {
+                JSONObject src = sources.optJSONObject(i);
+                if (src == null) { skipped++; continue; }
+                String url=safeUrl(src.optString("url", ""));
+                if (url.isEmpty()) { skipped++; continue; }
+                boolean found;
+                try (Cursor cursor=db.query("sources", new String[]{"url"},
+                    "url=?", new String[]{url}, null, null, null, "1")) {
+                    found=cursor.moveToFirst();
+                }
+                if (found) { existing++; continue; }
+                String title=bounded(src.optString("title", ""), 280);
+                String snippet=bounded(src.optString("snippet", ""), 1800);
+                String date=bounded(src.optString("publishedAt", ""), 80);
+                long first=Math.max(1L,src.optLong("firstSeen",System.currentTimeMillis()));
+                long last=Math.max(first,src.optLong("lastSeen",first));
+                ContentValues values=new ContentValues();
+                values.put("url",url);values.put("title",title);
+                values.put("snippet",snippet);values.put("published_at",date);
+                values.put("first_seen",first);values.put("last_seen",last);
+                values.put("changed_at",Math.max(0L,src.optLong("changedAt",0L)));
+                values.put("fingerprint",fingerprint(title,snippet,date));
+                values.put("status","reviewed".equals(src.optString("status"))?"reviewed":"link_found");
+                values.put("last_query",bounded(src.optString("lastQuery",""),MAX_QUESTION));
+                db.insertOrThrow("sources",null,values);
+                inserted++;
+            }
+            for (int i=0; i<searches.length(); i++) {
+                JSONObject s=searches.optJSONObject(i);
+                if (s==null) {skipped++;continue;}
+                String q=bounded(s.optString("question",""),MAX_QUESTION);
+                if(q.isEmpty()){skipped++;continue;}
+                String answer=bounded(s.optString("answer",""),MAX_RESPONSE);
+                long at=Math.max(1L,s.optLong("at",0L));
+                boolean found;
+                try(Cursor cursor=db.query("searches",new String[]{"id"},
+                    "question=? AND searched_at=?",new String[]{q,String.valueOf(at)},null,null,null,"1")){
+                    found=cursor.moveToFirst();
+                }
+                if(found)continue;
+                ContentValues values=new ContentValues();
+                values.put("question",q);values.put("answer",answer);
+                values.put("searched_at",at);
+                values.put("result_count",Math.max(0,Math.min(10000,s.optInt("count",0))));
+                db.insertOrThrow("searches",null,values);
+                restoredSearches++;
+            }
+            db.setTransactionSuccessful();
+        } finally {db.endTransaction();}
+        return new JSONObject().put("imported",inserted).put("existing",existing)
+            .put("skipped",skipped).put("searches",restoredSearches);
     }
 
     private JSONObject exportAll() throws Exception {

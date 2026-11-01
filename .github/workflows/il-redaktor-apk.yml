@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - 'codex/**'
+      - 'fix/il-redaktor-audit-remediation-20261101'
     paths:
       - "il-redaktor-android/**"
       - ".github/workflows/il-redaktor-apk.yml"
@@ -209,7 +210,7 @@ jobs:
           test -s "$APK"
           SDK_ROOT="${ANDROID_HOME:-/usr/local/lib/android/sdk}"
           "$SDK_ROOT/build-tools/35.0.0/apksigner" verify --verbose "$APK"
-          "$SDK_ROOT/build-tools/35.0.0/aapt" dump badging "$APK" | grep -F "package: name='com.ispinalokalnie.redaktorsmart.stable' versionCode='43' versionName='1.29.4-test.1'"
+          "$SDK_ROOT/build-tools/35.0.0/aapt" dump badging "$APK" | grep -F "package: name='com.ispinalokalnie.redaktorsmart.stable' versionCode='44' versionName='1.29.5-test.1'"
       - name: Upload test APK for manual login diagnostics
         uses: actions/upload-artifact@v4
         with:
@@ -233,7 +234,7 @@ jobs:
           arch: x86_64
           disable-animations: true
           emulator-options: -no-window -gpu swiftshader -feature -Vulkan -no-snapshot -noaudio -no-boot-anim -camera-back none
-          ram-size: 3072M
+          ram-size: 2048M
           script: bash il-redaktor-android/scripts/run-emulator-smoke.sh 26
       - name: Test Android 11 (API 30) WebView and update flow without WordPress writes
         uses: reactivecircus/android-emulator-runner@v2
@@ -243,7 +244,7 @@ jobs:
           arch: x86_64
           disable-animations: true
           emulator-options: -no-window -gpu swiftshader -feature -Vulkan -no-snapshot -noaudio -no-boot-anim -camera-back none
-          ram-size: 3072M
+          ram-size: 2048M
           script: bash il-redaktor-android/scripts/run-emulator-smoke.sh 30
       - name: Test Android 13 (API 33) WebView and update flow without WordPress writes
         uses: reactivecircus/android-emulator-runner@v2
@@ -253,7 +254,7 @@ jobs:
           arch: x86_64
           disable-animations: true
           emulator-options: -no-window -gpu swiftshader -feature -Vulkan -no-snapshot -noaudio -no-boot-anim -camera-back none
-          ram-size: 3072M
+          ram-size: 2048M
           script: bash il-redaktor-android/scripts/run-emulator-smoke.sh 33
       - name: Upload emulator UI checks
         uses: actions/upload-artifact@v4
@@ -269,7 +270,7 @@ jobs:
           test -s "$APK"
           test -s il-redaktor-android/app/src/main/assets/il-monogram.png
           "$SDK_ROOT/build-tools/35.0.0/apksigner" verify --verbose "$APK"
-          "$SDK_ROOT/build-tools/35.0.0/aapt" dump badging "$APK" | grep -F "package: name='com.ispinalokalnie.redaktorsmart.stable' versionCode='43' versionName='1.29.4-test.1'"
+          "$SDK_ROOT/build-tools/35.0.0/aapt" dump badging "$APK" | grep -F "package: name='com.ispinalokalnie.redaktorsmart.stable' versionCode='44' versionName='1.29.5-test.1'"
           unzip -l "$APK" | grep 'assets/il-monogram.png'
       - name: Upload installable APK
         uses: actions/upload-artifact@v4
@@ -314,13 +315,13 @@ jobs:
             exit 1
           fi
           mkdir -p "$RUNNER_TEMP/il-signed-upgrade"
-          cp "$APK" "$RUNNER_TEMP/il-signed-upgrade/IL-Redaktor-Smart-1.29.4-test.1-UPDATE.apk"
+          cp "$APK" "$RUNNER_TEMP/il-signed-upgrade/IL-Redaktor-Smart-1.29.5-test.1-UPDATE.apk"
           echo "Signed upgrade APK created with the existing release certificate."
       - name: Upload verified signed upgrade when available
         uses: actions/upload-artifact@v4
         with:
           name: IL-Redaktor-Signed-Upgrade
-          path: ${{ runner.temp }}/il-signed-upgrade/IL-Redaktor-Smart-1.29.4-test.1-UPDATE.apk
+          path: ${{ runner.temp }}/il-signed-upgrade/IL-Redaktor-Smart-1.29.5-test.1-UPDATE.apk
           if-no-files-found: ignore
           retention-days: 30
       - uses: actions/upload-artifact@v4

@@ -61,6 +61,9 @@ public final class FreeIspinaSearchClient {
                 // Leave enough time to assemble the report and return partial results.
                 if (System.currentTimeMillis() - started > 51000L) {
                     skipped = profiles.length - index;
+                    for(int next=index; next<profiles.length;next++)
+                        profileResults.put(new JSONObject().put("name",profiles[next][0])
+                            .put("status","skipped_timeout").put("newLinks",0));
                     break;
                 }
                 String[] profile = profiles[index];
@@ -76,7 +79,7 @@ public final class FreeIspinaSearchClient {
                     for (int i=0; i<items.length(); i++) {
                         JSONObject item = items.getJSONObject(i);
                         if (matchesTopic(item, topic)) {
-                            String key = item.getString("url");
+                            String key = canonicalKey(item.getString("url"));
                             if (!found.containsKey(key)) matching++;
                             found.put(key, item);
                         }
@@ -113,7 +116,7 @@ public final class FreeIspinaSearchClient {
                 answer.append("\nSkan częściowy: niedostępne kanały: ").append(failed)
                       .append(", pominięte z powodu limitu czasu: ").append(skipped).append(".");
             JSONObject result = new JSONObject().put("freeSearch", true).put("answer", answer.toString())
-                .put("text", answer.toString()).put("sources", sources).put("verified", sources.length()>0)
+                 .put("text", answer.toString()).put("sources", sources).put("verified", false)
                 .put("queries", searchedQueries).put("searchedAt", System.currentTimeMillis())
                 .put("profiles", profileResults).put("plannedFeeds",profiles.length)
                 .put("successfulFeeds", successful).put("failedFeeds", failed)
@@ -128,6 +131,21 @@ public final class FreeIspinaSearchClient {
             }
             return result;
         } finally { control.close(); }
+    }
+
+    /** Ignore fragments and common tracking parameters without losing distinct documents. */
+    private static String canonicalKey(String raw) {
+        try {
+            Uri uri=Uri.parse(raw);
+            Uri.Builder b=uri.buildUpon().fragment(null).clearQuery();
+            Set<String> keys=uri.getQueryParameterNames();
+            for(String key:keys) {
+                String low=key.toLowerCase(Locale.ROOT);
+                if(low.startsWith("utm_")||"gclid".equals(low)||"fbclid".equals(low)||"yclid".equals(low))continue;
+                for(String value:uri.getQueryParameters(key))b.appendQueryParameter(key,value);
+            }
+            return b.build().toString();
+        }catch(Exception e){return raw;}
     }
 
     static boolean matchesTopic(JSONObject item, String topic) {
@@ -228,7 +246,7 @@ public final class FreeIspinaSearchClient {
         XmlPullParser parser = Xml.newPullParser();
         parser.setInput(new StringReader(xml));
         JSONArray items = new JSONArray();
-        String title="",link="",description="",date="";
+        String title="",link="",description="",date="",dateType="BRAK DATY";
         boolean inItem=false, feed=false;
         int scanned=0;
         for (int event=parser.getEventType(); event!=XmlPullParser.END_DOCUMENT; event=parser.next()) {
@@ -236,7 +254,7 @@ public final class FreeIspinaSearchClient {
             if (event==XmlPullParser.START_TAG) {
                 if ("rss".equals(name) || "feed".equals(name)) feed=true;
                 if ("item".equals(name) || "entry".equals(name)) {
-                    inItem=true; title="";link="";description="";date="";
+                    inItem=true; title="";link="";description="";date="";dateType="BRAK DATY";
                 } else if (inItem) {
                     if ("title".equals(name)) title=plain(parser.nextText(),240);
                     else if ("link".equals(name)) {
@@ -248,8 +266,12 @@ public final class FreeIspinaSearchClient {
                     }
                     else if ("description".equals(name) || "summary".equals(name) || "content".equals(name))
                         description=plain(parser.nextText(),450);
-                    else if ("pubDate".equals(name) || "published".equals(name) || "updated".equals(name))
-                        date=parser.nextText().trim();
+                    else if ("pubDate".equals(name) || "published".equals(name)) {
+                        date=parser.nextText().trim();dateType="PUBLISHED";
+                    } else if ("updated".equals(name)) {
+                        String updated=parser.nextText().trim();
+                        if (!"PUBLISHED".equals(dateType)) {date=updated;dateType="UPDATED_ONLY";}
+                    }
                 }
             } else if (event==XmlPullParser.END_TAG && ("item".equals(name) || "entry".equals(name))) {
                 inItem=false;
@@ -259,10 +281,12 @@ public final class FreeIspinaSearchClient {
                 if (uri.getHost()==null || uri.getUserInfo()!=null ||
                     !("https".equals(uri.getScheme()) || "http".equals(uri.getScheme()))) continue;
                 long published=parseDate(date);
-                if (datedOnly && (published<=0L || published<since || published>System.currentTimeMillis()+86400000L)) continue;
+                if (datedOnly && (!"PUBLISHED".equals(dateType) || published<=0L ||
+                     published<since || published>System.currentTimeMillis()+86400000L)) continue;
                 if (title.isEmpty()) continue;
                 items.put(new JSONObject().put("title",title).put("url",link).put("snippet",description)
                     .put("published",date).put("publishedAt",published)
+                     .put("dateType",dateType)
                     .put("reviewStatus","DO_SPRAWDZENIA"));
             }
         }

@@ -288,6 +288,17 @@ public final class ConfirmationInstrumentation extends Instrumentation {
                     .getJSONArray("items").length()<1)throw new AssertionError("SQLite lost conversation");
                 if(!"IL_EDITORIAL_MEMORY_V1".equals(reopened.execute("export",new org.json.JSONObject())
                     .getString("format")))throw new AssertionError("Portable backup not generated");
+                org.json.JSONObject backup=reopened.execute("export",new org.json.JSONObject());
+                if(reopened.execute("delete",new org.json.JSONObject().put("url",url).put("confirmed",true)).getInt("deleted")!=1)
+                    throw new AssertionError("Cleanup before import failed");
+                if(reopened.execute("import",backup).getInt("imported")<1)
+                    throw new AssertionError("Editorial backup did not restore deleted source");
+                reopened.execute("review",new org.json.JSONObject().put("url",url).put("confirmed",true));
+                if(reopened.execute("import",backup).getInt("existing")<1)
+                    throw new AssertionError("Duplicate import did not preserve existing source");
+                if(!"reviewed".equals(reopened.execute("browse",new org.json.JSONObject()
+                    .put("topic","Most")).getJSONArray("items").getJSONObject(0).getString("status")))
+                    throw new AssertionError("Import overwrote reviewed source");
                 if(reopened.execute("delete",new org.json.JSONObject().put("url",url).put("confirmed",true))
                     .getInt("deleted")!=1)throw new AssertionError("Selected deletion did not work");
             } finally { reopened.close(); }
@@ -322,7 +333,7 @@ public final class ConfirmationInstrumentation extends Instrumentation {
                 if(!getTargetContext().getSharedPreferences("il_update_probe",0).edit().putString("marker","preserved").commit())throw new AssertionError("Preferences seeding failed");
                 result.putString("stream","IL_UPDATE_SEED=PASS\n");
             } else if ("verify".equals(mode)) {
-                if(getTargetContext().getPackageManager().getPackageInfo(getTargetContext().getPackageName(),0).versionCode!=43)throw new AssertionError("Verification must run after upgrade to versionCode 43");
+                if(getTargetContext().getPackageManager().getPackageInfo(getTargetContext().getPackageName(),0).versionCode!=44)throw new AssertionError("Verification must run after upgrade to versionCode 44");
                 String restored=evaluate("JSON.stringify(readDraftStore().drafts.map(d=>[d.title,d.body,d.revisions.length]))");
                 if(!restored.contains("Pierwszy szkic")||!restored.contains("Druga wersja")||!restored.contains("Drugi szkic"))throw new AssertionError("Drafts lost after reinstall: "+restored);
                 if(!"preserved".equals(getTargetContext().getSharedPreferences("il_update_probe",0).getString("marker","")))throw new AssertionError("Preferences lost after reinstall");

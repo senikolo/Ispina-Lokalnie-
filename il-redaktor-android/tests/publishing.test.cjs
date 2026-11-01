@@ -704,9 +704,9 @@ test("AI context exposes published posts only for reader recommendations",()=>{
 test("new build metadata and the PR APK workflow agree",()=>{
   const gradle=fs.readFileSync(path.join(__dirname,"../app/build.gradle"),"utf8");
   const workflow=fs.readFileSync(path.join(__dirname,"../../.github/workflows/il-redaktor-apk.yml"),"utf8");
-  assert.match(gradle,/versionCode 43/);assert.match(gradle,/versionName '1\.29\.4-test\.1'/);assert.match(gradle,/https:\/\/il-redaktor-assistant\.vercel\.app\/api\/assistant/);
+  assert.match(gradle,/versionCode 44/);assert.match(gradle,/versionName '1\.29\.5-test\.1'/);assert.match(gradle,/https:\/\/il-redaktor-assistant\.vercel\.app\/api\/assistant/);
   assert.match(gradle,/applicationId 'com\.ispinalokalnie\.redaktorsmart\.stable'/);
-  assert.match(workflow,/versionCode='43' versionName='1\.29\.4-test\.1'/);
+  assert.match(workflow,/versionCode='44' versionName='1\.29\.5-test\.1'/);
 });
 
 test("AI editor shortcut copies current title and text into a reviewable prompt without sending it",()=>{
@@ -1273,4 +1273,41 @@ test("ChatGPT Free handoff prefers dedicated no-API bridge",()=>{
   assert.match(prompt,/Przygotuj propozycję do sprawdzenia/);
   assert.match(prompt,/w Ispinie, do Ispiny, z Ispiny/);
   assert.match(a.node("assistant-handoff-status").textContent,/ChatGPT Free/);
+});
+
+test("audit repairs: partial radar scans never appear as a complete success",()=>{
+  const a=setup();
+  const found={freeSearch:true,sourceLinksFound:true,sources:[{title:"Ispina",url:"https://example.org/ispina"}],text:"Ispina",answer:"Ispina",successfulFeeds:12,failedFeeds:0,skippedFeeds:3,plannedFeeds:15,partialResults:true};
+  a.run("renderResearchResult("+JSON.stringify(found)+",'Ispina')");
+  assert.match(a.node("research-status").textContent,/12\/15/);
+  assert.equal(a.node("research-status").className,"small muted");
+});
+test("audit repairs: restored memory, published dates, and source tracking are integrated",()=>{
+  const a=setup();
+  assert.equal(a.run("editorialDisplayDate('')"),"BRAK DATY");
+  assert.match(a.run("editorialDisplayDate('2026-11-01')"),/2026/);
+  const sqlite=fs.readFileSync(path.join(__dirname,"../app/src/main/java/com/ispinalokalnie/redaktor/EditorialMemory.java"),"utf8");
+  const native=fs.readFileSync(path.join(__dirname,"../app/src/main/java/com/ispinalokalnie/redaktor/MainActivity.java"),"utf8");
+  const radar=fs.readFileSync(path.join(__dirname,"../app/src/main/java/com/ispinalokalnie/redaktor/IspinaRadarWorker.java"),"utf8");
+  assert.match(sqlite,/importAll\(arg\)/);assert.match(sqlite,/db\.beginTransaction\(\)/);
+  assert.match(native,/importEditorialMemory\(\)/);assert.match(native,/runDiagnostics\(String rid\)/);
+  assert.match(radar,/skippedFeeds/);assert.match(radar,/Automatyczny Radar Ispiny/);
+});
+test("audit repairs: search includes excerpts, body and identifiers",()=>{
+  const a=setup();
+  a.run("allPosts=[{id:734,status:'publish',title:{rendered:'Aktualność'},excerpt:{rendered:'Historia OSP Ispina'},content:{rendered:'Kapliczka we wsi'},modified:'2026-11-01'}]");
+  a.node("posts-search").value="Kapliczka";a.run("renderPosts()");
+  assert.match(a.node("posts-output").innerHTML,/Aktualność/);
+  a.node("posts-search").value="734";a.run("renderPosts()");
+  assert.match(a.node("posts-output").innerHTML,/Aktualność/);
+  a.node("posts-search").value="nieistniejące";a.run("renderPosts()");
+  assert.match(a.node("posts-output").innerHTML,/Brak wyników/);
+});
+test("audit repairs: cannot publish unresolved source placeholders",async()=>{
+  const a=setup();
+  a.run("connected=true");
+  a.node("post-title").value="Wpis o Ispinie";
+  a.node("post-body").value="Ważny fakt [DO UZUPEŁNIENIA: data]";
+  await a.run("savePost('publish')");
+  assert.match(a.node("post-output").innerHTML,/Nie publikuję artykułu/);
 });

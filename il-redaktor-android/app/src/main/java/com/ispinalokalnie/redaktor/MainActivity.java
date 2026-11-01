@@ -466,6 +466,24 @@ public class MainActivity extends Activity {
             });
         }
 
+        @JavascriptInterface public void importEditorialMemory() {
+            ui.post(() -> {
+                if (editorialBackupBusy) {
+                    callback("editorial-import", false, "Trwa już eksport lub import pamięci."); return;
+                }
+                editorialBackupBusy = true;
+                try {
+                    Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
+                    intent.addCategory(Intent.CATEGORY_OPENABLE);
+                    intent.setType("application/json");
+                    startActivityForResult(intent, 1012);
+                } catch (Exception ex) {
+                    editorialBackupBusy = false;
+                    callback("editorial-import", false, "Nie można otworzyć pliku pamięci.");
+                }
+            });
+        }
+
         @JavascriptInterface public String readDraftLibrary(){return draftFiles().read();}
         @JavascriptInterface public String writeDraftLibrary(String payload){return draftFiles().write(payload);}
         @JavascriptInterface public void exportDraftBackup(String payload) {
@@ -668,30 +686,66 @@ public class MainActivity extends Activity {
         @JavascriptInterface public void verify() { verifyConnection(); }
 
         /** Public WordPress REST endpoint: no password, OAuth bearer, or write operation. */
-        @JavascriptInterface public void publicPosts() {
+        /**
+         * Read-only connectivity diagnostics; never sends credentials and never writes
+         * to WordPress. A reachable endpoint is not proof of authoring permissions.
+         */
+        @JavascriptInterface public void runDiagnostics(String rid) {
+            if (rid == null || !rid.matches("[A-Za-z0-9_-]{1,60}")) return;
+            work.execute(() -> {
+                JSONObject result = new JSONObject();
+                try {
+                    result.put("wordpressToken", connected());
+                    result.put("wordpressVerified", verified);
+                    result.put("assistantConfigured", false);
+                    result.put("publicWordPress", probePublicEndpoint(
+                        "https://public-api.wordpress.com/wp/v2/sites/252442125/posts?per_page=1&_fields=id"));
+                    result.put("googleNews", probePublicEndpoint(
+                        "https://news.google.com/rss/search?q=Ispina&hl=pl&gl=PL&ceid=PL:pl"));
+                    result.put("bing", probePublicEndpoint(
+                        "https://www.bing.com/search?format=rss&q=Ispina"));
+                    result.put("editorialMemory", editorialDatabase().execute("history", new JSONObject()).has("items"));
+                    callback(rid, true, result.toString());
+                } catch (Exception ex) {
+                    callback(rid, false, "Nie udało się ukończyć diagnostyki: " +
+                        (ex.getMessage() == null ? "błąd lokalny" : ex.getMessage()));
+                }
+            });
+        }
+
+        @JavascriptInterface public void publicPosts() { publicPostsPage(1); }
+        @JavascriptInterface public void publicPostsPage(int page) {
+            if (page < 1 || page > 100) {
+                callback("public-posts-more", false, "Nieprawidłowa strona listy artykułów.");
+                return;
+            }
+            final String event = page == 1 ? "public-posts" : "public-posts-more";
             work.execute(() -> {
                 java.net.HttpURLConnection connection = null;
                 try {
                     java.net.URL url = new java.net.URL(
                         "https://public-api.wordpress.com/wp/v2/sites/252442125/posts" +
-                        "?per_page=30&orderby=modified&order=desc&_fields=id,title,modified,status,link");
+                        "?per_page=30&page=" + page + "&orderby=modified&order=desc" +
+                        "&_fields=id,title,excerpt,content,modified,status,link,featured_media");
                     connection = (java.net.HttpURLConnection) url.openConnection();
                     connection.setRequestMethod("GET");
                     connection.setConnectTimeout(12000);
                     connection.setReadTimeout(18000);
                     connection.setRequestProperty("Accept", "application/json");
                     int status = connection.getResponseCode();
+                    if (page > 1 && status == 400) {
+                        callback(event, true, "[]"); return;
+                    }
                     if (status < 200 || status >= 300)
                         throw new Exception("Odczyt publicznych wpisów: HTTP " + status);
                     String reply = WpMcp.readReply(connection);
                     org.json.JSONArray posts = new org.json.JSONArray(reply);
                     if (posts.length() > 30) throw new Exception("Nieprawidłowa liczba wpisów.");
-                    callback("public-posts", true, posts.toString());
+                    callback(event, true, posts.toString());
                 } catch (Exception ex) {
                     String detail = ex.getMessage() == null ? "Błąd sieci." : ex.getMessage();
-                    callback("public-posts", false,
-                        "Nie udało się pobrać publicznych artykułów. " + detail +
-                        ". Spróbuj ponownie albo otwórz portal w przeglądarce.");
+                    callback(event, false, "Nie udało się pobrać publicznych artykułów. " +
+                        detail + ". Spróbuj ponownie albo otwórz portal w przeglądarce.");
                 } finally {
                     if (connection != null) connection.disconnect();
                 }
@@ -1075,6 +1129,34 @@ public class MainActivity extends Activity {
 
     @Override protected void onActivityResult(int request, int result, Intent intent) {
         super.onActivityResult(request, result, intent);
+        if (request == 1012) {
+            if (result != RESULT_OK || intent == null || intent.getData() == null) {
+                editorialBackupBusy = false;
+                callback("editorial-import", false, "Anulowano import pamięci. Dane pozostały bez zmian.");
+                return;
+            }
+            Uri selected = intent.getData();
+            work.execute(() -> {
+                try (InputStream in = getContentResolver().openInputStream(selected);
+                     ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+                    if (in == null) throw new Exception("Nie można otworzyć kopii.");
+                    byte[] buf = new byte[8192]; int count;
+                    while ((count = in.read(buf)) != -1) {
+                        if (out.size() + count > EDITORIAL_BACKUP_MAX)
+                            throw new Exception("Archiwum przekracza limit 6 MB.");
+                        out.write(buf, 0, count);
+                    }
+                    JSONObject report = editorialDatabase().execute("import",
+                        new JSONObject(out.toString("UTF-8")));
+                    callback("editorial-import", true, report.toString());
+                } catch (Exception ex) {
+                    callback("editorial-import", false,
+                        "Import nie powiódł się, istniejące dane zachowano: " +
+                        (ex.getMessage() == null ? "błąd pliku" : ex.getMessage()));
+                } finally {editorialBackupBusy = false;}
+            });
+            return;
+        }
         if (request == 1011) {
             editorialBackupBusy = false;
             final File pending = new File(getCacheDir(), "il-editorial-memory-pending.json");
@@ -1190,6 +1272,24 @@ public class MainActivity extends Activity {
                 "ispinalokalnie.wordpress.com".equals(uri.getHost()) &&
                 uri.getUserInfo() == null && (uri.getPort() == -1 || uri.getPort() == 443);
         } catch (Exception ignored) { return false; }
+    }
+
+    private static String probePublicEndpoint(String address) {
+        HttpURLConnection connection = null;
+        try {
+            connection = (HttpURLConnection) new java.net.URL(address).openConnection();
+            connection.setRequestMethod("GET");
+            connection.setConnectTimeout(5000);
+            connection.setReadTimeout(5000);
+            connection.setInstanceFollowRedirects(false);
+            connection.setRequestProperty("Accept", "application/json, application/rss+xml, application/xml");
+            int status = connection.getResponseCode();
+            return status >= 200 && status < 300 ? "DOSTĘPNE" : "HTTP " + status;
+        } catch (Exception ex) {
+            return "NIEDOSTĘPNE (sieć lub serwer)";
+        } finally {
+            if (connection != null) connection.disconnect();
+        }
     }
 
     private void openExternalPage(String value) {
