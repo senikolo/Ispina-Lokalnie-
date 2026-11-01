@@ -14,7 +14,9 @@ else
 fi
 
 adb install -r "$test_apk"
-adb shell am instrument -w -e mode seed com.ispinalokalnie.redaktorsmart.stable.instrumentation/com.ispinalokalnie.redaktor.ConfirmationInstrumentation | tee "/tmp/il-update-seed-$api_level.txt"
+seed_mode="seed"
+if [ "$api_level" = "26" ]; then seed_mode="seed-current"; fi
+adb shell am instrument -w -e mode "$seed_mode" com.ispinalokalnie.redaktorsmart.stable.instrumentation/com.ispinalokalnie.redaktor.ConfirmationInstrumentation | tee "/tmp/il-update-seed-$api_level.txt"
 grep -F 'IL_UPDATE_SEED=PASS' "/tmp/il-update-seed-$api_level.txt" || { adb logcat -d -s chromium AndroidRuntime ILEditorProbe ActivityManager; exit 1; }
 
 adb install -r "$current_apk"
