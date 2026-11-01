@@ -250,8 +250,7 @@ public final class ChatGptPlanClient {
             String email = claims.optString("email", "");
             JSONObject model = chooseModel(accessToken);
             synchronized (TOKEN_LOCK) {
-            if (p.getLong(PREF_GENERATION, 0L) != generation)
-                throw new Exception("To logowanie zostało anulowane. Rozpocznij ponownie.");
+            ensureCurrentGeneration(p, generation);
             SharedPreferences.Editor edit = p.edit()
                 .putBoolean(PREF_EMAIL_VERIFIED, claims.optBoolean("email_verified", false))
                 .putString(PREF_CLIENT, issuedClient)
@@ -614,6 +613,11 @@ public final class ChatGptPlanClient {
             postForm(REVOKE_ENDPOINT, fields);
             return true;
         } catch (Exception ignored) { return false; }
+    }
+
+    private static void ensureCurrentGeneration(SharedPreferences p, long generation) throws Exception {
+        if (p.getLong(PREF_GENERATION, 0L) != generation)
+            throw new Exception("To logowanie zostało anulowane. Rozpocznij ponownie.");
     }
 
     private static JSONObject getJson(String url, String accessToken) throws Exception {
