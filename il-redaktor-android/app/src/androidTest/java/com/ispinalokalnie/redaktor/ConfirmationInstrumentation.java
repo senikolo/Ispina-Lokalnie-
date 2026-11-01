@@ -83,7 +83,7 @@ public final class ConfirmationInstrumentation extends Instrumentation {
         try(java.io.InputStream in=getContext().getAssets().open("photo-exif-orientation-6.jpg");java.io.FileOutputStream out=new java.io.FileOutputStream(sample)){
             byte[] buffer=new byte[4096];int read;while((read=in.read(buffer))!=-1)out.write(buffer,0,read);
         }
-        int fixtureOrientation=new android.media.ExifInterface(sample.getAbsolutePath()).getAttributeInt(android.media.ExifInterface.TAG_ORIENTATION,0);
+        int fixtureOrientation=new androidx.exifinterface.media.ExifInterface(sample.getAbsolutePath()).getAttributeInt(androidx.exifinterface.media.ExifInterface.TAG_ORIENTATION,0);
         if(fixtureOrientation!=6)throw new AssertionError("JPEG fixture orientation tag unreadable: "+fixtureOrientation);
         android.graphics.Bitmap oriented=PhotoEditor.decode(getTargetContext(),android.net.Uri.fromFile(sample));
         if(oriented.getWidth()!=80||oriented.getHeight()!=120)throw new AssertionError("EXIF orientation lost; dimensions="+oriented.getWidth()+"x"+oriented.getHeight());
