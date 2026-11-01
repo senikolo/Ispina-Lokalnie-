@@ -466,6 +466,24 @@ public class MainActivity extends Activity {
             });
         }
 
+        @JavascriptInterface public void importEditorialMemory() {
+            ui.post(() -> {
+                if (editorialBackupBusy) {
+                    callback("editorial-import", false, "Trwa już eksport lub import pamięci."); return;
+                }
+                editorialBackupBusy = true;
+                try {
+                    Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
+                    intent.addCategory(Intent.CATEGORY_OPENABLE);
+                    intent.setType("application/json");
+                    startActivityForResult(intent, 1012);
+                } catch (Exception ex) {
+                    editorialBackupBusy = false;
+                    callback("editorial-import", false, "Nie można otworzyć pliku pamięci.");
+                }
+            });
+        }
+
         @JavascriptInterface public String readDraftLibrary(){return draftFiles().read();}
         @JavascriptInterface public String writeDraftLibrary(String payload){return draftFiles().write(payload);}
         @JavascriptInterface public void exportDraftBackup(String payload) {
@@ -1075,6 +1093,34 @@ public class MainActivity extends Activity {
 
     @Override protected void onActivityResult(int request, int result, Intent intent) {
         super.onActivityResult(request, result, intent);
+        if (request == 1012) {
+            if (result != RESULT_OK || intent == null || intent.getData() == null) {
+                editorialBackupBusy = false;
+                callback("editorial-import", false, "Anulowano import pamięci. Dane pozostały bez zmian.");
+                return;
+            }
+            Uri selected = intent.getData();
+            work.execute(() -> {
+                try (InputStream in = getContentResolver().openInputStream(selected);
+                     ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+                    if (in == null) throw new Exception("Nie można otworzyć kopii.");
+                    byte[] buf = new byte[8192]; int count;
+                    while ((count = in.read(buf)) != -1) {
+                        if (out.size() + count > EDITORIAL_BACKUP_MAX)
+                            throw new Exception("Archiwum przekracza limit 6 MB.");
+                        out.write(buf, 0, count);
+                    }
+                    JSONObject report = editorialDatabase().execute("import",
+                        new JSONObject(out.toString("UTF-8")));
+                    callback("editorial-import", true, report.toString());
+                } catch (Exception ex) {
+                    callback("editorial-import", false,
+                        "Import nie powiódł się, istniejące dane zachowano: " +
+                        (ex.getMessage() == null ? "błąd pliku" : ex.getMessage()));
+                } finally {editorialBackupBusy = false;}
+            });
+            return;
+        }
         if (request == 1011) {
             editorialBackupBusy = false;
             final File pending = new File(getCacheDir(), "il-editorial-memory-pending.json");
