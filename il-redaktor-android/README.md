@@ -8,6 +8,7 @@ Wersja rozwojowa (versionCode 30, stały pakiet `com.ispinalokalnie.redaktorsmar
 - Badanie internetowe wykonuje sześć oddzielnych profili i przypisuje źródła do właściwych sekcji. Brak źródeł jest wyraźnie oznaczony; liczba zapytań Google może się różnić w profilu.
 - Potwierdzenie badania wyjaśnia do sześciu wywołań Gemini i możliwe osobne opłaty za model i wyszukiwanie.
 - Backend ma testy gotowości, CORS, limitowania i walidacji źródeł. CI nie rejestruje zdalnego klienta OAuth przy każdym uruchomieniu.
+- Zdjęcia zachowują obrót EXIF dzięki AndroidX ExifInterface; zgodność sprawdza fixture JPEG na Androidzie 8.
 - Nowy raport QA oddziela wynik CI od testów wymagających konta WordPress lub telefonu.
 
 ## Nowości 1.21 — poprawki po audycie

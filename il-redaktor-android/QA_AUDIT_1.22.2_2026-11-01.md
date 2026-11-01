@@ -8,7 +8,8 @@ Wersja: versionName 1.22.2, versionCode 30, minSdk 26.
 
 ## Zakres poprawek
 
-- Błąd składni JavaScript wykryty na Androidzie 8 jest naprawiany na etapie budowania: TypeScript transpile do ES2018 oraz polyfille brakujących metod. Test sprawdza wyjściowy skrypt bez uruchamiania zdalnych usług.
+- Podczas budowania TypeScript przekształca skrypt interfejsu do składni ES2018 i uzupełnia brakujące metody. Android 8/API 26 potwierdził uruchomienie nowego pliku WebView.
+- Odczyt orientacji EXIF korzysta z AndroidX ExifInterface 1.4.2, przetestowanej z JPEG-em zawierającym orientację 90°.
 
 - Gotowość backendu sprawdza GET /api/assistant. Endpoint nie ujawnia sekretów i zwraca 503 bez pełnej konfiguracji. Android wyłącza AI online do czasu ready:true i pozwala ponowić sprawdzenie.
 - Raport składa się z sześciu profili i uruchamia osobne wywołanie modelu dla każdego. Nie gwarantuje stałej liczby zapytań Google; interfejs i dokumentacja wyjaśniają ograniczenie.
@@ -19,19 +20,19 @@ Wersja: versionName 1.22.2, versionCode 30, minSdk 26.
 
 ## Wyniki
 
-Workflow 1.22.2 uruchamia testy backendu, typecheck, kompilację APK i emulatorów. Statusy końcowe należy odczytać z checków PR #9 dla tego commitu. Workflow 41246904027 dla wersji 1.22.1 przeszedł, ale nie jest dowodem działania nowych zmian.
+Weryfikacja dla commitu `2726275720909868a29c9cccea0553995dd44262` zakończyła się sukcesem: [Android APK run 41283636982](https://github.com/senikolo/Ispina-Lokalnie-/actions/runs/41283636982) oraz [planner run 41283640793](https://github.com/senikolo/Ispina-Lokalnie-/actions/runs/41283640793).
 
 | Obszar | Status |
 |---|---|
-| Testy backendu gotowości, CORS, limitów i źródeł | Oczekuje na workflow 1.22.2 |
-| TypeScript backendu | Oczekuje na workflow 1.22.2 |
-| Kompilacja APK i AndroidTest | Oczekuje na workflow 1.22.2 |
-| Android 8 / API 26: uruchomienie i reinstalacja | Oczekuje na workflow 1.22.2 |
-| Android 11 / API 30: aktualizacja 1.15 → 1.22 | Oczekuje na workflow 1.22.2 |
-| Android 13 / API 33: aktualizacja 1.15 → 1.22 | Oczekuje na workflow 1.22.2 |
+| Testy backendu gotowości, CORS, limitów i źródeł | PASS |
+| TypeScript backendu | PASS |
+| Kompilacja APK, AndroidTest i apksigner | PASS |
+| Android 8 / API 26: uruchomienie, funkcje edytora i reinstalacja danych | PASS |
+| Android 11 / API 30: aktualizacja 1.15 → 1.22.2 | PASS |
+| Android 13 / API 33: aktualizacja 1.15 → 1.22.2 | PASS |
 | OAuth i publikacja na prawdziwym koncie WordPress | Nie wykonano; wymagane konto redaktora |
 | Gemini i Google Search na produkcji | Nie wykonano; wymagany gotowy backend i limity Upstash |
-| Zgodność instalacji z APK podpisanym wcześniejszym kluczem | Zależy od wcześniejszego klucza CI i testu na telefonie |
+| APK aktualizacyjny z istniejącym kluczem release | Nie wygenerowano; sekrety poprzedniego klucza nie są skonfigurowane. APK debug przeszedł weryfikację podpisu. |
 
 ## Konfiguracja i ograniczenia
 
