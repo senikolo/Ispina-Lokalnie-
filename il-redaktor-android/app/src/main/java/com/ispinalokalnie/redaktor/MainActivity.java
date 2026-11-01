@@ -269,6 +269,8 @@ public class MainActivity extends Activity {
     private static String explainVerificationFailure(Exception e) {
         String detail = e.getMessage() == null ? "Brak szczegółów." : e.getMessage();
         String lower = detail.toLowerCase(java.util.Locale.ROOT);
+        if (lower.contains("required scope") && lower.contains("global") && lower.contains("auth"))
+            return "AUTH_SCOPE: WordPress przyznał tylko podstawowy zakres auth. Dostęp redakcyjny MCP wymaga global. Otwórz zakładkę Połączenie i wybierz Zaloguj do WordPress.com, aby ponownie zatwierdzić szerszy zakres. Nie podawaj hasła w aplikacji.";
         if (lower.contains("http 401") || lower.contains("invalid_token") || lower.contains("unauthorized"))
             return "AUTH_401: Sesja WordPress.com jest nieważna lub wygasła. Rozłącz konto i zaloguj się ponownie. Szczegóły: " + detail;
         if (lower.contains("http 403") || lower.contains("forbidden") || lower.contains("permission"))
