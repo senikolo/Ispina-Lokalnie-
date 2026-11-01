@@ -349,12 +349,6 @@ public final class IspinaRadarWorker extends Worker {
             + Base64.encodeToString(cipher.doFinal(value.getBytes(StandardCharsets.UTF_8)), Base64.NO_WRAP);
     }
 
-    private static boolean notificationsAllowed(Context context) {
-        if (Build.VERSION.SDK_INT >= 33 && context.checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS)
-            != android.content.pm.PackageManager.PERMISSION_GRANTED) return false;
-        NotificationManager manager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
-        return manager != null && manager.areNotificationsEnabled();
-    }
 
     private static void postNotification(Context context, ArrayList<Source> sources, String answer, long now) {
         if (sources.isEmpty() || !notificationsAllowed(context)) return;
