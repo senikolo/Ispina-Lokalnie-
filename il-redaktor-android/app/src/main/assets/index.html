@@ -473,10 +473,11 @@ function watchLoginWait(){
     operationBanner("failed","Brak potwierdzenia logowania. Wróć do przeglądarki lub anuluj próbę.");
     message("auth-output","WordPress.com nie potwierdził połączenia w ciągu 60 sekund. Sprawdź, czy zaakceptowano dostęp i czy Android zaproponował otwarcie Redaktora IL. Możesz wznowić tę samą próbę lub ją anulować.","error");
   },60000);
+  if(loginWaitTimer && typeof loginWaitTimer.unref==="function")loginWaitTimer.unref(); // Node tests only; browser timers remain active.
 }
 function operationBanner(kind,label){
   const bar=$("working-state");bar.className="operation-status "+kind;
-  bar.textContent=(kind==="busy"?"⏳ ":kind==="done"?"✓ ":"✕ ")+label;
+  bar.textContent=(kind==="busy"?"⏳ ":kind==="pending"?"⌛ ":kind==="done"?"✓ ":"✕ ")+label;
 }
 function startOperation(label){operationBanner("busy","Trwa: "+label);}
 function endOperation(){if($("working-state").classList.contains("busy"))$("working-state").classList.add("hidden");}
