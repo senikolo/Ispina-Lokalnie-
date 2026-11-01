@@ -189,3 +189,11 @@ Mała czerwona kropka w prawym górnym rogu ikony launchera Android odróżnia R
 Test na telefonie ujawnił błąd: `Required scope: global. Granted scope(s): auth`. Wersja 1.5.2 prosiła w OAuth 2.1 o zakres `auth`, który pozwala tylko na podstawowe uwierzytelnienie i nie uprawnia do WordPress.com MCP content-authoring. Wersja 1.5.3 prosi o `scope=global`, wymuszając ponowne logowanie za pomocą odrębnego identyfikatora APK i nowego adresu powrotu `com.ispinalokalnie.redaktorsmart.mcp153:/callback`. Dostęp `global` jest szeroki: może obejmować inne strony i dane tego konta WordPress.com. Aplikacja sama kieruje operacje wyłącznie do Ispina Lokalnie, ale przyznane uprawnienia są szersze niż jedna witryna. Użytkownik powinien świadomie zaakceptować ten zakres. Tokeny pozostają zaszyfrowane przy użyciu Android Keystore, bez zapisywania haseł.
 
 CI sprawdza obecność `scope=global`, zgodność callback, generowanie ikony z czerwoną kropką i kompilację APK. Ostateczne logowanie i odczyt treści muszą zostać przetestowane na telefonie. Nie scalać PR do main bez udanego testu.
+
+## 1.27.0 — tryb bez opłat i ChatGPT Free
+
+Radar oraz ręczne wyszukiwanie pobierają publiczne RSS bez logowania do ChatGPT lub WordPressa. Interfejs nie blokuje tych funkcji stanem OAuth i nie czeka na weryfikację konta AI. Lista wyników nie jest odpowiedzią modelu ani pełnym badaniem internetu; oryginalne źródła wymagają sprawdzenia.
+
+Przycisk ChatGPT Free zapisuje szkic, przygotowuje polecenie i korzysta z aplikacji ChatGPT lub strony chatgpt.com. Użytkownik wysyła polecenie, kopiuje odpowiedź i zatwierdza jej użycie w Redaktorze. Obowiązują limity konta ChatGPT. Ten tryb nie udaje automatycznej integracji AI planu Free i nie używa płatnego API. Dostępny przycisk usuwa lokalne dane wcześniejszego połączenia AI i zatrzymuje Radar zgodnie z potwierdzeniem użytkownika.
+
+Walidacja: 164 testy `node --test tests/publishing.test.cjs`, w tym brak konta ChatGPT/WordPress, pusty wynik RSS, włączenie Radaru oraz przekazanie polecenia przez dedykowany mostek Android. Weryfikacja APK i emulatorów pozostaje w GitHub Actions. Nie testowano sesji osobistego konta ChatGPT ani publikowania na żywym WordPressie.

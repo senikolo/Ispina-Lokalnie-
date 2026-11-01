@@ -217,7 +217,7 @@ header{animation:ilHeader .38s cubic-bezier(.2,.7,.2,1) both}.brand .logo{animat
     <div id="assistant-mode" class="note">Sprawdzam dostępny tryb asystenta…</div>
     <label for="assistant-prompt">Twoje zadanie</label>
     <textarea id="assistant-prompt" style="min-height:125px" placeholder="Np. Przygotuj szkic o historii Ispiny. Nie dopisuj niepotwierdzonych dat ani nazwisk."></textarea>
-    <div class="note"><b>Bezpłatna pomoc w aplikacji AI</b><p>Redaktor spróbuje otworzyć ChatGPT. Jeśli go nie ma lub nie przyjmie polecenia, spróbuje Gemini. Treść wyślesz dopiero po dotknięciu przycisku. Nie jest potrzebny klucz API.</p><div class="actions"><button onclick="sendAssistantToApps()">Otwórz ChatGPT, w razie potrzeby Gemini</button><button class="secondary" onclick="copyAssistantPrompt()">Kopiuj polecenie</button></div><label for="assistant-return-text">Odpowiedź z ChatGPT lub Gemini</label><textarea id="assistant-return-text" style="min-height:140px" placeholder="Po powrocie wklej tutaj odpowiedź AI"></textarea><label for="assistant-return-target">Porównaj tę odpowiedź z</label><select id="assistant-return-target"><option value="body">Treścią artykułu</option><option value="title">Tytułem</option><option value="excerpt">Zajawką SEO</option><option value="facebook">Postem na Facebooka</option></select><div class="actions"><button class="secondary" onclick="IL.readAssistantClipboard()">Wklej ze schowka</button><button onclick="compareExternalAssistantResponse()">Sprawdź i porównaj</button></div><p id="assistant-handoff-status" class="small" role="status" aria-live="polite">Wklejona treść pokaże się jako propozycja. Zmiany w artykule wymagają Twojego zatwierdzenia.</p></div>
+    <div class="note"><b>Bezpłatna pomoc w aplikacji AI</b><p>Redaktor otworzy aplikację ChatGPT lub chatgpt.com. Polecenie będzie w schowku. Wklej je i wyślij, a odpowiedź skopiuj z powrotem. Obowiązują limity planu Free; klucz API nie jest potrzebny.</p><div class="actions"><button onclick="sendAssistantToApps()">Otwórz ChatGPT Free</button><button class="secondary" onclick="copyAssistantPrompt()">Kopiuj polecenie</button></div><label for="assistant-return-text">Odpowiedź z ChatGPT lub Gemini</label><textarea id="assistant-return-text" style="min-height:140px" placeholder="Po powrocie wklej tutaj odpowiedź AI"></textarea><label for="assistant-return-target">Porównaj tę odpowiedź z</label><select id="assistant-return-target"><option value="body">Treścią artykułu</option><option value="title">Tytułem</option><option value="excerpt">Zajawką SEO</option><option value="facebook">Postem na Facebooka</option></select><div class="actions"><button class="secondary" onclick="IL.readAssistantClipboard()">Wklej ze schowka</button><button onclick="compareExternalAssistantResponse()">Sprawdź i porównaj</button></div><p id="assistant-handoff-status" class="small" role="status" aria-live="polite">Wklejona treść pokaże się jako propozycja. Zmiany w artykule wymagają Twojego zatwierdzenia.</p></div>
     <div class="actions">
       <button class="secondary" onclick="assistantExample('Dodaj artykuł o historii Ispiny, wybierz kategorię Historia i popraw język. Nie wymyślaj faktów.')">Historia Ispiny</button>
       <button class="secondary" onclick="assistantExample('Dodaj do Usług nową firmę, sprawdź, czy nie ma jej już w katalogu, i przygotuj kartę. Zostaw nieznane dane puste.')">Nowa usługa</button>
@@ -233,21 +233,17 @@ header{animation:ilHeader .38s cubic-bezier(.2,.7,.2,1) both}.brand .logo{animat
 </section>
 <section id="screen-radar" class="panel">
   <div class="card" id="chatgpt-connection-card">
-    <div class="eyebrow">POŁĄCZENIE AI</div>
-    <h2>ChatGPT dla IL Chata i Radaru</h2>
-    <p id="chatgpt-account-status" class="small muted" role="status" aria-live="polite">Sprawdzam połączenie z ChatGPT…</p>
-    <div class="actions">
-      <button id="chatgpt-connect" type="button" onclick="connectChatGpt()">Kontynuuj z ChatGPT</button>
-      <button id="chatgpt-disconnect" class="secondary hidden" type="button" onclick="disconnectChatGpt()">Odłącz / zmień konto</button>
-      <button class="secondary" type="button" onclick="openChatGptUsage()">Zarządzaj użyciem ChatGPT</button>
-    </div>
-    <p class="small muted">To połączenie jest osobne od WordPress.com i aplikacji ChatGPT. Pokazany adres to konto, którego plan wykorzystują IL Chat i Radar. Aby je zmienić, wybierz „Odłącz / zmień konto”, a potem zaloguj się ponownie.</p>
+    <div class="eyebrow">TRYB BEZ OPŁAT</div><h2>Redaktor + ChatGPT Free</h2>
+    <p id="chatgpt-account-status" class="small muted" role="status">Wyszukiwanie i Radar nie wymagają konta AI ani klucza API.</p>
+    <p>AI działa w aplikacji ChatGPT lub na chatgpt.com, w granicach limitów Twojego konta Free. Redaktor kopiuje polecenie, a odpowiedź wklejasz po powrocie. Nie pobiera rozmów ani adresu konta ChatGPT.</p>
+    <div class="actions"><button type="button" onclick="openFreeChatGpt()">Otwórz ChatGPT Free z pytaniem</button><button id="chatgpt-disconnect" class="secondary" type="button" onclick="disconnectChatGpt()">Usuń stare połączenie AI</button></div>
+    <p class="small muted">WordPress służy osobno do publikacji. Automatyczny Radar pobiera publiczne kanały RSS i nie używa limitu ChatGPT.</p>
   </div>
   <div class="card" id="ispina-chat-card">
-    <div class="eyebrow">IL CHAT AI · RADAR INFORMACJI</div>
+    <div class="eyebrow">ŹRÓDŁA · RADAR RSS</div>
     <h2>Zapytaj o Ispinę</h2>
-    <p class="muted">Pytaj po ludzku i dopytuj w tej samej rozmowie. Każda odpowiedź ma wynikać z wyszukiwania internetowego; pokażę też znalezione źródła. Sprawdź daty i treść przed wykorzystaniem.</p>
-    <div class="note small">IL Chat korzysta bezpośrednio z ChatGPT i wyszukiwania internetowego. Połącz konto ChatGPT w tej zakładce; użycie wlicza się do jego wspólnego limitu. Z odpowiedzi można przygotować szkic, zachowując źródła do ręcznego sprawdzenia.</div>
+    <p class="muted">Wpisz temat, aby znaleźć materiały w publicznych kanałach RSS. Każde pytanie jest osobnym wyszukiwaniem. Po odpowiedź AI przejdź przyciskiem do ChatGPT Free.</p>
+    <div class="note small">Wyszukiwarka pokazuje tytuły, fragmenty i linki z RSS. Nie ocenia prawdziwości treści i nie przeszukuje całego internetu. Możesz przekazać materiały do ChatGPT do opracowania.</div>
     <div class="actions">
       <button class="secondary" type="button" onclick="prefillIspinaChat('Czy są nowe informacje o moście w Ispinie?')">Most</button>
       <button class="secondary" type="button" onclick="prefillIspinaChat('Czy pojawiły się nowe informacje o transporcie w Ispinie?')">Transport</button>
@@ -260,29 +256,29 @@ header{animation:ilHeader .38s cubic-bezier(.2,.7,.2,1) both}.brand .logo{animat
     <label for="ispina-chat-input">Twoje pytanie</label>
     <textarea id="ispina-chat-input" maxlength="2000" style="min-height:92px" placeholder="Np. Czy w ostatnich dniach opublikowano coś o Ispinie?"></textarea>
     <div class="actions">
-      <button id="ispina-chat-send" type="button" onclick="sendIspinaChat()">Zapytaj IL Chat AI</button>
+      <button id="ispina-chat-send" type="button" onclick="sendIspinaChat()">Znajdź źródła bez opłat</button>
       <button class="secondary" type="button" onclick="clearIspinaChat()">Wyczyść rozmowę</button>
     </div>
-    <p id="ispina-chat-status" class="small muted" role="status" aria-live="polite">Sprawdzam połączenie z ChatGPT…</p>
+    <p id="ispina-chat-status" class="small muted" role="status" aria-live="polite">Wyszukiwanie bez konta AI.</p>
   </div>
-    <p class="small muted">Zaloguj się na konto ChatGPT, którego plan chcesz używać. Pytania i historia czatu są wysyłane bezpośrednio do OpenAI. Połączenie nie udostępnia rozmów ani pamięci z ChatGPT; użycie aplikacji wlicza się do wspólnego limitu konta.</p>
+    <p class="small muted">Wyszukiwanie źródeł nie wysyła historii do OpenAI. Konto i limity ChatGPT dotyczą wyłącznie pracy w otwartej przez Ciebie aplikacji ChatGPT.</p>
   </div>
   <div class="card" id="research-card">
     <div class="eyebrow">WYSZUKIWANIE INTERNETOWE</div>
     <h2>Informacje o Ispinie</h2>
-    <p class="muted">IL Chat AI sprawdza internet przez ChatGPT i pokazuje źródła przy odpowiedzi. Wyszukiwarka może wykonać jedno lub więcej zapytań; ich liczba zależy od ChatGPT.</p>
+    <p class="muted">Bezpłatne wyszukiwanie pobiera materiały z Google News RSS, Bing RSS i kanału Gminy Drwinia. Nie obejmuje wszystkich stron ani przetargów.</p>
     <label for="research-query">Temat i dodatkowe wskazówki</label>
     <textarea id="research-query" maxlength="1800" style="min-height:115px">Wyszukaj aktualne informacje o Ispinie. W pierwszej kolejności sprawdź materiały opublikowane w ostatnich 30 dniach i podaj datę publikacji oraz, jeśli jest inna, datę wydarzenia. Jeśli w tym okresie nie ma nowych ustaleń, oddzielnie wskaż ważne starsze materiały. Sprawdź przetargi i zamówienia dotyczące dróg, mostów, transportu i usług, lokalne media, stronę Gminy Drwinia, BIP oraz inne źródła urzędowe. Uwzględnij formy „Ispina”, „w Ispinie”, „do Ispiny”, „z Ispiny” i błędne warianty. Informacje o okolicy uwzględniaj tylko przy wyraźnym związku z Ispiną.</textarea>
-    <div class="note small">Raport uruchamia jedno wyszukiwanie ChatGPT z dostępem do internetu. Zużywa wspólny limit użycia ChatGPT dla połączonego konta. Wyniki są propozycją do sprawdzenia; pokażę źródła zwrócone przez wyszukiwarkę.</div>
+    <div class="note small">Wyniki to materiały do sprawdzenia w źródłach. Brak wyników nie oznacza braku informacji. Niedostępne kanały zostaną wskazane w raporcie.</div>
     <details class="small"><summary>Zakres tematyczny</summary><ul><li>Przetargi i zamówienia dotyczące Ispiny</li><li>Gmina Drwinia, BIP i strony urzędowe</li><li>BZP, e-Zamówienia i inne platformy</li><li>Lokalne i regionalne media</li><li>Drogi, mosty, transport, OSP i infrastruktura</li><li>Odmiany nazwy, materiały archiwalne i pobliskie miejsca z potwierdzonym związkiem</li></ul></details>
-    <div class="actions"><button class="secondary" type="button" onclick="runRecentIspinaRadar()">Nowości · ostatnie 30 dni</button><button id="research-button" type="button" disabled onclick="runDeepIspinaResearch()">🔎 Wyszukaj w internecie informacje o Ispinie</button><button id="assistant-check-button" class="secondary" type="button" onclick="checkAssistantAvailability()">Sprawdź połączenie ChatGPT</button><button class="secondary" type="button" onclick="clearResearchResults()">Wyczyść wyniki</button></div>
+    <div class="actions"><button class="secondary" type="button" onclick="runRecentIspinaRadar()">Nowości · ostatnie 30 dni</button><button id="research-button" type="button" disabled onclick="runDeepIspinaResearch()">🔎 Wyszukaj w internecie informacje o Ispinie</button><button id="assistant-check-button" class="secondary" type="button" onclick="checkAssistantAvailability()">Odśwież status</button><button class="secondary" type="button" onclick="clearResearchResults()">Wyczyść wyniki</button></div>
     <div class="note" id="background-radar-card" role="group" aria-label="Automatyczny radar Ispiny">
       <strong>🔔 Automatyczny radar Ispiny · IL</strong>
       <p class="small">Redaktor sprawdzi publiczne źródła co 8 godzin, czyli około 3 razy na dobę. Powiadomienie z ikoną IL pojawi się tylko dla nowej wzmianki ze źródłem.</p>
       <label style="display:flex;align-items:center;gap:10px"><input id="ispina-radar-enabled" type="checkbox"> Włącz radar w tle i powiadomienia</label>
       <div class="actions"><button type="button" class="secondary" id="ispina-radar-save" onclick="saveIspinaRadarSettings()">Zapisz ustawienie radaru</button></div>
       <p id="ispina-radar-status" class="small muted" role="status" aria-live="polite">Radar jest wyłączony. Włączenie wymaga zgody na powiadomienia.</p>
-      <p class="small muted">Radar korzysta z wyszukiwania ChatGPT. Wymaga połączenia z kontem ChatGPT i zgody na powiadomienia. Zużywa wspólny limit planu ChatGPT; możesz ustawić limit użycia przyciskiem „Zarządzaj użyciem ChatGPT”.</p>
+      <p class="small muted">Radar RSS nie wymaga ChatGPT ani klucza API. Wymaga internetu i zgody na powiadomienia. Android może opóźnić skan w trybie oszczędzania baterii.</p>
     </div>
     <p id="research-status" class="small muted" role="status" aria-live="polite">Sprawdzam dostępność wyszukiwania AI…</p>
     <div id="research-results" aria-live="polite" role="region" aria-label="Wyniki wyszukiwania o Ispinie"></div>
@@ -580,12 +576,12 @@ window.onNativeResult=function(id,ok,payload){
       $("assistant-online-button").classList.toggle("hidden",!assistantEnabled);
       message("assistant-mode",assistantEnabled
         ?"Pomoc redakcyjna online jest gotowa."
-        :"Pomoc redakcyjna online wymaga backendu. IL Chat i Radar działają po połączeniu ChatGPT w tej zakładce.",
+        :"Radar i wyszukiwanie źródeł działają bez konta AI. Pomoc AI uruchomisz w ChatGPT Free i wkleisz odpowiedź po powrocie.",
         assistantEnabled?"":"");
       refreshChatGptState();
     }catch(e){
       assistantEnabled=false;$("assistant-online-button").classList.add("hidden");
-      message("assistant-mode","Pomoc redakcyjna online wymaga backendu. Połącz ChatGPT, aby używać IL Chata i Radaru.","");
+      message("assistant-mode","Wyszukiwanie i Radar nie wymagają konta AI. Możesz przekazać tekst do ChatGPT Free.","");
       refreshChatGptState();
     }
     return;
@@ -735,8 +731,8 @@ function externalAssistantPrompt(){
 function sendAssistantToApps(){
   const prompt=externalAssistantPrompt();if(!prompt){$("assistant-handoff-status").textContent="Najpierw wpisz polecenie albo wybierz jedną z gotowych podpowiedzi.";return false;}
   if(prompt.length>18000){$("assistant-handoff-status").textContent="Polecenie jest zbyt długie do przekazania. Skróć tekst artykułu i spróbuj ponownie.";return false;}
-  $("assistant-handoff-status").textContent="Próbuję otworzyć ChatGPT. Jeśli nie będzie dostępny, spróbuję Gemini.";
-  if(typeof IL.shareAssistantPrompt==="function")IL.shareAssistantPrompt(prompt);else{if(IL.copyText)IL.copyText(prompt);$("assistant-handoff-status").textContent="Ten telefon nie obsługuje bezpośredniego przekazania. Polecenie skopiowano; wklej je w ChatGPT lub Gemini.";}
+  $("assistant-handoff-status").textContent="Kopiuję polecenie i otwieram ChatGPT. Wklej i wyślij je, a potem wróć z odpowiedzią.";
+  if(typeof IL.shareChatGptFreePrompt==="function")IL.shareChatGptFreePrompt(prompt);else if(typeof IL.shareAssistantPrompt==="function")IL.shareAssistantPrompt(prompt);else{if(IL.copyText)IL.copyText(prompt);$("assistant-handoff-status").textContent="Ten telefon nie obsługuje bezpośredniego przekazania. Polecenie skopiowano; wklej je w ChatGPT lub Gemini.";}
   return true;
 }
 function copyAssistantPrompt(){
@@ -881,7 +877,7 @@ function renderIspinaChat(){
     const draftAction=message.role==="assistant"&&message.verified===true&&sources
       ?'<div class="actions"><button class="secondary" type="button" data-ispina-chat-draft="'+index+'">📝 Opracuj szkic w ChatGPT/Gemini</button></div>'
       :"";
-    return '<div class="chat-line"><strong>'+esc(message.role==="user"?"Ty":"IL Chat AI")+'</strong><div class="research-summary">'+esc(message.content)+'</div>'+(sources?'<div class="source-item"><b>Źródła do tej odpowiedzi</b>'+sources+'</div>':"")+draftAction+'</div>';
+    return '<div class="chat-line"><strong>'+esc(message.role==="user"?"Ty":"Wyniki RSS")+'</strong><div class="research-summary">'+esc(message.content)+'</div>'+(sources?'<div class="source-item"><b>Źródła do tej odpowiedzi</b>'+sources+'</div>':"")+draftAction+'</div>';
   }).join("");
   target.scrollTop=target.scrollHeight;
 }
@@ -909,15 +905,14 @@ async function sendIspinaChat(){
   if(ispinaChatInProgress)return false;
   const prompt=trim($("ispina-chat-input").value);
   if(!prompt){$("ispina-chat-status").textContent="Wpisz pytanie o Ispinę.";return false}
-  if(!chatGptConnected){$("ispina-chat-status").textContent="Najpierw połącz konto ChatGPT w panelu powyżej."; $("ispina-chat-status").className="small error";return false}
-  if(!ispinaChatConsent&&!confirm("Wysłać pytanie i maksymalnie osiem ostatnich wiadomości bezpośrednio do OpenAI? IL Chat używa wyszukiwania internetowego i limitu połączonego konta ChatGPT."))return false;
+  if(!ispinaChatConsent&&!confirm("Wyszukać publiczne materiały o Ispinie? Ogólna fraza tematyczna trafi do Google News i Bing. To wyszukiwanie RSS, bez AI i bez opłat API."))return false;
   ispinaChatConsent=true;
   ispinaChatInProgress=true;
   const button=$("ispina-chat-send");
   button.disabled=true;
   $("ispina-chat-status").textContent="Szukam aktualnych informacji i sprawdzam źródła…";
   $("ispina-chat-status").className="small muted";
-  startOperation("IL Chat AI sprawdza internet…");
+  startOperation("Wyszukuję materiały w RSS…");
   try{
     const history=ispinaChatMessages.filter(message=>message.role==="user"||message.verified===true).slice(-8).map(message=>({role:message.role,content:message.content}));
     const result=await requestIspinaChat(prompt,history);
@@ -925,7 +920,7 @@ async function sendIspinaChat(){
     const sources=Array.isArray(result?.sources)?result.sources:[];
     const verified=result?.verified===true&&!!answer&&sources.length>0;
     ispinaChatMessages.push({role:"user",content:prompt,verified:true});
-    if(verified)ispinaChatMessages.push({role:"assistant",content:answer,sources,verified:true,question:prompt,searchedAt:String(result?.searchedAt||"")});
+    if(verified)ispinaChatMessages.push({role:"assistant",content:answer,sources,verified:true,question:prompt,searchedAt:new Date(result?.searchedAt||Date.now()).toISOString()});
     else ispinaChatMessages.push({role:"assistant",content:"Tym razem nie udało się potwierdzić odpowiedzi źródłami. Spróbuj zawęzić pytanie lub zapytać innymi słowami.",sources:[],verified:false});
     renderIspinaChat();
     $("ispina-chat-input").value="";
@@ -940,7 +935,7 @@ async function sendIspinaChat(){
     return false;
   }finally{
     ispinaChatInProgress=false;
-    button.disabled=!chatGptConnected;
+    button.disabled=false;
   }
 }
 let assistantCheckTimer=null;
@@ -960,6 +955,12 @@ function renderResearchResult(result,query){
   const queryMarkup=queries=>queries.length?'<div class="source-item"><b>Frazy udostępnione przez wyszukiwarkę</b><ul>'+queries.map(q=>'<li class="research-query">'+esc(q)+'</li>').join("")+'</ul></div>':"";
   const sections=Array.isArray(result?.sections)?result.sections.slice(0,6):[],aggregate=String(result?.text||"").trim();
   const topSources=safeFor(result?.sources).slice(0,30),allQueries=Array.isArray(result?.queries)?result.queries.filter(q=>typeof q==="string").slice(0,60):[];
+  if(result?.freeSearch&&!topSources.length){
+    latestResearchMaterial=null;
+    $("research-results").innerHTML='<div class="note">'+esc(aggregate||"Brak materiałów w dostępnych kanałach RSS.")+'</div>';
+    $("research-status").textContent="Zakończono wyszukiwanie RSS. Nie znaleziono materiałów; możesz spróbować w ChatGPT Free.";
+    $("research-status").className="small muted";return;
+  }
   let verifiedCount=0,totalSources=0,rendered="";
   if(sections.length){
     rendered=sections.map(section=>{
@@ -967,7 +968,7 @@ function renderResearchResult(result,query){
       const sources=safeFor(section?.sources).slice(0,30),queries=Array.isArray(section?.queries)?section.queries.filter(q=>typeof q==="string").slice(0,20):[];
       const verified=section?.status==="ok"&&!!text&&sources.length>0;
       if(verified){verifiedCount++;totalSources+=sources.length}
-      const state=verified?'<div class="note ok"><b>Źródła przypisane do tego profilu</b></div>':'<div class="note"><b>Profil bez potwierdzonych źródeł</b><p class="small">'+(section?.status==="failed"?"Nie udało się wykonać wyszukiwania dla tego profilu.":"ChatGPT nie zwrócił potwierdzonych stron.")+'</p></div>';
+      const state=verified?'<div class="note ok"><b>Źródła przypisane do tego profilu</b></div>':'<div class="note"><b>Profil bez potwierdzonych źródeł</b><p class="small">'+(section?.status==="failed"?"Nie udało się wykonać wyszukiwania dla tego profilu.":"ChatGPT nie zwrócił stron do sprawdzenia.")+'</p></div>';
       return '<section class="source-item research-profile"><h3>'+esc(title)+'</h3>'+state+(verified?'<div class="research-summary">'+esc(text)+'</div>'+renderSources(sources):"")+queryMarkup(queries)+'</section>';
     }).join("");
   }else{
@@ -977,14 +978,14 @@ function renderResearchResult(result,query){
   }
   if(!totalSources)throw new Error("Raport nie zawiera potwierdzonych źródeł. Nie pokazuję niepotwierdzonych wyników.");
   const searchedAt=new Date(result.searchedAt||Date.now()),dateLabel=Number.isNaN(searchedAt.getTime())?"":searchedAt.toLocaleString("pl-PL");
-  const profileLabel=sections.length?"Zweryfikowane profile: "+verifiedCount+" z "+sections.length+". ":"";
+  const profileLabel=sections.length?"Profile ze źródłami: "+verifiedCount+" z "+sections.length+". ":"";
   const verifiedSections=sections.filter(section=>section?.status==="ok"&&String(section?.text||"").trim()).map(section=>({title:String(section.title||"Profil wyszukiwania").slice(0,180),text:String(section.text||"").trim().slice(0,6000),status:"ok",sources:Array.isArray(section.sources)?section.sources:[]})).filter(section=>section.sources.length);
   const materialSections=verifiedSections.length?verifiedSections:(aggregate&&topSources.length?[{title:"Podsumowanie radaru",text:aggregate.slice(0,6000),status:"ok",sources:topSources}]:[]);
   const materialSources=[...new Map(materialSections.flatMap(section=>section.sources).filter(source=>source?.url).map(source=>[String(source.url),{title:String(source.title||"Źródło").slice(0,180),url:String(source.url)}])).values()].slice(0,12);
-  latestResearchMaterial={query:String(typeof query==="string"?query:$("research-query").value||"").trim().slice(0,1800),searchedAt:String(result?.searchedAt||new Date().toISOString()),sections:materialSections,sources:materialSources};
+  latestResearchMaterial={query:String(typeof query==="string"?query:$("research-query").value||"").trim().slice(0,1800),searchedAt:new Date(result?.searchedAt||Date.now()).toISOString(),sections:materialSections,sources:materialSources};
   const draftAction='<div class="actions"><button class="secondary" type="button" data-research-compose>📝 Opracuj szkic w ChatGPT/Gemini</button></div><p class="small muted">Utworzę osobny szkic lokalny i zachowam linki jako źródła „Do sprawdzenia”.</p>';
-  $("research-results").innerHTML='<div class="note ok"><b>Raport gotowy</b><p class="small">'+esc(profileLabel+'Wyszukano '+totalSources+' potwierdzonych stron.')+'</p>'+(dateLabel?'<p class="small">Wyszukano: '+esc(dateLabel)+'</p>':"")+'</div>'+rendered+'<p class="muted small">Każde źródło jest przypisane do profilu. Sprawdź datę, treść i aktualność materiału w oryginalnej witrynie; wynik AI nie zastępuje dokumentu źródłowego.</p>'+draftAction;
-  $("research-status").textContent="Wyszukiwanie zakończone. "+verifiedCount+" profili ma potwierdzone źródła; znaleziono "+totalSources+" stron.";
+  $("research-results").innerHTML='<div class="note ok"><b>Raport gotowy</b><p class="small">'+esc(profileLabel+'Wyszukano '+totalSources+' stron do sprawdzenia.')+'</p>'+(dateLabel?'<p class="small">Wyszukano: '+esc(dateLabel)+'</p>':"")+'</div>'+rendered+'<p class="muted small">Każde źródło jest przypisane do profilu. Sprawdź datę, treść i aktualność materiału w oryginalnej witrynie; wynik AI nie zastępuje dokumentu źródłowego.</p>'+draftAction;
+  $("research-status").textContent="Wyszukiwanie zakończone. "+verifiedCount+" profili zawiera linki do źródeł; znaleziono "+totalSources+" stron.";
   $("research-status").className="small ok";
 }
 function openResearchSource(url){
@@ -1068,78 +1069,25 @@ function openChatGptUsage(){
   if(window.IL&&typeof IL.openChatGptUsage==="function")IL.openChatGptUsage();
 }
 async function refreshChatGptState(){
-  if(!window.IL||typeof IL.getChatGptState!=="function"){
-    chatGptConnected=false;
-    $("chatgpt-account-status").textContent="Połączenie ChatGPT jest dostępne w aplikacji Android.";
-    $("chatgpt-account-status").className="small error";
-    return false;
-  }
-  try{
-    const state=await requestChatGptState();
-    chatGptConnected=!!state?.connected;
-    const email=String(state?.email||"").trim(),model=String(state?.model||"").trim();
-    const account=$("chatgpt-account-status");
-    if(chatGptConnected){
-      account.textContent="Konto ChatGPT używane przez IL Chat i Radar: "+(email||"adres e-mail niedostępny")+(model?" · model: "+model:"")+"."; if(!email)account.textContent+=" Sprawdź konto wybrane w przeglądarce albo odłącz je i zaloguj się ponownie."
-      if(email)account.textContent+=state.emailVerified?" Adres potwierdzony przez OpenAI.":" OpenAI nie potwierdziło weryfikacji tego adresu.";
-      account.className="small ok";
-      $("ispina-chat-status").textContent="ChatGPT jest połączony. IL Chat może szukać aktualnych informacji i pokazywać źródła.";
-      $("ispina-chat-status").className="small muted";
-      $("research-status").textContent="ChatGPT jest połączony. Możesz wyszukiwać aktualne informacje o Ispinie.";
-      $("research-status").className="small muted";
-    }else{
-      account.textContent="Nie połączono ChatGPT. Przy logowaniu wybierz konto, którego plan ma używać IL Chat i Radar."
-      account.className="small muted";
-      $("ispina-chat-status").textContent="Połącz konto ChatGPT, aby używać IL Chat AI.";
-      $("ispina-chat-status").className="small muted";
-      $("research-status").textContent="Połącz konto ChatGPT, aby włączyć wyszukiwanie internetowe.";
-      $("research-status").className="small muted";
-    }
-    $("chatgpt-connect").classList.toggle("hidden",chatGptConnected);
-    $("chatgpt-disconnect").classList.toggle("hidden",!chatGptConnected);
-    $("ispina-chat-send").disabled=!chatGptConnected||ispinaChatInProgress;
-    $("research-button").disabled=!chatGptConnected||researchInProgress;
-    $("assistant-check-button").disabled=false;
-    await refreshIspinaRadarState();
-    return state;
-  }catch(error){
-    chatGptConnected=false;
-    $("chatgpt-account-status").textContent=error?.message||"Nie udało się odczytać połączenia ChatGPT.";
-    $("chatgpt-account-status").className="small error";
-    $("ispina-chat-status").textContent="Nie udało się sprawdzić połączenia ChatGPT.";
-    $("ispina-chat-status").className="small error";
-    $("research-status").textContent="Nie udało się sprawdzić połączenia ChatGPT.";
-    $("research-status").className="small error";
-    $("chatgpt-connect").classList.remove("hidden");
-    $("chatgpt-disconnect").classList.add("hidden");
-    $("ispina-chat-send").disabled=true;
-    $("research-button").disabled=true;
-    $("assistant-check-button").disabled=false;
-    return false;
-  }
+  chatGptConnected=false;
+  $("chatgpt-account-status").textContent="Tryb bez opłat. Konto ChatGPT wybierasz w aplikacji ChatGPT lub w przeglądarce; Redaktor go nie odczytuje.";
+  $("ispina-chat-send").disabled=ispinaChatInProgress;
+  $("research-button").disabled=researchInProgress;
+  $("ispina-chat-status").textContent="Wyszukiwanie publicznych źródeł jest dostępne bez logowania do AI.";
+  $("research-status").textContent="Gotowe. Wyniki RSS wymagają przeczytania i sprawdzenia w źródle.";
+  $("assistant-check-button").disabled=false;
+  await refreshIspinaRadarState();
+  return {connected:false,freeSearch:true};
 }
-async function connectChatGpt(){
-  if(!window.IL||typeof IL.connectChatGpt!=="function"){
-    $("chatgpt-account-status").textContent="Połączenie ChatGPT wymaga aplikacji IL Redaktor na Androidzie.";
-    $("chatgpt-account-status").className="small error";
-    return false;
-  }
-  const button=$("chatgpt-connect");
-  button.disabled=true;
-  $("chatgpt-account-status").textContent="Otwieram bezpieczne logowanie. Wybierz konto ChatGPT i zaakceptuj użycie jego planu w IL Redaktorze.";
-  $("chatgpt-account-status").className="small muted";
-  try{
-    await requestConnectChatGpt();
-    await refreshChatGptState();
-    return chatGptConnected;
-  }catch(error){
-    $("chatgpt-account-status").textContent=error?.message||"Nie udało się połączyć z ChatGPT.";
-    $("chatgpt-account-status").className="small error";
-    return false;
-  }finally{button.disabled=false}
+function openFreeChatGpt(){
+  const question=trim($("ispina-chat-input").value)||trim($("research-query").value)||"Pomóż mi przygotować artykuł o Ispinie.";
+  if(!persistDraft(true)){ $("ispina-chat-status").textContent="Nie udało się zapisać szkicu. Spróbuj ponownie przed przejściem do ChatGPT.";return false; }
+  $("assistant-prompt").value=question;
+  showScreen("assistant");
+  return sendAssistantToApps();
 }
 async function disconnectChatGpt(){
-  if(!chatGptConnected||!confirm("Odłączyć konto ChatGPT? Radar w tle zostanie zatrzymany, a lokalne tokeny usunięte. Potem możesz zalogować inne konto. Połączenie WordPress pozostanie bez zmian."))return false;
+  if(!confirm("Odłączyć konto ChatGPT? Radar w tle zostanie zatrzymany, a lokalne tokeny usunięte. Z konta Free korzystasz osobno w aplikacji ChatGPT. Połączenie WordPress pozostanie bez zmian."))return false;
   const button=$("chatgpt-disconnect");button.disabled=true;
   try{
     const state=await requestDisconnectChatGpt();
@@ -1174,13 +1122,13 @@ function renderIspinaRadarState(state){
     const detail=state.lastStatus==="found"?"Ostatni skan znalazł nową wzmiankę."
       :state.lastStatus==="none"?"Ostatni skan nie znalazł nowej wzmianki."
       :state.lastStatus==="error"?"Ostatni skan nie został zakończony: "+String(state.lastMessage||"sprawdź połączenie.")
-      :state.lastStatus==="login"?"Połącz ponownie konto ChatGPT, aby radar mógł działać."
+      :state.lastStatus==="login"?"Poprzedni tryb wymagał konta AI. Wyłącz i włącz Radar, aby uruchomić bezpłatny RSS."
       :"Oczekuje na pierwszy skan.";
     status.textContent="Radar aktywny · co 8 godzin. "+detail+(when?" Ostatni skan: "+when+".":"");
     status.className="small "+(state.lastStatus==="error"||state.lastStatus==="login"?"error":"muted");
   }else{
     status.textContent=state?.lastStatus==="usage_limit"
-      ?"Radar został zatrzymany po osiągnięciu limitu ChatGPT. Sprawdź ustawienia użycia i włącz go ponownie."
+      ?"Poprzedni tryb osiągnął limit AI. Włącz Radar ponownie; nowy tryb RSS nie używa limitów AI."
       :state?.lastStatus==="notifications_disabled"
         ?"Powiadomienia Androida są wyłączone. Włącz je w ustawieniach telefonu, aby uruchomić radar."
         :"Radar jest wyłączony."+(when?" Ostatni skan: "+when+".":"");
@@ -1194,8 +1142,7 @@ async function refreshIspinaRadarState(){
 }
 async function saveIspinaRadarSettings(){
   const checkbox=$("ispina-radar-enabled"),button=$("ispina-radar-save"),enabled=checkbox.checked;
-  if(enabled&&!chatGptConnected){checkbox.checked=false;$("ispina-radar-status").textContent="Połącz konto ChatGPT, aby uruchomić Radar Ispiny.";$("ispina-radar-status").className="small error";return false}
-  if(enabled&&!confirm("Włączyć automatyczne sprawdzanie co 8 godzin? Każdy skan używa wyszukiwania ChatGPT i limitu połączonego konta. Powiadomienie pojawi się tylko dla nowej wzmianki ze źródłem. Wymagana jest zgoda Androida na powiadomienia.")){checkbox.checked=false;return false}
+  if(enabled&&!confirm("Włączyć automatyczne sprawdzanie co 8 godzin? Każdy skan pobiera publiczne RSS bez konta AI i bez opłat API. Powiadomienie pojawi się tylko dla nowej wzmianki ze źródłem. Wymagana jest zgoda Androida na powiadomienia.")){checkbox.checked=false;return false}
   button.disabled=true;$("ispina-radar-status").textContent=enabled?"Włączam harmonogram i sprawdzam zgodę na powiadomienia…":"Wyłączam radar w tle…";$("ispina-radar-status").className="small muted";
   try{
     const state=await requestIspinaRadarEnabled(enabled);renderIspinaRadarState(state);
@@ -1210,13 +1157,12 @@ async function runDeepIspinaResearch(){
   if(researchInProgress)return false;
   const prompt=trim($("research-query").value);
   if(!prompt){$("research-status").textContent="Wpisz temat do wyszukania.";return false;}
-  if(!chatGptConnected){$("research-status").textContent="Najpierw połącz konto ChatGPT w panelu powyżej.";$("research-status").className="small error";return false;}
-  if(!confirm("Rozpocząć wyszukiwanie internetowe w ChatGPT? Raport używa limitu połączonego konta ChatGPT i pokaże źródła do sprawdzenia."))return false;
+  if(!confirm("Wyszukać materiały w publicznych kanałach RSS? To bezpłatna lista źródeł do sprawdzenia, nie pełne badanie AI."))return false;
   researchInProgress=true;
   $("research-button").disabled=true;
   $("research-status").textContent="Wyszukuję informacje i weryfikuję źródła. To może chwilę potrwać.";
   $("research-status").className="small muted";
-  startOperation("Trwa głębokie wyszukiwanie internetowe…");
+  startOperation("Pobieram publiczne kanały RSS…");
   try{
     const result=await requestResearch(prompt);
     renderResearchResult(result,prompt);
@@ -1229,7 +1175,7 @@ async function runDeepIspinaResearch(){
     return false;
   }finally{
     researchInProgress=false;
-    $("research-button").disabled=!chatGptConnected;
+    $("research-button").disabled=false;
   }
 }
 
@@ -1509,7 +1455,7 @@ async function formatArticleWithAI(){
   $("assistant-prompt").value=task;
   $("assistant-return-target").value="body";
   showScreen("assistant");
-  $("assistant-handoff-status").textContent="Wybierz „Otwórz ChatGPT, w razie potrzeby Gemini”. Wklej odpowiedź HTML ze schowka do porównania. To działa bez klucza API i bez automatycznego publikowania.";
+  $("assistant-handoff-status").textContent="Wybierz „Otwórz ChatGPT Free”. Wklej odpowiedź HTML ze schowka do porównania. To działa bez klucza API i bez automatycznego publikowania.";
   return true;
 }
 function editorHtml(){return $("post-mode").value==="html"?$("post-body").value:asHtml($("post-body").value)}

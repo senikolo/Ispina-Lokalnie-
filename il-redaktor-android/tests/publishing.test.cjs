@@ -635,9 +635,9 @@ test("AI context exposes published posts only for reader recommendations",()=>{
 test("new build metadata and the PR APK workflow agree",()=>{
   const gradle=fs.readFileSync(path.join(__dirname,"../app/build.gradle"),"utf8");
   const workflow=fs.readFileSync(path.join(__dirname,"../../.github/workflows/il-redaktor-apk.yml"),"utf8");
-  assert.match(gradle,/versionCode 36/);assert.match(gradle,/versionName '1\.26\.1'/);assert.match(gradle,/https:\/\/il-redaktor-assistant\.vercel\.app\/api\/assistant/);
+  assert.match(gradle,/versionCode 37/);assert.match(gradle,/versionName '1\.27\.0'/);assert.match(gradle,/https:\/\/il-redaktor-assistant\.vercel\.app\/api\/assistant/);
   assert.match(gradle,/applicationId 'com\.ispinalokalnie\.redaktorsmart\.stable'/);
-  assert.match(workflow,/versionCode='36' versionName='1\.26\.1'/);
+  assert.match(workflow,/versionCode='37' versionName='1\.27\.0'/);
 });
 
 test("AI editor shortcut copies current title and text into a reviewable prompt without sending it",()=>{
@@ -652,7 +652,7 @@ test("ChatGPT/Gemini handoff adds fact guardrails and sends only after the user 
   const a=setup();let sent="";a.node("assistant-prompt").value="Skróć tekst artykułu";a.c.IL.shareAssistantPrompt=text=>{sent=text};
   assert.equal(a.run("sendAssistantToApps()"),true);
   assert.match(sent,/w Ispinie, do Ispiny, z Ispiny/);assert.match(sent,/Nie wymyślaj dat/);assert.match(sent,/Skróć tekst artykułu/);
-  assert.equal(a.node("assistant-handoff-status").textContent,"Próbuję otworzyć ChatGPT. Jeśli nie będzie dostępny, spróbuję Gemini.");
+  assert.equal(a.node("assistant-handoff-status").textContent,"Kopiuję polecenie i otwieram ChatGPT. Wklej i wyślij je, a potem wróć z odpowiedzią.");
 });
 
 test("configured AI backend is not used by the default free local button",async()=>{
@@ -1130,4 +1130,37 @@ test("research UI shows only source-backed section text and safe source links",(
   assert.match(rendered,/data-research-link="https:\/\/example\.com\/raport"/);
   assert.match(rendered,/Profil bez potwierdzonych źródeł/);
   assert.doesNotMatch(rendered,/Ukryj tę niepotwierdzoną treść|Zbiorcze podsumowanie/);
+});
+
+test('free source search works with no ChatGPT or WordPress account',async()=>{
+  const a=setup();a.run('connected=false;chatGptConnected=false');
+  a.node('ispina-chat-input').value='Most w Ispinie';
+  let calls=0;a.c.requestIspinaChat=async()=>{calls++;return {freeSearch:true,verified:true,answer:'Materiał RSS',sources:[{title:'Most',url:'https://example.com/most'}],searchedAt:Date.now()}};
+  await a.run('sendIspinaChat()');
+  assert.equal(calls,1);assert.equal(a.node('ispina-chat-send').disabled,false);
+  assert.match(a.node('ispina-chat-log').innerHTML,/Materiał RSS/);
+});
+test('free research renders a completed empty RSS search without false failure',async()=>{
+  const a=setup();a.run('connected=false;chatGptConnected=false');a.node('research-query').value='Ispina';
+  a.c.requestResearch=async()=>({freeSearch:true,text:'Brak materiałów. Jeden kanał niedostępny.',sources:[]});
+  await a.run('runDeepIspinaResearch()');
+  assert.match(a.node('research-results').innerHTML,/Brak materiałów/);
+  assert.equal(a.node('research-button').disabled,false);
+});
+test('free Radar can be enabled without a ChatGPT account',async()=>{
+  const a=setup();a.run('chatGptConnected=false');a.node('ispina-radar-enabled').checked=true;
+  let enabled=false;a.c.requestIspinaRadarEnabled=async value=>{enabled=value;return {enabled:value}};
+  await a.run('saveIspinaRadarSettings()');assert.equal(enabled,true);
+});
+test('free mode refresh does not wait for OpenAI identity and leaves search enabled',async()=>{
+  const a=setup();a.c.refreshIspinaRadarState=async()=>{};
+  a.c.requestChatGptState=()=>{throw Error('Must not request identity')};
+  await a.run('refreshChatGptState()');
+  assert.equal(a.node('ispina-chat-send').disabled,false);assert.equal(a.node('research-button').disabled,false);
+});
+test('ChatGPT Free handoff uses its dedicated bridge without invoking paid AI',()=>{
+  const a=setup();a.node('assistant-prompt').value='Napisz propozycję';
+  let sent='';a.c.IL.shareChatGptFreePrompt=text=>{sent=text};
+  a.c.IL.shareAssistantPrompt=()=>{throw Error('Unexpected fallback')};
+  a.run('sendAssistantToApps()');assert.match(sent,/Napisz propozycję/);
 });
