@@ -96,7 +96,7 @@ public final class OAuthBrowserLogin {
                     "&redirect_uri=" + Uri.encode(REDIRECT) +
                     "&code_challenge=" + Uri.encode(challenge) +
                     "&code_challenge_method=S256" +
-                    "&scope=global" +
+                    "&scope=auth" +
                     "&state=" + Uri.encode(state);
                 main.post(() -> {
                     try {
@@ -156,10 +156,10 @@ public final class OAuthBrowserLogin {
                 "&redirect_uri=" + Uri.encode(REDIRECT) +
                 "&code_challenge=" + Uri.encode(challenge) +
                 "&code_challenge_method=S256" +
-                "&scope=global" +
+                "&scope=auth" +
                 "&state=" + Uri.encode(state);
 
-            note("Krok 2/4: otwieram WordPress.com. Zatwierdź dostęp wymagany do zarządzania treściami. Zakres global obejmuje konto WordPress.com; aplikacja pracuje na Ispina Lokalnie.");
+            note("Krok 2/4: otwieram WordPress.com. Zatwierdź dostęp wymagany do zarządzania treściami. Po powrocie do aplikacji sprawdzę dostęp do Ispina Lokalnie.");
             main.post(() -> {
                 try {
                     Intent browser = new Intent(Intent.ACTION_VIEW, Uri.parse(loginUrl));
