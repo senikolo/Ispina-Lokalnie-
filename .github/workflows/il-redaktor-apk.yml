@@ -9,6 +9,10 @@ on:
       - ".github/workflows/il-redaktor-apk.yml"
   workflow_dispatch:
 
+concurrency:
+  group: il-redaktor-${{ github.ref }}
+  cancel-in-progress: true
+
 permissions:
   contents: read
 
@@ -194,6 +198,8 @@ jobs:
           npm ci --ignore-scripts --no-audit --no-fund
           npm test
           npm run typecheck
+      - name: Check live public RSS channels without AI or WordPress writes
+        run: python3 il-redaktor-android/scripts/check-free-rss.py
       - name: Compile Android APK
         working-directory: il-redaktor-android
         run: gradle --no-daemon :app:assembleDebug :app:assembleDebugAndroidTest
