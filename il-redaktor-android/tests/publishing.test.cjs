@@ -389,6 +389,25 @@ test("OAuth recovery offers re-opening the same browser flow and diagnoses missi
   assert.match(a.node("working-state").textContent,/Czekam na potwierdzenie/);
 });
 
+test("expired WordPress OAuth attempt ends the wait and offers a fresh attempt",()=>{
+  const a=setup();
+  a.run('window.onNativeResult("login-state",true,JSON.stringify({pending:false,expired:true}))');
+  assert.match(a.node("working-state").textContent,/Logowanie WordPress.com wygasło/);
+  assert.match(a.node("working-state").className,/failed/);
+  assert.equal(a.node("login-recovery").classList.contains("hidden"),true);
+  assert.match(a.node("auth-output").innerHTML,/Rozpocznij logowanie ponownie/);
+});
+
+test("Android OAuth expiry recovery does not silently weaken WordPress MCP scope",()=>{
+  const root=path.join(__dirname,"../app/src/main/java/com/ispinalokalnie/redaktor");
+  const activity=fs.readFileSync(path.join(root,"MainActivity.java"),"utf8");
+  const oauth=fs.readFileSync(path.join(root,"OAuthBrowserLogin.java"),"utf8");
+  assert.match(oauth,/hasExpiredPendingLogin\(\)/);
+  assert.match(activity,/login\.hasExpiredPendingLogin\(\)/);
+  assert.match(activity,/loginInProgress = false/);
+  assert.match(oauth,/scope=global/);
+});
+
 test("OAuth waiting indicator is pending, not a forever-spinning progress state",()=>{
   const a=setup();
   a.run('window.onNativeResult("auth-progress",true,"Krok 3/4: oczekuję na powrót.")');

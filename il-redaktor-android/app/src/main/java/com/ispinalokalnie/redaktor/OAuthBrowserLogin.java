@@ -178,6 +178,14 @@ public final class OAuthBrowserLogin {
         }
     }
 
+    /** Detect an expired browser flow without reading or exposing OAuth secrets. */
+    public boolean hasExpiredPendingLogin() {
+        SharedPreferences storage = prefs();
+        long deadline = storage.getLong(PENDING_EXPIRES, 0L);
+        return deadline > 0L && deadline <= System.currentTimeMillis() &&
+            !storage.getString(PENDING_STATE, "").isEmpty();
+    }
+
     public boolean hasPendingLogin() {
         return prefs().getLong(PENDING_EXPIRES, 0L) > System.currentTimeMillis() &&
             !prefs().getString(PENDING_STATE, "").isEmpty();
