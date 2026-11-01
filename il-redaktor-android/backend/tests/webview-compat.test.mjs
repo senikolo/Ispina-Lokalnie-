@@ -28,6 +28,14 @@ test("WebView build transpiles modern syntax and provides required legacy polyfi
     }).outputText;
     assert.doesNotMatch(probe, /\?\./, "The pinned compiler must transpile optional chaining");
     assert.doesNotMatch(probe, /\?\?/, "The pinned compiler must transpile nullish coalescing");
+    const parsed = ts.createSourceFile("index-android.js", match[1], ts.ScriptTarget.Latest, true, ts.ScriptKind.JS);
+    const parseErrors = parsed.parseDiagnostics.map(diagnostic => {
+      const position = parsed.getLineAndCharacterOfPosition(diagnostic.start || 0);
+      const snippet = match[1].slice(Math.max(0, (diagnostic.start || 0) - 30), (diagnostic.start || 0) + 60);
+      return (position.line + 1) + ":" + (position.character + 1) + " " +
+        ts.flattenDiagnosticMessageText(diagnostic.messageText, " ") + " near " + JSON.stringify(snippet);
+    });
+    assert.equal(parseErrors.length, 0, parseErrors.join("\\n"));
     assert.doesNotThrow(() => new Function(match[1]), "Generated inline script must parse");
   } finally {
     fs.rmSync(tmpDir, { recursive: true, force: true });
