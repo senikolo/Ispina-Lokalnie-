@@ -686,6 +686,33 @@ public class MainActivity extends Activity {
         @JavascriptInterface public void verify() { verifyConnection(); }
 
         /** Public WordPress REST endpoint: no password, OAuth bearer, or write operation. */
+        /**
+         * Read-only connectivity diagnostics; never sends credentials and never writes
+         * to WordPress. A reachable endpoint is not proof of authoring permissions.
+         */
+        @JavascriptInterface public void runDiagnostics(String rid) {
+            if (rid == null || !rid.matches("[A-Za-z0-9_-]{1,60}")) return;
+            work.execute(() -> {
+                JSONObject result = new JSONObject();
+                try {
+                    result.put("wordpressToken", connected());
+                    result.put("wordpressVerified", verified);
+                    result.put("assistantConfigured", false);
+                    result.put("publicWordPress", probePublicEndpoint(
+                        "https://public-api.wordpress.com/wp/v2/sites/252442125/posts?per_page=1&_fields=id"));
+                    result.put("googleNews", probePublicEndpoint(
+                        "https://news.google.com/rss/search?q=Ispina&hl=pl&gl=PL&ceid=PL:pl"));
+                    result.put("bing", probePublicEndpoint(
+                        "https://www.bing.com/search?format=rss&q=Ispina"));
+                    result.put("editorialMemory", editorialDatabase().execute("history", new JSONObject()).has("items"));
+                    callback(rid, true, result.toString());
+                } catch (Exception ex) {
+                    callback(rid, false, "Nie udało się ukończyć diagnostyki: " +
+                        (ex.getMessage() == null ? "błąd lokalny" : ex.getMessage()));
+                }
+            });
+        }
+
         @JavascriptInterface public void publicPosts() {
             work.execute(() -> {
                 java.net.HttpURLConnection connection = null;
@@ -1236,6 +1263,24 @@ public class MainActivity extends Activity {
                 "ispinalokalnie.wordpress.com".equals(uri.getHost()) &&
                 uri.getUserInfo() == null && (uri.getPort() == -1 || uri.getPort() == 443);
         } catch (Exception ignored) { return false; }
+    }
+
+    private static String probePublicEndpoint(String address) {
+        HttpURLConnection connection = null;
+        try {
+            connection = (HttpURLConnection) new java.net.URL(address).openConnection();
+            connection.setRequestMethod("GET");
+            connection.setConnectTimeout(5000);
+            connection.setReadTimeout(5000);
+            connection.setInstanceFollowRedirects(false);
+            connection.setRequestProperty("Accept", "application/json, application/rss+xml, application/xml");
+            int status = connection.getResponseCode();
+            return status >= 200 && status < 300 ? "DOSTĘPNE" : "HTTP " + status;
+        } catch (Exception ex) {
+            return "NIEDOSTĘPNE (sieć lub serwer)";
+        } finally {
+            if (connection != null) connection.disconnect();
+        }
     }
 
     private void openExternalPage(String value) {
