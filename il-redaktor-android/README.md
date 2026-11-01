@@ -1,6 +1,13 @@
-# IL Redaktor Smart 1.22.2
+# IL Redaktor Smart 1.23.0
 
-Wersja rozwojowa (versionCode 30, stały pakiet `com.ispinalokalnie.redaktorsmart.stable`). **Nie odinstalowuj wcześniejszej APK przed aktualizacją**, dopóki nie zabezpieczysz szkiców i nie potwierdzisz zgodności podpisu. CI sprawdza uruchomienie i zachowanie szkiców po reinstalacji na Androidzie 8 (API 26), a przejście ze starej wersji oraz WebView na Androidzie 11 (API 30) i 13 (API 33). Debug APK nie jest automatycznie zgodną aktualizacją prywatnie podpisanej wersji; podpisany plik aktualizacyjny powstaje tylko przy dostępności dotychczasowego klucza.
+Wersja rozwojowa (versionCode 31, stały pakiet `com.ispinalokalnie.redaktorsmart.stable`). **Nie odinstalowuj wcześniejszej APK przed aktualizacją**, dopóki nie zabezpieczysz szkiców i nie potwierdzisz zgodności podpisu. CI sprawdza uruchomienie i zachowanie szkiców po reinstalacji na Androidzie 8 (API 26), a przejście ze starej wersji oraz WebView na Androidzie 11 (API 30) i 13 (API 33). Debug APK nie jest automatycznie zgodną aktualizacją prywatnie podpisanej wersji; podpisany plik aktualizacyjny powstaje tylko przy dostępności dotychczasowego klucza.
+
+## Nowości 1.23.0 — IL Chat AI
+
+- Nowy czat „Radar informacji o Ispinie” przyjmuje pytania po polsku i pytania uzupełniające, zachowując do ośmiu ostatnich wiadomości w bieżącej sesji.
+- Każda tura korzysta z Gemini i Google Search grounding. Aplikacja pokazuje odpowiedź wyłącznie wtedy, gdy backend zwróci co najmniej jedno źródło; linki można otworzyć przy konkretnej odpowiedzi.
+- Limit: 10 wiadomości na godzinę na konto WordPress i adres IP. Pełne sześcioprofilowe badanie pozostaje oddzielną funkcją z limitem 3 raportów na godzinę.
+- Historia czatu nie jest zapisywana na serwerze, a klucz Gemini pozostaje po stronie backendu. Wymagane są \`GOOGLE_GENERATIVE_AI_API_KEY\` oraz zmienne Upstash Redis; korzystanie z Gemini i wyszukiwania może podlegać osobnym opłatom.
 
 ## Nowości 1.22.2 — poprawki po audycie
 
