@@ -6,12 +6,12 @@ function asRecord(value) {
 
 function redactProviderMessage(value) {
   return value
-    .replace(/\\bAIza[0-9A-Za-z_-]{20,}\\b/g, '[redacted]')
-    .replace(/\\bBearer\\s+[^\\s,;]+/gi, 'Bearer [redacted]')
-    .replace(/((?:api[_-]?key|token|secret)\\s*[:=]\\s*)[^\\s,;]+/gi, '$1[redacted]')
-    .replace(/([?&]key=)[^&\\s]+/gi, '$1[redacted]')
-    .replace(/[\\r\\n\\t]+/g, ' ')
-    .replace(/\\s{2,}/g, ' ')
+    .replace(/\bAIza[0-9A-Za-z_-]{20,}\b/g, '[redacted]')
+    .replace(/\bBearer\s+[^\s,;]+/gi, 'Bearer [redacted]')
+    .replace(/((?:api[_-]?key|token|secret)\s*[:=]\s*)[^\s,;]+/gi, '$1[redacted]')
+    .replace(/([?&]key=)[^&\s]+/gi, '$1[redacted]')
+    .replace(/[\r\n\t]+/g, ' ')
+    .replace(/\s{2,}/g, ' ')
     .trim()
     .slice(0, 240);
 }
