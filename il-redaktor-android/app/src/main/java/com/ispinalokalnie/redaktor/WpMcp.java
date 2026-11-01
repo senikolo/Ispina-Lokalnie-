@@ -32,11 +32,13 @@ public final class WpMcp {
     // In-memory, per access-token session. Never persist session IDs or log credentials.
     // WordPress.com uses stateful MCP Streamable HTTP transport.
     private static String mcpSessionId = "";
+    private static boolean mcpSessionInitialized = false;
     private static String mcpSessionBearer = "";
     private static String mcpProtocolVersion = "2025-11-25";
 
     static synchronized void resetSession() {
         mcpSessionId = "";
+        mcpSessionInitialized = false;
         mcpSessionBearer = "";
         mcpProtocolVersion = "2025-11-25";
     }
@@ -95,10 +97,10 @@ public final class WpMcp {
             connection.setRequestProperty("Accept", "application/json, text/event-stream");
             connection.setRequestProperty("Content-Type", "application/json; charset=UTF-8");
             connection.setRequestProperty("Authorization", "Bearer " + bearer);
-            if (session != null && !session.isEmpty()) {
+            if (session != null && !session.isEmpty())
                 connection.setRequestProperty("Mcp-Session-Id", session);
+            if (protocol != null && !protocol.isEmpty())
                 connection.setRequestProperty("MCP-Protocol-Version", protocol);
-            }
             try (OutputStream out = connection.getOutputStream()) {
                 out.write(json.toString().getBytes(StandardCharsets.UTF_8));
             }
@@ -122,7 +124,7 @@ public final class WpMcp {
     }
 
     private static void ensureMcpSession(String token) throws Exception {
-        if (!mcpSessionId.isEmpty() && token.equals(mcpSessionBearer)) return;
+        if (mcpSessionInitialized && token.equals(mcpSessionBearer)) return;
         resetSession();
         JSONObject initialize = new JSONObject()
             .put("jsonrpc", "2.0")
@@ -142,9 +144,11 @@ public final class WpMcp {
         if (result == null)
             throw new Exception("WordPress MCP nie potwierdził inicjalizacji.");
         String session = initial.sessionId == null ? "" : initial.sessionId.trim();
-        if (session.isEmpty() || session.length() > 512 ||
-            !session.matches("[\\x21-\\x7E]+"))
-            throw new Exception("WordPress MCP nie przekazał prawidłowego Mcp-Session-Id.");
+        // MCP 2025-11-25 makes session identifiers optional for stateless servers.
+        // If the server supplies one, validate and resend it on subsequent calls.
+        if (!session.isEmpty() && (session.length() > 512 ||
+            !session.matches("[\\x21-\\x7E]+")))
+            throw new Exception("WordPress MCP przekazał nieprawidłowy Mcp-Session-Id.");
         String protocol = result.optString("protocolVersion", "2025-11-25");
         if (protocol.isEmpty() || protocol.length() > 32 ||
             !protocol.matches("[0-9]{4}-[0-9]{2}-[0-9]{2}"))
@@ -155,6 +159,7 @@ public final class WpMcp {
             .put("method", "notifications/initialized");
         postMcp(token, initialized, session, protocol);
         mcpSessionId = session;
+        mcpSessionInitialized = true;
         mcpSessionBearer = token;
         mcpProtocolVersion = protocol;
     }

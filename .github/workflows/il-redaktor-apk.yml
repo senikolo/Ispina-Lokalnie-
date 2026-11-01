@@ -91,8 +91,8 @@ jobs:
           mcp=pathlib.Path('il-redaktor-android/app/src/main/java/com/ispinalokalnie/redaktor/WpMcp.java').read_text()
           main=pathlib.Path('il-redaktor-android/app/src/main/java/com/ispinalokalnie/redaktor/MainActivity.java').read_text()
           manifest=pathlib.Path('il-redaktor-android/app/src/main/AndroidManifest.xml').read_text()
-          assert '"&scope=auth"' in oauth, 'WordPress MCP documented auth scope missing'
-          assert '"&scope=global"' not in oauth, 'Legacy global scope must not be used for WordPress MCP OAuth'
+          assert '"&scope=global"' in oauth, 'WordPress MCP requires global scope (observed 403 auth-only)'
+          assert '"&scope=auth"' not in oauth, 'Auth-only scope cannot access WordPress MCP content'
           for expected in ['com.ispinalokalnie.redaktorsmart.stable:/callback','code_challenge_method=S256','PENDING_VERIFIER','handleRedirect']:
               assert expected in oauth, 'OAuth return missing: '+expected
           for required in ['\"method\", \"initialize\"', 'Mcp-Session-Id', 'notifications/initialized', 'ensureMcpSession(token)', 'ExpiredMcpSession', 'resetSession()']:
@@ -102,7 +102,7 @@ jobs:
           assert 'refresh_token' in mcp and 'refresh_token' in main, 'Token refresh is not wired end to end'
           assert 'putTokens(access, expires, refresh, true)' in main, 'Refresh token is not stored after consent'
           assert 'AndroidKeyStore' in main and 'encryptSecret' in main, 'Tokens are not encrypted at rest'
-          assert 'JSONArray)data).length() == 0' in main, 'Login must confirm at least one existing article'
+          assert 'if (!(data instanceof org.json.JSONArray))' in main, 'Login must validate the posts.list response type'
           assert 'response_type=token' not in main and 'response_type=token' not in oauth, 'Implicit OAuth flow must not be used'
           assert 'android:scheme="com.ispinalokalnie.redaktorsmart.stable"' in manifest
           import re
@@ -203,6 +203,19 @@ jobs:
       - name: Compile Android APK
         working-directory: il-redaktor-android
         run: gradle --no-daemon :app:assembleDebug :app:assembleDebugAndroidTest
+      - name: Verify and upload test APK before emulator tests
+        run: |
+          APK="il-redaktor-android/app/build/outputs/apk/debug/app-debug.apk"
+          test -s "$APK"
+          SDK_ROOT="${ANDROID_HOME:-/usr/local/lib/android/sdk}"
+          "$SDK_ROOT/build-tools/35.0.0/apksigner" verify --verbose "$APK"
+          "$SDK_ROOT/build-tools/35.0.0/aapt" dump badging "$APK" | grep -F "package: name='com.ispinalokalnie.redaktorsmart.stable' versionCode='42' versionName='1.29.3-test.1'"
+      - name: Upload test APK for manual login diagnostics
+        uses: actions/upload-artifact@v4
+        with:
+          name: IL-Redaktor-Preview-APK
+          path: il-redaktor-android/app/build/outputs/apk/debug/app-debug.apk
+          retention-days: 30
       - name: Build previous 1.15 debug APK with the same CI debug signing key
         run: |
           git fetch --depth=1 origin 17333f654fae324384b5c09dd1a7fd94da8e4359
@@ -256,7 +269,7 @@ jobs:
           test -s "$APK"
           test -s il-redaktor-android/app/src/main/assets/il-monogram.png
           "$SDK_ROOT/build-tools/35.0.0/apksigner" verify --verbose "$APK"
-          "$SDK_ROOT/build-tools/35.0.0/aapt" dump badging "$APK" | grep -F "package: name='com.ispinalokalnie.redaktorsmart.stable' versionCode='40' versionName='1.29.1-test.1'"
+          "$SDK_ROOT/build-tools/35.0.0/aapt" dump badging "$APK" | grep -F "package: name='com.ispinalokalnie.redaktorsmart.stable' versionCode='42' versionName='1.29.3-test.1'"
           unzip -l "$APK" | grep 'assets/il-monogram.png'
       - name: Upload installable APK
         uses: actions/upload-artifact@v4
@@ -301,13 +314,13 @@ jobs:
             exit 1
           fi
           mkdir -p "$RUNNER_TEMP/il-signed-upgrade"
-          cp "$APK" "$RUNNER_TEMP/il-signed-upgrade/IL-Redaktor-Smart-1.29.1-test.1-UPDATE.apk"
+          cp "$APK" "$RUNNER_TEMP/il-signed-upgrade/IL-Redaktor-Smart-1.29.3-test.1-UPDATE.apk"
           echo "Signed upgrade APK created with the existing release certificate."
       - name: Upload verified signed upgrade when available
         uses: actions/upload-artifact@v4
         with:
           name: IL-Redaktor-Signed-Upgrade
-          path: ${{ runner.temp }}/il-signed-upgrade/IL-Redaktor-Smart-1.27.0-UPDATE.apk
+          path: ${{ runner.temp }}/il-signed-upgrade/IL-Redaktor-Smart-1.29.3-test.1-UPDATE.apk
           if-no-files-found: ignore
           retention-days: 30
       - uses: actions/upload-artifact@v4

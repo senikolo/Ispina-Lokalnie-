@@ -346,6 +346,7 @@ header{animation:ilHeader .38s cubic-bezier(.2,.7,.2,1) both}.brand .logo{animat
   <div class="card"><h2>Artykuły na portalu</h2><p class="muted">Pobierz listę, wybierz istniejący wpis i edytuj go bez utraty numeru ID.</p>
   <label for="posts-search">Wyszukaj tytuł lub fragment</label><input id="posts-search" placeholder="Szukaj wpisów..." oninput="renderPosts()">
   <div class="actions"><button onclick="loadPosts()">Odśwież wpisy</button><button class="secondary" onclick="resetEditor();showScreen('editor')">Nowy artykuł</button></div>
+  <div id="posts-access" class="note" role="status">Opublikowane artykuły można przeglądać bez logowania. Edycja i szkice na WordPressie wymagają zalogowania.</div>
   <div id="posts-output" aria-live="polite"></div></div>
 </section>
 
@@ -387,7 +388,7 @@ header{animation:ilHeader .38s cubic-bezier(.2,.7,.2,1) both}.brand .logo{animat
     <p class="muted">Portal: <b>ispinalokalnie.wordpress.com</b><br>Identyfikator witryny: <b>252442125</b></p>
     <div id="settings-state" class="note">Sprawdzanie autoryzacji...</div>
     <button class="wide primary-login" onclick="signInGoogle()"><span style="display:inline-block;background:#fff;color:#4285f4;border-radius:7px;padding:4px 9px;margin-right:8px;font-weight:900">G</span> Zaloguj do WordPress.com (także przez Google)</button>
-    <p class="setting-caption">Logowanie otworzy stronę WordPress.com w przeglądarce. Tam możesz wybrać konto Google. Radar, IL Chat i szkice lokalne nie wymagają zalogowania do WordPressa.</p>
+    <p class="setting-caption">Logowanie otworzy stronę WordPress.com w przeglądarce, gdzie możesz wybrać Google. Do odczytu i edycji wpisów przez MCP WordPress wymaga uprawnienia <strong>global</strong>. To szerszy zakres obejmujący konto WordPress.com, nie wyłącznie Ispina Lokalnie. Zatwierdź go wyłącznie, jeśli akceptujesz taki dostęp. Radar, IL Chat i lokalne szkice działają bez logowania.</p>
     <div id="login-recovery" class="recovery-card hidden" role="region" aria-label="Pomoc przy logowaniu">
       <h3>🔑 Czekam na zakończenie logowania</h3>
       <p>Zatwierdź dostęp w przeglądarce i wybierz otwarcie Redaktora IL, gdy Android o to zapyta. Jeśli jesteś już z powrotem w aplikacji, ale nadal widzisz krok 3/4, skorzystaj z opcji poniżej.</p>
@@ -421,7 +422,7 @@ header{animation:ilHeader .38s cubic-bezier(.2,.7,.2,1) both}.brand .logo{animat
     <label class="setting-row"><input type="checkbox" id="battery-saving" onchange="applyUiPreferences(true)"><span>Tryb oszczędzania baterii</span></label>
     <p id="ui-preferences-status" class="setting-caption" role="status" aria-live="polite">Ustawienia zapisują się na tym telefonie. Systemowe ograniczenie ruchu zawsze ma pierwszeństwo.</p>
   </div>
-  <div class="card"><h2>O programie</h2><p class="muted">IL Redaktor Smart 1.28.0 · Niezależna aplikacja Android 8 i nowszy. WordPress.com MCP. Publikacja wymaga potwierdzenia i ponownego odczytu wpisu.</p></div>
+  <div class="card"><h2>O programie</h2><p class="muted">IL Redaktor Smart 1.29.3-test.1 · Niezależna aplikacja Android 8 i nowszy. WordPress.com MCP. Publikacja wymaga potwierdzenia i ponownego odczytu wpisu.</p></div>
 </section>
 </main>
 <div id="conflict-dialog" class="finish-dialog hidden" role="dialog" aria-modal="true" aria-labelledby="conflict-title"><div class="finish-panel"><h2 id="conflict-title">Wersja na WordPressie wymaga porównania</h2><p id="conflict-message"></p><p>Nie wysłano zmian artykułu. Twoja praca pozostaje w szkicach na telefonie.</p><button class="secondary" onclick="showConflictComparison()">Porównaj wersje</button><div id="conflict-comparison" class="hidden"></div><p id="conflict-feedback" role="status"></p><div class="actions"><button onclick="resolveRemoteConflict(false)">Wczytaj wersję ze strony</button><button class="secondary" onclick="resolveRemoteConflict(true)">Zachowaj obie kopie</button><button class="secondary" onclick="closeRemoteConflict()">Wróć do tekstu</button></div><p class="small">Wczytanie nie usuwa Twojego szkicu. Zachowaj obie kopie odłączy lokalną wersję od wpisu na stronie.</p></div></div>
@@ -581,6 +582,19 @@ window.onNativeResult=function(id,ok,payload){
     try{r.resolve(JSON.parse(payload));}catch(e){r.reject(new Error("Nieprawidłowa odpowiedź WordPressa."));}
     return;
   }
+  if(id==="public-posts"){
+    if(ok){
+      try{
+        const posts=JSON.parse(payload);
+        if(!Array.isArray(posts))throw new Error("Nieprawidłowa lista artykułów");
+        allPosts=posts.map(p=>({...p,readOnly:true}));
+        renderPosts();
+        $("posts-access").textContent="Tryb publiczny: przeglądasz opublikowane artykuły bez logowania. Aby edytować lub odczytać szkice WordPressa, połącz konto w zakładce Połączenie.";
+        operationFinished(true,"Pobrano publiczne wpisy",posts.length+" artykułów w trybie tylko do odczytu.");
+      }catch(e){message("posts-output","Nie można odczytać listy publicznych artykułów: "+e.message,"error")}
+    } else message("posts-output",payload,"error");
+    return;
+  }
   if(id==="auth-return") {
     stopAuthWaitTimer();
     if(ok){
@@ -683,8 +697,9 @@ window.onNativeResult=function(id,ok,payload){
       loadCategories();
     }else{
       message("auth-output",payload,"error");
-      showOutcome("error","NIE POWIODŁO SIĘ","WordPress nie potwierdził połączenia: "+payload);
-      message("home-connection","Nie udało się potwierdzić dostępu do wpisów. Sprawdź zgodę i ustawienia MCP na koncie WordPress.","error");
+      showOutcome("error","DOSTĘP REDAKCYJNY NIEPOTWIERDZONY",payload);
+      message("home-connection","Brak dostępu redakcyjnego: "+payload+" Publiczne artykuły możesz przeglądać bez logowania.","error");
+      $("posts-access").textContent="Brak uprawnień redakcyjnych: "+payload+". Publiczne wpisy dostępne są bez logowania.";
     }
   }
   if(id==="copy"){message("post-output",payload,"ok");return;}
@@ -1739,7 +1754,14 @@ function resetEditor(){
   updateMetrics();return true;
 }
 async function loadPosts(){
-  if(!connected){message("posts-output","Połącz konto w ustawieniach.","error");return}
+  if(!connected){
+    startOperation("Wczytuję publiczne artykuły Ispina Lokalnie…");
+    $("posts-access").textContent="Tryb publiczny, bez logowania. Wpisów nie można edytować, dopóki WordPress nie potwierdzi sesji.";
+    message("posts-output","Pobieram opublikowane artykuły...");
+    if(IL.publicPosts)IL.publicPosts();
+    else message("posts-output","Ta wersja aplikacji nie obsługuje publicznego odczytu. Otwórz portal przez przycisk na pulpicie.","error");
+    return;
+  }
   startOperation("Pobieram artykuły i szkice…");
   message("posts-output","Pobieram listę wpisów z WordPressa...");
   try{
@@ -1753,6 +1775,7 @@ async function loadPosts(){
     if(!Array.isArray(data))throw Error("Nie rozpoznano listy artykułów.");
     if(!data.length){message("posts-output","WordPress potwierdził pustą listę.");return}
     allPosts=data;
+    $("posts-access").textContent="Tryb redakcyjny: połączenie z WordPressem potwierdzone. Możesz edytować istniejące artykuły i odczytywać szkice.";
     renderPosts();
     operationFinished(true,"Pobrano listę artykułów",data.length+" wpisów i szkiców.");
     /* original mapping removed */
@@ -2331,10 +2354,25 @@ function downloadText(){
   const content=trim($("post-title").value)+"\n\n"+trim($("post-body").value);
   IL.copyText(content);
 }
+function openPublicPost(id){
+  const post=allPosts.find(p=>p.readOnly&&Number(p.id)===Number(id));
+  const url=String(post?.link||"");
+  if(!/^https:\/\/ispinalokalnie\.wordpress\.com\//i.test(url)){
+    message("posts-output","WordPress nie podał bezpiecznego adresu tego wpisu.","error");
+    return;
+  }
+  IL.openSite(url);
+}
 function renderPosts(){
   const q=trim($("posts-search").value).toLocaleLowerCase("pl");
-  const filtered=allPosts.filter(p=>(p.title?.rendered||"").toLocaleLowerCase("pl").includes(q));
-  $("posts-output").innerHTML=filtered.map(p=>'<div class="post"><b>'+esc(p.title?.rendered||"Bez tytułu")+'</b><span>WP ID '+Number(p.id)+' · '+esc(p.status)+' · '+esc(p.modified?.slice(0,16)||"")+'</span><button class="secondary" onclick="editPost('+Number(p.id)+')">Edytuj</button></div>').join("")||'<p class="muted">Brak wyników wyszukiwania.</p>';
+  const filtered=allPosts.filter(p=>String(p.title?.rendered||"").toLocaleLowerCase("pl").includes(q));
+  $("posts-output").innerHTML=filtered.map(p=>{
+    const id=Number(p.id),validId=Number.isSafeInteger(id)&&id>0;
+    const action=p.readOnly
+      ?'<button class="secondary" '+(validId?'onclick="openPublicPost('+id+')"':'disabled')+'>Czytaj artykuł</button>'
+      :'<button class="secondary" '+(validId?'onclick="editPost('+id+')"':'disabled')+'>Edytuj</button>';
+    return '<div class="post"><b>'+esc(p.title?.rendered||"Bez tytułu")+'</b><span>WP ID '+(validId?id:"?")+' · '+esc(p.status)+' · '+esc(p.modified?.slice(0,16)||"")+'</span>'+action+'</div>';
+  }).join("")||'<p class="muted">Brak wyników wyszukiwania.</p>';
 }
 async function loadMedia(){
   if(!connected){message("media-output","Najpierw połącz konto WordPress.","error");return}

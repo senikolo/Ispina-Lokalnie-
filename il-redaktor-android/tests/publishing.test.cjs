@@ -399,6 +399,29 @@ test("OAuth waiting indicator is pending, not a forever-spinning progress state"
   a.run("stopAuthWaitTimer()");
 });
 
+test("public post read remains available without a WordPress OAuth session",()=>{
+  const a=setup(),calls=[];
+  a.c.IL.publicPosts=()=>calls.push("publicPosts");
+  a.run("connected=false;loadPosts()");
+  assert.deepEqual(calls,["publicPosts"]);
+  a.run('window.onNativeResult("public-posts",true,JSON.stringify([{id:1410,title:{rendered:"Ispina"},status:"publish",modified:"2026-11-01T08:00:00",link:"https://ispinalokalnie.wordpress.com/2026/11/01/ispina/"}]))');
+  assert.match(a.node("posts-access").textContent,/Tryb publiczny/);
+  assert.match(a.node("posts-output").innerHTML,/Czytaj artykuł/);
+  assert.doesNotMatch(a.node("posts-output").innerHTML,/>Edytuj</);
+  const urls=[];a.c.IL.openSite=url=>urls.push(url);
+  a.run("openPublicPost(1410)");
+  assert.deepEqual(urls,["https://ispinalokalnie.wordpress.com/2026/11/01/ispina/"]);
+  a.run("allPosts[0].link='https://evil.invalid/';openPublicPost(1410)");
+  assert.equal(urls.length,1);
+});
+
+test("failed verification reports the actual reason and does not erase public reading",()=>{
+  const a=setup();
+  a.run('window.onNativeResult("verify",false,"NO_SESSION: Brak sesji WordPress.com")');
+  assert.match(a.node("home-connection").innerHTML,/NO_SESSION/);
+  assert.match(a.node("posts-access").textContent,/NO_SESSION/);
+});
+
 test("OAuth waiting shows recovery, then clears it on cancellation",()=>{
   const a=setup();
   a.run('window.onNativeResult("auth-progress",true,"Krok 3/4: oczekuję na powrót.")');
@@ -681,9 +704,9 @@ test("AI context exposes published posts only for reader recommendations",()=>{
 test("new build metadata and the PR APK workflow agree",()=>{
   const gradle=fs.readFileSync(path.join(__dirname,"../app/build.gradle"),"utf8");
   const workflow=fs.readFileSync(path.join(__dirname,"../../.github/workflows/il-redaktor-apk.yml"),"utf8");
-  assert.match(gradle,/versionCode 40/);assert.match(gradle,/versionName '1\.29\.1-test\.1'/);assert.match(gradle,/https:\/\/il-redaktor-assistant\.vercel\.app\/api\/assistant/);
+  assert.match(gradle,/versionCode 42/);assert.match(gradle,/versionName '1\.29\.3-test\.1'/);assert.match(gradle,/https:\/\/il-redaktor-assistant\.vercel\.app\/api\/assistant/);
   assert.match(gradle,/applicationId 'com\.ispinalokalnie\.redaktorsmart\.stable'/);
-  assert.match(workflow,/versionCode='40' versionName='1\.29\.1-test\.1'/);
+  assert.match(workflow,/versionCode='42' versionName='1\.29\.3-test\.1'/);
 });
 
 test("AI editor shortcut copies current title and text into a reviewable prompt without sending it",()=>{
@@ -789,12 +812,19 @@ test("AI contract only returns image search terms, not unverifiable image URLs",
   assert.match(backend,/wyłącznie do przekazanych wpisów ze statusem publish/);
 });
 
+test("WordPress MCP rejects auth-only tokens and requires global scope",()=>{
+  const main=fs.readFileSync(path.join(__dirname,"../app/src/main/java/com/ispinalokalnie/redaktor/MainActivity.java"),"utf8");
+  const oauth=fs.readFileSync(path.join(__dirname,"../app/src/main/java/com/ispinalokalnie/redaktor/OAuthBrowserLogin.java"),"utf8");
+  assert.equal((oauth.match(/&scope=global/g)||[]).length,2,"Start and resume must both request global");
+  assert.match(main,/AUTH_SCOPE: WordPress przyznał tylko podstawowy zakres auth/);
+  assert.match(main,/required scope/);
+});
 test("OAuth DCR, PKCE, deep-link scheme and manifest callback match without a client secret",()=>{
   const root=path.join(__dirname,"../app/src/main");
   const oauth=fs.readFileSync(path.join(root,"java/com/ispinalokalnie/redaktor/OAuthBrowserLogin.java"),"utf8");
   const wp=fs.readFileSync(path.join(root,"java/com/ispinalokalnie/redaktor/WpMcp.java"),"utf8");
   const manifest=fs.readFileSync(path.join(root,"AndroidManifest.xml"),"utf8");
-  assert.match(oauth,/scope=auth/);assert.doesNotMatch(oauth,/scope=global/);assert.match(oauth,/code_challenge_method=S256/);
+  assert.match(oauth,/scope=global/);assert.doesNotMatch(oauth,/scope=auth/);assert.match(oauth,/code_challenge_method=S256/);
   assert.match(oauth,/stable:\/callback/);assert.match(manifest,/com\.ispinalokalnie\.redaktorsmart\.stable/);
   assert.match(wp,/token_endpoint_auth_method", "none"/);assert.match(wp,/code_verifier/);
   assert.doesNotMatch(wp,/put\("client_secret"/);

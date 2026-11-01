@@ -266,8 +266,29 @@ public class MainActivity extends Activity {
         }
     }
 
+    private static String explainVerificationFailure(Exception e) {
+        String detail = e.getMessage() == null ? "Brak szczegółów." : e.getMessage();
+        String lower = detail.toLowerCase(java.util.Locale.ROOT);
+        if (lower.contains("required scope") && lower.contains("global") && lower.contains("auth"))
+            return "AUTH_SCOPE: WordPress przyznał tylko podstawowy zakres auth. Dostęp redakcyjny MCP wymaga global. Otwórz zakładkę Połączenie i wybierz Zaloguj do WordPress.com, aby ponownie zatwierdzić szerszy zakres. Nie podawaj hasła w aplikacji.";
+        if (lower.contains("http 401") || lower.contains("invalid_token") || lower.contains("unauthorized"))
+            return "AUTH_401: Sesja WordPress.com jest nieważna lub wygasła. Rozłącz konto i zaloguj się ponownie. Szczegóły: " + detail;
+        if (lower.contains("http 403") || lower.contains("forbidden") || lower.contains("permission"))
+            return "AUTH_403: Konto nie ma dostępu do odczytu MCP. Sprawdź WordPress.com > AI i MCP > Odczyt > Content Authoring. Szczegóły: " + detail;
+        if (lower.contains("http 404"))
+            return "MCP_404: Serwer nie rozpoznał żądania MCP lub sesja wygasła. Spróbuj ponownie. Szczegóły: " + detail;
+        if (lower.contains("timed out") || lower.contains("timeout") || lower.contains("unknownhost") ||
+            lower.contains("failed to connect") || lower.contains("unable to resolve"))
+            return "NET: Błąd sieci. Sprawdź dostęp do Internetu i ponów sprawdzenie. Szczegóły: " + detail;
+        return "MCP: Nie można potwierdzić uprawnień. Szczegóły: " + detail;
+    }
+
     private void verifyConnection() {
-        if (!connected()) { callback("verify", false, "Brak aktywnej sesji WordPressa."); return; }
+        if (!connected()) {
+            callback("verify", false,
+                "NO_SESSION: Brak zapisanej sesji WordPress.com. Zaloguj się w zakładce Połączenie. Publiczne artykuły możesz przeglądać bez logowania.");
+            return;
+        }
         work.execute(() -> {
             try {
                 Object data;
@@ -281,14 +302,14 @@ public class MainActivity extends Activity {
                     data = WpMcp.unwrap(WpMcp.request(token, "posts.list",
                         new JSONObject().put("per_page", 5).put("status", new org.json.JSONArray().put("publish"))));
                 }
-                if (!(data instanceof org.json.JSONArray) || ((org.json.JSONArray)data).length() == 0)
-                    throw new Exception("WordPress przyjął logowanie, ale nie zwrócił żadnego istniejącego opublikowanego artykułu dla tej witryny.");
+                if (!(data instanceof org.json.JSONArray))
+                    throw new Exception("Serwer WordPress zwrócił nieprawidłowy format listy wpisów.");
                 verified=true;
                 callback("verify",true,"{\"connected\":true,\"articles\":"+((org.json.JSONArray)data).length()+"}");
             } catch(Exception ex) {
                 verified=false;
                 if (isAuthenticationFailure(ex)) clearSession();
-                callback("verify",false,ex.getMessage()==null?"Nie udało się zweryfikować dostępu do wpisów.":ex.getMessage());
+                callback("verify",false,explainVerificationFailure(ex));
             }
         });
     }
@@ -645,6 +666,37 @@ public class MainActivity extends Activity {
         }
 
         @JavascriptInterface public void verify() { verifyConnection(); }
+
+        /** Public WordPress REST endpoint: no password, OAuth bearer, or write operation. */
+        @JavascriptInterface public void publicPosts() {
+            work.execute(() -> {
+                java.net.HttpURLConnection connection = null;
+                try {
+                    java.net.URL url = new java.net.URL(
+                        "https://public-api.wordpress.com/wp/v2/sites/252442125/posts" +
+                        "?per_page=30&orderby=modified&order=desc&_fields=id,title,modified,status,link");
+                    connection = (java.net.HttpURLConnection) url.openConnection();
+                    connection.setRequestMethod("GET");
+                    connection.setConnectTimeout(12000);
+                    connection.setReadTimeout(18000);
+                    connection.setRequestProperty("Accept", "application/json");
+                    int status = connection.getResponseCode();
+                    if (status < 200 || status >= 300)
+                        throw new Exception("Odczyt publicznych wpisów: HTTP " + status);
+                    String reply = WpMcp.readReply(connection);
+                    org.json.JSONArray posts = new org.json.JSONArray(reply);
+                    if (posts.length() > 30) throw new Exception("Nieprawidłowa liczba wpisów.");
+                    callback("public-posts", true, posts.toString());
+                } catch (Exception ex) {
+                    String detail = ex.getMessage() == null ? "Błąd sieci." : ex.getMessage();
+                    callback("public-posts", false,
+                        "Nie udało się pobrać publicznych artykułów. " + detail +
+                        ". Spróbuj ponownie albo otwórz portal w przeglądarce.");
+                } finally {
+                    if (connection != null) connection.disconnect();
+                }
+            });
+        }
 
         @JavascriptInterface public void disconnect() {
             verified = false;
