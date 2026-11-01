@@ -388,7 +388,7 @@ header{animation:ilHeader .38s cubic-bezier(.2,.7,.2,1) both}.brand .logo{animat
     <p class="muted">Portal: <b>ispinalokalnie.wordpress.com</b><br>Identyfikator witryny: <b>252442125</b></p>
     <div id="settings-state" class="note">Sprawdzanie autoryzacji...</div>
     <button class="wide primary-login" onclick="signInGoogle()"><span style="display:inline-block;background:#fff;color:#4285f4;border-radius:7px;padding:4px 9px;margin-right:8px;font-weight:900">G</span> Zaloguj do WordPress.com (także przez Google)</button>
-    <p class="setting-caption">Logowanie otworzy stronę WordPress.com w przeglądarce. Tam możesz wybrać konto Google. Radar, IL Chat i szkice lokalne nie wymagają zalogowania do WordPressa.</p>
+    <p class="setting-caption">Logowanie otworzy stronę WordPress.com w przeglądarce, gdzie możesz wybrać Google. Do odczytu i edycji wpisów przez MCP WordPress wymaga uprawnienia <strong>global</strong>. To szerszy zakres obejmujący konto WordPress.com, nie wyłącznie Ispina Lokalnie. Zatwierdź go wyłącznie, jeśli akceptujesz taki dostęp. Radar, IL Chat i lokalne szkice działają bez logowania.</p>
     <div id="login-recovery" class="recovery-card hidden" role="region" aria-label="Pomoc przy logowaniu">
       <h3>🔑 Czekam na zakończenie logowania</h3>
       <p>Zatwierdź dostęp w przeglądarce i wybierz otwarcie Redaktora IL, gdy Android o to zapyta. Jeśli jesteś już z powrotem w aplikacji, ale nadal widzisz krok 3/4, skorzystaj z opcji poniżej.</p>
@@ -422,7 +422,7 @@ header{animation:ilHeader .38s cubic-bezier(.2,.7,.2,1) both}.brand .logo{animat
     <label class="setting-row"><input type="checkbox" id="battery-saving" onchange="applyUiPreferences(true)"><span>Tryb oszczędzania baterii</span></label>
     <p id="ui-preferences-status" class="setting-caption" role="status" aria-live="polite">Ustawienia zapisują się na tym telefonie. Systemowe ograniczenie ruchu zawsze ma pierwszeństwo.</p>
   </div>
-  <div class="card"><h2>O programie</h2><p class="muted">IL Redaktor Smart 1.29.2-test.1 · Niezależna aplikacja Android 8 i nowszy. WordPress.com MCP. Publikacja wymaga potwierdzenia i ponownego odczytu wpisu.</p></div>
+  <div class="card"><h2>O programie</h2><p class="muted">IL Redaktor Smart 1.29.3-test.1 · Niezależna aplikacja Android 8 i nowszy. WordPress.com MCP. Publikacja wymaga potwierdzenia i ponownego odczytu wpisu.</p></div>
 </section>
 </main>
 <div id="conflict-dialog" class="finish-dialog hidden" role="dialog" aria-modal="true" aria-labelledby="conflict-title"><div class="finish-panel"><h2 id="conflict-title">Wersja na WordPressie wymaga porównania</h2><p id="conflict-message"></p><p>Nie wysłano zmian artykułu. Twoja praca pozostaje w szkicach na telefonie.</p><button class="secondary" onclick="showConflictComparison()">Porównaj wersje</button><div id="conflict-comparison" class="hidden"></div><p id="conflict-feedback" role="status"></p><div class="actions"><button onclick="resolveRemoteConflict(false)">Wczytaj wersję ze strony</button><button class="secondary" onclick="resolveRemoteConflict(true)">Zachowaj obie kopie</button><button class="secondary" onclick="closeRemoteConflict()">Wróć do tekstu</button></div><p class="small">Wczytanie nie usuwa Twojego szkicu. Zachowaj obie kopie odłączy lokalną wersję od wpisu na stronie.</p></div></div>
