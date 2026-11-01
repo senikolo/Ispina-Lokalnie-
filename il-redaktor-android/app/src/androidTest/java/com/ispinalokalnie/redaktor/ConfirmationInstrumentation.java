@@ -288,6 +288,17 @@ public final class ConfirmationInstrumentation extends Instrumentation {
                     .getJSONArray("items").length()<1)throw new AssertionError("SQLite lost conversation");
                 if(!"IL_EDITORIAL_MEMORY_V1".equals(reopened.execute("export",new org.json.JSONObject())
                     .getString("format")))throw new AssertionError("Portable backup not generated");
+                org.json.JSONObject backup=reopened.execute("export",new org.json.JSONObject());
+                if(reopened.execute("delete",new org.json.JSONObject().put("url",url).put("confirmed",true)).getInt("deleted")!=1)
+                    throw new AssertionError("Cleanup before import failed");
+                if(reopened.execute("import",backup).getInt("imported")<1)
+                    throw new AssertionError("Editorial backup did not restore deleted source");
+                reopened.execute("review",new org.json.JSONObject().put("url",url).put("confirmed",true));
+                if(reopened.execute("import",backup).getInt("existing")<1)
+                    throw new AssertionError("Duplicate import did not preserve existing source");
+                if(!"reviewed".equals(reopened.execute("browse",new org.json.JSONObject()
+                    .put("topic","Most")).getJSONArray("items").getJSONObject(0).getString("status")))
+                    throw new AssertionError("Import overwrote reviewed source");
                 if(reopened.execute("delete",new org.json.JSONObject().put("url",url).put("confirmed",true))
                     .getInt("deleted")!=1)throw new AssertionError("Selected deletion did not work");
             } finally { reopened.close(); }
