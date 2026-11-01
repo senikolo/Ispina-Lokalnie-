@@ -70,10 +70,17 @@ public final class ConfirmationInstrumentation extends Instrumentation {
             'E','x','i','f',0,0, 'I','I',42,0, 8,0,0,0, 1,0,
             0x12,0x01, 3,0, 1,0,0,0, (byte)orientation,0,0,0, 0,0,0,0
         };
+        int insertAt = 2;
+        if (jpeg.length > 6 && (jpeg[2] & 0xff) == 0xff && (jpeg[3] & 0xff) == 0xe0) {
+            int app0Length = ((jpeg[4] & 0xff) << 8) | (jpeg[5] & 0xff);
+            int afterApp0 = 4 + app0Length;
+            if (app0Length < 2 || afterApp0 > jpeg.length) throw new AssertionError("JPEG APP0 segment is malformed");
+            insertAt = afterApp0;
+        }
         java.io.ByteArrayOutputStream out = new java.io.ByteArrayOutputStream(jpeg.length + app1.length);
-        out.write(jpeg, 0, 2);
+        out.write(jpeg, 0, insertAt);
         out.write(app1);
-        out.write(jpeg, 2, jpeg.length - 2);
+        out.write(jpeg, insertAt, jpeg.length - insertAt);
         return out.toByteArray();
     }
 
