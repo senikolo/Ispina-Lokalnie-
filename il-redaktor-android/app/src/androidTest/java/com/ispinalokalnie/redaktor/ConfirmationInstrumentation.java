@@ -244,6 +244,56 @@ public final class ConfirmationInstrumentation extends Instrumentation {
             throw new AssertionError("Temporary throttling was confused with exhausted plan usage");
     }
 
+
+    private void testEditorialMemory() throws Exception {
+        diagnosticStage="sqlite editorial memory persistence";
+        String url="https://example.org/il-redaktor-qa-only";
+        EditorialMemory memory=new EditorialMemory(getTargetContext());
+        org.json.JSONObject hit=new org.json.JSONObject()
+            .put("url",url).put("title","Most w Ispinie")
+            .put("snippet","Pierwsza wersja komunikatu").put("publishedAt","2026-11-01");
+        org.json.JSONObject scan=new org.json.JSONObject().put("question","Most w Ispinie")
+            .put("answer","Znaleziono link do sprawdzenia, nie potwierdzono faktów.")
+            .put("sources",new org.json.JSONArray().put(hit));
+        try {
+            memory.execute("delete",new org.json.JSONObject().put("url",url).put("confirmed",true));
+            if(memory.execute("save",scan).getInt("new")!=1)
+                throw new AssertionError("First source not marked as new");
+            if(memory.execute("save",scan).getInt("known")!=1)
+                throw new AssertionError("Identical source not deduplicated");
+            if(!"link_found".equals(memory.execute("browse",new org.json.JSONObject()
+                .put("topic","Most")).getJSONArray("items").getJSONObject(0).getString("status")))
+                throw new AssertionError("Found link was falsely marked verified");
+            try {
+                memory.execute("review",new org.json.JSONObject().put("url",url));
+                throw new AssertionError("Manual source approval accepted without consent");
+            } catch(IllegalArgumentException expected) {}
+            memory.execute("review",new org.json.JSONObject()
+                .put("url",url).put("confirmed",true));
+            if(!"reviewed".equals(memory.execute("browse",new org.json.JSONObject()
+                .put("topic","Most")).getJSONArray("items").getJSONObject(0).getString("status")))
+                throw new AssertionError("Review status was not saved");
+            hit.put("snippet","Zmieniono metadane tego linku");
+            if(memory.execute("save",scan).getInt("changed")!=1)
+                throw new AssertionError("Source change not detected");
+            if(!"link_found".equals(memory.execute("browse",new org.json.JSONObject()
+                .put("topic","Most")).getJSONArray("items").getJSONObject(0).getString("status")))
+                throw new AssertionError("Updated source retained stale review approval");
+            memory.close();
+            EditorialMemory reopened=new EditorialMemory(getTargetContext());
+            try {
+                if(reopened.execute("browse",new org.json.JSONObject().put("topic","Most"))
+                    .getJSONArray("items").length()<1)throw new AssertionError("SQLite lost persisted source");
+                if(reopened.execute("history",new org.json.JSONObject())
+                    .getJSONArray("items").length()<1)throw new AssertionError("SQLite lost conversation");
+                if(!"IL_EDITORIAL_MEMORY_V1".equals(reopened.execute("export",new org.json.JSONObject())
+                    .getString("format")))throw new AssertionError("Portable backup not generated");
+                if(reopened.execute("delete",new org.json.JSONObject().put("url",url).put("confirmed",true))
+                    .getInt("deleted")!=1)throw new AssertionError("Selected deletion did not work");
+            } finally { reopened.close(); }
+        } finally { memory.close(); }
+    }
+
     @Override public void onStart() {
         Bundle result = new Bundle();
         Thread trace=new Thread(()->{for(int n=0;n<35&&!diagnosticDone;n++){SystemClock.sleep(2000);if(!diagnosticDone)android.util.Log.i("ILEditorProbe",diagnosticStage+" "+java.util.Arrays.toString(android.os.Looper.getMainLooper().getThread().getStackTrace()));}},"il-test-diagnostics");trace.setDaemon(true);trace.start();
@@ -265,14 +315,14 @@ public final class ConfirmationInstrumentation extends Instrumentation {
             // document.readyState alone only confirms DOM loading on older WebView.
             captureUi("startup");
             if ("seed".equals(mode) || "seed-current".equals(mode)) {
-                int expectedVersion = "seed-current".equals(mode) ? 38 : 21;
+                int expectedVersion = "seed-current".equals(mode) ? 40 : 21;
                 if(getTargetContext().getPackageManager().getPackageInfo(getTargetContext().getPackageName(),0).versionCode!=expectedVersion)throw new AssertionError("Seed baseline versionCode mismatch: expected "+expectedVersion);
                 String seeded=evaluate("localStorage.removeItem(draftKey);draftStore=null;activeDraftId=null;$('post-title').value='Pierwszy szkic';$('post-body').value='Pierwsza wersja';persistDraft(true);$('post-body').value='Druga wersja';persistDraft(true);resetEditor();$('post-title').value='Drugi szkic';$('post-body').value='Drugi tekst';persistDraft(true);String(readDraftStore().drafts.length)");
                 if(!"\"2\"".equals(seeded))throw new AssertionError("Draft seeding failed: "+seeded);
                 if(!getTargetContext().getSharedPreferences("il_update_probe",0).edit().putString("marker","preserved").commit())throw new AssertionError("Preferences seeding failed");
                 result.putString("stream","IL_UPDATE_SEED=PASS\n");
             } else if ("verify".equals(mode)) {
-                if(getTargetContext().getPackageManager().getPackageInfo(getTargetContext().getPackageName(),0).versionCode!=38)throw new AssertionError("Verification must run after upgrade to versionCode 38");
+                if(getTargetContext().getPackageManager().getPackageInfo(getTargetContext().getPackageName(),0).versionCode!=40)throw new AssertionError("Verification must run after upgrade to versionCode 40");
                 String restored=evaluate("JSON.stringify(readDraftStore().drafts.map(d=>[d.title,d.body,d.revisions.length]))");
                 if(!restored.contains("Pierwszy szkic")||!restored.contains("Druga wersja")||!restored.contains("Drugi szkic"))throw new AssertionError("Drafts lost after reinstall: "+restored);
                 if(!"preserved".equals(getTargetContext().getSharedPreferences("il_update_probe",0).getString("marker","")))throw new AssertionError("Preferences lost after reinstall");
@@ -300,7 +350,9 @@ public final class ConfirmationInstrumentation extends Instrumentation {
             probe(AlertDialog.BUTTON_POSITIVE, "\"true:1\"", false);
             probe(AlertDialog.BUTTON_NEGATIVE, "\"false:0\"", true);
             testFreeRadar();
+            testEditorialMemory();
             testChatGptLogoutSecurity();
+            result.putString("memory", "IL_EDITORIAL_MEMORY_TEST=PASS (dedup, explicit review, change invalidation, persistence, export, delete)\n");
             result.putString("stream", "IL_FREE_RADAR_TEST=PASS\nIL_CHATGPT_AUTH_SECURITY_TEST=PASS\nIL_WEBVIEW_CONFIRM_TEST=PASS (cancel, confirm once, dismiss)\nIL_EDITOR_FEATURES_TEST=PASS (comparison, undo, backup file streams, photo crop, EXIF, cancel)\nIL_WORKSPACE_FEATURES_TEST=PASS (sources/photos backup, literal replacement, viewport, calendar, remote conflict)\nIL_HAPTICS_TEST=PASS (every tile tap, motor detection, adjustable intensity, test signal, disabled-mode message)\n");
             }
             runOnMainSync(() -> activity.finish());waitForIdleSync();

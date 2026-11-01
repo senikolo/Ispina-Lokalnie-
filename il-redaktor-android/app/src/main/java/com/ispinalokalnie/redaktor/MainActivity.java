@@ -78,6 +78,8 @@ public class MainActivity extends Activity {
     private AlertDialog editorConfirmation;
     private volatile boolean verified = false;
     private boolean loginInProgress = false;
+    private boolean oauthBrowserWasOpened = false;
+    private boolean oauthCallbackArrived = false;
     private boolean webPageReady = false;
     private final java.util.ArrayList<String> waitingJs = new java.util.ArrayList<>();
     private static final String HAPTICS_KEY = "haptics_intensity";
@@ -321,6 +323,7 @@ public class MainActivity extends Activity {
 
     private void handleOAuthCallback(Intent intent) {
         if (intent == null || !OAuthBrowserLogin.isCallback(intent.getData())) return;
+        oauthCallbackArrived = true;
         loginInProgress = true;
         newOAuthLogin().handleRedirect(intent.getData());
     }
@@ -366,10 +369,81 @@ public class MainActivity extends Activity {
     private DurableDraftStore durableDraftStore;
     private synchronized DurableDraftStore draftFiles(){if(durableDraftStore==null)durableDraftStore=new DurableDraftStore(new File(getFilesDir(),"il-drafts-v3.json"));return durableDraftStore;}
     private static final int BACKUP_MAX_BYTES=8_000_000;
+    private EditorialMemory editorialDb;
+    private synchronized EditorialMemory editorialDatabase() {
+        if (editorialDb == null) editorialDb = new EditorialMemory(this);
+        return editorialDb;
+    }
+    private boolean editorialBackupBusy = false;
+    private static final int EDITORIAL_BACKUP_MAX = 6_000_000;
+
     public class Bridge {
         @JavascriptInterface public void chooseSourcePhoto(){ui.post(()->{try{Intent i=new Intent(Intent.ACTION_OPEN_DOCUMENT);i.addCategory(Intent.CATEGORY_OPENABLE);i.setType("image/*");startActivityForResult(i,1008);}catch(Exception ex){callback("source-photo",false,"Nie można otworzyć wyboru zdjęcia dokumentu.");}});}
         @JavascriptInterface public void openResearchLink(String value){try{Uri u=Uri.parse(value);if(!("https".equals(u.getScheme())||"http".equals(u.getScheme()))||u.getHost()==null||u.getUserInfo()!=null)return;ui.post(()->{try{startActivity(new Intent(Intent.ACTION_VIEW,u));}catch(Exception ex){Toast.makeText(MainActivity.this,"Nie można otworzyć źródła w przeglądarce.",Toast.LENGTH_LONG).show();}});}catch(Exception ignored){}}
         @JavascriptInterface public void viewSourcePhoto(String encoded){if(encoded==null||encoded.length()>800000)return;work.execute(()->{try{byte[] bytes=Base64.decode(encoded,Base64.DEFAULT);BitmapFactory.Options bounds=new BitmapFactory.Options();bounds.inJustDecodeBounds=true;BitmapFactory.decodeByteArray(bytes,0,bytes.length,bounds);if(bounds.outWidth<=0||bounds.outHeight<=0)throw new Exception();BitmapFactory.Options options=new BitmapFactory.Options();options.inSampleSize=1;while(Math.max(bounds.outWidth/options.inSampleSize,bounds.outHeight/options.inSampleSize)>1600)options.inSampleSize*=2;Bitmap image=BitmapFactory.decodeByteArray(bytes,0,bytes.length,options);if(image==null)throw new Exception();ui.post(()->{if(isFinishing()){image.recycle();return;}android.widget.ImageView view=new android.widget.ImageView(MainActivity.this);view.setImageBitmap(image);view.setAdjustViewBounds(true);view.setContentDescription("Zdjęcie dokumentu źródłowego");new AlertDialog.Builder(MainActivity.this).setTitle("Dokument źródłowy").setView(view).setPositiveButton("Zamknij",null).setOnDismissListener(d->{view.setImageDrawable(null);image.recycle();}).show();});}catch(Exception ex){ui.post(()->Toast.makeText(MainActivity.this,"Nie można odczytać zdjęcia dokumentu.",Toast.LENGTH_LONG).show());}});}
+
+        /**
+         * All SQL calls run on a worker, never on the WebView/UI thread.
+         * There is no network, AI service or WordPress access here.
+         */
+        @JavascriptInterface public void editorialMemory(String rid, String operation, String data) {
+            if (rid == null || !rid.matches("[A-Za-z0-9_-]{1,60}") ||
+                data == null || data.length() > 100_000) return;
+            if (!("save".equals(operation) || "browse".equals(operation) ||
+                  "review".equals(operation) || "delete".equals(operation) ||
+                  "history".equals(operation))) {
+                callback(rid, false, "Nieobsługiwana funkcja pamięci."); return;
+            }
+            work.execute(() -> {
+                try {
+                    JSONObject result = editorialDatabase().execute(operation, new JSONObject(data));
+                    callback(rid, true, result.toString());
+                } catch (Exception ex) {
+                    callback(rid, false, "Pamięć redakcyjna: " +
+                        (ex.getMessage() == null ? "nie udało się odczytać danych." : ex.getMessage()));
+                }
+            });
+        }
+
+        @JavascriptInterface public void exportEditorialMemory() {
+            ui.post(() -> {
+                if (editorialBackupBusy) {
+                    callback("editorial-export", false, "Kopia pamięci jest już przygotowywana."); return;
+                }
+                editorialBackupBusy = true;
+                work.execute(() -> {
+                    try {
+                        byte[] json = editorialDatabase().execute("export", new JSONObject())
+                            .toString(2).getBytes(StandardCharsets.UTF_8);
+                        if (json.length > EDITORIAL_BACKUP_MAX)
+                            throw new Exception("Archiwum przekracza 6 MB. Usuń zbędne stare wpisy.");
+                        try (FileOutputStream output = new FileOutputStream(
+                                new File(getCacheDir(), "il-editorial-memory-pending.json"))) {
+                            output.write(json);
+                        }
+                        ui.post(() -> {
+                            try {
+                                Intent intent = new Intent(Intent.ACTION_CREATE_DOCUMENT);
+                                intent.addCategory(Intent.CATEGORY_OPENABLE);
+                                intent.setType("application/json");
+                                intent.putExtra(Intent.EXTRA_TITLE, "IL-pamiec-redakcyjna-" +
+                                    new java.text.SimpleDateFormat("yyyy-MM-dd",
+                                        java.util.Locale.ROOT).format(new java.util.Date()) + ".json");
+                                startActivityForResult(intent, 1011);
+                            } catch (Exception e) {
+                                editorialBackupBusy = false;
+                                callback("editorial-export", false,
+                                    "Nie można otworzyć wyboru pliku kopii.");
+                            }
+                        });
+                    } catch (Exception e) {
+                        editorialBackupBusy = false;
+                        callback("editorial-export", false, "Nie udało się przygotować archiwum: " +
+                            (e.getMessage() == null ? "błąd zapisu" : e.getMessage()));
+                    }
+                });
+            });
+        }
 
         @JavascriptInterface public String readDraftLibrary(){return draftFiles().read();}
         @JavascriptInterface public String writeDraftLibrary(String payload){return draftFiles().write(payload);}
@@ -517,6 +591,17 @@ public class MainActivity extends Activity {
             }
         }
 
+        @JavascriptInterface public void resumeLogin() {
+            ui.post(() -> {
+                if (!newOAuthLogin().hasPendingLogin()) {
+                    callback("auth-progress", false,
+                        "Poprzednia próba logowania wygasła. Rozpocznij nową.");
+                    return;
+                }
+                newOAuthLogin().resumePendingLogin();
+            });
+        }
+
         @JavascriptInterface public void cancelLogin() {
             newOAuthLogin().cancelLogin();
             loginInProgress = false;
@@ -550,6 +635,7 @@ public class MainActivity extends Activity {
                 }
                 if(loginInProgress) { callback("auth-progress",true,"Logowanie jest już w toku.");return; }
                 loginInProgress=true;
+                oauthCallbackArrived=false;
                 newOAuthLogin().start();
             });
         }
@@ -937,6 +1023,31 @@ public class MainActivity extends Activity {
 
     @Override protected void onActivityResult(int request, int result, Intent intent) {
         super.onActivityResult(request, result, intent);
+        if (request == 1011) {
+            editorialBackupBusy = false;
+            final File pending = new File(getCacheDir(), "il-editorial-memory-pending.json");
+            if (result != RESULT_OK || intent == null || intent.getData() == null) {
+                pending.delete();
+                callback("editorial-export", false, "Anulowano zapis kopii pamięci.");
+                return;
+            }
+            final Uri selected = intent.getData();
+            work.execute(() -> {
+                try (InputStream in = new FileInputStream(pending);
+                     OutputStream out = getContentResolver().openOutputStream(selected, "wt")) {
+                    if (out == null) throw new Exception("Nie można zapisać wybranego pliku.");
+                    byte[] buffer = new byte[8192]; int bytes;
+                    while ((bytes = in.read(buffer)) != -1) out.write(buffer, 0, bytes);
+                    out.flush();
+                    callback("editorial-export", true,
+                        "Kopia pamięci zapisana. Zawiera historię wyszukiwania i źródła, bez tokenów.");
+                } catch (Exception ex) {
+                    callback("editorial-export", false, "Nie zapisano kopii: " +
+                        (ex.getMessage() == null ? "sprawdź lokalizację" : ex.getMessage()));
+                } finally { pending.delete(); }
+            });
+            return;
+        }
         if(request==1008){
             if(result!=RESULT_OK||intent==null||intent.getData()==null){callback("source-photo",false,"Anulowano dodawanie zdjęcia. Źródła pozostają bez zmian.");return;}
             Uri uri=intent.getData();work.execute(()->{Bitmap original=null,scaled=null;try{original=PhotoEditor.decode(MainActivity.this,uri);int max=Math.max(original.getWidth(),original.getHeight());scaled=max>1024?Bitmap.createScaledBitmap(original,Math.max(1,Math.round(original.getWidth()*1024f/max)),Math.max(1,Math.round(original.getHeight()*1024f/max)),true):original;ByteArrayOutputStream out=new ByteArrayOutputStream();scaled.compress(Bitmap.CompressFormat.JPEG,75,out);if(out.size()>600000)throw new Exception("Zdjęcie dokumentu przekracza 600 KB. Wybierz mniejszy fragment.");callback("source-photo",true,new JSONObject().put("mime","image/jpeg").put("name","Zdjęcie dokumentu").put("base64",Base64.encodeToString(out.toByteArray(),Base64.NO_WRAP)).toString());}catch(Exception ex){callback("source-photo",false,"Nie udało się zachować zdjęcia dokumentu. "+(ex.getMessage()==null?"Wybierz inny plik.":ex.getMessage()));}finally{if(scaled!=null&&scaled!=original&&!scaled.isRecycled())scaled.recycle();if(original!=null&&!original.isRecycled())original.recycle();}});return;
@@ -1229,7 +1340,22 @@ public class MainActivity extends Activity {
         });
     }
 
+    @Override protected void onResume() {
+        super.onResume();
+        if (oauthBrowserWasOpened) {
+            oauthBrowserWasOpened = false;
+            ui.postDelayed(() -> {
+                if (!oauthCallbackArrived && newOAuthLogin().hasPendingLogin()) {
+                    callback("auth-return", true,
+                        "Wrócono z przeglądarki bez potwierdzenia WordPress.com. " +
+                        "Otwórz ponownie logowanie i zaakceptuj dostęp albo anuluj tę próbę.");
+                }
+            }, 1000);
+        }
+    }
+
     @Override protected void onPause() {
+        if (newOAuthLogin().hasPendingLogin()) oauthBrowserWasOpened = true;
         if (editor != null && webPageReady) editor.evaluateJavascript("if(typeof flushDraftOnExit==='function')flushDraftOnExit()", null);
         super.onPause();
     }
@@ -1244,6 +1370,7 @@ public class MainActivity extends Activity {
         if (editorConfirmation != null) editorConfirmation.dismiss();
         for (ChatGptPlanClient.SearchControl control : searches.values()) control.cancel();
         searches.clear();
+        if (editorialDb != null) editorialDb.close();
         aiWork.shutdownNow();
         work.shutdownNow();
         if (publishedDialog != null && publishedDialog.isShowing()) publishedDialog.dismiss();

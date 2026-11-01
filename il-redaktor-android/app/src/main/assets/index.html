@@ -201,7 +201,7 @@ header{animation:ilHeader .38s cubic-bezier(.2,.7,.2,1) both}.brand .logo{animat
     <div class="actions"><button onclick="resetEditor();showScreen('editor')">+ Nowy artykuł</button><button class="secondary" onclick="showScreen('posts');loadPosts()">Moje artykuły</button></div>
   </div>
   <div class="grid quick-grid">
-    <button class="tile" onclick="showDraftLibrary()"><span class="tile-icon">▱</span><b>Moje szkice</b><small>Twoja biblioteczka</small></button><button class="tile" onclick="showCalendar()"><span class="tile-icon">▦</span><b>Kalendarz</b><small>Tematy i terminy</small></button><button class="tile" onclick="showScreen('assistant')"><span class="tile-icon">✦</span><b>Asystent</b><small>Opisz zadanie</small></button><button class="tile" onclick="showScreen('radar')"><span class="tile-icon">◉</span><b>Radar Ispiny</b><small>Wzmianki · Chat AI</small></button>
+    <button class="tile" onclick="showScreen('memory');loadEditorialMemory()"> <span class="tile-icon">◷</span><b>Pamięć redakcyjna</b><small>Historia i źródła</small></button><button class="tile" onclick="showDraftLibrary()"><span class="tile-icon">▱</span><b>Moje szkice</b><small>Twoja biblioteczka</small></button><button class="tile" onclick="showCalendar()"><span class="tile-icon">▦</span><b>Kalendarz</b><small>Tematy i terminy</small></button><button class="tile" onclick="showScreen('assistant')"><span class="tile-icon">✦</span><b>Asystent</b><small>Opisz zadanie</small></button><button class="tile" onclick="showScreen('radar')"><span class="tile-icon">◉</span><b>Radar Ispiny</b><small>Wzmianki · Chat AI</small></button>
     <button class="tile" onclick="showScreen('posts');loadPosts()"><span class="tile-icon">▤</span><b>Artykuły</b><small>Wpisy i szkice</small></button>
     <button class="tile" onclick="showScreen('services');loadServices()"><span class="tile-icon">▦</span><b>Usługi</b><small>Katalog firm</small></button>
     <button class="tile" onclick="showScreen('media');loadMedia()"><span class="tile-icon">▣</span><b>Galeria</b><small>Zdjęcia wpisów</small></button>
@@ -284,6 +284,24 @@ header{animation:ilHeader .38s cubic-bezier(.2,.7,.2,1) both}.brand .logo{animat
     </div>
     <p id="research-status" class="small muted" role="status" aria-live="polite">Przygotowuję publiczne źródła…</p>
     <div id="research-results" aria-live="polite" role="region" aria-label="Wyniki wyszukiwania o Ispinie"></div>
+  </div>
+</section>
+<section id="screen-memory" class="panel">
+  <div class="card">
+    <div class="eyebrow">LOKALNA BAZA SQLITE · BEZ OPŁAT</div>
+    <h2>Pamięć redakcyjna IL</h2>
+    <p class="muted">Wyszukane linki i historia pytań są zachowywane na telefonie po zamknięciu aplikacji. To odrębne archiwum od szkiców. Zapis źródła nie oznacza potwierdzenia faktów; status „Sprawdzone ręcznie” ustawiasz samodzielnie.</p>
+    <label for="editorial-memory-topic">Szukaj w historii i źródłach</label>
+    <input id="editorial-memory-topic" placeholder="Np. most, OSP, paczkomat">
+    <label for="editorial-memory-status">Status źródeł</label>
+    <select id="editorial-memory-status">
+      <option value="all">Wszystkie</option><option value="link_found">Linki do sprawdzenia</option>
+      <option value="reviewed">Sprawdzone ręcznie</option>
+    </select>
+    <div class="actions"><button type="button" onclick="loadEditorialMemory()">Szukaj w pamięci</button><button class="secondary" type="button" onclick="loadEditorialHistory()">Ostatnie pytania</button><button class="secondary" type="button" onclick="exportEditorialMemory()">Zapisz kopię JSON</button></div>
+    <p id="editorial-memory-status-text" class="small muted" role="status">Przy pierwszym otwarciu zobaczysz tu wcześniej zapisane źródła. Historia sprzed wdrożenia bazy nie jest automatycznie odzyskiwana.</p>
+    <div id="editorial-memory-results" role="region" aria-live="polite"></div>
+    <div id="editorial-memory-history" role="region" aria-live="polite"></div>
   </div>
 </section>
 <section id="screen-editor" class="panel">
@@ -373,7 +391,8 @@ header{animation:ilHeader .38s cubic-bezier(.2,.7,.2,1) both}.brand .logo{animat
     <div id="login-recovery" class="recovery-card hidden" role="region" aria-label="Pomoc przy logowaniu">
       <h3>🔑 Czekam na zakończenie logowania</h3>
       <p>Zatwierdź dostęp w przeglądarce i wybierz otwarcie Redaktora IL, gdy Android o to zapyta. Jeśli jesteś już z powrotem w aplikacji, ale nadal widzisz krok 3/4, skorzystaj z opcji poniżej.</p>
-      <div class="actions"><button class="secondary" onclick="checkLoginState()">Sprawdź stan</button><button class="secondary" onclick="cancelLoginFlow()">Anuluj i spróbuj ponownie</button></div>
+      <p class="setting-caption">Jeżeli wróciłeś do Redaktora bez komunikatu „Sukces”, przeglądarka mogła nie odesłać potwierdzenia. Nic nie publikujemy, dopóki połączenie nie zostanie zweryfikowane.</p>
+      <div class="actions"><button class="secondary" onclick="resumeLoginFlow()">Wróć do logowania</button><button class="secondary" onclick="checkLoginState()">Sprawdź stan</button><button class="secondary" onclick="cancelLoginFlow()">Anuluj i spróbuj ponownie</button></div>
       <details><summary>Zaawansowane: ręczne dokończenie logowania</summary>
         <p>Jeśli przeglądarka pokazuje pełny adres rozpoczynający się od <code>com.ispinalokalnie.redaktorsmart.stable:/callback</code>, możesz wkleić go poniżej. Nie wpisuj tu hasła, kodu z SMS ani zwykłego adresu WordPressa. Nie udostępniaj nikomu tego adresu.</p>
         <label for="oauth-return">Adres powrotu (poufny)</label><input id="oauth-return" type="password" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Wklej pełny adres powrotu z przeglądarki">
@@ -526,7 +545,7 @@ function trim(s){return String(s||"").trim()}
 function showScreen(key){
   if(key!=="editor"&&typeof draftStore!=="undefined"&&!flushDraftOnExit())return false;
   document.querySelectorAll(".panel").forEach(n=>n.classList.toggle("active",n.id==="screen-"+key));
-  const navKey=({drafts:"editor",calendar:"home",media:"editor"}[key]||key);
+  const navKey=({drafts:"editor",calendar:"home",media:"editor",memory:"radar"}[key]||key);
   document.querySelectorAll("nav button").forEach(n=>{const active=n.id==="nav-"+navKey;n.classList.toggle("active",active);if(active)n.setAttribute("aria-current","page");else n.removeAttribute("aria-current");});
   window.scrollTo(0,0);
 }
@@ -540,6 +559,7 @@ function rpc(method,path,body) {
 }
 window.onNativeResult=function(id,ok,payload){
   if(id==="source-photo"){receiveSourcePhoto(ok,payload);return;}
+  if(id==="editorial-export"){if($("editorial-memory-status-text"))$("editorial-memory-status-text").textContent=payload;return;}
 
   if(id==="draft-backup"){if(ok)try{localStorage.setItem("il_backup_last_success",String(Date.now()))}catch(e){} showScreen("drafts");renderDrafts();$("backup-output").textContent=payload;return; }
   if(id==="draft-import"){showScreen("drafts");renderDrafts();if(ok)previewDraftBackup(payload);else $("backup-output").textContent=payload;return;}
@@ -548,6 +568,14 @@ window.onNativeResult=function(id,ok,payload){
     const r=requests.get(id);requests.delete(id);clearTimeout(r.timeout);
     if(!ok){r.reject(new Error(payload));return;}
     try{r.resolve(JSON.parse(payload));}catch(e){r.reject(new Error("Nieprawidłowa odpowiedź WordPressa."));}
+    return;
+  }
+  if(id==="auth-return") {
+    if(ok){
+      message("auth-output",payload);
+      operationBanner("pending","Brak potwierdzenia WordPress.com. Wznów logowanie lub anuluj.");
+      showLoginRecovery(true);
+    }
     return;
   }
   if(id==="auth-progress"){
@@ -603,7 +631,7 @@ window.onNativeResult=function(id,ok,payload){
     return;
   }
   if(id==="login-state"){
-    try{const s=JSON.parse(payload);showLoginRecovery(!!s.pending);if(!s.pending)endOperation()}catch(e){}
+    try{const s=JSON.parse(payload);showLoginRecovery(!!s.pending);if(s.pending){operationBanner("pending","Czekam na potwierdzenie w przeglądarce");}else endOperation()}catch(e){}
     return;
   }
   if(id==="auth-cancel"){
@@ -681,6 +709,7 @@ function reflectAuth(){
 function showLoginRecovery(show){$("login-recovery").classList.toggle("hidden",!show)}
 function checkLoginState(){if(IL.loginState)IL.loginState()}
 function cancelLoginFlow(){if(IL.cancelLogin)IL.cancelLogin()}
+function resumeLoginFlow(){if(IL.resumeLogin){message("auth-output","Otwieram ponownie WordPress.com. Sprawdź, czy zatwierdziłeś dostęp.");IL.resumeLogin()}else message("auth-output","Ta wersja nie obsługuje wznowienia. Anuluj i rozpocznij ponownie.","error")}
 function finishManualLogin(){const el=$("oauth-return");const url=trim(el.value);el.value="";if(!url){message("auth-output","Wklej pełny adres powrotu (jeżeli jest dostępny w przeglądarce).","error");return}IL.finishLoginWithUrl(url);startOperation("Odbieram potwierdzenie WordPress.com")}
 function setHapticsMode(value){if(IL.setHaptics)IL.setHaptics(Number(value))}
 function testHaptics(){$("haptics-status").textContent="Sprawdzam ustawienie i silnik wibracyjny…";if(IL.testHaptics)IL.testHaptics();else $("haptics-status").textContent="Test wibracji jest dostępny w aplikacji na Androida."}
@@ -930,6 +959,23 @@ async function sendIspinaChat(){
   startOperation("Pobieram bezpłatne źródła — możesz anulować poniżej");
   try{
     const history=ispinaChatMessages.filter(message=>message.role==="user"||message.verified===true).slice(-8).map(message=>({role:message.role,content:message.content}));
+    // Before a redundant search, consult on-device history. Freshness questions bypass this cache.
+    const newInformation=/\b(nowe|nowych|najnowsze|dzisiaj|wczoraj|zmieniło|aktualne|odśwież|ostatnich 30|ostatnim tygodniu)\b/i.test(prompt);
+    if(!newInformation && typeof IL.editorialMemory==="function"){
+      const cached=await editorialRequest("browse",{topic:editorialTopic(prompt),status:"all"});
+      const items=Array.isArray(cached.items)?cached.items:[];
+      if(items.length){
+        const reply="Znalazłem "+items.length+" wcześniejszych linków w lokalnej pamięci. To nie są nowe wyniki ani zweryfikowane fakty. Możesz otworzyć je i sprawdzić lub poprosić o aktualizację, wpisując „Znajdź nowe informacje o "+editorialTopic(prompt)+"”.";
+        ispinaChatMessages.push({role:"user",content:prompt,verified:true},{role:"assistant",content:reply,sources:items.map(s=>({url:s.url,title:s.title})),verified:false});
+        renderIspinaChat();
+        await editorialRequest("save",{question:prompt,answer:reply,sources:[]});
+        $("ispina-chat-input").value="";
+        $("ispina-chat-status").textContent="Odpowiedź z pamięci telefonu · bez połączenia z wyszukiwarką. Aby sprawdzić aktualizacje, poproś o nowe informacje.";
+        $("ispina-chat-status").className="small ok";
+        endOperation();
+        return true;
+      }
+    }
     const result=await requestIspinaChat(prompt,history);
     const answer=String(result?.answer||"").trim();
     const sources=Array.isArray(result?.sources)?result.sources:[];
@@ -938,6 +984,15 @@ async function sendIspinaChat(){
     if(verified)ispinaChatMessages.push({role:"assistant",content:answer,sources,verified:true,question:prompt,searchedAt:String(result?.searchedAt||"")});
     else ispinaChatMessages.push({role:"assistant",content:answer||"Nie znaleziono pasujących materiałów w dostępnych kanałach.",sources:[],verified:false});
     renderIspinaChat();
+    if(typeof IL.editorialMemory==="function"){
+      try{
+        const saved=await editorialRequest("save",{question:prompt,answer:answer||"Brak wyników w aktualnym skanie.",sources});
+        $("ispina-chat-status").dataset.memorySaved=String(saved.saved);
+      }catch(memoryError){
+        $("ispina-chat-status").dataset.memorySaved="false";
+        $("ispina-chat-status").dataset.memoryError=String(memoryError.message);
+      }
+    }
     $("ispina-chat-input").value="";
     const inherited=result?.contextInherited===true&&result?.contextTopic?"Kontynuacja tematu „"+String(result.contextTopic).slice(0,80)+"”. ":"";
     $("ispina-chat-status").textContent=inherited+(verified?"Znaleziono "+sources.length+" linków DO SPRAWDZENIA. Ich obecność nie potwierdza jeszcze faktów. Sprawdź oryginały.":"Nie znaleziono pasujących linków w dostępnych kanałach. Nie oznacza to braku informacji w internecie.");
@@ -1139,6 +1194,15 @@ async function runDeepIspinaResearch(){
   try{
     const result=await requestResearch(prompt);
     renderResearchResult(result,prompt);
+    if(typeof IL.editorialMemory==="function"){
+      const collected=[...(Array.isArray(result?.sources)?result.sources:[]),
+        ...(Array.isArray(result?.sections)?result.sections.flatMap(s=>Array.isArray(s.sources)?s.sources:[]):[])];
+      const deduplicated=[...new Map(collected.filter(s=>s?.url).map(s=>[String(s.url),s])).values()].slice(0,100);
+      try{
+        const saved=await editorialRequest("save",{question:prompt,answer:String(result?.answer||result?.text||"Wyniki Radaru Ispiny").slice(0,8000),sources:deduplicated});
+        $("research-status").textContent+=" Pamięć: "+saved.new+" nowych, "+saved.changed+" zmienionych, "+saved.known+" już znanych.";
+      }catch(memoryError){$("research-status").textContent+=" Uwaga: nie zapisano wyników w pamięci: "+String(memoryError.message);}
+    }
     endOperation();
     return result;
   }catch(error){
@@ -2291,6 +2355,87 @@ document.addEventListener("visibilitychange",()=>{if(document.visibilityState===
 window.addEventListener("pagehide",flushDraftOnExit);
 window.addEventListener("beforeunload",flushDraftOnExit);
 document.addEventListener("focusout",event=>{if(event.target&&event.target.id&&Object.values(draftFields).includes(event.target.id))flushDraftOnExit();},true);
+
+/* Editorial Memory 2.0: on-device SQLite accessed only through the native bridge. */
+function editorialRequest(action, data){
+  return new Promise((resolve,reject)=>{
+    if(!window.IL||typeof IL.editorialMemory!=="function"){reject(new Error("Pamięć jest dostępna dopiero w nowej APK Android."));return;}
+    const id="m"+(++reqNo),timeout=setTimeout(()=>{requests.delete(id);reject(new Error("Odczyt pamięci trwa zbyt długo."));},15000);
+    requests.set(id,{resolve,reject,timeout});
+    try{IL.editorialMemory(id,action,JSON.stringify(data||{}));}
+    catch(e){clearTimeout(timeout);requests.delete(id);reject(e);}
+  });
+}
+function editorialTopic(raw){
+  const s=String(raw||"").toLocaleLowerCase("pl");
+  if(/most|mośc|moś[cć]|moście|remont/.test(s))return "most";
+  if(/\bosp\b|straż/.test(s))return "OSP";
+  if(/paczkomat|inpost/.test(s))return "paczkomat";
+  if(/a4\b|a7\b|a65\b|autobus|komunikacj/.test(s))return "autobus";
+  if(/kapliczk/.test(s))return "kapliczk";
+  const previous=[...ispinaChatMessages].reverse().find(m=>m.role==="user")?.content||"";
+  if(s.length<38&&previous&&previous!==raw)return editorialTopicKeyword(previous);
+  return editorialTopicKeyword(s);
+}
+function editorialTopicKeyword(input){
+  const words=String(input||"").toLocaleLowerCase("pl").match(/[\p{L}\d]{4,}/gu)||[];
+  const ignore=new Set(["ispinie","ispiny","ispina","informacje","jakie","ostatnio","znaleźliśmy","wyszukaj","sprawdź","temat","wczoraj","dzisiaj","wiadomo","proszę","znajdź","czego","mamy"]);
+  return words.find(w=>!ignore.has(w))||"";
+}
+async function loadEditorialMemory(){
+  const output=$("editorial-memory-results"),state=$("editorial-memory-status-text");
+  state.textContent="Przeglądam pamięć telefonu…";
+  try{
+    const data=await editorialRequest("browse",{topic:trim($("editorial-memory-topic").value),status:$("editorial-memory-status").value});
+    const items=Array.isArray(data.items)?data.items:[];
+    output.innerHTML=items.length?items.map(source=>{
+      const stamp=Number(source.lastSeen)?new Date(source.lastSeen).toLocaleString("pl-PL"):"nieznana";
+      const published=source.publishedAt?'<small>Publikacja według źródła: '+esc(source.publishedAt)+'</small>':'<small>Data publikacji nieznana</small>';
+      const review=source.status==="reviewed"?"Sprawdzone ręcznie":"Link do sprawdzenia";
+      const changed=Number(source.changedAt)?" · zaktualizowany link / metadane":"";
+      return '<div class="source-item"><b>'+esc(source.title||source.url)+'</b><small>'+esc(review+changed)+' · Ostatnio odnaleziono: '+stamp+'</small>'+published+
+        '<div class="actions"><button type="button" class="secondary" data-memory-action="open" data-memory-url="'+esc(source.url)+'">Otwórz</button>'+
+        (source.status==="reviewed"?'':'<button type="button" class="secondary" data-memory-action="review" data-memory-url="'+esc(source.url)+'">Sprawdzone ręcznie</button>')+
+        '<button type="button" class="secondary" data-memory-action="delete" data-memory-url="'+esc(source.url)+'">Usuń</button></div></div>';
+    }).join(""):'<div class="note">Brak zapisanych źródeł dla tego filtra. Uruchom Radar i zapisz pierwsze wyszukiwanie.</div>';
+    state.textContent="Odczytano "+items.length+" źródeł z pamięci telefonu. Dane nie zostały pobrane ponownie z internetu.";
+  }catch(e){state.textContent="Błąd pamięci: "+String(e.message);output.innerHTML="";}
+}
+$("editorial-memory-results").addEventListener("click",async event=>{
+  const b=event.target.closest("[data-memory-action]");if(!b)return;
+  const url=b.getAttribute("data-memory-url"),action=b.getAttribute("data-memory-action");
+  if(action==="open"){openResearchSource(url);return;}
+  const sure=action==="review"?
+    confirm("Czy otworzyłeś oryginalne źródło i sprawdziłeś jego treść? Status nie oznacza automatycznej weryfikacji faktów."):
+    confirm("Usunąć ten link z lokalnego archiwum? Nie wpłynie to na szkice ani wpisy w WordPressie.");
+  if(!sure)return;
+  try{await editorialRequest(action==="review"?"review":"delete",{url,confirmed:true});await loadEditorialMemory();}
+  catch(e){$("editorial-memory-status-text").textContent="Nie zmieniono źródła: "+e.message;}
+});
+async function loadEditorialHistory(){
+  const output=$("editorial-memory-history");
+  output.innerHTML='<div class="note">Odczytuję ostatnie pytania…</div>';
+  try{
+    const result=await editorialRequest("history",{});
+    const items=Array.isArray(result.items)?result.items:[];
+    output.innerHTML='<h3>Ostatnie wyszukiwania</h3>'+(items.length?items.map(it=>
+      '<div class="source-item"><b>'+esc(it.question)+'</b><small>'+new Date(it.at).toLocaleString("pl-PL")+' · '+Number(it.count||0)+' wyników z wyszukiwarki</small><p class="small">'+esc(String(it.answer||"").slice(0,380))+'</p></div>').join(""):'<p>Nie ma jeszcze zapisanych zapytań.</p>');
+    if(!ispinaChatMessages.length&&items.length){
+      const chronological=items.slice(0,12).reverse();
+      ispinaChatMessages=chronological.flatMap(it=>[
+        {role:"user",content:String(it.question),verified:true},
+        {role:"assistant",content:String(it.answer||"Zapisany raport"),sources:[],verified:false}
+      ]);
+      renderIspinaChat();
+    }
+  }catch(e){output.textContent="Nie odczytano historii: "+e.message;}
+}
+function exportEditorialMemory(){
+  if(!window.IL||typeof IL.exportEditorialMemory!=="function"){$("editorial-memory-status-text").textContent="Eksport wymaga nowej APK.";return;}
+  $("editorial-memory-status-text").textContent="Przygotowuję lokalną kopię pamięci. Wskaż, gdzie zapisać plik JSON.";
+  IL.exportEditorialMemory();
+}
+
 updateMetrics();
 if(actionHistory.length){
   $("activity-feed").innerHTML=actionHistory.map(a=>'<div class="activity-entry '+esc(a.kind)+'"><strong>'+esc(a.at+" · "+a.title)+'</strong><small>'+esc(a.detail)+'</small></div>').join("");
@@ -2298,6 +2443,6 @@ if(actionHistory.length){
 loadUiPreferences();
 restoreLocal(true);
 $("publication-sound").checked=localStorage.getItem("il_publication_sound")!=="false";
-if(window.IL){IL.status();if(IL.getHaptics)IL.getHaptics();if(IL.getTextZoom)IL.getTextZoom();if(IL.loginState)IL.loginState();if(IL.getIspinaRadarState)refreshIspinaRadarState()}else{message("auth-output","Brak mostu Android. Otwórz ten panel wewnątrz APK.","error");}
+if(window.IL){IL.status();if(IL.getHaptics)IL.getHaptics();if(IL.getTextZoom)IL.getTextZoom();if(IL.loginState)IL.loginState();if(IL.getIspinaRadarState)refreshIspinaRadarState();if(IL.editorialMemory)loadEditorialHistory()}else{message("auth-output","Brak mostu Android. Otwórz ten panel wewnątrz APK.","error");}
 </script>
 </body></html>

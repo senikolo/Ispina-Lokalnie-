@@ -86,7 +86,7 @@ test("backup reminder only records a completed export, never a canceled picker",
   assert.match(ui,/id="backup-health"/);
   assert.match(ui,/function renderBackupHealth/);
 });
-test("1.28.0 free Radar date selector, local SEO and diagnostic actions are exposed",()=>{ 
+test("1.29.1-test.1 free Radar date selector, local SEO and diagnostic actions are exposed",()=>{ 
   const fs=require("node:fs"),path=require("node:path");
   const ui=fs.readFileSync(path.join(__dirname,"../app/src/main/assets/index.html"),"utf8");
   const java=fs.readFileSync(path.join(__dirname,"../app/src/main/java/com/ispinalokalnie/redaktor/MainActivity.java"),"utf8");
@@ -375,6 +375,20 @@ test("every dashboard, navigation and calendar tile tap requests haptic feedback
  assert.equal(taps.length,12);assert.ok(taps.every(kind=>kind==="tap"));
 });
 
+test("OAuth recovery offers re-opening the same browser flow and diagnoses missing callback",()=>{
+  const a=setup();
+  let resumed=0;
+  a.c.IL.resumeLogin=()=>{resumed++};
+  a.run("window.onNativeResult('auth-return',true,'Wrócono bez potwierdzenia WordPress')");
+  assert.match(a.node("working-state").textContent,/Brak potwierdzenia/);
+  assert.match(a.node("working-state").className,/pending/);
+  assert.equal(a.node("login-recovery").classList.contains("hidden"),false);
+  a.run("resumeLoginFlow()");
+  assert.equal(resumed,1);
+  a.run('window.onNativeResult("login-state",true,JSON.stringify({pending:true}))');
+  assert.match(a.node("working-state").textContent,/Czekam na potwierdzenie/);
+});
+
 test("OAuth waiting indicator is pending, not a forever-spinning progress state",()=>{
   const a=setup();
   a.run('window.onNativeResult("auth-progress",true,"Krok 3/4: oczekuję na powrót.")');
@@ -654,9 +668,9 @@ test("AI context exposes published posts only for reader recommendations",()=>{
 test("new build metadata and the PR APK workflow agree",()=>{
   const gradle=fs.readFileSync(path.join(__dirname,"../app/build.gradle"),"utf8");
   const workflow=fs.readFileSync(path.join(__dirname,"../../.github/workflows/il-redaktor-apk.yml"),"utf8");
-  assert.match(gradle,/versionCode 38/);assert.match(gradle,/versionName '1\.28\.0'/);assert.match(gradle,/https:\/\/il-redaktor-assistant\.vercel\.app\/api\/assistant/);
+  assert.match(gradle,/versionCode 40/);assert.match(gradle,/versionName '1\.29\.1-test\.1'/);assert.match(gradle,/https:\/\/il-redaktor-assistant\.vercel\.app\/api\/assistant/);
   assert.match(gradle,/applicationId 'com\.ispinalokalnie\.redaktorsmart\.stable'/);
-  assert.match(workflow,/versionCode='38' versionName='1\.28\.0'/);
+  assert.match(workflow,/versionCode='40' versionName='1\.29\.1-test\.1'/);
 });
 
 test("AI editor shortcut copies current title and text into a reviewable prompt without sending it",()=>{
