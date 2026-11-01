@@ -706,7 +706,7 @@ test("new build metadata and the PR APK workflow agree",()=>{
   const workflow=fs.readFileSync(path.join(__dirname,"../../.github/workflows/il-redaktor-apk.yml"),"utf8");
   assert.match(gradle,/versionCode 44/);assert.match(gradle,/versionName '1\.29\.5-test\.1'/);assert.match(gradle,/https:\/\/il-redaktor-assistant\.vercel\.app\/api\/assistant/);
   assert.match(gradle,/applicationId 'com\.ispinalokalnie\.redaktorsmart\.stable'/);
-  assert.match(workflow,/versionCode='43' versionName='1\.29\.5-test\.1'/);
+  assert.match(workflow,/versionCode='44' versionName='1\.29\.5-test\.1'/);
 });
 
 test("AI editor shortcut copies current title and text into a reviewable prompt without sending it",()=>{
