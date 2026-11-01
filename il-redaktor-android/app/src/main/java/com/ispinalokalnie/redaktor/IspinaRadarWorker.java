@@ -90,7 +90,8 @@ public final class IspinaRadarWorker extends Worker {
             long last = prefs.getLong(PREF_LAST_CHECKED, 0L);
             long since = last > 0 ? Math.max(0L, last - TimeUnit.HOURS.toMillis(24))
                 : now - TimeUnit.HOURS.toMillis(24);
-            JSONObject result = sendChat(context, buildPrompt(since, now));
+            JSONObject result = FreeIspinaSearchClient.search(context, "Ispina",
+                new ChatGptPlanClient.SearchControl(context, 60000), since, true);
             String answer = clean(result.optString("answer", ""));
             JSONArray array = result.optJSONArray("sources");
             boolean verified = result.optBoolean("verified", false) && !answer.isEmpty()
@@ -157,7 +158,7 @@ public final class IspinaRadarWorker extends Worker {
     }
 
     private static JSONObject sendChat(Context context, String prompt) throws Exception {
-        return ChatGptPlanClient.ask(context, prompt, new JSONArray(), true);
+        return FreeIspinaSearchClient.ask(context, prompt, new ChatGptPlanClient.SearchControl(context, 60000));
     }
 
     private static ArrayList<Source> parseSources(JSONArray array) {
