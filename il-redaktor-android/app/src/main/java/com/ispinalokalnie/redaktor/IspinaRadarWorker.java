@@ -11,7 +11,6 @@ import android.graphics.BitmapFactory;
 import android.graphics.drawable.Icon;
 import android.net.Uri;
 import android.os.Build;
-import android.util.Base64;
 import androidx.work.Constraints;
 import androidx.work.ExistingPeriodicWorkPolicy;
 import androidx.work.ExistingWorkPolicy;
@@ -23,13 +22,7 @@ import androidx.work.Worker;
 import androidx.work.WorkerParameters;
 import org.json.JSONArray;
 import org.json.JSONObject;
-import java.io.ByteArrayOutputStream;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.net.HttpURLConnection;
-import java.net.URL;
 import java.nio.charset.StandardCharsets;
-import java.security.KeyStore;
 import java.security.MessageDigest;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
@@ -37,9 +30,6 @@ import java.util.Locale;
 import java.util.Set;
 import java.util.TimeZone;
 import java.util.concurrent.TimeUnit;
-import javax.crypto.Cipher;
-import javax.crypto.SecretKey;
-import javax.crypto.spec.GCMParameterSpec;
 
 /** Checks public, source-grounded Ispina mentions and alerts only on new source links. */
 public final class IspinaRadarWorker extends Worker {
@@ -49,15 +39,9 @@ public final class IspinaRadarWorker extends Worker {
     public static final String PREF_LAST_MESSAGE = "ispina_radar_last_message";
     private static final String PREFS = "il_redaktor_settings";
     private static final String PREF_SEEN = "ispina_radar_seen_sources";
-    private static final String PREF_TOKEN = "token";
-    private static final String PREF_REFRESH = "refresh_token";
-    private static final String PREF_EXPIRY = "expiry";
-    private static final String PREF_CLIENT_ID = "oauth21_client_id";
-    private static final String KEY_ALIAS = "il_redaktor_oauth_aes_v1";
     private static final String PERIODIC_WORK = "il_ispina_radar_every_8_hours";
     private static final String INITIAL_WORK = "il_ispina_radar_initial_scan";
     private static final String CHANNEL_ID = "il_ispina_radar";
-    private static final Object TOKEN_LOCK = new Object();
 
     public IspinaRadarWorker(Context context, WorkerParameters params) { super(context, params); }
 
@@ -140,9 +124,15 @@ public final class IspinaRadarWorker extends Worker {
         } catch (Exception ex) {
             String message = ex.getMessage() == null ? "Sprawdź połączenie i ustawienia radaru." : ex.getMessage();
             String lower = message.toLowerCase(Locale.ROOT);
-            if (lower.contains("token") || lower.contains("wordpress"))
-                saveStatus(prefs, "login", "Połącz ponownie konto WordPress.", false, System.currentTimeMillis());
-            else saveStatus(prefs, "error", message, false, System.currentTimeMillis());
+            long failedAt = System.currentTimeMillis();
+            if (lower.contains("limit użycia chatgpt") || lower.contains("subscription_sharing_usage_limit_exceeded")) {
+                prefs.edit().putBoolean(PREF_ENABLED, false).commit();
+                saveStatus(prefs, "usage_limit", "Limit użycia ChatGPT został osiągnięty. Sprawdź ustawienia użycia, a potem włącz Radar ponownie.", false, failedAt);
+                cancel(context);
+            } else if (lower.contains("sesja chatgpt wygasła") || lower.contains("połącz konto chatgpt")
+                || lower.contains("nie przyznano zgody") || lower.contains("brak wymaganej zgody")) {
+                saveStatus(prefs, "login", "Połącz ponownie konto ChatGPT w Radarze.", false, failedAt);
+            } else saveStatus(prefs, "error", message, false, failedAt);
             return Result.success();
         }
     }
@@ -162,44 +152,12 @@ public final class IspinaRadarWorker extends Worker {
             + ". Szukaj wyłącznie nowych publicznych wzmianek opublikowanych od " + format.format(since)
             + " do teraz o wsi Ispina w gminie Drwinia w Małopolsce. Uwzględnij formy Ispina, w Ispinie, do Ispiny, z Ispiny i prawdopodobne literówki. "
             + "Sprawdź źródła urzędowe i BIP, zamówienia i przetargi, lokalne media, drogi i most, transport, OSP, infrastrukturę, wydarzenia i InPost. "
-            + "Pobliskie miejscowości uwzględnij tylko przy wyraźnym związku z Ispiną. Podaj krótko tytuł lub ustalenie, datę publikacji (oddziel ją od daty wydarzenia) i źródła znalezione przez Google Search. "
+            + "Pobliskie miejscowości uwzględnij tylko przy wyraźnym związku z Ispiną. Podaj krótko tytuł lub ustalenie, datę publikacji (oddziel ją od daty wydarzenia) i źródła znalezione przez wyszukiwanie ChatGPT. "
             + "Nie zgaduj, nie dopisuj faktów i nie powtarzaj ogólnych stron bez nowej informacji. Jeśli nie znajdziesz nowej wzmianki ze źródłem, odpowiedz dokładnie: BRAK NOWYCH WZMIANEK.";
     }
 
     private static JSONObject sendChat(Context context, String prompt) throws Exception {
-        String token = accessToken(context, false);
-        for (int attempt = 0; attempt < 2; attempt++) {
-            HttpURLConnection connection = null;
-            try {
-                connection = (HttpURLConnection) new URL(BuildConfig.ASSISTANT_ENDPOINT).openConnection();
-                connection.setRequestMethod("POST");
-                connection.setConnectTimeout(15000);
-                connection.setReadTimeout(70000);
-                connection.setInstanceFollowRedirects(false);
-                connection.setRequestProperty("Authorization", "Bearer " + token);
-                connection.setRequestProperty("Content-Type", "application/json; charset=UTF-8");
-                connection.setRequestProperty("Accept", "application/json");
-                connection.setDoOutput(true);
-                JSONObject payload = new JSONObject().put("mode", "chat")
-                    .put("prompt", prompt).put("history", new JSONArray());
-                try (OutputStream out = connection.getOutputStream()) {
-                    out.write(payload.toString().getBytes(StandardCharsets.UTF_8));
-                }
-                int status = connection.getResponseCode();
-                String response = readReply(connection, status);
-                if (status == 401 && attempt == 0) { token = accessToken(context, true); continue; }
-                if (status < 200 || status >= 300) {
-                    String message = "HTTP " + status;
-                    try { message = new JSONObject(response).optString("error", message); } catch (Exception ignored) { }
-                    if (status == 401) message = "Sesja WordPress wygasła. Połącz konto ponownie.";
-                    throw new Exception(message);
-                }
-                return new JSONObject(response);
-            } finally {
-                if (connection != null) connection.disconnect();
-            }
-        }
-        throw new Exception("Nie udało się odświeżyć sesji WordPress.");
+        return ChatGptPlanClient.ask(context, prompt, new JSONArray(), true);
     }
 
     private static ArrayList<Source> parseSources(JSONArray array) {
@@ -282,73 +240,6 @@ public final class IspinaRadarWorker extends Worker {
         if (checked) edit.putLong(PREF_LAST_CHECKED, now);
         edit.commit();
     }
-
-    private static String readReply(HttpURLConnection connection, int status) throws Exception {
-        InputStream stream = status >= 400 ? connection.getErrorStream() : connection.getInputStream();
-        if (stream == null) return "{}";
-        try (InputStream in = stream; ByteArrayOutputStream out = new ByteArrayOutputStream()) {
-            byte[] buffer = new byte[8192];
-            int count;
-            while ((count = in.read(buffer)) != -1) {
-                out.write(buffer, 0, count);
-                if (out.size() > 2_000_000) throw new Exception("Odpowiedź radaru przekroczyła bezpieczny limit.");
-            }
-            return out.toString("UTF-8");
-        }
-    }
-
-    private static String accessToken(Context context, boolean forceRefresh) throws Exception {
-        synchronized (TOKEN_LOCK) {
-            SharedPreferences prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE);
-            String access = decrypt(prefs.getString(PREF_TOKEN, ""));
-            if (access.isEmpty()) throw new Exception("Zaloguj się ponownie do WordPressa.");
-            long expiry = prefs.getLong(PREF_EXPIRY, 0L);
-            if (!forceRefresh && expiry > System.currentTimeMillis() + 15000L) return access;
-            String refresh = decrypt(prefs.getString(PREF_REFRESH, ""));
-            String clientId = prefs.getString(PREF_CLIENT_ID, "");
-            if (refresh.isEmpty() || clientId.isEmpty()) {
-                if (expiry > System.currentTimeMillis()) return access;
-                throw new Exception("Sesja WordPress wygasła. Połącz konto ponownie.");
-            }
-            JSONObject response = WpMcp.refresh(clientId, refresh);
-            String nextAccess = response.optString("access_token", "");
-            if (nextAccess.isEmpty()) throw new Exception("WordPress nie odświeżył sesji.");
-            long lifetime = Math.max(60L, response.optLong("expires_in", 3600L));
-            long margin = Math.min(120L, Math.max(10L, lifetime / 10L));
-            long nextExpiry = System.currentTimeMillis() + Math.max(1L, lifetime - margin) * 1000L;
-            SharedPreferences.Editor edit = prefs.edit().putString(PREF_TOKEN, encrypt(nextAccess)).putLong(PREF_EXPIRY, nextExpiry);
-            String nextRefresh = response.optString("refresh_token", "");
-            if (!nextRefresh.isEmpty()) edit.putString(PREF_REFRESH, encrypt(nextRefresh));
-            if (!edit.commit()) throw new Exception("Android nie zapisał odświeżonej sesji.");
-            return nextAccess;
-        }
-    }
-
-    private static String decrypt(String stored) throws Exception {
-        if (stored == null || stored.isEmpty()) return "";
-        String[] parts = stored.split(":", 2);
-        if (parts.length != 2) return "";
-        KeyStore store = KeyStore.getInstance("AndroidKeyStore");
-        store.load(null);
-        SecretKey key = (SecretKey) store.getKey(KEY_ALIAS, null);
-        if (key == null) throw new Exception("Klucz sesji Android nie jest dostępny.");
-        Cipher cipher = Cipher.getInstance("AES/GCM/NoPadding");
-        cipher.init(Cipher.DECRYPT_MODE, key,
-            new GCMParameterSpec(128, Base64.decode(parts[0], Base64.NO_WRAP)));
-        return new String(cipher.doFinal(Base64.decode(parts[1], Base64.NO_WRAP)), StandardCharsets.UTF_8);
-    }
-
-    private static String encrypt(String value) throws Exception {
-        KeyStore store = KeyStore.getInstance("AndroidKeyStore");
-        store.load(null);
-        SecretKey key = (SecretKey) store.getKey(KEY_ALIAS, null);
-        if (key == null) throw new Exception("Klucz sesji Android nie jest dostępny.");
-        Cipher cipher = Cipher.getInstance("AES/GCM/NoPadding");
-        cipher.init(Cipher.ENCRYPT_MODE, key);
-        return Base64.encodeToString(cipher.getIV(), Base64.NO_WRAP) + ":"
-            + Base64.encodeToString(cipher.doFinal(value.getBytes(StandardCharsets.UTF_8)), Base64.NO_WRAP);
-    }
-
 
     private static void postNotification(Context context, ArrayList<Source> sources, String answer, long now) {
         if (sources.isEmpty() || !notificationsAllowed(context)) return;
