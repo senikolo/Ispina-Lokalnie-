@@ -232,6 +232,15 @@ header{animation:ilHeader .38s cubic-bezier(.2,.7,.2,1) both}.brand .logo{animat
   </div>
 </section>
 <section id="screen-radar" class="panel">
+  <div class="card" id="chatgpt-connection-card">
+    <div class="eyebrow">POŁĄCZENIE AI</div>
+    <h2>ChatGPT dla IL Chata i Radaru</h2>
+    <p id="chatgpt-account-status" class="small muted" role="status" aria-live="polite">Sprawdzam połączenie z ChatGPT…</p>
+    <div class="actions">
+      <button id="chatgpt-connect" type="button" onclick="connectChatGpt()">Kontynuuj z ChatGPT</button>
+      <button id="chatgpt-disconnect" class="secondary hidden" type="button" onclick="disconnectChatGpt()">Odłącz konto</button>
+      <button class="secondary" type="button" onclick="openChatGptUsage()">Zarządzaj użyciem ChatGPT</button>
+    </div>
   <div class="card" id="ispina-chat-card">
     <div class="eyebrow">IL CHAT AI · RADAR INFORMACJI</div>
     <h2>Zapytaj o Ispinę</h2>
@@ -254,15 +263,6 @@ header{animation:ilHeader .38s cubic-bezier(.2,.7,.2,1) both}.brand .logo{animat
     </div>
     <p id="ispina-chat-status" class="small muted" role="status" aria-live="polite">Sprawdzam połączenie z ChatGPT…</p>
   </div>
-  <div class="card" id="chatgpt-connection-card">
-    <div class="eyebrow">POŁĄCZENIE AI</div>
-    <h2>ChatGPT dla IL Chata i Radaru</h2>
-    <p id="chatgpt-account-status" class="small muted" role="status" aria-live="polite">Sprawdzam połączenie z ChatGPT…</p>
-    <div class="actions">
-      <button id="chatgpt-connect" type="button" onclick="connectChatGpt()">Kontynuuj z ChatGPT</button>
-      <button id="chatgpt-disconnect" class="secondary hidden" type="button" onclick="disconnectChatGpt()">Odłącz konto</button>
-      <button class="secondary" type="button" onclick="openChatGptUsage()">Zarządzaj użyciem ChatGPT</button>
-    </div>
     <p class="small muted">Zaloguj się na konto ChatGPT, którego plan chcesz używać. Pytania i historia czatu są wysyłane bezpośrednio do OpenAI. Połączenie nie udostępnia rozmów ani pamięci z ChatGPT; użycie aplikacji wlicza się do wspólnego limitu konta.</p>
   </div>
   <div class="card" id="research-card">
