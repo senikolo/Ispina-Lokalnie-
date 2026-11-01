@@ -70,6 +70,6 @@ if (errors.length) {
 }
 
 const generatedBlock = originalBlock.slice(0, openEnd) + result.outputText + originalBlock.slice(closeStart);
-const generatedHtml = html.replace(originalBlock, generatedBlock);
+const generatedHtml = html.replace(originalBlock, () => generatedBlock);
 fs.mkdirSync(path.dirname(outputPath), { recursive: true });
 fs.writeFileSync(outputPath, generatedHtml);
