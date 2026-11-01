@@ -78,6 +78,8 @@ public class MainActivity extends Activity {
     private AlertDialog editorConfirmation;
     private volatile boolean verified = false;
     private boolean loginInProgress = false;
+    private boolean oauthBrowserWasOpened = false;
+    private boolean oauthCallbackArrived = false;
     private boolean webPageReady = false;
     private final java.util.ArrayList<String> waitingJs = new java.util.ArrayList<>();
     private static final String HAPTICS_KEY = "haptics_intensity";
@@ -321,6 +323,7 @@ public class MainActivity extends Activity {
 
     private void handleOAuthCallback(Intent intent) {
         if (intent == null || !OAuthBrowserLogin.isCallback(intent.getData())) return;
+        oauthCallbackArrived = true;
         loginInProgress = true;
         newOAuthLogin().handleRedirect(intent.getData());
     }
@@ -588,6 +591,17 @@ public class MainActivity extends Activity {
             }
         }
 
+        @JavascriptInterface public void resumeLogin() {
+            ui.post(() -> {
+                if (!newOAuthLogin().hasPendingLogin()) {
+                    callback("auth-progress", false,
+                        "Poprzednia próba logowania wygasła. Rozpocznij nową.");
+                    return;
+                }
+                newOAuthLogin().resumePendingLogin();
+            });
+        }
+
         @JavascriptInterface public void cancelLogin() {
             newOAuthLogin().cancelLogin();
             loginInProgress = false;
@@ -621,6 +635,7 @@ public class MainActivity extends Activity {
                 }
                 if(loginInProgress) { callback("auth-progress",true,"Logowanie jest już w toku.");return; }
                 loginInProgress=true;
+                oauthCallbackArrived=false;
                 newOAuthLogin().start();
             });
         }
@@ -1325,7 +1340,22 @@ public class MainActivity extends Activity {
         });
     }
 
+    @Override protected void onResume() {
+        super.onResume();
+        if (oauthBrowserWasOpened) {
+            oauthBrowserWasOpened = false;
+            ui.postDelayed(() -> {
+                if (!oauthCallbackArrived && newOAuthLogin().hasPendingLogin()) {
+                    callback("auth-return", true,
+                        "Wrócono z przeglądarki bez potwierdzenia WordPress.com. " +
+                        "Otwórz ponownie logowanie i zaakceptuj dostęp albo anuluj tę próbę.");
+                }
+            }, 1000);
+        }
+    }
+
     @Override protected void onPause() {
+        if (newOAuthLogin().hasPendingLogin()) oauthBrowserWasOpened = true;
         if (editor != null && webPageReady) editor.evaluateJavascript("if(typeof flushDraftOnExit==='function')flushDraftOnExit()", null);
         super.onPause();
     }
