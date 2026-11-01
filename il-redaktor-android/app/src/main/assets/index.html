@@ -350,7 +350,7 @@ header{animation:ilHeader .38s cubic-bezier(.2,.7,.2,1) both}.brand .logo{animat
   <label for="posts-search">Wyszukaj tytuł, fragment treści lub ID wpisu</label><input id="posts-search" placeholder="Szukaj wpisów..." oninput="renderPosts()">
   <div class="actions"><button onclick="loadPosts()">Odśwież wpisy</button><button class="secondary" onclick="resetEditor();showScreen('editor')">Nowy artykuł</button></div>
   <div id="posts-access" class="note" role="status">Opublikowane artykuły można przeglądać bez logowania. Edycja i szkice na WordPressie wymagają zalogowania.</div>
-  <div id="posts-output" aria-live="polite"></div></div>
+  <div id="posts-output" aria-live="polite"></div><div class="actions"><button id="posts-more-button" class="secondary hidden" onclick="loadMorePosts()">Wczytaj starsze artykuły</button></div><p id="posts-page-status" class="small muted" role="status"></p></div>
 </section>
 
 <section id="screen-media" class="panel">
@@ -594,17 +594,25 @@ window.onNativeResult=function(id,ok,payload){
     try{r.resolve(JSON.parse(payload));}catch(e){r.reject(new Error("Nieprawidłowa odpowiedź WordPressa."));}
     return;
   }
-  if(id==="public-posts"){
+  if(id==="public-posts"||id==="public-posts-more"){
     if(ok){
       try{
         const posts=JSON.parse(payload);
         if(!Array.isArray(posts))throw new Error("Nieprawidłowa lista artykułów");
-        allPosts=posts.map(p=>({...p,readOnly:true}));
+        if(id==="public-posts"){allPosts=posts.map(p=>({...p,readOnly:true}));postsNextPage=2;}
+        else {
+          const ids=new Set(allPosts.map(p=>Number(p.id)));
+          allPosts.push(...posts.filter(p=>!ids.has(Number(p.id))).map(p=>({...p,readOnly:true})));
+          postsNextPage++;
+        }
         renderPosts();
+        $("posts-more-button").classList.toggle("hidden",posts.length<30);
+        $("posts-page-status").textContent="Wczytano "+allPosts.length+" artykułów. "+(posts.length<30?"Osiągnięto koniec dostępnej listy.":"Możesz wczytać kolejną stronę.");
         $("posts-access").textContent="Tryb publiczny: przeglądasz opublikowane artykuły bez logowania. Aby edytować lub odczytać szkice WordPressa, połącz konto w zakładce Połączenie.";
-        operationFinished(true,"Pobrano publiczne wpisy",posts.length+" artykułów w trybie tylko do odczytu.");
+        operationFinished(true,"Pobrano publiczne wpisy",allPosts.length+" artykułów w trybie tylko do odczytu.");
       }catch(e){message("posts-output","Nie można odczytać listy publicznych artykułów: "+e.message,"error")}
-    } else message("posts-output",payload,"error");
+    } else {$("posts-page-status").textContent=payload;message("posts-output",payload,"error");}
+    postsLoadingMore=false;$("posts-more-button").disabled=false;
     return;
   }
   if(id==="auth-return") {
@@ -1812,7 +1820,42 @@ function resetEditor(){
   $("local-save-status").textContent="Nowy tekst — zapiszę go automatycznie po rozpoczęciu pisania.";
   updateMetrics();return true;
 }
+let postsNextPage=2,postsLoadingMore=false;
+async function loadMorePosts(){
+  if(postsLoadingMore)return false;
+  if(!connected){
+    if(typeof IL.publicPostsPage!=="function"){$("posts-page-status").textContent="Starsze artykuły wymagają nowej wersji APK.";return false;}
+    postsLoadingMore=true;$("posts-more-button").disabled=true;
+    $("posts-page-status").textContent="Pobieram kolejną stronę publicznych wpisów…";
+    IL.publicPostsPage(postsNextPage);
+    return true;
+  }
+  postsLoadingMore=true;$("posts-more-button").disabled=true;
+  $("posts-page-status").textContent="Pobieram starsze wpisy i szkice…";
+  try{
+    let found=[];
+    for(const status of ["publish","draft","future"]){
+      try{
+        const batch=await rpc("GET","posts?context=edit&status="+status+"&per_page=60&page="+postsNextPage+"&orderby=modified&order=desc");
+        if(Array.isArray(batch))found.push(...batch);
+      }catch(error){
+        $("posts-page-status").textContent="Nie udało się pobrać części starszych wpisów: "+error.message;
+      }
+    }
+    const ids=new Set(allPosts.map(x=>Number(x.id)));
+    allPosts.push(...found.filter(p=>!ids.has(Number(p.id))));
+    allPosts.sort((a,b)=>String(b.modified||"").localeCompare(String(a.modified||"")));
+    postsNextPage++;
+    renderPosts();
+    $("posts-more-button").classList.toggle("hidden",found.length<180);
+    $("posts-page-status").textContent="Wczytano "+allPosts.length+" wpisów. "+(found.length<180?"Koniec dostępnej listy lub częściowy wynik.":"Możesz wczytać kolejną stronę.");
+    return true;
+  }catch(error){$("posts-page-status").textContent="Nie udało się pobrać starszych wpisów: "+error.message;return false;}
+  finally{postsLoadingMore=false;$("posts-more-button").disabled=false;}
+}
 async function loadPosts(){
+  postsNextPage=2;
+  $("posts-more-button").classList.add("hidden");
   if(!connected){
     startOperation("Wczytuję publiczne artykuły Ispina Lokalnie…");
     $("posts-access").textContent="Tryb publiczny, bez logowania. Wpisów nie można edytować, dopóki WordPress nie potwierdzi sesji.";
@@ -1834,6 +1877,8 @@ async function loadPosts(){
     if(!Array.isArray(data))throw Error("Nie rozpoznano listy artykułów.");
     if(!data.length){message("posts-output","WordPress potwierdził pustą listę.");return}
     allPosts=data;
+    $("posts-more-button").classList.toggle("hidden",published.length<60&&drafts.length<60&&future.length<60);
+    $("posts-page-status").textContent="Pobrano "+data.length+" najnowszych wpisów. "+(published.length>=60||drafts.length>=60||future.length>=60?"Starsze wpisy dostępne po wczytaniu kolejnej strony.":"Lista została wczytana.");
     $("posts-access").textContent="Tryb redakcyjny: połączenie z WordPressem potwierdzone. Możesz edytować istniejące artykuły i odczytywać szkice.";
     renderPosts();
     operationFinished(true,"Pobrano listę artykułów",data.length+" wpisów i szkiców.");
