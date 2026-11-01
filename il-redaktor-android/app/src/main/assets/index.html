@@ -561,12 +561,19 @@ window.onNativeResult=function(id,ok,payload){
         ?"Backend działa. Raport używa sześciu profili; każde wyszukiwanie wymaga potwierdzenia."
         :(readinessMessage||"Wyszukiwanie AI wymaga gotowego backendu Gemini i limitu zapytań.");
       $("research-status").className=assistantEnabled?"small muted":"small error";
+      $("ispina-chat-send").disabled=!assistantEnabled;
+      $("ispina-chat-status").textContent=assistantEnabled
+        ?"Radar IL Chat AI jest gotowy. Każda wiadomość wyszukuje aktualne źródła."
+        :(readinessMessage||"Radar wymaga gotowego backendu Gemini i limitu zapytań.");
+      $("ispina-chat-status").className=assistantEnabled?"small muted":"small error";
       message("assistant-mode",assistantEnabled
         ?"Backend AI jest gotowy. Wysyłka tekstu do Gemini wymaga osobnego potwierdzenia."
         :"Tryb AI online jest wyłączony, bo backend nie jest gotowy. "+(readinessMessage||"Możesz nadal korzystać z lokalnych narzędzi."),
         assistantEnabled?"":"error");
     }catch(e){
-      assistantEnabled=false;$("assistant-online-button").classList.add("hidden");$("research-button").disabled=true;$("assistant-check-button").disabled=false;
+      assistantEnabled=false;$("assistant-online-button").classList.add("hidden");$("research-button").disabled=true;$("ispina-chat-send").disabled=true;$("assistant-check-button").disabled=false;
+      $("ispina-chat-status").textContent="Nie udało się sprawdzić gotowości backendu AI.";
+      $("ispina-chat-status").className="small error";
       message("assistant-mode","Nie udało się sprawdzić gotowości backendu AI.","error");
     }
     return;
