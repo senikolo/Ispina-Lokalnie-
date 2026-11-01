@@ -315,7 +315,7 @@ public final class ConfirmationInstrumentation extends Instrumentation {
             // document.readyState alone only confirms DOM loading on older WebView.
             captureUi("startup");
             if ("seed".equals(mode) || "seed-current".equals(mode)) {
-                int expectedVersion = "seed-current".equals(mode) ? 39 : 21;
+                int expectedVersion = "seed-current".equals(mode) ? 40 : 21;
                 if(getTargetContext().getPackageManager().getPackageInfo(getTargetContext().getPackageName(),0).versionCode!=expectedVersion)throw new AssertionError("Seed baseline versionCode mismatch: expected "+expectedVersion);
                 String seeded=evaluate("localStorage.removeItem(draftKey);draftStore=null;activeDraftId=null;$('post-title').value='Pierwszy szkic';$('post-body').value='Pierwsza wersja';persistDraft(true);$('post-body').value='Druga wersja';persistDraft(true);resetEditor();$('post-title').value='Drugi szkic';$('post-body').value='Drugi tekst';persistDraft(true);String(readDraftStore().drafts.length)");
                 if(!"\"2\"".equals(seeded))throw new AssertionError("Draft seeding failed: "+seeded);
