@@ -244,6 +244,56 @@ public final class ConfirmationInstrumentation extends Instrumentation {
             throw new AssertionError("Temporary throttling was confused with exhausted plan usage");
     }
 
+
+    private void testEditorialMemory() throws Exception {
+        diagnosticStage="sqlite editorial memory persistence";
+        String url="https://example.org/il-redaktor-qa-only";
+        EditorialMemory memory=new EditorialMemory(getTargetContext());
+        org.json.JSONObject hit=new org.json.JSONObject()
+            .put("url",url).put("title","Most w Ispinie")
+            .put("snippet","Pierwsza wersja komunikatu").put("publishedAt","2026-11-01");
+        org.json.JSONObject scan=new org.json.JSONObject().put("question","Most w Ispinie")
+            .put("answer","Znaleziono link do sprawdzenia, nie potwierdzono faktów.")
+            .put("sources",new org.json.JSONArray().put(hit));
+        try {
+            memory.execute("delete",new org.json.JSONObject().put("url",url).put("confirmed",true));
+            if(memory.execute("save",scan).getInt("new")!=1)
+                throw new AssertionError("First source not marked as new");
+            if(memory.execute("save",scan).getInt("known")!=1)
+                throw new AssertionError("Identical source not deduplicated");
+            if(!"link_found".equals(memory.execute("browse",new org.json.JSONObject()
+                .put("topic","Most")).getJSONArray("items").getJSONObject(0).getString("status")))
+                throw new AssertionError("Found link was falsely marked verified");
+            try {
+                memory.execute("review",new org.json.JSONObject().put("url",url));
+                throw new AssertionError("Manual source approval accepted without consent");
+            } catch(IllegalArgumentException expected) {}
+            memory.execute("review",new org.json.JSONObject()
+                .put("url",url).put("confirmed",true));
+            if(!"reviewed".equals(memory.execute("browse",new org.json.JSONObject()
+                .put("topic","Most")).getJSONArray("items").getJSONObject(0).getString("status")))
+                throw new AssertionError("Review status was not saved");
+            hit.put("snippet","Zmieniono metadane tego linku");
+            if(memory.execute("save",scan).getInt("changed")!=1)
+                throw new AssertionError("Source change not detected");
+            if(!"link_found".equals(memory.execute("browse",new org.json.JSONObject()
+                .put("topic","Most")).getJSONArray("items").getJSONObject(0).getString("status")))
+                throw new AssertionError("Updated source retained stale review approval");
+            memory.close();
+            EditorialMemory reopened=new EditorialMemory(getTargetContext());
+            try {
+                if(reopened.execute("browse",new org.json.JSONObject().put("topic","Most"))
+                    .getJSONArray("items").length()<1)throw new AssertionError("SQLite lost persisted source");
+                if(reopened.execute("history",new org.json.JSONObject())
+                    .getJSONArray("items").length()<1)throw new AssertionError("SQLite lost conversation");
+                if(!"IL_EDITORIAL_MEMORY_V1".equals(reopened.execute("export",new org.json.JSONObject())
+                    .getString("format")))throw new AssertionError("Portable backup not generated");
+                if(reopened.execute("delete",new org.json.JSONObject().put("url",url).put("confirmed",true))
+                    .getInt("deleted")!=1)throw new AssertionError("Selected deletion did not work");
+            } finally { reopened.close(); }
+        } finally { memory.close(); }
+    }
+
     @Override public void onStart() {
         Bundle result = new Bundle();
         Thread trace=new Thread(()->{for(int n=0;n<35&&!diagnosticDone;n++){SystemClock.sleep(2000);if(!diagnosticDone)android.util.Log.i("ILEditorProbe",diagnosticStage+" "+java.util.Arrays.toString(android.os.Looper.getMainLooper().getThread().getStackTrace()));}},"il-test-diagnostics");trace.setDaemon(true);trace.start();
@@ -300,7 +350,9 @@ public final class ConfirmationInstrumentation extends Instrumentation {
             probe(AlertDialog.BUTTON_POSITIVE, "\"true:1\"", false);
             probe(AlertDialog.BUTTON_NEGATIVE, "\"false:0\"", true);
             testFreeRadar();
+            testEditorialMemory();
             testChatGptLogoutSecurity();
+            result.putString("memory", "IL_EDITORIAL_MEMORY_TEST=PASS (dedup, explicit review, change invalidation, persistence, export, delete)\n");
             result.putString("stream", "IL_FREE_RADAR_TEST=PASS\nIL_CHATGPT_AUTH_SECURITY_TEST=PASS\nIL_WEBVIEW_CONFIRM_TEST=PASS (cancel, confirm once, dismiss)\nIL_EDITOR_FEATURES_TEST=PASS (comparison, undo, backup file streams, photo crop, EXIF, cancel)\nIL_WORKSPACE_FEATURES_TEST=PASS (sources/photos backup, literal replacement, viewport, calendar, remote conflict)\nIL_HAPTICS_TEST=PASS (every tile tap, motor detection, adjustable intensity, test signal, disabled-mode message)\n");
             }
             runOnMainSync(() -> activity.finish());waitForIdleSync();
