@@ -101,9 +101,10 @@ public final class IspinaRadarWorker extends Worker {
             if (isStopped() || !prefs.getBoolean(PREF_ENABLED, false)) return Result.success();
             String answer = clean(result.optString("answer", ""));
             JSONArray array = result.optJSONArray("sources");
-            boolean verified = result.optBoolean("verified", false) && !answer.isEmpty()
-                && array != null && array.length() > 0;
-            ArrayList<Source> sources = verified ? parseSources(array) : new ArrayList<>();
+            boolean sourceLinksFound = result.optBoolean("sourceLinksFound", result.optBoolean("verified", false))
+                && !answer.isEmpty() && array != null && array.length() > 0;
+            boolean partial = result.optInt("failedFeeds", 0) > 0;
+            ArrayList<Source> sources = sourceLinksFound ? parseSources(array) : new ArrayList<>();
             LinkedHashSet<String> seen = readSeen(prefs);
             ArrayList<Source> newSources = new ArrayList<>();
             for (Source source : sources) {
@@ -118,7 +119,10 @@ public final class IspinaRadarWorker extends Worker {
             if (containsNoNews(answer)) newSources.clear();
             if (!prefs.getBoolean(PREF_ENABLED, false)) return Result.success();
             if (newSources.isEmpty()) {
-                saveStatus(prefs, "none", "Nie znaleziono nowej, potwierdzonej wzmianki.", true, now);
+                saveStatus(prefs, partial ? "partial" : "none",
+                    partial ? "Część źródeł jest niedostępna. Nie znaleziono nowych linków w pozostałych kanałach."
+                            : "Nie znaleziono nowych linków w sprawdzonych kanałach.",
+                    !partial, now);
                 return Result.success();
             }
 
@@ -126,7 +130,9 @@ public final class IspinaRadarWorker extends Worker {
             String host = Uri.parse(first.url).getHost();
             String summary = first.title + (host == null ? "" : " · " + host);
             if (newSources.size() > 1) summary += " · +" + (newSources.size() - 1) + " nowych źródeł";
-            saveStatus(prefs, "found", summary, true, now);
+            saveStatus(prefs, partial ? "partial" : "found",
+                partial ? "Wynik częściowy, część źródeł niedostępna. " + summary : summary,
+                !partial, now);
             if (prefs.getBoolean(PREF_ENABLED, false)) postNotification(context, newSources, answer, now);
             return Result.success();
         } catch (Exception ex) {

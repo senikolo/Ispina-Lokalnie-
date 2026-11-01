@@ -83,6 +83,7 @@ public final class FreeIspinaSearchClient {
                 .put("text", answer.toString()).put("sources", sources).put("verified", sources.length()>0)
                 .put("queries", new JSONArray().put(query)).put("searchedAt", System.currentTimeMillis())
                 .put("successfulFeeds", successful).put("failedFeeds", failed)
+                .put("partialResults", failed > 0).put("sourceLinksFound", sources.length()>0)
                 .put("sourceReviewStatus", "DO_SPRAWDZENIA")
                 .put("sourcesAreFactChecked", false).put("dateFilterApplied", datedOnly)
                 .put("since", since);
@@ -100,16 +101,16 @@ public final class FreeIspinaSearchClient {
         if ("paczkomat".equals(topic)) return text.contains("pacz") || text.contains("inpost");
         if ("transport".equals(topic)) return text.contains("transport") || text.contains("autobus") || text.contains("komunik") || text.contains("linia") || text.contains("mld");
         if ("osp".equals(topic)) return text.matches("(?s).*\\bosp\\b.*") || text.contains("straż");
-        // Search is broader than an exact substring: suffixes of Polish inflected
-        // words may differ. The provider query still includes the whole subject.
-        int tokens = 0;
+        // Each important term must appear. Matching ANY of "most kapliczka"
+        // returned articles about just the bridge and was misleading.
+        int tokens = 0, matched = 0;
         for (String word : topic.split("\\s+")) {
             if (word.length() < 4) continue;
             tokens++;
             String root = word.substring(0, Math.min(5,word.length()));
-            if (text.contains(root)) return true;
+            if (text.contains(root)) matched++;
         }
-        return tokens == 0;
+        return tokens == 0 || matched == tokens;
     }
 
     static String topic(String prompt) {
@@ -117,10 +118,15 @@ public final class FreeIspinaSearchClient {
         // Long instructions belong to the broad radar; never send entire
         // editorial drafts, personal text, or source notes to search providers.
         if (text.length() > 300) return "";
+        // A broad brief is not a single search topic. Feed queries stay short
+        // and do not try to match every category in one document.
+        if ((text.contains("ostatnich") || text.contains("ostatnie")) &&
+            (text.contains("lokalne media") || text.contains("źródła urzędowe")
+                || text.contains("przetargi") || text.contains("wszystkie"))) return "";
         if (text.contains("paczkomat") || text.contains("inpost")) return "paczkomat";
         if (text.matches("(?s).*\\bosp\\b.*") || text.contains("straż pożarn")) return "osp";
         if (text.contains("autobus") || text.contains("komunikacj") || text.contains("transport")) return "transport";
-        text = text.replaceAll("(?iu)\\b(?:czy|są|jest|jakie|co|nowego|nowe|informacje|wiadomości|aktualne|aktualności|wyszukaj|znajdź|sprawdź|ostatnie|ostatnich|ostatnim|dni|dniach|tygodniu|miesiącu|temat|dotyczące|dotyczy|o|w|we|na|z|do|i|oraz|dla|ispina|ispinie|ispiny|gminie|gmina|drwinia|drwini|proszę)\\b", " ");
+        text = text.replaceAll("(?iu)\\b(?:czy|są|jest|jakie|co|nowego|nowe|informacje|wiadomości|aktualne|aktualności|wyszukaj|znajdź|sprawdź|ostatnie|ostatnich|ostatnim|dni|dniach|tygodniu|miesiącu|temat|dotyczące|dotyczy|poszukaj|szukam|szukaj|materiały|materiałów|archiwalne|archiwalnych|źródła|źródeł|opublikowano|wydarzenia|zdarzenia|wieś|wsi|o|w|we|na|z|do|i|oraz|dla|ispina|ispinie|ispiny|gminie|gmina|drwinia|drwini|proszę)\\b", " ");
         text = text.replaceAll("\\b[0-9]{1,3}\\b", " ").replaceAll("[^\\p{L}\\p{N} ]", " ").trim().replaceAll("\\s+", " ");
         return text.length() > 100 ? text.substring(0,100).trim() : text;
     }
@@ -133,7 +139,7 @@ public final class FreeIspinaSearchClient {
             connection.setReadTimeout(7000);
             connection.setInstanceFollowRedirects(false);
             connection.setRequestProperty("Accept", "application/rss+xml, application/xml, text/xml");
-            connection.setRequestProperty("User-Agent", "IL-Redaktor-Smart/1.27 PublicRSS");
+            connection.setRequestProperty("User-Agent", "IL-Redaktor-Smart/1.28 PublicRSS");
             int status = connection.getResponseCode();
             if (status != 200) throw new IOException("Kanał RSS: HTTP " + status);
             try (InputStream input = connection.getInputStream(); ByteArrayOutputStream out = new ByteArrayOutputStream()) {

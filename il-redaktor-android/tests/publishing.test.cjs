@@ -1132,6 +1132,18 @@ test("editor change and focusout handlers persist drafts without needing network
 });
 
 
+test("free radar never claims RSS results are fact-checked and latest query applies 30 days",()=>{
+ const a=setup();
+ const found={freeSearch:true,sourceLinksFound:true,verified:true,sources:[{title:"Most w Ispinie",url:"https://example.org/most"}],text:"Most w Ispinie",answer:"Most w Ispinie",successfulFeeds:4,failedFeeds:2,partialResults:true};
+ a.run("renderResearchResult("+JSON.stringify(found)+",'Ispina')");
+ const output=a.node("research-results").innerHTML+" "+a.node("research-status").textContent;
+ assert.match(output,/do sprawdzenia|do sprawdzenia/);
+ assert.match(output,/wynik jest niepełny/);
+ assert.doesNotMatch(output,/Zweryfikowane profile|potwierdzone źródła/);
+ const ui=require("node:fs").readFileSync(require("node:path").join(__dirname,"../app/src/main/assets/index.html"),"utf8");
+ assert.match(ui,/\$\("research-days"\)\.value="30"/);
+ assert.match(ui,/\$\("research-query"\)\.value="Ispina"/);
+});
 test("research UI shows only source-backed section text and safe source links",()=>{
   const a=setup();
   const result={
@@ -1147,7 +1159,7 @@ test("research UI shows only source-backed section text and safe source links",(
   const rendered=a.node("research-results").innerHTML;
   assert.match(rendered,/Profil potwierdzony/);
   assert.match(rendered,/data-research-link="https:\/\/example\.com\/raport"/);
-  assert.match(rendered,/Profil bez potwierdzonych źródeł/);
+  assert.match(rendered,/Profil bez znalezionych linków/);
   assert.doesNotMatch(rendered,/Ukryj tę niepotwierdzoną treść|Zbiorcze podsumowanie/);
 });
 

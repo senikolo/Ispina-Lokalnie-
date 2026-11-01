@@ -159,6 +159,15 @@ public final class ConfirmationInstrumentation extends Instrumentation {
         if(!FreeIspinaSearchClient.matchesTopic(
             new org.json.JSONObject().put("title","Kapliczka w Ispinie"),"kapliczki"))
             throw new AssertionError("Inflected Polish subject not matched");
+        if(FreeIspinaSearchClient.matchesTopic(
+            new org.json.JSONObject().put("title","Most w Ispinie"),"most kapliczki"))
+            throw new AssertionError("Multiword topic matched only one term");
+        if(!FreeIspinaSearchClient.matchesTopic(
+            new org.json.JSONObject().put("title","Most i kapliczka w Ispinie"),"most kapliczki"))
+            throw new AssertionError("Multiword topic failed to match all terms");
+        if(!"".equals(FreeIspinaSearchClient.topic(
+            "Co nowego o Ispinie w ostatnich 30 dniach? Sprawdź źródła urzędowe, BIP, lokalne media i przetargi.")))
+            throw new AssertionError("Broad multi-source brief was treated as a narrow topic");
         org.json.JSONArray manual=FreeIspinaSearchClient.parseFeed(xml,0,false);
         org.json.JSONArray background=FreeIspinaSearchClient.parseFeed(xml,now-86400000L,true);
         if(manual.length()!=3 || background.length()!=1)throw new AssertionError("Free RSS location/date/link filtering failed");

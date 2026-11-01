@@ -268,7 +268,7 @@ header{animation:ilHeader .38s cubic-bezier(.2,.7,.2,1) both}.brand .logo{animat
     <p class="muted">Bezpłatny przegląd dostępnych kanałów RSS. Nie obejmuje całego internetu, wszystkich przetargów ani każdego komunikatu urzędowego.</p>
     <label for="research-days">Zakres dat publikacji</label>
     <select id="research-days"><option value="7">Ostatnie 7 dni</option><option value="30" selected>Ostatnie 30 dni</option><option value="90">Ostatnie 90 dni</option><option value="365">Ostatni rok</option><option value="0">Wszystkie dostępne (także bez daty)</option></select>
-    <p class="small muted">Przy wybranym okresie pokazujemy wyłącznie wyniki z datą publikacji mieszczącą się w tym zakresie. Data wydarzenia może być inna.</p>
+    <p class="small muted">Przy wybranym okresie pokazujemy wyłącznie wyniki z datą publikacji mieszczącą się w tym zakresie. Data wydarzenia może być inna. Wybór daty dotyczy wyszukiwania na tym ekranie.</p>
     <label for="research-query">Temat i dodatkowe wskazówki</label>
     <textarea id="research-query" maxlength="1800" style="min-height:115px">Wyszukaj aktualne informacje o Ispinie.</textarea>
     <div class="note small">Raport sprawdza sześć zapytań i kanałów publicznych, w tym odnośniki z domen urzędowych. Nie jest to pełne indeksowanie BIP. Awaria części źródeł zostanie oznaczona. Brak wyników nie oznacza braku informacji w internecie.</div>
@@ -925,7 +925,7 @@ async function sendIspinaChat(){
   ispinaChatInProgress=true;
   const button=$("ispina-chat-send");
   button.disabled=true;
-  $("ispina-chat-status").textContent="Szukam aktualnych informacji i sprawdzam źródła…";
+  $("ispina-chat-status").textContent="Pobieram linki z publicznych kanałów. Źródła wymagają sprawdzenia przez redaktora…";
   $("ispina-chat-status").className="small muted";
   startOperation("Pobieram bezpłatne źródła — możesz anulować poniżej");
   try{
@@ -933,13 +933,13 @@ async function sendIspinaChat(){
     const result=await requestIspinaChat(prompt,history);
     const answer=String(result?.answer||"").trim();
     const sources=Array.isArray(result?.sources)?result.sources:[];
-    const verified=result?.verified===true&&!!answer&&sources.length>0;
+    const verified=(result?.sourceLinksFound===true||result?.verified===true)&&!!answer&&sources.length>0;
     ispinaChatMessages.push({role:"user",content:prompt,verified:true});
     if(verified)ispinaChatMessages.push({role:"assistant",content:answer,sources,verified:true,question:prompt,searchedAt:String(result?.searchedAt||"")});
     else ispinaChatMessages.push({role:"assistant",content:answer||"Nie znaleziono pasujących materiałów w dostępnych kanałach.",sources:[],verified:false});
     renderIspinaChat();
     $("ispina-chat-input").value="";
-    $("ispina-chat-status").textContent=verified?"Znaleziono "+sources.length+" linków DO SPRAWDZENIA. Ich obecność nie potwierdza jeszcze faktów. Sprawdź oryginały.":"Nie znaleziono potwierdzonej odpowiedzi ze źródłami.";
+    $("ispina-chat-status").textContent=verified?"Znaleziono "+sources.length+" linków DO SPRAWDZENIA. Ich obecność nie potwierdza jeszcze faktów. Sprawdź oryginały.":"Nie znaleziono pasujących linków w dostępnych kanałach. Nie oznacza to braku informacji w internecie.";
     $("ispina-chat-status").className=verified?"small ok":"small muted";
     endOperation();
     return verified;
@@ -982,24 +982,25 @@ function renderResearchResult(result,query){
       const sources=safeFor(section?.sources).slice(0,30),queries=Array.isArray(section?.queries)?section.queries.filter(q=>typeof q==="string").slice(0,20):[];
       const verified=section?.status==="ok"&&!!text&&sources.length>0;
       if(verified){verifiedCount++;totalSources+=sources.length}
-      const state=verified?'<div class="note ok"><b>Źródła przypisane do tego profilu</b></div>':'<div class="note"><b>Profil bez potwierdzonych źródeł</b><p class="small">'+(section?.status==="failed"?"Nie udało się wykonać wyszukiwania dla tego profilu.":"ChatGPT nie zwrócił znalezionych stron.")+'</p></div>';
+      const state=verified?'<div class="note"><b>Znalezione linki, do sprawdzenia przez redaktora</b></div>':'<div class="note"><b>Profil bez znalezionych linków</b><p class="small">'+(section?.status==="failed"?"Nie udało się pobrać informacji dla tego profilu.":"Kanały RSS nie zwróciły pasujących linków.")+'</p></div>';
       return '<section class="source-item research-profile"><h3>'+esc(title)+'</h3>'+state+(verified?'<div class="research-summary">'+esc(text)+'</div>'+renderSources(sources):"")+queryMarkup(queries)+'</section>';
     }).join("");
   }else{
-    if(!aggregate||!topSources.length)throw new Error("Raport nie zawiera znalezionych źródeł. Nie pokazuję niepotwierdzonych wyników.");
+    if(!aggregate||!topSources.length)throw new Error("Raport nie zawiera znalezionych linków.");
     verifiedCount=1;totalSources=topSources.length;
     rendered='<div class="source-item research-summary">'+esc(aggregate)+'</div>'+queryMarkup(allQueries)+'<h3>Źródła znalezione w wyszukiwarce ('+topSources.length+')</h3>'+renderSources(topSources);
   }
-  if(!totalSources)throw new Error("Raport nie zawiera potwierdzonych źródeł. Nie pokazuję niepotwierdzonych wyników.");
+  if(!totalSources)throw new Error("Raport nie zawiera linków do sprawdzenia.");
   const searchedAt=new Date(result.searchedAt||Date.now()),dateLabel=Number.isNaN(searchedAt.getTime())?"":searchedAt.toLocaleString("pl-PL");
-  const profileLabel=sections.length?"Zweryfikowane profile: "+verifiedCount+" z "+sections.length+". ":"";
+  const profileLabel=sections.length?"Profile z linkami: "+verifiedCount+" z "+sections.length+". ":"";
   const verifiedSections=sections.filter(section=>section?.status==="ok"&&String(section?.text||"").trim()).map(section=>({title:String(section.title||"Profil wyszukiwania").slice(0,180),text:String(section.text||"").trim().slice(0,6000),status:"ok",sources:Array.isArray(section.sources)?section.sources:[]})).filter(section=>section.sources.length);
   const materialSections=verifiedSections.length?verifiedSections:(aggregate&&topSources.length?[{title:"Podsumowanie radaru",text:aggregate.slice(0,6000),status:"ok",sources:topSources}]:[]);
   const materialSources=[...new Map(materialSections.flatMap(section=>section.sources).filter(source=>source?.url).map(source=>[String(source.url),{title:String(source.title||"Źródło").slice(0,180),url:String(source.url)}])).values()].slice(0,12);
   latestResearchMaterial={query:String(typeof query==="string"?query:$("research-query").value||"").trim().slice(0,1800),searchedAt:String(result?.searchedAt||new Date().toISOString()),sections:materialSections,sources:materialSources};
   const draftAction='<div class="actions"><button class="secondary" type="button" data-research-compose>📝 Opracuj szkic w ChatGPT/Gemini</button></div><p class="small muted">Utworzę osobny szkic lokalny i zachowam linki jako źródła „Do sprawdzenia”.</p>';
-  $("research-results").innerHTML='<div class="note ok"><b>Raport gotowy</b><p class="small">'+esc(profileLabel+'Wyszukano '+totalSources+' znalezionych stron.')+'</p>'+(dateLabel?'<p class="small">Wyszukano: '+esc(dateLabel)+'</p>':"")+'</div>'+rendered+'<p class="muted small">Każde źródło jest przypisane do profilu. Sprawdź datę, treść i aktualność materiału w oryginalnej witrynie; fragment z kanału RSS nie zastępuje dokumentu źródłowego.</p>'+draftAction;
-  $("research-status").textContent="Wyszukiwanie zakończone. "+verifiedCount+" profili ma potwierdzone źródła; znaleziono "+totalSources+" stron.";
+  $("research-results").innerHTML='<div class="note"><b>Wyniki do sprawdzenia</b><p class="small">'+esc(profileLabel+'Znaleziono '+totalSources+' odnośników, bez weryfikacji faktów.')+'</p>'+(dateLabel?'<p class="small">Wyszukano: '+esc(dateLabel)+'</p>':"")+'</div>'+rendered+'<p class="muted small">Każde źródło jest przypisane do profilu. Sprawdź datę, treść i aktualność materiału w oryginalnej witrynie; fragment z kanału RSS nie zastępuje dokumentu źródłowego.</p>'+draftAction;
+  $("research-status").textContent="Zakończono pobieranie: "+verifiedCount+" profili zawiera linki; znaleziono "+totalSources+" stron do sprawdzenia."+
+    (result?.partialResults?" Część kanałów nie odpowiedziała, wynik jest niepełny.":"");
   $("research-status").className="small ok";
 }
 function openResearchSource(url){
@@ -1058,7 +1059,8 @@ function createGroundedDraftFromResearch(material){
   return handed;
 }
 function runRecentIspinaRadar(){
-  $("research-query").value="Znajdź informacje o Ispinie opublikowane w ostatnich 30 dniach. Przeszukaj źródła urzędowe, BIP, lokalne media, zamówienia, drogi, most, transport, OSP i usługi. Podaj daty publikacji i oddziel je od dat wydarzeń. Starsze ważne materiały wskaż osobno.";
+  $("research-days").value="30";
+  $("research-query").value="Ispina";
   return runDeepIspinaResearch();
 }
 async function refreshFreeSearchState(){
@@ -1130,7 +1132,7 @@ async function runDeepIspinaResearch(){
   
   researchInProgress=true;
   $("research-button").disabled=true;
-  $("research-status").textContent="Wyszukuję informacje i weryfikuję źródła. To może chwilę potrwać.";
+  $("research-status").textContent="Pobieram publiczne źródła. Odnalezione materiały będą wymagały sprawdzenia.";
   $("research-status").className="small muted";
   startOperation("Pobieram publiczne źródła — możesz anulować poniżej");
   try{

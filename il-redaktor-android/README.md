@@ -1,3 +1,9 @@
+# IL Redaktor Smart 1.28.0 — drugi audyt źródeł i testów
+
+Audyt uzupełniający w tym samym PR: poprawiono wielowyrazowe dopasowanie tematów (brak fałszywych trafień po jednym słowie), ogólne zapytanie „Najnowsze materiały” ustawiające rzeczywisty zakres 30 dni oraz komunikaty opisujące RSS jako linki do ręcznego sprawdzenia, a nie sprawdzone fakty. W automatycznym Radarze częściowy błąd kanałów nie przesuwa ostatniego **pełnego** sprawdzenia, co ogranicza ryzyko pominięcia informacji po przerwie w dostępie do serwisów.
+
+---
+
 # IL Redaktor Smart 1.28.0 (projekt zmian po audycie)
 
 Nowe: wybieralny zakres 7/30/90/365 dni lub wszystkie wyniki, sprawdzanie dat publikacji, zapytania ograniczone do domen urzędowych przez RSS wyszukiwarki, elastyczne tematy, wsparcie Atom, lokalne SEO oraz diagnostyka na ekranie ustawień. Wyniki RSS to **linki do sprawdzenia**, a nie zweryfikowane fakty. Nowy kod nie zapewnia pełnego monitoringu BIP czy przetargów, ani płatnej integracji AI. Testy CI nie zastępują sprawdzenia publikowania na prawdziwym WordPressie.
