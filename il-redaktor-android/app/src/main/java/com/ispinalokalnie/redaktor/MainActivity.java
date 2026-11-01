@@ -384,6 +384,21 @@ public class MainActivity extends Activity {
         }
         @JavascriptInterface public void importDraftBackup(){ui.post(()->{if(backupPickerBusy)return;backupPickerBusy=true;try{Intent i=new Intent(Intent.ACTION_OPEN_DOCUMENT);i.addCategory(Intent.CATEGORY_OPENABLE);i.setType("*/*");i.putExtra(Intent.EXTRA_MIME_TYPES,new String[]{"application/json","text/plain","application/octet-stream"});startActivityForResult(i,1007);}catch(Exception ex){backupPickerBusy=false;callback("draft-import",false,"Nie można otworzyć wyboru pliku.");}});}
         @JavascriptInterface public void shareText(String text){if(text==null||text.length()>12000)return;ui.post(()->{try{Intent i=new Intent(Intent.ACTION_SEND);i.setType("text/plain");i.putExtra(Intent.EXTRA_TEXT,text);startActivity(Intent.createChooser(i,"Udostępnij zapowiedź artykułu"));}catch(Exception ex){callback("copy",false,"Nie znaleziono aplikacji do udostępnienia. Użyj Kopiuj.");}});}
+        @JavascriptInterface public void shareChatGptFreePrompt(String text){
+            if(text==null||text.trim().isEmpty()||text.length()>18000){callback("assistant-handoff",false,"Polecenie jest puste albo za długie.");return;}
+            ui.post(()->{
+                try{
+                    android.content.ClipboardManager clipboard=(android.content.ClipboardManager)getSystemService(CLIPBOARD_SERVICE);
+                    if(clipboard==null)throw new IllegalStateException("Brak schowka");
+                    clipboard.setPrimaryClip(android.content.ClipData.newPlainText("Polecenie IL",text));
+                    Intent send=new Intent(Intent.ACTION_SEND).setType("text/plain").setPackage("com.openai.chatgpt").putExtra(Intent.EXTRA_TEXT,text);
+                    try{startActivity(send);}
+                    catch(android.content.ActivityNotFoundException missing){startActivity(new Intent(Intent.ACTION_VIEW,Uri.parse("https://chatgpt.com/")));}
+                    callback("assistant-handoff",true,"Otwarto ChatGPT. Polecenie jest w schowku — wklej je i wyślij. Po otrzymaniu odpowiedzi skopiuj ją i wróć do Redaktora. Obowiązują limity Twojego konta.");
+                }catch(RuntimeException ex){callback("assistant-handoff",false,"Nie udało się otworzyć ChatGPT. Użyj przycisku Kopiuj polecenie i otwórz chatgpt.com samodzielnie.");}
+            });
+        }
+
         @JavascriptInterface public void shareAssistantPrompt(String text){
             if(text==null||text.trim().isEmpty()||text.length()>18000){callback("assistant-handoff",false,"Polecenie jest puste albo za długie. Skróć je i spróbuj ponownie.");return;}
             ui.post(()->{
