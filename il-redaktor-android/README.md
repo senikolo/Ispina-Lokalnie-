@@ -1,6 +1,14 @@
-# IL Redaktor Smart 1.21.0
+# IL Redaktor Smart 1.22.2
 
-Wersja rozwojowa (versionCode 27, stały pakiet `com.ispinalokalnie.redaktorsmart.stable`). **Nie odinstalowuj wcześniejszej APK przed aktualizacją**, dopóki nie zabezpieczysz szkiców i nie potwierdzisz zgodności podpisu certyfikatu. GitHub Actions tworzy debug APK oraz unsigned release; testowa APK debug nie jest automatycznie zgodną aktualizacją prywatnie podpisanej wersji.
+Wersja rozwojowa (versionCode 30, stały pakiet `com.ispinalokalnie.redaktorsmart.stable`). **Nie odinstalowuj wcześniejszej APK przed aktualizacją**, dopóki nie zabezpieczysz szkiców i nie potwierdzisz zgodności podpisu. CI sprawdza WebView i aktualizację na Androidzie 8 (API 26), 11 (API 30) i 13 (API 33). Debug APK nie jest automatycznie zgodną aktualizacją prywatnie podpisanej wersji; podpisany plik aktualizacyjny powstaje tylko przy dostępności dotychczasowego klucza.
+
+## Nowości 1.22.2 — poprawki po audycie
+
+- AI online jest włączane dopiero po odpowiedzi endpointu gotowości backendu; brak Gemini lub Upstash pokazuje czytelny stan niedostępności.
+- Badanie internetowe wykonuje sześć oddzielnych profili i przypisuje źródła do właściwych sekcji. Brak źródeł jest wyraźnie oznaczony; liczba zapytań Google może się różnić w profilu.
+- Potwierdzenie badania wyjaśnia do sześciu wywołań Gemini i możliwe osobne opłaty za model i wyszukiwanie.
+- Backend ma testy gotowości, CORS, limitowania i walidacji źródeł. CI nie rejestruje zdalnego klienta OAuth przy każdym uruchomieniu.
+- Nowy raport QA oddziela wynik CI od testów wymagających konta WordPress lub telefonu.
 
 ## Nowości 1.21 — poprawki po audycie
 

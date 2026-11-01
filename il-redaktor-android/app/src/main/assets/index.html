@@ -233,11 +233,12 @@ header{animation:ilHeader .38s cubic-bezier(.2,.7,.2,1) both}.brand .logo{animat
   <div class="card" id="research-card">
     <div class="eyebrow">WYSZUKIWANIE INTERNETOWE</div>
     <h2>Informacje o Ispinie</h2>
-    <p class="muted">Szerokie wyszukiwanie z pomocą AI. Celuję w co najmniej 6 różnych fraz Google Search: przetargi i zamówienia, BIP i strony urzędowe, lokalne serwisy oraz warianty nazwy. Pobliskie miejsca uwzględniam tylko wtedy, gdy wiążą się z Ispiną.</p>
+    <p class="muted">Sześć niezależnych profili badania: przetargi, BIP, platformy postępowań, media lokalne, infrastruktura oraz odmiany nazwy. Każdy profil uruchamia osobne wywołanie AI z Google Search. Google może wykonać w profilu jedno lub więcej zapytań; aplikacja nie obiecuje ich stałej liczby.</p>
     <label for="research-query">Temat i dodatkowe wskazówki</label>
     <textarea id="research-query" maxlength="1800" style="min-height:115px">Wyszukaj szeroko i aktualnie informacje o Ispinie. Sprawdź przetargi i zamówienia obejmujące Ispinę, także takie dotyczące dróg, mostów, transportu i usług. Przejrzyj lokalne serwisy informacyjne, stronę Gminy Drwinia, BIP oraz inne właściwe źródła urzędowe. Uwzględnij poprawne formy „Ispina”, „w Ispinie”, „do Ispiny”, „z Ispiny” oraz częste błędne warianty pisowni, a informacje o okolicy podaj tylko wtedy, gdy wyraźnie dotyczą Ispiny.</textarea>
-    <div class="note small">Wyszukiwanie używa Google Search przez skonfigurowany Gemini API. Za model AI i wyszukiwanie mogą być naliczane osobne opłaty API. Wyniki są propozycją do sprawdzenia. Zobaczysz listę znalezionych źródeł i fraz wyszukiwania.</div>
-    <div class="actions"><button id="research-button" type="button" disabled onclick="runDeepIspinaResearch()">🔎 Wyszukaj w internecie informacje o Ispinie</button><button class="secondary" type="button" onclick="clearResearchResults()">Wyczyść wyniki</button></div>
+    <div class="note small">Raport może uruchomić do sześciu osobnych wywołań Gemini z Google Search; każde może wykonać różną liczbę zapytań. Mogą być naliczane osobne opłaty za model i wyszukiwanie. Wyniki są propozycją do sprawdzenia. Zobaczysz źródła przypisane do profilu oraz frazy, jeśli provider je udostępni.</div>
+    <details class="small"><summary>Zakres sześciu profili</summary><ul><li>Przetargi i zamówienia dotyczące Ispiny</li><li>Gmina Drwinia, BIP i strony urzędowe</li><li>BZP, e-Zamówienia i inne platformy</li><li>Lokalne i regionalne media</li><li>Drogi, mosty, transport, OSP i infrastruktura</li><li>Odmiany nazwy, materiały archiwalne i pobliskie miejsca z potwierdzonym związkiem</li></ul></details>
+    <div class="actions"><button id="research-button" type="button" disabled onclick="runDeepIspinaResearch()">🔎 Wyszukaj w internecie informacje o Ispinie</button><button id="assistant-check-button" class="secondary" type="button" onclick="checkAssistantAvailability()">Sprawdź backend ponownie</button><button class="secondary" type="button" onclick="clearResearchResults()">Wyczyść wyniki</button></div>
     <p id="research-status" class="small muted" role="status" aria-live="polite">Sprawdzam dostępność wyszukiwania AI…</p>
     <div id="research-results" aria-live="polite" role="region" aria-label="Wyniki wyszukiwania o Ispinie"></div>
   </div>
@@ -528,17 +529,25 @@ window.onNativeResult=function(id,ok,payload){
   }
   if(id==="assistant-ready"){
     try{
-      assistantEnabled=!!JSON.parse(payload).enabled;
+      const readiness=JSON.parse(payload);
+      assistantEnabled=!!readiness.enabled;
       $("assistant-online-button").classList.toggle("hidden",!assistantEnabled);
       $("research-button").disabled=!assistantEnabled;
+      $("assistant-check-button").disabled=false;
+      if(assistantCheckTimer){clearTimeout(assistantCheckTimer);assistantCheckTimer=null}
+      const readinessMessage=String(readiness.message||"").trim();
       $("research-status").textContent=assistantEnabled
-        ?"Wyszukiwanie Google Search jest dostępne po połączeniu konta WordPress. Każde wyszukiwanie wymaga potwierdzenia."
-        :"Wyszukiwanie AI wymaga skonfigurowanego backendu Gemini z Google Search.";
+        ?"Backend działa. Raport używa sześciu profili; każde wyszukiwanie wymaga potwierdzenia."
+        :(readinessMessage||"Wyszukiwanie AI wymaga gotowego backendu Gemini i limitu zapytań.");
       $("research-status").className=assistantEnabled?"small muted":"small error";
-      message("assistant-mode",assistantEnabled?
-        "Domyślnie działam lokalnie. Skonfigurowane AI online jest opcjonalne i może korzystać z płatnego limitu. ChatGPT/Gemini z telefonu uruchamiasz osobnym przyciskiem.":
-        "Tryb lokalny jest gotowy. Możesz też bez klucza API przekazać polecenie do zainstalowanej aplikacji ChatGPT, a w razie potrzeby do Gemini.");
-    }catch(e){assistantEnabled=false;message("assistant-mode","Nie udało się sprawdzić trybu asystenta.","error")}
+      message("assistant-mode",assistantEnabled
+        ?"Backend AI jest gotowy. Wysyłka tekstu do Gemini wymaga osobnego potwierdzenia."
+        :"Tryb AI online jest wyłączony, bo backend nie jest gotowy. "+(readinessMessage||"Możesz nadal korzystać z lokalnych narzędzi."),
+        assistantEnabled?"":"error");
+    }catch(e){
+      assistantEnabled=false;$("assistant-online-button").classList.add("hidden");$("research-button").disabled=true;$("assistant-check-button").disabled=false;
+      message("assistant-mode","Nie udało się sprawdzić gotowości backendu AI.","error");
+    }
     return;
   }
   if(id==="assistant-handoff"){
@@ -811,29 +820,47 @@ function requestResearch(prompt){
     IL.askResearch(id,prompt);
   });
 }
+let assistantCheckTimer=null;
+function checkAssistantAvailability(){
+  const button=$("assistant-check-button");
+  if(!window.IL||typeof IL.assistantStatus!=="function"){$("research-status").textContent="Nie można sprawdzić backendu w tym środowisku.";$("research-status").className="small error";return false}
+  button.disabled=true;$("research-status").textContent="Sprawdzam gotowość backendu AI…";$("research-status").className="small muted";
+  assistantCheckTimer=setTimeout(()=>{button.disabled=false;assistantCheckTimer=null;$("research-status").textContent="Backend nie odpowiedział. Sprawdź połączenie i spróbuj ponownie.";$("research-status").className="small error"},15000);
+  IL.assistantStatus();return true;
+}
 function clearResearchResults(){
   $("research-results").innerHTML="";
   $("research-status").textContent="Wyniki wyczyszczono. Możesz rozpocząć nowe wyszukiwanie.";
   $("research-status").className="small muted";
 }
 function renderResearchResult(result){
-  const report=String(result?.text||"").trim();
-  const sources=Array.isArray(result?.sources)?result.sources.slice(0,30):[];
-  const queries=Array.isArray(result?.queries)?result.queries.filter(q=>typeof q==="string").slice(0,20):[];
-  const safeSources=sources.flatMap(source=>{
-    try{
-      const url=new URL(String(source?.url||""));
-      if(!["http:","https:"].includes(url.protocol)||url.username||url.password)return [];
-      return [{url:url.href,title:String(source?.title||url.hostname).slice(0,180),host:url.hostname}];
-    }catch(e){return [];}
+  const safeFor=items=>(Array.isArray(items)?items:[]).flatMap(source=>{
+    try{const url=new URL(String(source?.url||""));if(!["http:","https:"].includes(url.protocol)||url.username||url.password)return [];return [{url:url.href,title:String(source?.title||url.hostname).slice(0,180),host:url.hostname}]}catch(e){return []}
   });
-  if(!report||!safeSources.length)throw new Error("Raport nie zawiera znalezionych źródeł. Nie pokazuję niepotwierdzonych wyników.");
-  const searchedAt=new Date(result.searchedAt||Date.now());
-  const dateLabel=Number.isNaN(searchedAt.getTime())?"":searchedAt.toLocaleString("pl-PL",{dateStyle:"medium",timeStyle:"short"});
-  const queryBlock=queries.length?'<div class="source-item"><b>Frazy wykorzystane w wyszukiwaniu</b><ul>'+queries.map(q=>'<li class="research-query">'+esc(q)+'</li>').join("")+'</ul></div>':"";
-  const sourceBlock=safeSources.map(source=>'<div class="source-item"><b class="research-source-title">'+esc(source.title)+'</b><small>'+esc(source.host)+'</small><div class="actions"><button class="secondary" type="button" data-research-link="'+esc(source.url)+'">Otwórz źródło</button></div></div>').join("");
-  $("research-results").innerHTML='<div class="note ok"><b>Raport gotowy</b>'+(dateLabel?'<p class="small">Wyszukano: '+esc(dateLabel)+'</p>':"")+'</div><div class="source-item research-summary">'+esc(report)+'</div>'+queryBlock+'<h3>Źródła znalezione w wyszukiwarce ('+safeSources.length+')</h3>'+sourceBlock+'<p class="muted small">Sprawdź datę, treść i aktualność każdego materiału w oryginalnej witrynie. Wynik AI nie zastępuje dokumentu źródłowego.</p>';
-  $("research-status").textContent="Wyszukiwanie zakończone. Znaleziono "+safeSources.length+" źródeł"+(queries.length?" i wykorzystano "+queries.length+" fraz.":".");
+  const renderSources=sources=>sources.map(source=>'<div class="source-item"><b class="research-source-title">'+esc(source.title)+'</b><small>'+esc(source.host)+'</small><div class="actions"><button class="secondary" type="button" data-research-link="'+esc(source.url)+'">Otwórz źródło</button></div></div>').join("");
+  const queryMarkup=queries=>queries.length?'<div class="source-item"><b>Frazy udostępnione przez wyszukiwarkę</b><ul>'+queries.map(q=>'<li class="research-query">'+esc(q)+'</li>').join("")+'</ul></div>':"";
+  const sections=Array.isArray(result?.sections)?result.sections.slice(0,6):[],aggregate=String(result?.text||"").trim();
+  const topSources=safeFor(result?.sources).slice(0,30),allQueries=Array.isArray(result?.queries)?result.queries.filter(q=>typeof q==="string").slice(0,60):[];
+  let verifiedCount=0,totalSources=0,rendered="";
+  if(sections.length){
+    rendered=sections.map(section=>{
+      const title=String(section?.title||"Profil wyszukiwania").slice(0,180),text=String(section?.text||"").trim();
+      const sources=safeFor(section?.sources).slice(0,30),queries=Array.isArray(section?.queries)?section.queries.filter(q=>typeof q==="string").slice(0,20):[];
+      const verified=section?.status==="ok"&&!!text&&sources.length>0;
+      if(verified){verifiedCount++;totalSources+=sources.length}
+      const state=verified?'<div class="note ok"><b>Źródła przypisane do tego profilu</b></div>':'<div class="note"><b>Profil bez potwierdzonych źródeł</b><p class="small">'+(section?.status==="failed"?"Nie udało się wykonać wyszukiwania dla tego profilu.":"Google Search nie zwrócił potwierdzonych stron dla tego profilu.")+'</p></div>';
+      return '<section class="source-item research-profile"><h3>'+esc(title)+'</h3>'+state+(verified?'<div class="research-summary">'+esc(text)+'</div>'+renderSources(sources):"")+queryMarkup(queries)+'</section>';
+    }).join("");
+  }else{
+    if(!aggregate||!topSources.length)throw new Error("Raport nie zawiera znalezionych źródeł. Nie pokazuję niepotwierdzonych wyników.");
+    verifiedCount=1;totalSources=topSources.length;
+    rendered='<div class="source-item research-summary">'+esc(aggregate)+'</div>'+queryMarkup(allQueries)+'<h3>Źródła znalezione w wyszukiwarce ('+topSources.length+')</h3>'+renderSources(topSources);
+  }
+  if(!totalSources)throw new Error("Raport nie zawiera potwierdzonych źródeł. Nie pokazuję niepotwierdzonych wyników.");
+  const searchedAt=new Date(result.searchedAt||Date.now()),dateLabel=Number.isNaN(searchedAt.getTime())?"":searchedAt.toLocaleString("pl-PL",{dateStyle:"medium",timeStyle:"short"});
+  const profileLabel=sections.length?"Zweryfikowane profile: "+verifiedCount+" z "+sections.length+". ":"";
+  $("research-results").innerHTML='<div class="note ok"><b>Raport gotowy</b><p class="small">'+esc(profileLabel+'Wyszukano '+totalSources+' potwierdzonych stron.')+'</p>'+(dateLabel?'<p class="small">Wyszukano: '+esc(dateLabel)+'</p>':"")+'</div>'+rendered+'<p class="muted small">Każde źródło jest przypisane do profilu. Sprawdź datę, treść i aktualność materiału w oryginalnej witrynie; wynik AI nie zastępuje dokumentu źródłowego.</p>';
+  $("research-status").textContent="Wyszukiwanie zakończone. "+verifiedCount+" profili ma potwierdzone źródła; znaleziono "+totalSources+" stron.";
   $("research-status").className="small ok";
 }
 function openResearchSource(url){
@@ -855,7 +882,7 @@ async function runDeepIspinaResearch(){
   if(!prompt){$("research-status").textContent="Wpisz temat do wyszukania.";return false;}
   if(!assistantEnabled){$("research-status").textContent="Wyszukiwanie wymaga skonfigurowanego backendu Gemini z Google Search.";return false;}
   if(!connected){$("research-status").textContent="Najpierw połącz Redaktora z kontem WordPress.";return false;}
-  if(!confirm("Rozpocząć szerokie wyszukiwanie w Google Search? Treść pytania trafi do skonfigurowanego Gemini API. Mogą być naliczane osobne opłaty za AI i zapytania do wyszukiwarki. Każdy raport pokaże linki do znalezionych źródeł; przed użyciem sprawdź je samodzielnie."))return false;
+  if(!confirm("Rozpocząć badanie w sześciu profilach? To do sześciu osobnych wywołań Gemini z Google Search; Google może wykonać różną liczbę zapytań w każdym profilu. Mogą być naliczane osobne opłaty za model i wyszukiwanie. Raport pokaże źródła przypisane do profili; sprawdź je przed użyciem."))return false;
   researchInProgress=true;
   $("research-button").disabled=true;
   $("research-status").textContent="Wyszukuję informacje i weryfikuję źródła. To może chwilę potrwać.";

@@ -1,20 +1,27 @@
 # Backend Asystenta IL
 
-Opcjonalny Vercel Function dla propozycji redakcyjnych. Model może przygotować artykuł, kartę usługi lub audyt SEO, ale odpowiedź nie może zapisać ani opublikować treści. Aplikacja pokazuje propozycję, a zapis pozostaje osobnym, zatwierdzanym działaniem WordPress.
+Opcjonalna funkcja Vercel dla propozycji redakcyjnych i raportów wyszukiwania. Model może przygotować artykuł, kartę usługi lub audyt SEO, ale nie zapisuje ani nie publikuje treści.
 
-## Wdrożenie
+## Konfiguracja
 
-Utwórz osobny projekt Vercel z Root Directory ustawionym na `il-redaktor-android/backend`. Nie podłączaj endpointu do istniejącej aplikacji dla mieszkańców. Ustaw po stronie Vercel:
+Utwórz osobny projekt Vercel z Root Directory il-redaktor-android/backend. Nie podłączaj endpointu do aplikacji dla mieszkańców. Ustaw:
+- GOOGLE_GENERATIVE_AI_API_KEY – klucz Gemini Developer API. Nie umieszczaj go w APK, repozytorium ani ustawieniach aplikacji.
+- UPSTASH_REDIS_REST_URL oraz UPSTASH_REDIS_REST_TOKEN – Redis/Upstash dla limitów.
 
-- `GOOGLE_GENERATIVE_AI_API_KEY` – klucz Gemini Developer API. Nie umieszczaj go w APK, repozytorium ani ustawieniach aplikacji.
-- `UPSTASH_REDIS_REST_URL` i `UPSTASH_REDIS_REST_TOKEN` – Redis dla limitów: do 20 zapytań na godzinę na token WordPressa i adres IP.
+GET /api/assistant jest sprawdzeniem gotowości: nie wymaga tokenu i nie zwraca wartości ani nazw brakujących zmiennych. Zwraca 200 i ready:true tylko wtedy, gdy wszystkie usługi są skonfigurowane; w przeciwnym razie zwraca 503. Aplikacja sprawdza endpoint przed włączeniem AI. Po zmianie zmiennych w Vercel należy utworzyć nowe wdrożenie.
 
-Endpoint weryfikuje sesję, wykonując tylko odczyt `posts.list` dla `ispinalokalnie.wordpress.com`. Token WordPressa nie jest zapisywany ani przekazywany do modelu; jest używany wyłącznie do tego sprawdzenia. Prompt i przekazany kontekst artykułów trafiają do Google Gemini API. Backend nie ma żadnego narzędzia publikowania.
+Endpoint sprawdza sesję WordPress przez tylko odczyt posts.list dla ispinalokalnie.wordpress.com. Token nie jest zapisywany ani przekazywany modelowi. Prompt i kontekst artykułów trafiają do Google Gemini API. Backend nie ma narzędzia publikowania.
 
-Aplikacja domyślnie korzysta z `https://il-redaktor-assistant.vercel.app/api/assistant`. Podczas kompilacji można nadpisać ten adres przez `IL_ASSISTANT_ENDPOINT` albo właściwość Gradle `ilAssistantEndpoint`. Sam adres endpointu nie jest sekretem; każde żądanie sprawdza sesję WordPress, a backend ogranicza liczbę zapytań.
+Domyślny adres aplikacji: https://il-redaktor-assistant.vercel.app/api/assistant. Można go nadpisać przy kompilacji przez IL_ASSISTANT_ENDPOINT albo właściwość Gradle ilAssistantEndpoint.
 
-Panel „Wyszukiwanie internetowe” korzysta z trybu `research` tego samego endpointu. Gemini używa wbudowanego narzędzia Google Search grounding, a aplikacja pokazuje źródła URL zwrócone przez AI SDK i użyte frazy, jeśli są dostępne. To wyszukiwanie tylko do odczytu; nie zapisuje ani nie publikuje artykułów. Limit wyszukiwania wynosi 3 raporty na godzinę na konto i adres IP. Wyniki wymagają ręcznego sprawdzenia w oryginalnych dokumentach. Każde wyszukiwanie wymaga potwierdzenia w aplikacji, bo korzystanie z Google Search grounding może generować osobne koszty API, niezależne od planu Gemini używanego w aplikacji.
+## Wyszukiwanie internetowe
 
-## Koszty i ograniczenia
+Raport uruchamia sześć osobnych wywołań Gemini z Google Search grounding, po jednym dla profilu: przetargi, Gmina Drwinia/BIP, platformy postępowań, lokalne media, infrastruktura i usługi publiczne oraz odmiany nazwy i archiwa. Provider może wykonać jedno lub wiele zapytań w profilu; aplikacja nie obiecuje stałej liczby zapytań.
 
-Klucz do Gemini Developer API jest oddzielny od subskrypcji Gemini Pro. Model `gemini-3.5-flash-lite` ma aktualnie bezpłatny limit API; użycie po przejściu na płatny poziom jest rozliczane według cennika Google. Limity API mogą się zmieniać. Redis/Upstash i Vercel mogą wymagać osobnego konta i mogą naliczać opłaty zależne od użycia. Tryb bez skonfigurowanego Redis jest celowo wyłączony, zamiast działać bez ograniczeń kosztowych.
+Wynik zawiera sekcje z nazwą profilu, statusem, treścią, źródłami i frazami, jeśli Google je udostępni. Interfejs przypisuje odnośniki do właściwej sekcji. Profile bez potwierdzonych źródeł są oznaczone i nie pokazują niezweryfikowanej treści. Jeżeli żaden profil nie zwróci źródeł, endpoint nie udaje zweryfikowanego raportu.
+
+Limit wynosi 3 raporty na godzinę na konto WordPress i adres IP. Raport może wykonać do sześciu wywołań modelu, a każde może uruchomić wyszukiwanie; model i grounding mogą podlegać odrębnym opłatom. Przed wyszukiwaniem aplikacja wymaga potwierdzenia. Sprawdź aktualne ceny i limity dostawcy przed udostępnieniem funkcji.
+
+## Testy
+
+npm test uruchamia testy gotowości, CORS, sanitizacji źródeł i fraz oraz limitów bez połączenia z WordPress, Google ani Upstash. npm run typecheck sprawdza backend. CI wykonuje oba kroki przed kompilacją APK.

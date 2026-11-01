@@ -128,28 +128,21 @@ jobs:
           print('Required features and official IL branding confirmed')
           PY
           node --check /tmp/ilredaktor-ui.js
-      - name: Verify WordPress.com supports the Android deep-link redirect
+      - name: Verify OAuth redirect configuration without remote registration
         run: |
           python - <<'PY'
-          import json, urllib.request, urllib.error
-          url='https://public-api.wordpress.com/oauth2-1/register'
-          payload={'client_name':'IL Redaktor Smart Android Redirect CI',
-                   'redirect_uris':['com.ispinalokalnie.redaktorsmart.stable:/callback'],
-                   'grant_types':['authorization_code','refresh_token'],
-                   'response_types':['code'],
-                   'token_endpoint_auth_method':'none'}
-          req=urllib.request.Request(url, data=json.dumps(payload).encode('utf-8'),
-                 headers={'Content-Type':'application/json','Accept':'application/json'},
-                 method='POST')
-          try:
-              with urllib.request.urlopen(req,timeout=25) as response:
-                  out=json.load(response)
-              if not out.get('client_id'):
-                  raise AssertionError('Registration returned no client_id')
-              print('Android deep-link registration accepted by WordPress.com')
-          except urllib.error.HTTPError as e:
-              body=e.read(1000).decode('utf-8','replace')
-              raise AssertionError(f'WordPress.com rejected native OAuth redirect: HTTP {e.code}, {body}')
+          import pathlib,re
+          oauth=pathlib.Path('il-redaktor-android/app/src/main/java/com/ispinalokalnie/redaktor/OAuthBrowserLogin.java').read_text()
+          manifest=pathlib.Path('il-redaktor-android/app/src/main/AndroidManifest.xml').read_text()
+          redirect=re.search(r'public static final String REDIRECT = "([^"]+)"',oauth)
+          assert redirect, 'OAuth redirect must be declared'
+          uri=redirect.group(1)
+          scheme=uri.split(':',1)[0]
+          assert uri=='com.ispinalokalnie.redaktorsmart.stable:/callback', 'Unexpected callback URI'
+          assert 'android:scheme="'+scheme+'"' in manifest, 'Manifest scheme must match OAuth redirect'
+          assert 'code_challenge_method=S256' in oauth, 'PKCE must stay enabled'
+          assert 'client_secret' not in oauth, 'Native OAuth must not embed a client secret'
+          print('OAuth redirect, manifest scheme and PKCE verified without remote registration')
           PY
       - uses: actions/setup-node@v4
         with:
@@ -199,6 +192,7 @@ jobs:
         working-directory: il-redaktor-android/backend
         run: |
           npm ci --ignore-scripts --no-audit --no-fund
+          npm test
           npm run typecheck
       - name: Compile Android APK
         working-directory: il-redaktor-android
@@ -212,7 +206,17 @@ jobs:
           cp "$RUNNER_TEMP/il-previous/il-redaktor-android/app/build/outputs/apk/debug/app-debug.apk" /tmp/il-previous-debug.apk
       - name: Enable Android emulator acceleration
         run: sudo chmod a+rw /dev/kvm
-      - name: Test real Android WebView confirmation without publishing to WordPress
+      - name: Test Android 8 (API 26) WebView and update flow without WordPress writes
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 26
+          target: google_apis
+          arch: x86_64
+          disable-animations: true
+          emulator-options: -no-window -gpu swiftshader -feature -Vulkan -no-snapshot -noaudio -no-boot-anim -camera-back none
+          ram-size: 3072M
+          script: bash il-redaktor-android/scripts/run-emulator-smoke.sh 26
+      - name: Test Android 11 (API 30) WebView and update flow without WordPress writes
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: 30
@@ -221,30 +225,22 @@ jobs:
           disable-animations: true
           emulator-options: -no-window -gpu swiftshader -feature -Vulkan -no-snapshot -noaudio -no-boot-anim -camera-back none
           ram-size: 3072M
-          script: |
-            adb install -r /tmp/il-previous-debug.apk
-            adb install -r il-redaktor-android/app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk
-            adb shell am instrument -w -e mode seed com.ispinalokalnie.redaktorsmart.stable.instrumentation/com.ispinalokalnie.redaktor.ConfirmationInstrumentation | tee /tmp/il-update-seed.txt
-            grep -F 'IL_UPDATE_SEED=PASS' /tmp/il-update-seed.txt || { adb logcat -d -s chromium AndroidRuntime ILEditorProbe ActivityManager; exit 1; }
-            adb install -r il-redaktor-android/app/build/outputs/apk/debug/app-debug.apk
-            adb shell am force-stop com.ispinalokalnie.redaktorsmart.stable
-            adb shell am instrument -w -e mode verify com.ispinalokalnie.redaktorsmart.stable.instrumentation/com.ispinalokalnie.redaktor.ConfirmationInstrumentation | tee /tmp/il-update-data.txt
-            grep -F 'IL_UPDATE_DATA_TEST=PASS' /tmp/il-update-data.txt
-            adb shell am force-stop com.ispinalokalnie.redaktorsmart.stable
-            adb shell am instrument -w com.ispinalokalnie.redaktorsmart.stable.instrumentation/com.ispinalokalnie.redaktor.ConfirmationInstrumentation | tee /tmp/il-confirmation-test.txt
-            grep -F 'IL_WEBVIEW_CONFIRM_TEST=PASS' /tmp/il-confirmation-test.txt || { adb logcat -d -s chromium AndroidRuntime ILEditorProbe ActivityManager; exit 1; }
-            grep -F 'IL_EDITOR_FEATURES_TEST=PASS' /tmp/il-confirmation-test.txt
-            grep -F 'IL_WORKSPACE_FEATURES_TEST=PASS' /tmp/il-confirmation-test.txt
-            grep -F 'IL_HAPTICS_TEST=PASS' /tmp/il-confirmation-test.txt
-            # Screenshots are supplemental evidence; emulator may disconnect
-            # after all instrumentation assertions have already passed.
-            mkdir -p /tmp/il-editor-ui
-            if adb exec-out run-as com.ispinalokalnie.redaktorsmart.stable tar -C files/qa -cf - . > /tmp/il-editor-ui.tar; then tar -xf /tmp/il-editor-ui.tar -C /tmp/il-editor-ui || echo "Warning: could not unpack optional emulator screenshots."; else echo "Warning: emulator disconnected after successful instrumentation."; fi
+          script: bash il-redaktor-android/scripts/run-emulator-smoke.sh 30
+      - name: Test Android 13 (API 33) WebView and update flow without WordPress writes
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 33
+          target: google_apis
+          arch: x86_64
+          disable-animations: true
+          emulator-options: -no-window -gpu swiftshader -feature -Vulkan -no-snapshot -noaudio -no-boot-anim -camera-back none
+          ram-size: 3072M
+          script: bash il-redaktor-android/scripts/run-emulator-smoke.sh 33
       - name: Upload emulator UI checks
         uses: actions/upload-artifact@v4
         with:
           name: IL-Redaktor-UI-Checks
-          path: /tmp/il-editor-ui/*.png
+          path: /tmp/il-editor-ui-api-*/*.png
           if-no-files-found: warn
           retention-days: 14
       - name: Confirm APK and actual monogram
@@ -254,7 +250,7 @@ jobs:
           test -s "$APK"
           test -s il-redaktor-android/app/src/main/assets/il-monogram.png
           "$SDK_ROOT/build-tools/35.0.0/apksigner" verify --verbose "$APK"
-          "$SDK_ROOT/build-tools/35.0.0/aapt" dump badging "$APK" | grep -F "package: name='com.ispinalokalnie.redaktorsmart.stable' versionCode='29' versionName='1.22.1'"
+          "$SDK_ROOT/build-tools/35.0.0/aapt" dump badging "$APK" | grep -F "package: name='com.ispinalokalnie.redaktorsmart.stable' versionCode='30' versionName='1.22.2'"
           unzip -l "$APK" | grep 'assets/il-monogram.png'
       - name: Upload installable APK
         uses: actions/upload-artifact@v4
@@ -299,13 +295,13 @@ jobs:
             exit 1
           fi
           mkdir -p "$RUNNER_TEMP/il-signed-upgrade"
-          cp "$APK" "$RUNNER_TEMP/il-signed-upgrade/IL-Redaktor-Smart-1.22.1-UPDATE.apk"
+          cp "$APK" "$RUNNER_TEMP/il-signed-upgrade/IL-Redaktor-Smart-1.22.2-UPDATE.apk"
           echo "Signed upgrade APK created with the existing release certificate."
       - name: Upload verified signed upgrade when available
         uses: actions/upload-artifact@v4
         with:
           name: IL-Redaktor-Signed-Upgrade
-          path: ${{ runner.temp }}/il-signed-upgrade/IL-Redaktor-Smart-1.22.1-UPDATE.apk
+          path: ${{ runner.temp }}/il-signed-upgrade/IL-Redaktor-Smart-1.22.2-UPDATE.apk
           if-no-files-found: ignore
           retention-days: 30
       - uses: actions/upload-artifact@v4
