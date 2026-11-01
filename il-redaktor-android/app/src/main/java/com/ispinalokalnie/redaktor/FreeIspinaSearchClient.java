@@ -120,8 +120,8 @@ public final class FreeIspinaSearchClient {
         if (text.contains("paczkomat") || text.contains("inpost")) return "paczkomat";
         if (text.matches("(?s).*\\bosp\\b.*") || text.contains("straż pożarn")) return "osp";
         if (text.contains("autobus") || text.contains("komunikacj") || text.contains("transport")) return "transport";
-        text = text.replaceAll("(?iu)\\b(?:czy|są|jest|jakie|co|nowego|nowe|informacje|wiadomości|aktualne|aktualności|wyszukaj|znajdź|sprawdź|ostatnie|dni|dniach|tygodniu|miesiącu|temat|dotyczące|dotyczy|o|w|we|na|z|do|i|oraz|dla|ispina|ispinie|ispiny|gminie|gmina|drwinia|drwini|proszę)\\b", " ");
-        text = text.replaceAll("[^\\p{L}\\p{N} ]", " ").trim().replaceAll("\\s+", " ");
+        text = text.replaceAll("(?iu)\\b(?:czy|są|jest|jakie|co|nowego|nowe|informacje|wiadomości|aktualne|aktualności|wyszukaj|znajdź|sprawdź|ostatnie|ostatnich|ostatnim|dni|dniach|tygodniu|miesiącu|temat|dotyczące|dotyczy|o|w|we|na|z|do|i|oraz|dla|ispina|ispinie|ispiny|gminie|gmina|drwinia|drwini|proszę)\\b", " ");
+        text = text.replaceAll("\\b[0-9]{1,3}\\b", " ").replaceAll("[^\\p{L}\\p{N} ]", " ").trim().replaceAll("\\s+", " ");
         return text.length() > 100 ? text.substring(0,100).trim() : text;
     }
 
