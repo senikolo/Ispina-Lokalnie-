@@ -381,20 +381,38 @@ test("OAuth recovery offers re-opening the same browser flow and diagnoses missi
   a.c.IL.resumeLogin=()=>{resumed++};
   a.run("window.onNativeResult('auth-return',true,'Wrócono bez potwierdzenia WordPress')");
   assert.match(a.node("working-state").textContent,/Brak potwierdzenia/);
-  assert.match(a.node("working-state").className,/pending/);
+  assert.match(a.node("working-state").className,/failed/);
   assert.equal(a.node("login-recovery").classList.contains("hidden"),false);
   a.run("resumeLoginFlow()");
   assert.equal(resumed,1);
   a.run('window.onNativeResult("login-state",true,JSON.stringify({pending:true}))');
-  assert.match(a.node("working-state").textContent,/Czekam na potwierdzenie/);
+  assert.match(a.node("working-state").textContent,/Oczekuję na potwierdzenie/);
 });
 
 test("OAuth waiting indicator is pending, not a forever-spinning progress state",()=>{
   const a=setup();
   a.run('window.onNativeResult("auth-progress",true,"Krok 3/4: oczekuję na powrót.")');
-  assert.match(a.node("working-state").textContent,/Oczekuję/);
+  assert.match(a.node("working-state").textContent,/Czekam/);
   assert.match(a.node("working-state").className,/pending/);
   assert.equal(a.node("login-recovery").classList.contains("hidden"),false);
+});
+
+test("OAuth missing callback stops waiting after 60 seconds and leaves recovery controls",()=>{
+  const a=setup();let expire;
+  a.c.setTimeout=(fn,delay)=>{assert.equal(delay,60000);expire=fn;return {unref(){}};};
+  a.c.clearTimeout=()=>{};
+  a.run('window.onNativeResult("auth-progress",true,"Krok 3/4: oczekuję na powrót.")');
+  assert.equal(typeof expire,"function");
+  expire();
+  assert.match(a.node("working-state").className,/failed/);
+  assert.match(a.node("auth-output").innerHTML,/60 sekundach/);
+  assert.equal(a.node("login-recovery").classList.contains("hidden"),false);
+});
+
+test("Android expired WordPress login does not lock out next attempt",()=>{
+  const java=fs.readFileSync(path.join(__dirname,"../app/src/main/java/com/ispinalokalnie/redaktor/MainActivity.java"),"utf8");
+  assert.match(java,/loginInProgress && !newOAuthLogin\(\)\.hasPendingLogin\(\)/);
+  assert.match(java,/Próba logowania wygasła lub nie została potwierdzona/);
 });
 
 test("diagnostic really creates a draft and verifies it via GET before success",async()=>{
@@ -781,7 +799,7 @@ test("OAuth DCR, PKCE, deep-link scheme and manifest callback match without a cl
   const oauth=fs.readFileSync(path.join(root,"java/com/ispinalokalnie/redaktor/OAuthBrowserLogin.java"),"utf8");
   const wp=fs.readFileSync(path.join(root,"java/com/ispinalokalnie/redaktor/WpMcp.java"),"utf8");
   const manifest=fs.readFileSync(path.join(root,"AndroidManifest.xml"),"utf8");
-  assert.match(oauth,/scope=global/);assert.match(oauth,/code_challenge_method=S256/);
+  assert.match(oauth,/scope=auth/);assert.doesNotMatch(oauth,/scope=global/);assert.match(oauth,/code_challenge_method=S256/);
   assert.match(oauth,/stable:\/callback/);assert.match(manifest,/com\.ispinalokalnie\.redaktorsmart\.stable/);
   assert.match(wp,/token_endpoint_auth_method", "none"/);assert.match(wp,/code_verifier/);
   assert.doesNotMatch(wp,/put\("client_secret"/);
