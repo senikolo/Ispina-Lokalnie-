@@ -405,7 +405,7 @@ test("OAuth missing callback stops waiting after 60 seconds and leaves recovery 
   assert.equal(typeof expire,"function");
   expire();
   assert.match(a.node("working-state").className,/failed/);
-  assert.match(a.node("auth-output").innerHTML,/60 sekundach/);
+  assert.match(a.node("auth-output").innerHTML,/60 sekund/);
   assert.equal(a.node("login-recovery").classList.contains("hidden"),false);
 });
 
