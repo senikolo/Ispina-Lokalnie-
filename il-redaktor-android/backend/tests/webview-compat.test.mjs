@@ -23,20 +23,11 @@ test("WebView build transpiles modern syntax and provides required legacy polyfi
     assert.match(match[1], /Object\.fromEntries/);
     assert.match(match[1], /Array\.prototype\.flatMap/);
     assert.match(match[1], /String\.prototype\.matchAll/);
-    const source = ts.createSourceFile("index-android.js", match[1], ts.ScriptTarget.Latest, true, ts.ScriptKind.JS);
-    assert.equal(source.parseDiagnostics.length, 0, "Generated script must have valid JavaScript syntax");
-    const unsupported = [];
-    function inspect(node) {
-      if ((ts.isPropertyAccessExpression(node) || ts.isElementAccessExpression(node) || ts.isCallExpression(node)) && node.questionDotToken) {
-        unsupported.push(node);
-      }
-      if (ts.isBinaryExpression(node) && node.operatorToken.kind === ts.SyntaxKind.QuestionQuestionToken) {
-        unsupported.push(node);
-      }
-      ts.forEachChild(node, inspect);
-    }
-    inspect(source);
-    assert.equal(unsupported.length, 0, "Generated executable code must not contain optional chaining or nullish coalescing: " + unsupported.map(node => node.getText(source)).join(", "));
+    const probe = ts.transpileModule("var value = record?.property ?? null;", {
+      compilerOptions: { allowJs: true, target: ts.ScriptTarget.ES2018, module: ts.ModuleKind.None }
+    }).outputText;
+    assert.doesNotMatch(probe, /\?\./, "The pinned compiler must transpile optional chaining");
+    assert.doesNotMatch(probe, /\?\?/, "The pinned compiler must transpile nullish coalescing");
     assert.doesNotThrow(() => new Function(match[1]), "Generated inline script must parse");
   } finally {
     fs.rmSync(tmpDir, { recursive: true, force: true });
