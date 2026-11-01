@@ -1637,6 +1637,9 @@ async function savePost(status,reviewApproval=null){
   if(!connected){message("post-output","Najpierw połącz konto WordPress.","error");showScreen("settings");return}
   const title=trim($("post-title").value),body=trim($("post-body").value);
   if(!title||!body){message("post-output","Wpisz tytuł i treść.","error");return}
+  if(status==="publish"&&/\[DO (?:UZUPEŁNIENIA|SPRAWDZENIA)(?::[^\]]+)?\]/i.test(body)){
+    message("post-output","Nie publikuję artykułu: zawiera pola [DO UZUPEŁNIENIA] lub [DO SPRAWDZENIA]. Uzupełnij je albo usuń po weryfikacji.","error");return;
+  }
   if(publicationBusy){publicationPhase("Zapisywanie już trwa. Nie wysyłaj artykułu ponownie.");return}
   let scheduledDate="";
   if(status==="future"){
@@ -1833,11 +1836,11 @@ async function loadMorePosts(){
   postsLoadingMore=true;$("posts-more-button").disabled=true;
   $("posts-page-status").textContent="Pobieram starsze wpisy i szkice…";
   try{
-    let found=[];
+    let found=[],hasMore=false;
     for(const status of ["publish","draft","future"]){
       try{
         const batch=await rpc("GET","posts?context=edit&status="+status+"&per_page=60&page="+postsNextPage+"&orderby=modified&order=desc");
-        if(Array.isArray(batch))found.push(...batch);
+        if(Array.isArray(batch)){found.push(...batch);if(batch.length>=60)hasMore=true;}
       }catch(error){
         $("posts-page-status").textContent="Nie udało się pobrać części starszych wpisów: "+error.message;
       }
@@ -1847,8 +1850,8 @@ async function loadMorePosts(){
     allPosts.sort((a,b)=>String(b.modified||"").localeCompare(String(a.modified||"")));
     postsNextPage++;
     renderPosts();
-    $("posts-more-button").classList.toggle("hidden",found.length<180);
-    $("posts-page-status").textContent="Wczytano "+allPosts.length+" wpisów. "+(found.length<180?"Koniec dostępnej listy lub częściowy wynik.":"Możesz wczytać kolejną stronę.");
+    $("posts-more-button").classList.toggle("hidden",!hasMore);
+    $("posts-page-status").textContent="Wczytano "+allPosts.length+" wpisów. "+(hasMore?"Możesz wczytać kolejną stronę.":"Koniec dostępnej listy lub częściowy wynik.");
     return true;
   }catch(error){$("posts-page-status").textContent="Nie udało się pobrać starszych wpisów: "+error.message;return false;}
   finally{postsLoadingMore=false;$("posts-more-button").disabled=false;}
@@ -2193,6 +2196,7 @@ function reviewPublication(){
   if(publicationBusy)return;if(!persistDraft(true))return;
   const s=captureDraft();reviewSnapshot=draftSignature(s);
   const missing=[];auditEditorial(false);if(!trim(s.title))missing.push("Dodaj tytuł");if(!trim(s.body))missing.push("Dodaj treść");if(!Number(s.category))missing.push("Wybierz kategorię");
+  if(/\[DO (?:UZUPEŁNIENIA|SPRAWDZENIA)(?::[^\]]+)?\]/i.test(s.body))missing.push("Uzupełnij oznaczone pola przed publikacją");
   const categories={10543:"Aktualności",3503:"Historia",21188:"Technologia"};const category=$("post-category").selectedOptions?.[0]?.textContent||categories[s.category]||s.category;
   const photo=Number(s.media);const media=typeof mediaById!=="undefined"?mediaById.get(photo):null;
   $("review-summary").innerHTML='<h3>'+esc(s.title||"Bez tytułu")+'</h3><p>Kategoria: '+esc(category||"Nie wybrano")+'</p><p>Zajawka: '+esc(s.excerpt||"Brak — możesz ją dodać, ale nie jest wymagana.")+'</p><p>Tagi: '+esc(s.tags||"Brak")+'</p>'+(photo?'<p>Zdjęcie wyróżniające: #'+photo+'</p>'+(media?.url?'<img style="max-width:100%" src="'+esc(safeMediaUrl(media.url))+'" alt="Zdjęcie wyróżniające">':'<p>Podgląd zdjęcia będzie dostępny po wczytaniu galerii IL.</p>'):'<p>Brak zdjęcia — możesz opublikować bez zdjęcia.</p>')+'<p>Publikacja będzie publiczna na Ispina Lokalnie. WordPress może powiadomić subskrybentów.</p>';
