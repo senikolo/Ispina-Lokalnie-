@@ -159,7 +159,7 @@ public final class ConfirmationInstrumentation extends Instrumentation {
         catch(Exception expected) { /* Expected cancellation/deadline, no network call. */ }
         ChatGptPlanClient.SearchControl expired=new ChatGptPlanClient.SearchControl(getTargetContext(),1);
         try { Thread.sleep(20);expired.check();throw new AssertionError("Search deadline did not expire"); }
-        catch(Exception expected) { if(expected instanceof AssertionError)throw expected; }
+        catch(Exception expected) { /* Expected timeout. AssertionError is not caught by Exception. */ }
         finally { expired.close(); }
     }
 
