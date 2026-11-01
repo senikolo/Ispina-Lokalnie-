@@ -2189,7 +2189,24 @@ function runLocalDiagnostics(){
   checks.push("Kopie zapasowe: "+(!lastBackup?"brak potwierdzonego eksportu":(Math.floor((Date.now()-lastBackup)/86400000)+" dni od ostatniego potwierdzonego eksportu"))+". Nie usuwaj danych aplikacji bez kopii.");
   checks.push("WordPress: test prawdziwego zapisu szkicu jest osobnym przyciskiem, wymagającym Twojej zgody.");
   checks.push("Aktualizacja APK: sprawdź zgodność podpisu i wyeksportuj szkice przed reinstalacją.");
-  $("local-diagnostics").innerHTML='<ul>'+checks.map(s=>'<li>'+esc(s)+'</li>').join("")+'</ul>';
+  $("local-diagnostics").innerHTML='<ul>'+checks.map(s=>'<li>'+esc(s)+'</li>').join("")+'</ul><p class="small muted">Sprawdzam dostępność publicznych usług. Ten test nie publikuje ani nie zapisuje niczego na WordPressie.</p>';
+  if(window.IL&&typeof IL.runDiagnostics==="function") {
+    const id="d"+(++reqNo),timeout=setTimeout(()=>{
+      requests.delete(id);
+      $("local-diagnostics").innerHTML+='<p class="small error">Przekroczono czas testów sieci. Sprawdź połączenie telefonu.</p>';
+    },35000);
+    requests.set(id,{resolve:result=>{
+      const labels={publicWordPress:"Publiczny WordPress (odczyt)",googleNews:"Google News RSS",bing:"Bing RSS"};
+      const lines=Object.entries(labels).map(([key,label])=>label+": "+String(result[key]||"brak wyniku"));
+      lines.push("Pamięć SQLite: "+(result.editorialMemory?"DOSTĘPNA":"NIEDOSTĘPNA"));
+      lines.push("Sesja WordPress: "+(result.wordpressVerified?"zweryfikowana":result.wordpressToken?"wymaga weryfikacji":"brak połączenia"));
+      lines.push("AI online: "+(result.assistantConfigured?"skonfigurowane":"niedostępne w tej wersji; lokalne narzędzia pozostają dostępne"));
+      $("local-diagnostics").innerHTML='<ul>'+checks.concat(lines).map(s=>'<li>'+esc(s)+'</li>').join("")+'</ul><p class="small muted">Dostępność publicznych usług nie potwierdza możliwości publikacji. Test zapisu wymaga oddzielnej zgody.</p>';
+    },reject:error=>{
+      $("local-diagnostics").innerHTML+='<p class="small error">Diagnostyka sieci: '+esc(error.message)+'</p>';
+    },timeout});
+    try{IL.runDiagnostics(id)}catch(error){clearTimeout(timeout);requests.delete(id);$("local-diagnostics").innerHTML+='<p class="small error">'+esc(error.message)+'</p>'}
+  }
   return checks;
 }
 function runLocalSeoAudit(){
