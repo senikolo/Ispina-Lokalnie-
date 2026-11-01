@@ -6,9 +6,9 @@ plugins {
 def generatedWebViewAssets = file("$buildDir/generated/webview-assets")
 android.sourceSets.main.assets.srcDir(generatedWebViewAssets)
 def transpileWebViewForLegacyAndroid = tasks.register("transpileWebViewForLegacyAndroid", Exec) {
-    def inputHtml = file("app/src/main/assets/index.html")
-    def transpiler = file("scripts/transpile-webview.cjs")
-    def typescriptCompiler = file("backend/node_modules/typescript/lib/typescript.js")
+    def inputHtml = rootProject.file("app/src/main/assets/index.html")
+    def transpiler = rootProject.file("scripts/transpile-webview.cjs")
+    def typescriptCompiler = rootProject.file("backend/node_modules/typescript/lib/typescript.js")
     def generatedHtml = new File(generatedWebViewAssets, "index-android.html")
     inputs.files(inputHtml, transpiler, typescriptCompiler)
     outputs.file(generatedHtml)
