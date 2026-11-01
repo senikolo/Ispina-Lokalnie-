@@ -607,6 +607,22 @@ public class MainActivity extends Activity {
             work.execute(() -> askResearchOnServer(rid, prompt));
         }
 
+        @JavascriptInterface public void askIspinaChat(String rid, String prompt, String historyJson) {
+            if (rid.length() > 60 || !rid.matches("[A-Za-z0-9_-]+")) return;
+            if (prompt == null || prompt.trim().isEmpty() || prompt.length() > 2000) {
+                callback(rid, false, "Wpisz pytanie o Ispinę, maksymalnie 2000 znaków."); return;
+            }
+            try {
+                org.json.JSONArray history = new org.json.JSONArray(historyJson == null ? "[]" : historyJson);
+                if (history.length() > 8) { callback(rid, false, "Historia rozmowy jest za długa. Wyczyść czat i spróbuj ponownie."); return; }
+            } catch (Exception ex) { callback(rid, false, "Nieprawidłowa historia rozmowy."); return; }
+            if (!connected()) { callback(rid, false, "Połącz konto WordPress, aby użyć IL Chat AI."); return; }
+            if (BuildConfig.ASSISTANT_ENDPOINT == null || BuildConfig.ASSISTANT_ENDPOINT.trim().isEmpty()) {
+                callback(rid, false, "Radar wymaga skonfigurowanego backendu Gemini z Google Search."); return;
+            }
+            work.execute(() -> askIspinaChatOnServer(rid, prompt, historyJson));
+        }
+
         @JavascriptInterface public void dictate() {
             ui.post(() -> {
                 try {
@@ -748,6 +764,48 @@ public class MainActivity extends Activity {
         } catch (Exception ex) {
             if (isAuthenticationFailure(ex)) { verified = false; clearSession(); }
             callback(rid, false, ex.getMessage() == null ? "Nie udało się wykonać wyszukiwania." : ex.getMessage());
+        } finally { if (connection != null) connection.disconnect(); }
+    }
+
+    private void askIspinaChatOnServer(String rid, String prompt, String historyJson) {
+        HttpURLConnection connection = null;
+        try {
+            org.json.JSONArray history = new org.json.JSONArray(historyJson == null ? "[]" : historyJson);
+            if (history.length() > 8) throw new Exception("Historia rozmowy przekracza bezpieczny limit.");
+            JSONObject payload = new JSONObject().put("mode", "chat").put("prompt", prompt).put("history", history);
+            String token = accessTokenForRequest(false);
+            for (int attempt = 0; attempt < 2; attempt++) {
+                connection = (HttpURLConnection) new URL(BuildConfig.ASSISTANT_ENDPOINT).openConnection();
+                connection.setRequestMethod("POST");
+                connection.setConnectTimeout(15000);
+                connection.setReadTimeout(60000);
+                connection.setInstanceFollowRedirects(false);
+                connection.setRequestProperty("Authorization", "Bearer " + token);
+                connection.setRequestProperty("Content-Type", "application/json; charset=UTF-8");
+                connection.setRequestProperty("Accept", "application/json");
+                connection.setDoOutput(true);
+                try (OutputStream out = connection.getOutputStream()) {
+                    out.write(payload.toString().getBytes(StandardCharsets.UTF_8));
+                }
+                int status = connection.getResponseCode();
+                String response = readReply(connection, status);
+                if (status == 401 && attempt == 0) {
+                    connection.disconnect(); connection = null;
+                    token = accessTokenForRequest(true);
+                    continue;
+                }
+                if (status < 200 || status >= 300)
+                    throw new Exception("IL Chat AI: HTTP " + status + ": " + friendlyError(response));
+                JSONObject result = new JSONObject(response);
+                if (!result.has("verified") || result.optJSONArray("sources") == null)
+                    throw new Exception("Radar nie zwrócił prawidłowego statusu i źródeł.");
+                callback(rid, true, result.toString());
+                return;
+            }
+            throw new Exception("Nie udało się odświeżyć sesji WordPress dla IL Chat AI.");
+        } catch (Exception ex) {
+            if (isAuthenticationFailure(ex)) { verified = false; clearSession(); }
+            callback(rid, false, ex.getMessage() == null ? "Nie udało się połączyć z IL Chat AI." : ex.getMessage());
         } finally { if (connection != null) connection.disconnect(); }
     }
 
