@@ -633,7 +633,8 @@ public class MainActivity extends Activity {
                     callback("auth-progress", true, "Oczekuję na zakończenie poprzedniego logowania. Użyj przycisku Anuluj i spróbuj ponownie, jeśli poprzednia próba utknęła.");
                     return;
                 }
-                if(loginInProgress) { callback("auth-progress",true,"Logowanie jest już w toku.");return; }
+                if (loginInProgress && !newOAuthLogin().hasPendingLogin()) loginInProgress = false;
+                if(loginInProgress) { callback("auth-progress",true,"Logowanie jest już w toku. Wróć do przeglądarki lub użyj przycisku Anuluj.");return; }
                 loginInProgress=true;
                 oauthCallbackArrived=false;
                 newOAuthLogin().start();
@@ -1345,10 +1346,17 @@ public class MainActivity extends Activity {
         if (oauthBrowserWasOpened) {
             oauthBrowserWasOpened = false;
             ui.postDelayed(() -> {
-                if (!oauthCallbackArrived && newOAuthLogin().hasPendingLogin()) {
-                    callback("auth-return", true,
-                        "Wrócono z przeglądarki bez potwierdzenia WordPress.com. " +
-                        "Otwórz ponownie logowanie i zaakceptuj dostęp albo anuluj tę próbę.");
+                if (!oauthCallbackArrived) {
+                    if (newOAuthLogin().hasPendingLogin()) {
+                        callback("auth-return", true,
+                            "Wrócono z przeglądarki bez potwierdzenia WordPress.com. " +
+                            "Otwórz ponownie logowanie i zaakceptuj dostęp albo anuluj tę próbę.");
+                    } else {
+                        loginInProgress = false;
+                        callback("auth-progress", false,
+                            "Próba logowania wygasła lub nie została potwierdzona. " +
+                            "Anuluj oczekiwanie i rozpocznij nową próbę.");
+                    }
                 }
             }, 1000);
         }
