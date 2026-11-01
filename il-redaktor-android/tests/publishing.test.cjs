@@ -399,6 +399,29 @@ test("OAuth waiting indicator is pending, not a forever-spinning progress state"
   a.run("stopAuthWaitTimer()");
 });
 
+test("public post read remains available without a WordPress OAuth session",()=>{
+  const a=setup(),calls=[];
+  a.c.IL.publicPosts=()=>calls.push("publicPosts");
+  a.run("connected=false;loadPosts()");
+  assert.deepEqual(calls,["publicPosts"]);
+  a.run('window.onNativeResult("public-posts",true,JSON.stringify([{id:1410,title:{rendered:"Ispina"},status:"publish",modified:"2026-11-01T08:00:00",link:"https://ispinalokalnie.wordpress.com/2026/11/01/ispina/"}]))');
+  assert.match(a.node("posts-access").textContent,/Tryb publiczny/);
+  assert.match(a.node("posts-output").innerHTML,/Czytaj artykuł/);
+  assert.doesNotMatch(a.node("posts-output").innerHTML,/>Edytuj</);
+  const urls=[];a.c.IL.openSite=url=>urls.push(url);
+  a.run("openPublicPost(1410)");
+  assert.deepEqual(urls,["https://ispinalokalnie.wordpress.com/2026/11/01/ispina/"]);
+  a.run("allPosts[0].link='https://evil.invalid/';openPublicPost(1410)");
+  assert.equal(urls.length,1);
+});
+
+test("failed verification reports the actual reason and does not erase public reading",()=>{
+  const a=setup();
+  a.run('window.onNativeResult("verify",false,"NO_SESSION: Brak sesji WordPress.com")');
+  assert.match(a.node("home-connection").innerHTML,/NO_SESSION/);
+  assert.match(a.node("posts-access").textContent,/NO_SESSION/);
+});
+
 test("OAuth waiting shows recovery, then clears it on cancellation",()=>{
   const a=setup();
   a.run('window.onNativeResult("auth-progress",true,"Krok 3/4: oczekuję na powrót.")');
