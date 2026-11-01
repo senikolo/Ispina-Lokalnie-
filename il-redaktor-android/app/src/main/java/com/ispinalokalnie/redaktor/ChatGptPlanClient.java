@@ -73,12 +73,58 @@ public final class ChatGptPlanClient {
     private static final String PREF_ID_TOKEN = "chatgpt_id_token";
     private static final String PREF_SUBJECT = "chatgpt_subject";
     private static final String PREF_EMAIL = "chatgpt_email";
+    private static final String PREF_EMAIL_VERIFIED = "chatgpt_email_verified";
+    private static final String PREF_GENERATION = "chatgpt_auth_generation";
     private static final String PREF_SCOPES = "chatgpt_scopes";
     private static final String PREF_MODEL = "chatgpt_model";
     private static final String PREF_MODEL_NAME = "chatgpt_model_name";
     private static final String PREF_EXPIRY = "chatgpt_expiry";
     private static final SecureRandom RANDOM = new SecureRandom();
     private static final Object TOKEN_LOCK = new Object();
+    private static final Object REFRESH_LOCK = new Object();
+    private static final ThreadLocal<SearchControl> ACTIVE_SEARCH = new ThreadLocal<>();
+
+    public static final class SearchControl implements AutoCloseable {
+        private volatile boolean cancelled;
+        private volatile boolean timedOut;
+        private volatile HttpURLConnection connection;
+        final long generation;
+        private final long deadline;
+        private final java.util.Timer timer = new java.util.Timer(true);
+
+        public SearchControl(Context context, long timeoutMs) {
+            generation = prefs(context).getLong(PREF_GENERATION, 0L);
+            deadline = android.os.SystemClock.elapsedRealtime() + timeoutMs;
+            timer.schedule(new java.util.TimerTask() {
+                @Override public void run() { timedOut = true; cancel(); }
+            }, timeoutMs);
+        }
+        public void cancel() {
+            cancelled = true;
+            HttpURLConnection current = connection;
+            if (current != null) new Thread(current::disconnect, "il-search-cancel").start();
+            timer.cancel();
+        }
+        void check() throws Exception {
+            if (timedOut || android.os.SystemClock.elapsedRealtime() >= deadline)
+                throw new Exception("Wyszukiwanie przekroczyło limit 60 sekund. Spróbuj krótszego pytania.");
+            if (cancelled) throw new Exception("Wyszukiwanie anulowane.");
+        }
+        void attach(HttpURLConnection next) throws Exception {
+            connection = next;
+            try { check(); } catch (Exception ex) { next.disconnect(); throw ex; }
+        }
+        @Override public void close() { timer.cancel(); connection = null; }
+    }
+
+    private static void checkSearch() throws Exception {
+        SearchControl control = ACTIVE_SEARCH.get();
+        if (control != null) control.check();
+    }
+    private static void trackSearch(HttpURLConnection connection) throws Exception {
+        SearchControl control = ACTIVE_SEARCH.get();
+        if (control != null) control.attach(connection);
+    }
 
     private ChatGptPlanClient() {}
 
@@ -100,6 +146,7 @@ public final class ChatGptPlanClient {
             boolean connected = isConnected(context);
             result.put("connected", connected);
             result.put("email", connected ? p.getString(PREF_EMAIL, "") : "");
+            result.put("emailVerified", connected && p.getBoolean(PREF_EMAIL_VERIFIED, false));
             result.put("model", connected ? p.getString(PREF_MODEL_NAME, p.getString(PREF_MODEL, "")) : "");
             result.put("usageUrl", "https://chatgpt.com/settings/usage");
         } catch (Exception ignored) {}
@@ -120,6 +167,12 @@ public final class ChatGptPlanClient {
 
     private static JSONObject authorize(Activity activity) throws Exception {
         SharedPreferences p = prefs(activity);
+        final long generation;
+        synchronized (TOKEN_LOCK) {
+            generation = p.getLong(PREF_GENERATION, 0L) + 1L;
+            if (!p.edit().putLong(PREF_GENERATION, generation).commit())
+                throw new Exception("Nie udało się rozpocząć bezpiecznej sesji logowania.");
+        }
         String previousClient = p.getString(PREF_CLIENT, "");
         String previousSubject = p.getString(PREF_SUBJECT, "");
         String previousIdToken = readSecret(activity, PREF_ID_TOKEN);
@@ -240,7 +293,10 @@ public final class ChatGptPlanClient {
             long expiresIn = Math.max(60L, tokens.optLong("expires_in", 3600L));
             String email = claims.optString("email", "");
             JSONObject model = chooseModel(accessToken);
+            synchronized (TOKEN_LOCK) {
+            ensureCurrentGeneration(p, generation);
             SharedPreferences.Editor edit = p.edit()
+                .putBoolean(PREF_EMAIL_VERIFIED, claims.optBoolean("email_verified", false))
                 .putString(PREF_CLIENT, issuedClient)
                 .putString(PREF_SUBJECT, subject)
                 .putString(PREF_EMAIL, email)
@@ -253,6 +309,7 @@ public final class ChatGptPlanClient {
                 .putString(PREF_ID_TOKEN, encryptSecret(activity, idToken));
             if (!edit.commit()) throw new Exception("Nie udało się bezpiecznie zapisać połączenia ChatGPT.");
             return state(activity);
+            }
         } finally {
             try { server.close(); } catch (Exception ignored) {}
         }
@@ -359,6 +416,24 @@ public final class ChatGptPlanClient {
     }
 
     public static JSONObject ask(Context context, String prompt, JSONArray history, boolean webSearch) throws Exception {
+        return ask(context, prompt, history, webSearch, new SearchControl(context, 60000));
+    }
+
+    public static JSONObject ask(Context context, String prompt, JSONArray history, boolean webSearch, SearchControl control) throws Exception {
+        ACTIVE_SEARCH.set(control);
+        try {
+            control.check();
+            return askWithinDeadline(context, prompt, history, webSearch);
+        } catch (Exception ex) {
+            control.check();
+            throw ex;
+        } finally {
+            ACTIVE_SEARCH.remove();
+            control.close();
+        }
+    }
+
+    private static JSONObject askWithinDeadline(Context context, String prompt, JSONArray history, boolean webSearch) throws Exception {
         if (prompt == null || prompt.trim().isEmpty()) throw new Exception("Wpisz temat wyszukiwania.");
         SharedPreferences p = prefs(context);
         String model = p.getString(PREF_MODEL, "");
@@ -382,19 +457,30 @@ public final class ChatGptPlanClient {
             .put("input", input)
             .put("store", false)
             .put("stream", true);
-        if (webSearch) request.put("tools", new JSONArray().put(new JSONObject().put("type", "web_search")));
+        configureWebSearch(request, webSearch);
         return sendResponse(context, request);
     }
 
+    private static void configureWebSearch(JSONObject request, boolean webSearch) throws Exception {
+        if (!webSearch) return;
+        request.put("tools", new JSONArray().put(new JSONObject().put("type", "web_search")))
+            .put("tool_choice", "required")
+            .put("include", new JSONArray().put("web_search_call.action.sources"));
+    }
+
     private static JSONObject sendResponse(Context context, JSONObject request) throws Exception {
-        String token = accessToken(context, false);
+        long generation = ACTIVE_SEARCH.get() == null ? prefs(context).getLong(PREF_GENERATION, 0L) : ACTIVE_SEARCH.get().generation;
+        checkSearch();
+        String token = accessToken(context, false, generation);
         for (int attempt = 0; attempt < 2; attempt++) {
             HttpURLConnection connection = null;
             try {
+                ensureCurrentGeneration(prefs(context), generation);
                 connection = (HttpURLConnection) new URL(RESPONSES_URL).openConnection();
+                trackSearch(connection);
                 connection.setRequestMethod("POST");
                 connection.setConnectTimeout(20000);
-                connection.setReadTimeout(180000);
+                connection.setReadTimeout(60000);
                 connection.setInstanceFollowRedirects(false);
                 connection.setRequestProperty("Authorization", "Bearer " + token);
                 connection.setRequestProperty("Content-Type", "application/json; charset=UTF-8");
@@ -408,7 +494,7 @@ public final class ChatGptPlanClient {
                     readBody(connection.getErrorStream());
                     connection.disconnect();
                     connection = null;
-                    token = accessToken(context, true);
+                    token = accessToken(context, true, generation);
                     continue;
                 }
                 if (status < 200 || status >= 300)
@@ -447,6 +533,8 @@ public final class ChatGptPlanClient {
                 if (text.toString().trim().isEmpty()) text.append(extractOutputText(completed));
                 String answer = text.toString().trim();
                 if (answer.isEmpty()) throw new Exception("ChatGPT zwrócił pustą odpowiedź.");
+                ensureCurrentGeneration(prefs(context), generation);
+                checkSearch();
                 return responseResult(answer, completed);
             } finally {
                 if (connection != null) connection.disconnect();
@@ -542,14 +630,20 @@ public final class ChatGptPlanClient {
         return result.toString();
     }
 
-    private static String accessToken(Context context, boolean forceRefresh) throws Exception {
-        synchronized (TOKEN_LOCK) {
+    private static String accessToken(Context context, boolean forceRefresh, long generation) throws Exception {
+        synchronized (REFRESH_LOCK) {
+            checkSearch();
             SharedPreferences p = prefs(context);
+            final String refresh;
+            final String client;
+            synchronized (TOKEN_LOCK) {
+            ensureCurrentGeneration(p, generation);
             String access = readSecret(context, PREF_ACCESS);
             if (!forceRefresh && !access.isEmpty() && p.getLong(PREF_EXPIRY, 0L) > System.currentTimeMillis() + 60000L)
                 return access;
-            String refresh = readSecret(context, PREF_REFRESH);
-            String client = p.getString(PREF_CLIENT, "");
+            refresh = readSecret(context, PREF_REFRESH);
+            client = p.getString(PREF_CLIENT, "");
+            }
             if (refresh.isEmpty() || client.isEmpty())
                 throw new Exception("Sesja ChatGPT wygasła. Połącz konto ChatGPT ponownie w Radarze.");
             JSONObject tokens = postForm(TOKEN_ENDPOINT, new LinkedHashMap<String, String>() {{
@@ -564,6 +658,8 @@ public final class ChatGptPlanClient {
             String nextIdToken = tokens.optString("id_token", readSecret(context, PREF_ID_TOKEN));
             long expiresIn = Math.max(60L, tokens.optLong("expires_in", 3600L));
             String scopes = tokens.optString("scope", p.getString(PREF_SCOPES, ""));
+            synchronized (TOKEN_LOCK) {
+            ensureCurrentGeneration(p, generation);
             SharedPreferences.Editor edit = p.edit()
                 .putString(PREF_ACCESS, encryptSecret(context, nextAccess))
                 .putString(PREF_REFRESH, encryptSecret(context, nextRefresh))
@@ -573,35 +669,45 @@ public final class ChatGptPlanClient {
                 edit.putString(PREF_ID_TOKEN, encryptSecret(context, nextIdToken));
             if (!edit.commit()) throw new Exception("Nie udało się zapisać odświeżonej sesji ChatGPT.");
             return nextAccess;
+            }
         }
     }
 
-    public static boolean disconnect(Context context) {
+    public static boolean disconnect(Context context) throws Exception {
+        final String refresh;
+        final String client;
         synchronized (TOKEN_LOCK) {
             SharedPreferences p = prefs(context);
-            String refresh = readSecret(context, PREF_REFRESH);
-            String client = p.getString(PREF_CLIENT, "");
-            boolean revoked = refresh.isEmpty();
-            if (!refresh.isEmpty() && !client.isEmpty()) {
-                try {
-                    LinkedHashMap<String, String> fields = new LinkedHashMap<>();
-                    fields.put("token", refresh);
-                    fields.put("token_type_hint", "refresh_token");
-                    fields.put("client_id", client);
-                    postForm(REVOKE_ENDPOINT, fields);
-                    revoked = true;
-                } catch (Exception ignored) { revoked = false; }
-            }
-            p.edit().remove(PREF_CLIENT).remove(PREF_ACCESS).remove(PREF_REFRESH)
-                .remove(PREF_ID_TOKEN).remove(PREF_SUBJECT).remove(PREF_EMAIL).remove(PREF_SCOPES)
-                .remove(PREF_MODEL).remove(PREF_MODEL_NAME).remove(PREF_EXPIRY).commit();
-            return revoked;
+            refresh = readSecret(context, PREF_REFRESH);
+            client = p.getString(PREF_CLIENT, "");
+            // Invalidate pending OAuth BEFORE any network call.
+            boolean saved = p.edit().putLong(PREF_GENERATION, p.getLong(PREF_GENERATION, 0L) + 1L)
+                .remove(PREF_CLIENT).remove(PREF_ACCESS).remove(PREF_REFRESH)
+                .remove(PREF_ID_TOKEN).remove(PREF_SUBJECT).remove(PREF_EMAIL).remove(PREF_EMAIL_VERIFIED)
+                .remove(PREF_SCOPES).remove(PREF_MODEL).remove(PREF_MODEL_NAME).remove(PREF_EXPIRY).commit();
+            if (!saved) throw new Exception("Nie udało się trwale usunąć lokalnego logowania. Spróbuj ponownie.");
         }
+        if (refresh.isEmpty()) return true;
+        if (client.isEmpty()) return false;
+        try {
+            LinkedHashMap<String, String> fields = new LinkedHashMap<>();
+            fields.put("token", refresh);
+            fields.put("token_type_hint", "refresh_token");
+            fields.put("client_id", client);
+            postForm(REVOKE_ENDPOINT, fields, 5000);
+            return true;
+        } catch (Exception ignored) { return false; }
+    }
+
+    private static void ensureCurrentGeneration(SharedPreferences p, long generation) throws Exception {
+        if (p.getLong(PREF_GENERATION, 0L) != generation)
+            throw new Exception("To logowanie zostało anulowane. Rozpocznij ponownie.");
     }
 
     private static JSONObject getJson(String url, String accessToken) throws Exception {
         HttpURLConnection connection = (HttpURLConnection) new URL(url).openConnection();
         try {
+            trackSearch(connection);
             connection.setRequestMethod("GET");
             connection.setConnectTimeout(15000);
             connection.setReadTimeout(20000);
@@ -617,11 +723,15 @@ public final class ChatGptPlanClient {
     }
 
     private static JSONObject postForm(String url, Map<String, String> fields) throws Exception {
+        return postForm(url, fields, 25000);
+    }
+
+    private static JSONObject postForm(String url, Map<String, String> fields, int timeout) throws Exception {
         HttpURLConnection connection = (HttpURLConnection) new URL(url).openConnection();
         try {
             connection.setRequestMethod("POST");
-            connection.setConnectTimeout(15000);
-            connection.setReadTimeout(25000);
+            connection.setConnectTimeout(Math.min(15000, timeout));
+            connection.setReadTimeout(timeout);
             connection.setInstanceFollowRedirects(false);
             connection.setRequestProperty("Content-Type", "application/x-www-form-urlencoded; charset=UTF-8");
             connection.setRequestProperty("Accept", "application/json");
@@ -708,6 +818,7 @@ public final class ChatGptPlanClient {
             byte[] buffer = new byte[4096];
             int read;
             while ((read = in.read(buffer)) != -1) {
+                checkSearch();
                 if (out.size() + read > 1_000_000) throw new Exception("Odpowiedź ChatGPT jest za duża.");
                 out.write(buffer, 0, read);
             }
@@ -742,8 +853,9 @@ public final class ChatGptPlanClient {
         if (status == 403 && lower.contains("not_eligible"))
             return "To konto ChatGPT lub wybrana przestrzeń robocza nie może używać planu ChatGPT w IL Redaktorze.";
         if (status == 403) return "ChatGPT odrzucił dostęp. Sprawdź zgodę dla IL Redaktora i ustawienia konta.";
-        if (status == 429 || lower.contains("subscription_sharing_usage_limit_exceeded"))
+        if (lower.contains("subscription_sharing_usage_limit_exceeded"))
             return "Limit użycia ChatGPT dla IL Redaktora został osiągnięty. Sprawdź limity w ustawieniach użycia ChatGPT.";
+        if (status == 429) return "ChatGPT chwilowo ogranicza liczbę zapytań. Spróbuj później; Radar pozostaje włączony.";
         if (status == 503 || lower.contains("subscription_sharing_usage_unavailable"))
             return "Połączenie z ChatGPT jest chwilowo niedostępne. Spróbuj później.";
         String clean = message == null ? "" : message.replaceAll("[\\r\\n]+", " ").trim();

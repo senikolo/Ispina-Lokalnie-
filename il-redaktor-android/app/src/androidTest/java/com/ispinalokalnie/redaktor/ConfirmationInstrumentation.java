@@ -139,6 +139,80 @@ public final class ConfirmationInstrumentation extends Instrumentation {
         waitForScript("window.__conflictProbe===true");captureUi("conflict");evaluate("closeRemoteConflict();rpc=window.__oldRpc;connected=window.__oldConnected;postId=null;postStatus='';remoteBaseline=null;resetEditor();showScreen('home')");if(!"true".equals(evaluate("$('screen-home').classList.contains('active') && !$('screen-editor').classList.contains('active')")))throw new AssertionError("Home not active");captureUi("home");
     }
 
+    private void testFreeRadar() throws Exception {
+        long now=System.currentTimeMillis();
+        java.text.SimpleDateFormat format=new java.text.SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss Z",java.util.Locale.US);
+        String xml="<rss><channel><item><title>Most w Ispinie</title><link>https://example.org/most</link><description>&lt;b&gt;Nowa informacja&lt;/b&gt;</description><pubDate>"+format.format(new java.util.Date(now))+"</pubDate></item>"
+            +"<item><title>Bochnia bez Ispiny w tekście</title><link>javascript:alert(1)</link></item>"
+            +"<item><title>Ispina bez daty</title><link>https://example.org/bez-daty</link></item>"
+            +"<item><title>Ispina dawniej</title><link>https://example.org/archiwum</link><pubDate>Sat, 01 Jan 2000 00:00:00 +0000</pubDate></item>"
+            +"<item><title>Inna miejscowość</title><link>https://example.org/inna</link></item></channel></rss>";
+        org.json.JSONArray manual=FreeIspinaSearchClient.parseFeed(xml,0,false);
+        org.json.JSONArray background=FreeIspinaSearchClient.parseFeed(xml,now-86400000L,true);
+        if(manual.length()!=3 || background.length()!=1)throw new AssertionError("Free RSS location/date/link filtering failed");
+        if(background.getJSONObject(0).getString("snippet").contains("<b>"))throw new AssertionError("RSS HTML was not converted to plain text");
+        try { FreeIspinaSearchClient.parseFeed("<!DOCTYPE rss><rss/>",0,false);throw new AssertionError("RSS DTD accepted"); }
+        catch(java.io.IOException expected) {}
+        ChatGptPlanClient.SearchControl cancelled=new ChatGptPlanClient.SearchControl(getTargetContext(),10000);
+        cancelled.cancel();
+        try { FreeIspinaSearchClient.ask(getTargetContext(),"Ispina",cancelled);throw new AssertionError("Cancelled search was allowed"); }
+        catch(Exception expected) { /* Expected cancellation/deadline, no network call. */ }
+        ChatGptPlanClient.SearchControl expired=new ChatGptPlanClient.SearchControl(getTargetContext(),1);
+        try { Thread.sleep(20);expired.check();throw new AssertionError("Search deadline did not expire"); }
+        catch(Exception expected) { /* Expected timeout. AssertionError is not caught by Exception. */ }
+        finally { expired.close(); }
+    }
+
+    private void testChatGptLogoutSecurity() throws Exception {
+        android.content.Context ctx = getTargetContext();
+        java.lang.reflect.Method prefMethod = ChatGptPlanClient.class.getDeclaredMethod("prefs", android.content.Context.class);
+        prefMethod.setAccessible(true);
+        android.content.SharedPreferences p = (android.content.SharedPreferences) prefMethod.invoke(null, ctx);
+        java.lang.reflect.Method encrypt = ChatGptPlanClient.class.getDeclaredMethod("encryptSecret", android.content.Context.class, String.class);
+        java.lang.reflect.Method read = ChatGptPlanClient.class.getDeclaredMethod("readSecret", android.content.Context.class, String.class);
+        java.lang.reflect.Method guard = ChatGptPlanClient.class.getDeclaredMethod("ensureCurrentGeneration", android.content.SharedPreferences.class, long.class);
+        encrypt.setAccessible(true); read.setAccessible(true); guard.setAccessible(true);
+        String ciphertext = (String) encrypt.invoke(null, ctx, "local-test-secret");
+        if (ciphertext.contains("local-test-secret")) throw new AssertionError("Token was stored in plain text");
+        long generation = p.getLong("chatgpt_auth_generation", 0L) + 1L;
+        p.edit().putString("chatgpt_access_token", ciphertext)
+            .putString("chatgpt_id_token", ciphertext).putString("chatgpt_email", "test@example.invalid")
+            .putBoolean("chatgpt_email_verified", true).putLong("chatgpt_auth_generation", generation).commit();
+        if (!"local-test-secret".equals(read.invoke(null, ctx, "chatgpt_access_token")))
+            throw new AssertionError("Android Keystore token roundtrip failed");
+        guard.invoke(null, p, generation);
+        ChatGptPlanClient.disconnect(ctx); // No refresh token: never sends a network request.
+        for (String key : new String[]{"chatgpt_access_token","chatgpt_id_token","chatgpt_email","chatgpt_email_verified"})
+            if (p.contains(key)) throw new AssertionError("Logout retained " + key);
+        if (ChatGptPlanClient.isConnected(ctx)) throw new AssertionError("Logout retained connection");
+        try { guard.invoke(null, p, generation); throw new AssertionError("Pending OAuth survived logout"); }
+        catch (java.lang.reflect.InvocationTargetException expected) {
+            if (!(expected.getCause() instanceof Exception)) throw expected;
+        }
+        java.lang.reflect.Method configure = ChatGptPlanClient.class.getDeclaredMethod("configureWebSearch", org.json.JSONObject.class, boolean.class);
+        configure.setAccessible(true);
+        org.json.JSONObject request = new org.json.JSONObject();
+        configure.invoke(null, request, true);
+        if (!"required".equals(request.getString("tool_choice")) ||
+            !"web_search_call.action.sources".equals(request.getJSONArray("include").getString(0)))
+            throw new AssertionError("Radar did not require web search with sources");
+        java.lang.reflect.Method parse = ChatGptPlanClient.class.getDeclaredMethod("responseResult", String.class, org.json.JSONObject.class);
+        parse.setAccessible(true);
+        org.json.JSONObject source = new org.json.JSONObject().put("url", "https://example.org/ispina").put("title", "Ispina");
+        org.json.JSONObject call = new org.json.JSONObject().put("type", "web_search_call")
+            .put("action", new org.json.JSONObject().put("sources", new org.json.JSONArray().put(source)));
+        org.json.JSONObject parsed = (org.json.JSONObject) parse.invoke(null, "Raport testowy",
+            new org.json.JSONObject().put("output", new org.json.JSONArray().put(call)));
+        if (!parsed.getBoolean("verified") || parsed.getJSONArray("sources").length() != 1)
+            throw new AssertionError("Radar discarded returned search sources");
+        java.lang.reflect.Method error = ChatGptPlanClient.class.getDeclaredMethod("formatApiError", int.class, String.class);
+        error.setAccessible(true);
+        String transientError = (String) error.invoke(null, 429, "{\"error\":{\"code\":\"rate_limit_exceeded\"}}");
+        String quota = (String) error.invoke(null, 429, "{\"error\":{\"code\":\"subscription_sharing_usage_limit_exceeded\"}}");
+        if (transientError.contains("Limit użycia ChatGPT") || !quota.contains("Limit użycia ChatGPT"))
+            throw new AssertionError("Temporary throttling was confused with exhausted plan usage");
+    }
+
     @Override public void onStart() {
         Bundle result = new Bundle();
         Thread trace=new Thread(()->{for(int n=0;n<35&&!diagnosticDone;n++){SystemClock.sleep(2000);if(!diagnosticDone)android.util.Log.i("ILEditorProbe",diagnosticStage+" "+java.util.Arrays.toString(android.os.Looper.getMainLooper().getThread().getStackTrace()));}},"il-test-diagnostics");trace.setDaemon(true);trace.start();
@@ -160,14 +234,14 @@ public final class ConfirmationInstrumentation extends Instrumentation {
             // document.readyState alone only confirms DOM loading on older WebView.
             captureUi("startup");
             if ("seed".equals(mode) || "seed-current".equals(mode)) {
-                int expectedVersion = "seed-current".equals(mode) ? 35 : 21;
+                int expectedVersion = "seed-current".equals(mode) ? 37 : 21;
                 if(getTargetContext().getPackageManager().getPackageInfo(getTargetContext().getPackageName(),0).versionCode!=expectedVersion)throw new AssertionError("Seed baseline versionCode mismatch: expected "+expectedVersion);
                 String seeded=evaluate("localStorage.removeItem(draftKey);draftStore=null;activeDraftId=null;$('post-title').value='Pierwszy szkic';$('post-body').value='Pierwsza wersja';persistDraft(true);$('post-body').value='Druga wersja';persistDraft(true);resetEditor();$('post-title').value='Drugi szkic';$('post-body').value='Drugi tekst';persistDraft(true);String(readDraftStore().drafts.length)");
                 if(!"\"2\"".equals(seeded))throw new AssertionError("Draft seeding failed: "+seeded);
                 if(!getTargetContext().getSharedPreferences("il_update_probe",0).edit().putString("marker","preserved").commit())throw new AssertionError("Preferences seeding failed");
                 result.putString("stream","IL_UPDATE_SEED=PASS\n");
             } else if ("verify".equals(mode)) {
-                if(getTargetContext().getPackageManager().getPackageInfo(getTargetContext().getPackageName(),0).versionCode!=35)throw new AssertionError("Verification must run after upgrade to versionCode 35");
+                if(getTargetContext().getPackageManager().getPackageInfo(getTargetContext().getPackageName(),0).versionCode!=37)throw new AssertionError("Verification must run after upgrade to versionCode 37");
                 String restored=evaluate("JSON.stringify(readDraftStore().drafts.map(d=>[d.title,d.body,d.revisions.length]))");
                 if(!restored.contains("Pierwszy szkic")||!restored.contains("Druga wersja")||!restored.contains("Drugi szkic"))throw new AssertionError("Drafts lost after reinstall: "+restored);
                 if(!"preserved".equals(getTargetContext().getSharedPreferences("il_update_probe",0).getString("marker","")))throw new AssertionError("Preferences lost after reinstall");
@@ -194,7 +268,9 @@ public final class ConfirmationInstrumentation extends Instrumentation {
             probe(AlertDialog.BUTTON_NEGATIVE, "\"false:0\"", false);
             probe(AlertDialog.BUTTON_POSITIVE, "\"true:1\"", false);
             probe(AlertDialog.BUTTON_NEGATIVE, "\"false:0\"", true);
-            result.putString("stream", "IL_WEBVIEW_CONFIRM_TEST=PASS (cancel, confirm once, dismiss)\nIL_EDITOR_FEATURES_TEST=PASS (comparison, undo, backup file streams, photo crop, EXIF, cancel)\nIL_WORKSPACE_FEATURES_TEST=PASS (sources/photos backup, literal replacement, viewport, calendar, remote conflict)\nIL_HAPTICS_TEST=PASS (every tile tap, motor detection, adjustable intensity, test signal, disabled-mode message)\n");
+            testFreeRadar();
+            testChatGptLogoutSecurity();
+            result.putString("stream", "IL_FREE_RADAR_TEST=PASS\nIL_CHATGPT_AUTH_SECURITY_TEST=PASS\nIL_WEBVIEW_CONFIRM_TEST=PASS (cancel, confirm once, dismiss)\nIL_EDITOR_FEATURES_TEST=PASS (comparison, undo, backup file streams, photo crop, EXIF, cancel)\nIL_WORKSPACE_FEATURES_TEST=PASS (sources/photos backup, literal replacement, viewport, calendar, remote conflict)\nIL_HAPTICS_TEST=PASS (every tile tap, motor detection, adjustable intensity, test signal, disabled-mode message)\n");
             }
             runOnMainSync(() -> activity.finish());waitForIdleSync();
             finish(Activity.RESULT_OK, result);

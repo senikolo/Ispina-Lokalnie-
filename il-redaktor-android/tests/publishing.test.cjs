@@ -42,7 +42,7 @@ function setup(initialStorage=[],nativeData) {
   const c = {
     window:{IL, scrollTo(){},addEventListener(type,listener){documentListeners.set('window:'+type,{listener})}},IL,document:{
       visibilityState:'visible',getElementById:node,querySelectorAll(){return []},addEventListener(type,listener,capture){documentListeners.set(type,{listener,capture})},documentElement:{setAttribute(){}}
-    },setTimeout,clearTimeout,console,Date,TextEncoder,TextDecoder,URL,
+    },setTimeout,clearTimeout,setInterval,clearInterval,console,Date,TextEncoder,TextDecoder,URL,
     localStorage:{
       getItem(k){return storage.get(k)||null},
       setItem(k,v){storage.set(k,v)},
@@ -635,9 +635,9 @@ test("AI context exposes published posts only for reader recommendations",()=>{
 test("new build metadata and the PR APK workflow agree",()=>{
   const gradle=fs.readFileSync(path.join(__dirname,"../app/build.gradle"),"utf8");
   const workflow=fs.readFileSync(path.join(__dirname,"../../.github/workflows/il-redaktor-apk.yml"),"utf8");
-  assert.match(gradle,/versionCode 35/);assert.match(gradle,/versionName '1\.26\.0'/);assert.match(gradle,/https:\/\/il-redaktor-assistant\.vercel\.app\/api\/assistant/);
+  assert.match(gradle,/versionCode 37/);assert.match(gradle,/versionName '1\.27\.0'/);assert.match(gradle,/https:\/\/il-redaktor-assistant\.vercel\.app\/api\/assistant/);
   assert.match(gradle,/applicationId 'com\.ispinalokalnie\.redaktorsmart\.stable'/);
-  assert.match(workflow,/versionCode='35' versionName='1\.26\.0'/);
+  assert.match(workflow,/versionCode='37' versionName='1\.27\.0'/);
 });
 
 test("AI editor shortcut copies current title and text into a reviewable prompt without sending it",()=>{
@@ -652,7 +652,7 @@ test("ChatGPT/Gemini handoff adds fact guardrails and sends only after the user 
   const a=setup();let sent="";a.node("assistant-prompt").value="Skróć tekst artykułu";a.c.IL.shareAssistantPrompt=text=>{sent=text};
   assert.equal(a.run("sendAssistantToApps()"),true);
   assert.match(sent,/w Ispinie, do Ispiny, z Ispiny/);assert.match(sent,/Nie wymyślaj dat/);assert.match(sent,/Skróć tekst artykułu/);
-  assert.equal(a.node("assistant-handoff-status").textContent,"Próbuję otworzyć ChatGPT. Jeśli nie będzie dostępny, spróbuję Gemini.");
+  assert.match(a.node("assistant-handoff-status").textContent,/otwieram ChatGPT Free/);
 });
 
 test("configured AI backend is not used by the default free local button",async()=>{
@@ -1130,4 +1130,34 @@ test("research UI shows only source-backed section text and safe source links",(
   assert.match(rendered,/data-research-link="https:\/\/example\.com\/raport"/);
   assert.match(rendered,/Profil bez potwierdzonych źródeł/);
   assert.doesNotMatch(rendered,/Ukryj tę niepotwierdzoną treść|Zbiorcze podsumowanie/);
+});
+
+test("free search cancellation clears pending callbacks and preserves the typed topic",async()=>{
+ const a=setup();let id="",cancelled="";
+ a.c.IL.askResearch=(rid)=>{id=rid};a.c.IL.cancelIspinaSearch=rid=>{cancelled=rid};
+ a.run("connected=false;freeSearchReady=true");a.node("research-query").value="Most w Ispinie";
+ const pending=a.run("runDeepIspinaResearch()");
+ assert.ok(id);assert.equal(a.node("research-cancel").classList.contains("hidden"),false);
+ a.run("cancelIspinaSearch('research')");
+ assert.equal(await pending,false);assert.equal(cancelled,id);assert.equal(a.run("requests.size"),0);
+ assert.equal(a.run("researchInProgress"),false);assert.equal(a.node("research-query").value,"Most w Ispinie");
+ a.c.window.onNativeResult(id,true,JSON.stringify({sources:[{url:"https://example.org/late"}],text:"Late"}));
+ assert.equal(a.node("research-results").innerHTML,"");
+});
+test("free search displays empty results without an AI login or false source error",async()=>{
+ const a=setup();a.c.IL.askResearch=(id)=>a.c.window.onNativeResult(id,true,JSON.stringify({freeSearch:true,sources:[],answer:"Brak pasujących materiałów w dostępnych kanałach."}));
+ a.run("connected=false;freeSearchReady=true");a.node("research-query").value="Ispina";
+ await a.run("runDeepIspinaResearch()");
+ assert.match(a.node("research-results").textContent,/Brak pasujących/);
+ assert.equal(a.run("requests.size"),0);assert.equal(a.node("research-button").disabled,false);
+});
+
+test("ChatGPT Free handoff prefers dedicated no-API bridge",()=>{
+  const a=setup();a.node("assistant-prompt").value="Przygotuj propozycję do sprawdzenia";
+  let prompt="";a.c.IL.shareChatGptFreePrompt=text=>{prompt=text};
+  a.c.IL.shareAssistantPrompt=()=>{throw Error("Do not use paid or generic assistant");};
+  assert.equal(a.run("sendAssistantToApps()"),true);
+  assert.match(prompt,/Przygotuj propozycję do sprawdzenia/);
+  assert.match(prompt,/w Ispinie, do Ispiny, z Ispiny/);
+  assert.match(a.node("assistant-handoff-status").textContent,/ChatGPT Free/);
 });

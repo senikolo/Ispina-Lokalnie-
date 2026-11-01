@@ -70,6 +70,8 @@ public class MainActivity extends Activity {
     private static final String KEY = "il_redaktor_oauth_aes_v1";
     private static final String TEXT_ZOOM_KEY = "ui_text_zoom";
     private final ExecutorService work = Executors.newSingleThreadExecutor();
+    private final ExecutorService aiWork = Executors.newFixedThreadPool(2);
+    private final java.util.concurrent.ConcurrentHashMap<String, ChatGptPlanClient.SearchControl> searches = new java.util.concurrent.ConcurrentHashMap<>();
     private final Handler ui = new Handler(Looper.getMainLooper());
     private WebView editor;
     private Dialog publishedDialog;
@@ -382,6 +384,21 @@ public class MainActivity extends Activity {
         }
         @JavascriptInterface public void importDraftBackup(){ui.post(()->{if(backupPickerBusy)return;backupPickerBusy=true;try{Intent i=new Intent(Intent.ACTION_OPEN_DOCUMENT);i.addCategory(Intent.CATEGORY_OPENABLE);i.setType("*/*");i.putExtra(Intent.EXTRA_MIME_TYPES,new String[]{"application/json","text/plain","application/octet-stream"});startActivityForResult(i,1007);}catch(Exception ex){backupPickerBusy=false;callback("draft-import",false,"Nie można otworzyć wyboru pliku.");}});}
         @JavascriptInterface public void shareText(String text){if(text==null||text.length()>12000)return;ui.post(()->{try{Intent i=new Intent(Intent.ACTION_SEND);i.setType("text/plain");i.putExtra(Intent.EXTRA_TEXT,text);startActivity(Intent.createChooser(i,"Udostępnij zapowiedź artykułu"));}catch(Exception ex){callback("copy",false,"Nie znaleziono aplikacji do udostępnienia. Użyj Kopiuj.");}});}
+        @JavascriptInterface public void shareChatGptFreePrompt(String text){
+            if(text==null||text.trim().isEmpty()||text.length()>18000){callback("assistant-handoff",false,"Polecenie jest puste albo za długie.");return;}
+            ui.post(()->{
+                try{
+                    android.content.ClipboardManager clipboard=(android.content.ClipboardManager)getSystemService(CLIPBOARD_SERVICE);
+                    if(clipboard==null)throw new IllegalStateException("Brak schowka");
+                    clipboard.setPrimaryClip(android.content.ClipData.newPlainText("Polecenie IL",text));
+                    Intent send=new Intent(Intent.ACTION_SEND).setType("text/plain").setPackage("com.openai.chatgpt").putExtra(Intent.EXTRA_TEXT,text);
+                    try{startActivity(send);}
+                    catch(android.content.ActivityNotFoundException missing){startActivity(new Intent(Intent.ACTION_VIEW,Uri.parse("https://chatgpt.com/")));}
+                    callback("assistant-handoff",true,"Otwarto ChatGPT. Polecenie jest w schowku — wklej je i wyślij. Po otrzymaniu odpowiedzi skopiuj ją i wróć do Redaktora. Obowiązują limity Twojego konta.");
+                }catch(RuntimeException ex){callback("assistant-handoff",false,"Nie udało się otworzyć ChatGPT. Użyj przycisku Kopiuj polecenie i otwórz chatgpt.com samodzielnie.");}
+            });
+        }
+
         @JavascriptInterface public void shareAssistantPrompt(String text){
             if(text==null||text.trim().isEmpty()||text.length()>18000){callback("assistant-handoff",false,"Polecenie jest puste albo za długie. Skróć je i spróbuj ponownie.");return;}
             ui.post(()->{
@@ -538,28 +555,7 @@ public class MainActivity extends Activity {
         }
 
         @JavascriptInterface public void assistantStatus() {
-            if (BuildConfig.ASSISTANT_ENDPOINT == null || BuildConfig.ASSISTANT_ENDPOINT.trim().isEmpty()) {
-                callback("assistant-ready", true, "{\"enabled\":false,\"message\":\"Tryb AI nie jest skonfigurowany.\"}");
-                return;
-            }
-            work.execute(() -> {
-                HttpURLConnection connection = null;
-                try {
-                    connection = (HttpURLConnection) new URL(BuildConfig.ASSISTANT_ENDPOINT).openConnection();
-                    connection.setRequestMethod("GET");
-                    connection.setConnectTimeout(8000);
-                    connection.setReadTimeout(8000);
-                    connection.setInstanceFollowRedirects(false);
-                    connection.setRequestProperty("Accept", "application/json");
-                    int status = connection.getResponseCode();
-                    JSONObject response = new JSONObject(readReply(connection, status));
-                    boolean enabled = status >= 200 && status < 300 && response.optBoolean("ready", false);
-                    String message = response.optString("message", enabled ? "Backend asystenta jest gotowy." : "Backend asystenta nie jest gotowy.");
-                    callback("assistant-ready", true, new JSONObject().put("enabled", enabled).put("message", message).toString());
-                } catch (Exception ex) {
-                    callback("assistant-ready", true, "{\"enabled\":false,\"message\":\"Nie udało się połączyć z backendem AI. Sprawdź połączenie i spróbuj ponownie.\"}");
-                } finally { if (connection != null) connection.disconnect(); }
-            });
+            callback("assistant-ready", true, new org.json.JSONObject().toString());
         }
 
         @JavascriptInterface public void verify() { verifyConnection(); }
@@ -586,15 +582,8 @@ public class MainActivity extends Activity {
         }
 
         @JavascriptInterface public void askAssistant(String rid, String prompt, String contextJson) {
-            if (rid.length() > 60 || !rid.matches("[A-Za-z0-9_-]+")) return;
-            if (prompt == null || prompt.trim().isEmpty() || prompt.length() > 6000) {
-                callback(rid, false, "Opisz zadanie krócej niż 6000 znaków."); return;
-            }
-            if (!connected()) { callback(rid, false, "Połącz konto WordPress, aby użyć Asystenta IL."); return; }
-            if (BuildConfig.ASSISTANT_ENDPOINT == null || BuildConfig.ASSISTANT_ENDPOINT.trim().isEmpty()) {
-                callback(rid, false, "Tryb AI nie jest jeszcze skonfigurowany. Backend Gemini wymaga osobnego wdrożenia i klucza API po stronie serwera. Możesz nadal korzystać z szablonów, korekty i wskazówek SEO w aplikacji."); return;
-            }
-            work.execute(() -> askAssistantOnServer(rid, prompt, contextJson));
+            if (rid == null || !rid.matches("[A-Za-z0-9_-]{1,60}")) return;
+            callback(rid, false, "Ta wersja działa bez płatnego AI. Użyj lokalnego formatowania lub ręcznie otwórz bezpłatny ChatGPT.");
         }
 
         @JavascriptInterface public void askResearch(String rid, String prompt) {
@@ -602,19 +591,15 @@ public class MainActivity extends Activity {
             if (prompt == null || prompt.trim().isEmpty() || prompt.length() > 1800) {
                 callback(rid, false, "Wpisz temat wyszukiwania, maksymalnie 1800 znaków."); return;
             }
-            if (!ChatGptPlanClient.isConnected(MainActivity.this)) {
-                callback(rid, false, "Połącz konto ChatGPT w Radarze, aby użyć wyszukiwania internetowego."); return;
-            }
-            work.execute(() -> {
+            ChatGptPlanClient.SearchControl control = new ChatGptPlanClient.SearchControl(MainActivity.this, 60000);
+            searches.put(rid, control);
+            aiWork.execute(() -> {
                 try {
-                    JSONObject result = ChatGptPlanClient.ask(MainActivity.this, prompt, new org.json.JSONArray(), true);
-                    if (result.optString("text").trim().isEmpty()
-                        || result.optJSONArray("sources") == null || result.optJSONArray("sources").length() == 0)
-                        throw new Exception("ChatGPT nie zwrócił raportu ze źródłami.");
+                    JSONObject result = FreeIspinaSearchClient.ask(MainActivity.this, prompt, control);
                     callback(rid, true, result.toString());
                 } catch (Exception ex) {
-                    callback(rid, false, ex.getMessage() == null ? "Nie udało się wykonać wyszukiwania ChatGPT." : ex.getMessage());
-                }
+                    callback(rid, false, ex.getMessage() == null ? "Nie udało się pobrać publicznych źródeł." : ex.getMessage());
+                } finally { searches.remove(rid, control); }
             });
         }
 
@@ -632,18 +617,23 @@ public class MainActivity extends Activity {
             } catch (Exception ex) {
                 callback(rid, false, "Nieprawidłowa historia rozmowy."); return;
             }
-            if (!ChatGptPlanClient.isConnected(MainActivity.this)) {
-                callback(rid, false, "Połącz konto ChatGPT w Radarze, aby użyć IL Chat AI."); return;
-            }
             org.json.JSONArray safeHistory = history;
-            work.execute(() -> {
+            ChatGptPlanClient.SearchControl control = new ChatGptPlanClient.SearchControl(MainActivity.this, 60000);
+            searches.put(rid, control);
+            aiWork.execute(() -> {
                 try {
-                    JSONObject result = ChatGptPlanClient.ask(MainActivity.this, prompt, safeHistory, true);
+                    JSONObject result = FreeIspinaSearchClient.ask(MainActivity.this, prompt, control);
                     callback(rid, true, result.toString());
                 } catch (Exception ex) {
-                    callback(rid, false, ex.getMessage() == null ? "Nie udało się połączyć z ChatGPT." : ex.getMessage());
-                }
+                    callback(rid, false, ex.getMessage() == null ? "Nie udało się pobrać publicznych źródeł." : ex.getMessage());
+                } finally { searches.remove(rid, control); }
             });
+        }
+
+        @JavascriptInterface public void cancelIspinaSearch(String rid) {
+            if (rid == null || !rid.matches("[A-Za-z0-9_-]{1,60}")) return;
+            ChatGptPlanClient.SearchControl control = searches.remove(rid);
+            if (control != null) control.cancel();
         }
 
         @JavascriptInterface public void getChatGptState(String rid) {
@@ -652,15 +642,7 @@ public class MainActivity extends Activity {
         }
 
         @JavascriptInterface public void connectChatGpt(String rid) {
-            if (rid == null || rid.length() > 60 || !rid.matches("[A-Za-z0-9_-]+")) return;
-            ChatGptPlanClient.connect(MainActivity.this, new ChatGptPlanClient.ConnectListener() {
-                @Override public void success(JSONObject state) {
-                    callback(rid, true, state.toString());
-                }
-                @Override public void failure(String message) {
-                    callback(rid, false, message);
-                }
-            });
+            callback(rid, false, "Bezpłatny Radar nie wymaga logowania do ChatGPT.");
         }
 
         @JavascriptInterface public void disconnectChatGpt(String rid) {
@@ -669,10 +651,12 @@ public class MainActivity extends Activity {
                 prefs().edit().putBoolean(IspinaRadarWorker.PREF_ENABLED, false).apply();
                 IspinaRadarWorker.cancel(MainActivity.this);
                 new Thread(() -> {
+                    try {
                     boolean revoked = ChatGptPlanClient.disconnect(MainActivity.this);
                     JSONObject state = ChatGptPlanClient.state(MainActivity.this);
                     try { state.put("revocationConfirmed", revoked); } catch (Exception ignored) {}
                     callback(rid, true, state.toString());
+                    } catch (Exception ex) { callback(rid, false, ex.getMessage()); }
                 }, "il-chatgpt-disconnect").start();
             });
         }
@@ -702,9 +686,6 @@ public class MainActivity extends Activity {
                     IspinaRadarWorker.cancel(MainActivity.this);
                     callback(rid, true, ispinaRadarState().toString());
                     return;
-                }
-                if (!ChatGptPlanClient.isConnected(MainActivity.this)) {
-                    callback(rid, false, "Najpierw połącz konto ChatGPT w Radarze Ispiny."); return;
                 }
                 if (!notificationsAllowed()) {
                     if (android.os.Build.VERSION.SDK_INT >= 33 &&
@@ -1235,6 +1216,9 @@ public class MainActivity extends Activity {
     @Override protected void onDestroy() {
         if(photoEditor!=null&&photoEditor.isShowing())photoEditor.dismiss();
         if (editorConfirmation != null) editorConfirmation.dismiss();
+        for (ChatGptPlanClient.SearchControl control : searches.values()) control.cancel();
+        searches.clear();
+        aiWork.shutdownNow();
         work.shutdownNow();
         if (publishedDialog != null && publishedDialog.isShowing()) publishedDialog.dismiss();
         if (editor != null) editor.destroy();
