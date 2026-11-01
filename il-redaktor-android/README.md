@@ -207,3 +207,8 @@ Mała czerwona kropka w prawym górnym rogu ikony launchera Android odróżnia R
 Test na telefonie ujawnił błąd: `Required scope: global. Granted scope(s): auth`. Wersja 1.5.2 prosiła w OAuth 2.1 o zakres `auth`, który pozwala tylko na podstawowe uwierzytelnienie i nie uprawnia do WordPress.com MCP content-authoring. Wersja 1.5.3 prosi o `scope=global`, wymuszając ponowne logowanie za pomocą odrębnego identyfikatora APK i nowego adresu powrotu `com.ispinalokalnie.redaktorsmart.mcp153:/callback`. Dostęp `global` jest szeroki: może obejmować inne strony i dane tego konta WordPress.com. Aplikacja sama kieruje operacje wyłącznie do Ispina Lokalnie, ale przyznane uprawnienia są szersze niż jedna witryna. Użytkownik powinien świadomie zaakceptować ten zakres. Tokeny pozostają zaszyfrowane przy użyciu Android Keystore, bez zapisywania haseł.
 
 CI sprawdza obecność `scope=global`, zgodność callback, generowanie ikony z czerwoną kropką i kompilację APK. Ostateczne logowanie i odczyt treści muszą zostać przetestowane na telefonie. Nie scalać PR do main bez udanego testu.
+
+
+### Naprawa logowania WordPress.com (1 listopada 2026, wersja testowa)
+
+Logowanie OAuth 2.1 korzysta z udokumentowanego zakresu `auth` (WordPress.com MCP) i pokazuje możliwe kroki naprawy, jeśli przeglądarka nie przekaże potwierdzenia do Androida. Po 75 sekundach pojawia się komunikat, ale próba autoryzacji nie jest automatycznie unieważniana. Użytkownik może wznowić tę samą próbę, sprawdzić stan lub ją anulować. Logowanie prawdziwego konta, zapisy WordPress i podpis instalacyjny wymagają jeszcze testu na urządzeniu. Lokalny Radar/IL Chat/szkice nie zależą od zalogowania do WordPress.com. Nie publikowano treści.
