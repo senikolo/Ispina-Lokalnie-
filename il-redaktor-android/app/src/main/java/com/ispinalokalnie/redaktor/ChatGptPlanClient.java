@@ -81,6 +81,7 @@ public final class ChatGptPlanClient {
     private static final String PREF_EXPIRY = "chatgpt_expiry";
     private static final SecureRandom RANDOM = new SecureRandom();
     private static final Object TOKEN_LOCK = new Object();
+    private static final Object REFRESH_LOCK = new Object();
 
     private ChatGptPlanClient() {}
 
@@ -400,10 +401,12 @@ public final class ChatGptPlanClient {
     }
 
     private static JSONObject sendResponse(Context context, JSONObject request) throws Exception {
-        String token = accessToken(context, false);
+        long generation = prefs(context).getLong(PREF_GENERATION, 0L);
+        String token = accessToken(context, false, generation);
         for (int attempt = 0; attempt < 2; attempt++) {
             HttpURLConnection connection = null;
             try {
+                ensureCurrentGeneration(prefs(context), generation);
                 connection = (HttpURLConnection) new URL(RESPONSES_URL).openConnection();
                 connection.setRequestMethod("POST");
                 connection.setConnectTimeout(20000);
@@ -421,7 +424,7 @@ public final class ChatGptPlanClient {
                     readBody(connection.getErrorStream());
                     connection.disconnect();
                     connection = null;
-                    token = accessToken(context, true);
+                    token = accessToken(context, true, generation);
                     continue;
                 }
                 if (status < 200 || status >= 300)
@@ -460,6 +463,7 @@ public final class ChatGptPlanClient {
                 if (text.toString().trim().isEmpty()) text.append(extractOutputText(completed));
                 String answer = text.toString().trim();
                 if (answer.isEmpty()) throw new Exception("ChatGPT zwrócił pustą odpowiedź.");
+                ensureCurrentGeneration(prefs(context), generation);
                 return responseResult(answer, completed);
             } finally {
                 if (connection != null) connection.disconnect();
@@ -555,14 +559,19 @@ public final class ChatGptPlanClient {
         return result.toString();
     }
 
-    private static String accessToken(Context context, boolean forceRefresh) throws Exception {
-        synchronized (TOKEN_LOCK) {
+    private static String accessToken(Context context, boolean forceRefresh, long generation) throws Exception {
+        synchronized (REFRESH_LOCK) {
             SharedPreferences p = prefs(context);
+            final String refresh;
+            final String client;
+            synchronized (TOKEN_LOCK) {
+            ensureCurrentGeneration(p, generation);
             String access = readSecret(context, PREF_ACCESS);
             if (!forceRefresh && !access.isEmpty() && p.getLong(PREF_EXPIRY, 0L) > System.currentTimeMillis() + 60000L)
                 return access;
-            String refresh = readSecret(context, PREF_REFRESH);
-            String client = p.getString(PREF_CLIENT, "");
+            refresh = readSecret(context, PREF_REFRESH);
+            client = p.getString(PREF_CLIENT, "");
+            }
             if (refresh.isEmpty() || client.isEmpty())
                 throw new Exception("Sesja ChatGPT wygasła. Połącz konto ChatGPT ponownie w Radarze.");
             JSONObject tokens = postForm(TOKEN_ENDPOINT, new LinkedHashMap<String, String>() {{
@@ -577,6 +586,8 @@ public final class ChatGptPlanClient {
             String nextIdToken = tokens.optString("id_token", readSecret(context, PREF_ID_TOKEN));
             long expiresIn = Math.max(60L, tokens.optLong("expires_in", 3600L));
             String scopes = tokens.optString("scope", p.getString(PREF_SCOPES, ""));
+            synchronized (TOKEN_LOCK) {
+            ensureCurrentGeneration(p, generation);
             SharedPreferences.Editor edit = p.edit()
                 .putString(PREF_ACCESS, encryptSecret(context, nextAccess))
                 .putString(PREF_REFRESH, encryptSecret(context, nextRefresh))
@@ -586,6 +597,7 @@ public final class ChatGptPlanClient {
                 edit.putString(PREF_ID_TOKEN, encryptSecret(context, nextIdToken));
             if (!edit.commit()) throw new Exception("Nie udało się zapisać odświeżonej sesji ChatGPT.");
             return nextAccess;
+            }
         }
     }
 
@@ -610,7 +622,7 @@ public final class ChatGptPlanClient {
             fields.put("token", refresh);
             fields.put("token_type_hint", "refresh_token");
             fields.put("client_id", client);
-            postForm(REVOKE_ENDPOINT, fields);
+            postForm(REVOKE_ENDPOINT, fields, 5000);
             return true;
         } catch (Exception ignored) { return false; }
     }
@@ -638,11 +650,15 @@ public final class ChatGptPlanClient {
     }
 
     private static JSONObject postForm(String url, Map<String, String> fields) throws Exception {
+        return postForm(url, fields, 25000);
+    }
+
+    private static JSONObject postForm(String url, Map<String, String> fields, int timeout) throws Exception {
         HttpURLConnection connection = (HttpURLConnection) new URL(url).openConnection();
         try {
             connection.setRequestMethod("POST");
-            connection.setConnectTimeout(15000);
-            connection.setReadTimeout(25000);
+            connection.setConnectTimeout(Math.min(15000, timeout));
+            connection.setReadTimeout(timeout);
             connection.setInstanceFollowRedirects(false);
             connection.setRequestProperty("Content-Type", "application/x-www-form-urlencoded; charset=UTF-8");
             connection.setRequestProperty("Accept", "application/json");
