@@ -31,7 +31,8 @@ test("WebView build transpiles modern syntax and provides required legacy polyfi
     const parsed = ts.createSourceFile("index-android.js", match[1], ts.ScriptTarget.Latest, true, ts.ScriptKind.JS);
     const parseErrors = parsed.parseDiagnostics.map(diagnostic => {
       const position = parsed.getLineAndCharacterOfPosition(diagnostic.start || 0);
-      const snippet = match[1].slice(Math.max(0, (diagnostic.start || 0) - 30), (diagnostic.start || 0) + 60);
+      const line = match[1].split("\n")[position.line] || "";
+      const snippet = line.slice(Math.max(0, position.character - 100), position.character + 140);
       return (position.line + 1) + ":" + (position.character + 1) + " " +
         ts.flattenDiagnosticMessageText(diagnostic.messageText, " ") + " near " + JSON.stringify(snippet);
     });
