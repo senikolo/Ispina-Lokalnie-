@@ -42,6 +42,7 @@ public final class FreeIspinaSearchClient {
             prioritized.add(new String[]{"Bochnianin — wyszukiwanie wydawcy","rss","https://bochnianin.pl/?s=Ispina&feed=rss2"});
             prioritized.add(new String[]{"Bochnia z Bliska — wyszukiwanie wydawcy","rss","https://bochniazbliska.pl/?s=Ispina&feed=rss2"});
             prioritized.add(new String[]{"Informator Brzeski — wyszukiwanie wydawcy","rss","https://www.informatorbrzeski.pl/?s=Ispina&feed=rss2"});
+            prioritized.add(new String[]{"Bochnia ON — wyszukiwanie wydawcy","rss","https://bochniaon.pl/?s=Ispina&feed=rss2"});
             prioritized.add(new String[]{"Google News — nowe publikacje","news",baseQuery});
             prioritized.add(new String[]{"Google News — odmiany nazwy","news","Ispinie"+(topic.isEmpty()?"":" "+topic)});
             prioritized.add(new String[]{"Bing — temat ogólny","bing",baseQuery});
@@ -292,15 +293,22 @@ public final class FreeIspinaSearchClient {
                     "https://www.bing.com/search?format=rss&q="+java.net.URLEncoder.encode(profile[2],"UTF-8");
             }else if("wordpress".equals(profile[1]))method="OWN_PORTAL_API";
             else if("municipal".equals(profile[1]))method="DIRECT_PUBLISHER";
+            else if("html".equals(profile[1]))method="DIRECT_INDEX";
             response.put("index",index).put("name",profile[0]).put("address",address).put("method",method);control.check();
+            if("html".equals(profile[1])&&datedOnly){
+                String reason="Indeks bez dat pominięto; artykuły gminy sprawdzam osobno bezpośrednio.";
+                control.report(profile[0],address,"SKIPPED",method,0,reason);
+                return response.put("status","undated_index").put("reason",reason).put("newLinks",0);
+            }
             control.report(profile[0],address,"READING",method,0,"Łączę się ze źródłem.");
             JSONArray items;int rawCount;
             if("municipal".equals(profile[1])){
-                items=DirectEditorialSources.municipality(control,since,topic);rawCount=items.length();
+                JSONObject publisher=DirectEditorialSources.municipality(control,since,topic);
+                items=publisher.getJSONArray("items");rawCount=publisher.getInt("readArticles");
+                response.put("discoveredArticles",publisher.getInt("discoveredArticles")).put("boundedRead",true);
             }else if("wordpress".equals(profile[1])){
                 String raw=fetch(address,control);items=SourceDocumentParser.wordpress(raw);rawCount=new JSONObject(raw).getJSONArray("posts").length();
             }else if("html".equals(profile[1])) {
-                if(datedOnly)return response.put("status","undated_index").put("reason","Ten indeks nie podaje dat publikacji; artykuły gminy sprawdzam osobno bezpośrednio.").put("newLinks",0);
                 URL page=new URL(address);String robots;
                 try{robots=fetch(page.getProtocol()+"://"+page.getAuthority()+"/robots.txt",control);}catch(Exception e){if(e.getMessage()!=null&&e.getMessage().contains("HTTP 404"))robots="";else throw e;}
                 if(!PublicPageSource.allowed(robots,page.getPath().isEmpty()?"/":page.getPath()))throw new IOException("Ograniczenie robots.txt; sprawdź źródło ręcznie.");
@@ -323,16 +331,17 @@ public final class FreeIspinaSearchClient {
         if(remaining<=0)throw new java.net.SocketTimeoutException("Upłynął budżet czasu źródła; zachowano ukończone odczyty.");
         return (int)Math.min(maximum,remaining);
     }
-    /** Keep same-host legacy redirects encrypted; never follow a plaintext hop. */
-    static String sourceRedirect(URL origin,String location)throws IOException {
-        URL target=new URL(origin,location);
-        if("https".equalsIgnoreCase(origin.getProtocol())&&"http".equalsIgnoreCase(target.getProtocol())
-                &&origin.getHost().equalsIgnoreCase(target.getHost())&&target.getUserInfo()==null
-                &&(target.getPort()==-1||target.getPort()==80)) {
-            target=new URL("https",target.getHost(),target.getFile());
-        }
-        if(!"https".equalsIgnoreCase(target.getProtocol()))throw new IOException("Źródło przekierowało poza HTTPS; nie wykonano nieszyfrowanego połączenia.");
-        return target.toString();
+    /** This publisher's missing robots.txt redirects to an old http:// homepage.
+     * Use its verified HTTPS equivalent; never send a plaintext HTTP request.
+     * Other HTTP downgrades remain rejected. */
+    static URL secureRedirect(URL from,String location)throws IOException {
+        URL next=new URL(from,location);
+        if("http".equals(next.getProtocol())&&"https".equals(from.getProtocol())
+            &&"www.drwinia.pl".equalsIgnoreCase(from.getHost())&&from.getHost().equalsIgnoreCase(next.getHost())
+            &&next.getUserInfo()==null&&(next.getPort()==-1||next.getPort()==80))
+            next=new URL("https",next.getHost(),next.getFile());
+        if(!"https".equals(next.getProtocol()))throw new IOException("Źródło przekierowuje na nieszyfrowany adres. Sprawdź je ręcznie.");
+        return next;
     }
     static String fetch(String address, ChatGptPlanClient.SearchControl control,long deadline) throws Exception {
         String current=address;
@@ -345,10 +354,11 @@ public final class FreeIspinaSearchClient {
                 connection.setRequestProperty("Accept","application/rss+xml, application/xml, text/xml, text/html, application/json, text/plain");
                 connection.setRequestProperty("User-Agent","IL-Redaktor-Smart/2.0 PublicSources");
                 connection.connect();connection.setReadTimeout(sourceTimeout(deadline,6000));int status=connection.getResponseCode();
-                if(status==301||status==302||status==303||status==307||status==308){String location=connection.getHeaderField("Location");if(location==null)throw new IOException("Przekierowanie bez adresu.");current=sourceRedirect(url,location);continue;}
+                if(status==301||status==302||status==303||status==307||status==308){String location=connection.getHeaderField("Location");if(location==null)throw new IOException("Przekierowanie bez adresu.");current=secureRedirect(url,location).toString();control.report("Przekierowanie HTTPS",current,"READING","REDIRECT_HTTPS",0,"Odczytuję docelowy adres wyłącznie przez HTTPS.");continue;}
                 if(status!=200)throw new IOException("Publiczne źródło: HTTP "+status);
                 try(InputStream input=connection.getInputStream();ByteArrayOutputStream out=new ByteArrayOutputStream()){
                     byte[] buffer=new byte[8192];int n;while((n=input.read(buffer))!=-1){control.check();sourceTimeout(deadline,6000);if(out.size()+n>1_500_000)throw new IOException("Źródło przekracza limit 1,5 MB.");out.write(buffer,0,n);}
+                    if(!current.equals(address))control.report("Przekierowanie HTTPS",current,"DONE","REDIRECT_HTTPS",0,"Odczytano adres docelowy przez HTTPS.");
                     return out.toString(StandardCharsets.UTF_8.name());
                 }
             }finally{control.detach(connection);connection.disconnect();}
