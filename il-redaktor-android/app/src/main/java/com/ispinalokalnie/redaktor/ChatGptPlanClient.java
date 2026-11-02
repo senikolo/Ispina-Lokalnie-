@@ -85,6 +85,16 @@ public final class ChatGptPlanClient {
     private static final ThreadLocal<SearchControl> ACTIVE_SEARCH = new ThreadLocal<>();
 
     public static final class SearchControl implements AutoCloseable {
+        public interface Observer { void update(JSONObject event); }
+        private volatile Observer observer;
+        private final java.util.concurrent.atomic.AtomicLong eventNumber=new java.util.concurrent.atomic.AtomicLong();
+        public void setObserver(Observer value){observer=value;}
+        void report(String name,String address,String stage,String method,int count,String detail){
+            Observer target=observer;if(target==null||cancelled)return;
+            try{target.update(new JSONObject().put("sequence",eventNumber.incrementAndGet()).put("name",name==null?"Źródło":name)
+                .put("url",address==null?"":address).put("stage",stage).put("method",method)
+                .put("found",count).put("detail",detail==null?"":detail).put("at",System.currentTimeMillis()));}catch(Exception ignored){}
+        }
         private volatile boolean cancelled;
         private volatile boolean timedOut;
         private final java.util.Set<HttpURLConnection> connections=java.util.concurrent.ConcurrentHashMap.newKeySet();

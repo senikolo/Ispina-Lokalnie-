@@ -6,6 +6,7 @@ on:
       - 'codex/**'
       - 'fix/il-redaktor-audit-remediation-20261101'
       - 'fix/il-radar-freshness-20261102'
+      - 'fix/il-radar-live-recall-20261102'
     paths:
       - "il-redaktor-android/**"
       - ".github/workflows/il-redaktor-apk.yml"
@@ -212,7 +213,7 @@ jobs:
           test -s "$APK"
           SDK_ROOT="${ANDROID_HOME:-/usr/local/lib/android/sdk}"
           "$SDK_ROOT/build-tools/35.0.0/apksigner" verify --verbose "$APK"
-          "$SDK_ROOT/build-tools/35.0.0/aapt" dump badging "$APK" | grep -F "package: name='com.ispinalokalnie.redaktorsmart.stable' versionCode='46' versionName='2.0.0-professional-test.2'"
+          "$SDK_ROOT/build-tools/35.0.0/aapt" dump badging "$APK" | grep -F "package: name='com.ispinalokalnie.redaktorsmart.stable' versionCode='47' versionName='2.0.0-professional-test.3'"
       - name: Upload test APK for manual login diagnostics
         uses: actions/upload-artifact@v4
         with:
@@ -246,7 +247,7 @@ jobs:
           test -s "$APK"
           test -s il-redaktor-android/app/src/main/assets/il-monogram.png
           "$SDK_ROOT/build-tools/35.0.0/apksigner" verify --verbose "$APK"
-          "$SDK_ROOT/build-tools/35.0.0/aapt" dump badging "$APK" | grep -F "package: name='com.ispinalokalnie.redaktorsmart.stable' versionCode='46' versionName='2.0.0-professional-test.2'"
+          "$SDK_ROOT/build-tools/35.0.0/aapt" dump badging "$APK" | grep -F "package: name='com.ispinalokalnie.redaktorsmart.stable' versionCode='47' versionName='2.0.0-professional-test.3'"
           unzip -l "$APK" | grep 'assets/il-monogram.png'
       - name: Upload installable APK
         uses: actions/upload-artifact@v4
@@ -291,13 +292,13 @@ jobs:
             exit 1
           fi
           mkdir -p "$RUNNER_TEMP/il-signed-upgrade"
-          cp "$APK" "$RUNNER_TEMP/il-signed-upgrade/IL-Redaktor-Smart-2.0.0-professional-test.2-UPDATE.apk"
+          cp "$APK" "$RUNNER_TEMP/il-signed-upgrade/IL-Redaktor-Smart-2.0.0-professional-test.3-UPDATE.apk"
           echo "Signed upgrade APK created with the existing release certificate."
       - name: Upload verified signed upgrade when available
         uses: actions/upload-artifact@v4
         with:
           name: IL-Redaktor-Signed-Upgrade
-          path: ${{ runner.temp }}/il-signed-upgrade/IL-Redaktor-Smart-2.0.0-professional-test.2-UPDATE.apk
+          path: ${{ runner.temp }}/il-signed-upgrade/IL-Redaktor-Smart-2.0.0-professional-test.3-UPDATE.apk
           if-no-files-found: ignore
           retention-days: 30
       - uses: actions/upload-artifact@v4
@@ -350,6 +351,8 @@ jobs:
           name: IL-Redaktor-Checks-API-${{ matrix.api }}
           path: |
             /tmp/il-editor-ui-api-*/*.png
+            /tmp/il-editor-ui-api-*/*.json
+            /tmp/il-live-recall-*.txt
             /tmp/il-update-*.txt
             /tmp/il-confirmation-test-*.txt
           if-no-files-found: warn

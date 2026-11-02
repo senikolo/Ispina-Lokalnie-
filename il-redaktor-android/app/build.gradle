@@ -24,8 +24,8 @@ android {
         testInstrumentationRunner 'com.ispinalokalnie.redaktor.ConfirmationInstrumentation'
         minSdk 26
         targetSdk 35
-        versionCode 46
-        versionName '2.0.0-professional-test.2'
+        versionCode 47
+        versionName '2.0.0-professional-test.3'
         def assistantEndpoint = System.getenv('IL_ASSISTANT_ENDPOINT') ?: project.findProperty('ilAssistantEndpoint') ?: 'https://il-redaktor-assistant.vercel.app/api/assistant'
         if (assistantEndpoint && !assistantEndpoint.toString().startsWith('https://')) {
             throw new GradleException('IL_ASSISTANT_ENDPOINT must use HTTPS.')
@@ -33,6 +33,7 @@ android {
         buildConfigField 'String', 'ASSISTANT_ENDPOINT', '"' + assistantEndpoint.toString().replace('\\', '\\\\').replace('"', '\\"') + '"'
     }
     compileOptions {
+        coreLibraryDesugaringEnabled true
         sourceCompatibility JavaVersion.VERSION_17
         targetCompatibility JavaVersion.VERSION_17
     }
@@ -58,6 +59,8 @@ android {
 }
 
 dependencies {
+    coreLibraryDesugaring 'com.android.tools:desugar_jdk_libs_nio:2.1.5'
+    implementation 'org.jsoup:jsoup:1.23.2'
     implementation 'androidx.exifinterface:exifinterface:1.4.2'
     implementation 'androidx.work:work-runtime:2.10.1'
 }

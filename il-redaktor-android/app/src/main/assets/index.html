@@ -188,6 +188,7 @@ header{animation:ilHeader .38s cubic-bezier(.2,.7,.2,1) both}.brand .logo{animat
 
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
 #ispina-radar-enabled{width:22px;height:22px;flex:0 0 22px;margin:0}
+ .live-source{border-bottom:1px solid var(--ui-line);padding:10px 0}.live-source small{display:block;overflow-wrap:anywhere}#ispina-chat-live,#research-live{max-height:330px;overflow:auto}
 </style>
 </head>
 <body>
@@ -244,8 +245,7 @@ header{animation:ilHeader .38s cubic-bezier(.2,.7,.2,1) both}.brand .logo{animat
   <div class="card" id="ispina-chat-card">
     <div class="eyebrow">WYSZUKIWARKA · RADAR INFORMACJI</div>
     <h2>Znajdź źródła o Ispinie</h2>
-    <p class="muted">Pytasz o OSP, most lub autobusy? Domyślnie szukam nowych publikacji z ostatnich 30 dni. Możesz wybrać 7, 30 lub 90 dni albo podać okres w pytaniu. Sprawdzam internet; wcześniejsze materiały pokazuję na wyraźne pytanie o pamięć. To narzędzie wyszukiwania i reguł, bez automatycznej weryfikacji faktów.</p>
-    <div class="note small">Nowe oznacza opublikowane w wybranym okresie, a nie pierwszy raz znalezione. Szukanie nowych wiadomości nie korzysta ze starej odpowiedzi z pamięci ani pięciominutowej kopii wyników.</div>
+    <p class="muted">Sprawdzam wydawców, pełne treści kanałów i wyszukiwarki. Poniżej zobaczysz na żywo odczytywane adresy. Wyniki wymagają sprawdzenia faktów w oryginale.</p>
     <label for="ispina-chat-days">Nowe wiadomości — data publikacji</label>
     <select id="ispina-chat-days" onchange="saveChatLookback()"><option value="7">Ostatnie 7 dni</option><option value="30" selected>Ostatnie 30 dni</option><option value="90">Ostatnie 90 dni</option></select>
     <div class="actions">
@@ -254,6 +254,7 @@ header{animation:ilHeader .38s cubic-bezier(.2,.7,.2,1) both}.brand .logo{animat
       <button class="secondary" type="button" onclick="prefillIspinaChat('Czy są nowe informacje o OSP Ispina?')">OSP</button>
       <button class="secondary" type="button" onclick="prefillIspinaChat('Cokolwiek nowego o Ispinie')">Cokolwiek nowego o Ispinie</button>
     </div>
+    <details id="ispina-chat-live-panel" open class="source-item"><summary>Na żywo — sprawdzane strony</summary><p id="ispina-chat-live-summary" class="small muted" role="status">Dziennik pojawi się po uruchomieniu wyszukiwania.</p><div id="ispina-chat-live" role="log" aria-label="Odczytywane źródła na żywo"></div></details>
     <div id="ispina-chat-log" class="source-item" role="log" aria-live="polite" aria-label="Rozmowa IL Wyszukiwarka">
       <p class="muted">Tutaj pojawią się odpowiedzi i źródła. Możesz zadać pytanie uzupełniające.</p>
     </div>
@@ -286,6 +287,7 @@ header{animation:ilHeader .38s cubic-bezier(.2,.7,.2,1) both}.brand .logo{animat
       <p id="ispina-radar-status" class="small muted" role="status" aria-live="polite">Radar jest wyłączony. Włączenie wymaga zgody na powiadomienia.</p>
       <p class="small muted">Radar działa bez ChatGPT i płatnego API. Potrzebuje internetu oraz zgody na powiadomienia. Wzmianki bez daty publikacji nie wywołują automatycznych alertów.</p>
     </div>
+    <details id="research-live-panel" open class="source-item"><summary>Na żywo — sprawdzane strony</summary><p id="research-live-summary" class="small muted" role="status">Dziennik pojawi się po uruchomieniu wyszukiwania.</p><div id="research-live" role="log" aria-label="Odczytywane źródła na żywo"></div></details>
     <p id="research-status" class="small muted" role="status" aria-live="polite">Przygotowuję publiczne źródła…</p>
     <div id="research-results" aria-live="polite" role="region" aria-label="Wyniki wyszukiwania o Ispinie"></div>
   </div>
@@ -431,7 +433,7 @@ header{animation:ilHeader .38s cubic-bezier(.2,.7,.2,1) both}.brand .logo{animat
     <label class="setting-row"><input type="checkbox" id="battery-saving" onchange="applyUiPreferences(true)"><span>Tryb oszczędzania baterii</span></label>
     <p id="ui-preferences-status" class="setting-caption" role="status" aria-live="polite">Ustawienia zapisują się na tym telefonie. Systemowe ograniczenie ruchu zawsze ma pierwszeństwo.</p>
   </div>
-  <div class="card"><h2>O programie</h2><p class="muted">IL Redaktor Smart 2.0 Professional · 2.0.0-professional-test.2 · WERSJA TESTOWA · Niezależna aplikacja Android 8 i nowszy. WordPress.com MCP. Publikacja wymaga potwierdzenia i ponownego odczytu wpisu.</p></div>
+  <div class="card"><h2>O programie</h2><p class="muted">IL Redaktor Smart 2.0 Professional · 2.0.0-professional-test.3 · WERSJA TESTOWA · Niezależna aplikacja Android 8 i nowszy. WordPress.com MCP. Publikacja wymaga potwierdzenia i ponownego odczytu wpisu.</p></div>
 </section>
 </main>
 <div id="conflict-dialog" class="finish-dialog hidden" role="dialog" aria-modal="true" aria-labelledby="conflict-title"><div class="finish-panel"><h2 id="conflict-title">Wersja na WordPressie wymaga porównania</h2><p id="conflict-message"></p><p>Nie wysłano zmian artykułu. Twoja praca pozostaje w szkicach na telefonie.</p><button class="secondary" onclick="showConflictComparison()">Porównaj wersje</button><div id="conflict-comparison" class="hidden"></div><p id="conflict-feedback" role="status"></p><div class="actions"><button onclick="resolveRemoteConflict(false)">Wczytaj wersję ze strony</button><button class="secondary" onclick="resolveRemoteConflict(true)">Zachowaj obie kopie</button><button class="secondary" onclick="closeRemoteConflict()">Wróć do tekstu</button></div><p class="small">Wczytanie nie usuwa Twojego szkicu. Zachowaj obie kopie odłączy lokalną wersję od wpisu na stronie.</p></div></div>
@@ -960,6 +962,24 @@ function requestAssistant(prompt,context){
   });
 }
 const activeIspinaSearches=new Map();
+function renderLiveSearch(kind,state){
+  const prefix=kind==='chat'?'ispina-chat':'research',entries=[...state.pages.values()];
+  const stage={READING:'Czytam stronę',PARSED:'Treść odczytana',DONE:'Odczyt zakończony',ERROR:'Błąd odczytu',EMPTY:'Pusty kanał',SKIPPED:'Pominięto',STOPPED:'Nie ukończono'};
+  const method={SEARCH_INDEX:'Zapytanie do wyszukiwarki',DIRECT_FEED:'Bezpośredni kanał wydawcy',DIRECT_PUBLISHER:'Bezpośrednio u wydawcy',DIRECT_SEARCH:'Wyszukiwarka wydawcy',OWN_PORTAL_API:'Twój portal — publiczne API'};
+  $(prefix+'-live-summary').textContent='Adresy: '+entries.length+' · zakończone: '+entries.filter(e=>['DONE','ERROR','EMPTY','SKIPPED','STOPPED'].includes(e.stage)).length+'. '+(state.finished?'Skan zakończony; szczegóły poniżej.':'Trwa odczyt źródeł…');
+  $(prefix+'-live').innerHTML=entries.map(e=>'<div class="live-source"><b>'+esc(e.name)+'</b><small>'+esc(method[e.method]||e.method||'Publiczne źródło')+' · '+esc(stage[e.stage]||e.stage)+'</small><small class="research-query">'+esc(e.url)+'</small><p class="small">'+esc(e.detail||'')+(e.found>0?' · Dopasowania: '+Number(e.found):'')+'</p></div>').join('');
+}
+window.onIspinaSearchProgress=function(rid,event){
+  if(!event||typeof event!=='object')return;
+  for(const [kind,state] of activeIspinaSearches){if(state.id!==rid)continue;
+    let url;try{url=new URL(String(event.url||''));if(url.protocol!=='https:'||url.username||url.password)return;}catch(e){return;}
+    const key=url.href,old=state.pages.get(key);if(old&&Number(old.sequence)>=Number(event.sequence))return;
+    if(state.pages.size>=150&&!old)return;
+    state.pages.set(key,{name:String(event.name||url.hostname).slice(0,180),url:key,stage:String(event.stage||'READING'),method:String(event.method||''),found:Math.max(0,Number(event.found)||0),detail:String(event.detail||'').slice(0,700),sequence:Number(event.sequence)||0});
+    state.progress=String(event.name||url.hostname).slice(0,120);renderLiveSearch(kind,state);return;
+  }
+};
+
 function cancelIspinaSearch(kind){const current=activeIspinaSearches.get(kind);if(current)current.cancel("Wyszukiwanie anulowane.");}
 function requestFreeSearch(kind,prompt,history){
   return new Promise((resolve,reject)=>{
@@ -967,12 +987,13 @@ function requestFreeSearch(kind,prompt,history){
     const status=$(kind==="chat"?"ispina-chat-status":"research-status");
     const button=$(kind==="chat"?"ispina-chat-cancel":"research-cancel");
     let interval=null,timeout=null,settled=false;
-    const cleanup=()=>{clearInterval(interval);clearTimeout(timeout);requests.delete(id);activeIspinaSearches.delete(kind);button.classList.add("hidden");};
+    const state={id,cancel:null,pages:new Map(),progress:'Rozpoczynam odczyt źródeł',finished:false};
+    const cleanup=()=>{clearInterval(interval);clearTimeout(timeout);requests.delete(id);state.finished=true;for(const e of state.pages.values())if(e.stage==='READING'||e.stage==='PARSED')e.stage='STOPPED';renderLiveSearch(kind,state);activeIspinaSearches.delete(kind);button.classList.add("hidden");};
     const finish=(ok,value)=>{if(settled)return;settled=true;cleanup();ok?resolve(value):reject(value instanceof Error?value:new Error(String(value)));};
     const cancel=reason=>{if(settled)return;try{if(typeof IL.cancelIspinaSearch==="function")IL.cancelIspinaSearch(id)}catch(e){}finish(false,new Error(reason));};
-    activeIspinaSearches.set(kind,{id,cancel});
+    state.cancel=cancel;activeIspinaSearches.set(kind,state);renderLiveSearch(kind,state);
     button.classList.remove("hidden");
-    const update=()=>{status.textContent="Pobieram publiczne źródła · "+Math.floor((Date.now()-started)/1000)+" s · limit oczekiwania 65 s. Możesz anulować.";};
+    const update=()=>{status.textContent=state.progress+" · "+Math.floor((Date.now()-started)/1000)+" s · limit oczekiwania 65 s. Możesz anulować.";};
     update();interval=setInterval(update,1000);
     timeout=setTimeout(()=>cancel("Przekroczono limit oczekiwania. Spróbuj później; dotychczasowe wyniki i wpisany temat zachowano."),65000);
     requests.set(id,{resolve:value=>finish(true,value),reject:error=>finish(false,error),timeout});
@@ -1030,15 +1051,16 @@ function renderIspinaChat(){
   if(!ispinaChatMessages.length){target.innerHTML='<p class="muted">Tutaj pojawią się odpowiedzi i źródła. Możesz zadać pytanie uzupełniające.</p>';return}
   target.innerHTML=ispinaChatMessages.map((message,index)=>{
     const sourceItems=Array.isArray(message.sources)?message.sources:[];
+    const undated=Array.isArray(message.undatedSources)?message.undatedSources:[];
     const sources=sourceItems.flatMap(source=>{
       try{const url=new URL(String(source?.url||""));if(!["http:","https:"].includes(url.protocol)||url.username||url.password)return [];
-        return ['<div class="source-item"><b>'+esc(String(source?.title||url.hostname).slice(0,180))+'</b><small>'+esc(url.hostname)+'</small><small>Data publikacji według kanału: '+esc(editorialDisplayDate(source.publishedAt||source.published))+'</small><div class="actions"><button class="secondary" type="button" data-ispina-chat-link="'+esc(url.href)+'">Otwórz źródło</button></div></div>'];
+        return ['<div class="source-item"><b>'+esc(String(source?.title||url.hostname).slice(0,180))+'</b><small>'+esc(url.hostname)+(source.sourceKind==='OWN_PORTAL'?' · Twój portal':'')+'</small><small>Data publikacji według źródła: '+esc(editorialDisplayDate(source.publishedAt||source.published))+'</small><div class="actions"><button class="secondary" type="button" data-ispina-chat-link="'+esc(url.href)+'">Otwórz źródło</button></div></div>'];
       }catch(error){return []}
     }).join("");
     const draftAction=message.role==="assistant"&&message.verified===true&&sources
       ?'<div class="actions"><button class="secondary" type="button" data-ispina-chat-draft="'+index+'">📝 Opracuj szkic w ChatGPT/Gemini</button></div>'
       :"";
-    return '<div class="chat-line"><strong>'+esc(message.role==="user"?"Ty":"IL Wyszukiwarka")+'</strong>'+(message.fromArchive?'<p class="small muted">Archiwalna odpowiedź z pamięci — nie nowe wyszukiwanie.</p>':'')+'<div class="research-summary">'+esc(message.content)+'</div>'+(sources?'<div class="source-item"><b>Źródła do tej odpowiedzi</b>'+sources+'</div>':"")+(message.profiles?researchCoverage({profiles:message.profiles}):'')+draftAction+'</div>';
+    return '<div class="chat-line"><strong>'+esc(message.role==="user"?"Ty":"IL Wyszukiwarka")+'</strong>'+(message.fromArchive?'<p class="small muted">Archiwalna odpowiedź z pamięci — nie nowe wyszukiwanie.</p>':'')+'<div class="research-summary">'+esc(message.content)+'</div>'+(sources?'<div class="source-item"><b>Źródła do tej odpowiedzi</b>'+sources+'</div>':"")+(undated.length?'<div class="note"><b>Materiały do ustalenia daty ('+undated.length+')</b><p class="small">Znalezione linki, których nie zaliczono do nowych publikacji.</p>'+undated.map(source=>{try{const u=new URL(source.url);if(u.protocol!=='https:'||u.username||u.password)return '';return '<div class="source-item"><b>'+esc(source.title||u.hostname)+'</b><small>'+esc(u.href)+'</small><button class="secondary" data-ispina-chat-link="'+esc(u.href)+'">Otwórz do sprawdzenia</button></div>'}catch(e){return ''}}).join('')+'</div>':'')+(message.profiles?researchCoverage({profiles:message.profiles}):'')+draftAction+'</div>';
   }).join("");
   target.scrollTop=target.scrollHeight;
 }
@@ -1068,6 +1090,7 @@ function deepenIspinaChat(){
   catch(e){$("ispina-chat-status").textContent=e.message;return false;}
 }
 function prefillIspinaChat(prompt){
+  if(ispinaChatInProgress){$("ispina-chat-status").textContent="Wyszukiwanie jeszcze trwa. Możesz je anulować przed zmianą tematu.";return false;}
   $("ispina-chat-input").value=prompt;
   return sendIspinaChat();
 }
@@ -1113,10 +1136,11 @@ async function sendIspinaChat(){
     const result=await requestIspinaChat(prompt,history);
     const answer=String(result?.answer||"").trim();
     const sources=Array.isArray(result?.sources)?result.sources:[];
+    const undated=Array.isArray(result?.undatedSources)?result.undatedSources:[];
     const verified=(result?.sourceLinksFound===true||result?.verified===true)&&!!answer&&sources.length>0;
     ispinaChatMessages.push({role:"user",content:prompt,verified:true});
-    if(verified)ispinaChatMessages.push({role:"assistant",content:answer,sources,verified:true,profiles:result?.profiles,lookbackDays:days,question:prompt,searchedAt:String(result?.searchedAt||"")});
-    else ispinaChatMessages.push({role:"assistant",content:answer||"Nie znaleziono pasujących materiałów w dostępnych kanałach.",sources:[],profiles:result?.profiles,verified:false});
+    if(verified)ispinaChatMessages.push({role:"assistant",content:answer,sources,verified:true,profiles:result?.profiles,undatedSources:undated,lookbackDays:days,question:prompt,searchedAt:String(result?.searchedAt||"")});
+    else ispinaChatMessages.push({role:"assistant",content:answer||"Nie znaleziono pasujących materiałów w dostępnych kanałach.",sources:[],undatedSources:undated,profiles:result?.profiles,verified:false});
     renderIspinaChat();
     if(typeof IL.editorialMemory==="function"){
       try{
@@ -1127,11 +1151,11 @@ async function sendIspinaChat(){
         $("ispina-chat-status").dataset.memoryError=String(memoryError.message);
       }
     }
-    $("ispina-chat-input").value="";
+    if(trim($("ispina-chat-input").value)===prompt)$("ispina-chat-input").value="";
     const range="Ostatnie "+Number(result?.lookbackDays||days)+" dni · daty publikacji. ";
     const coverage=result?.partialResults?" Skan częściowy — sprawdź niedostępne lub pominięte kanały.":"";
     const inherited=result?.contextInherited===true&&result?.contextTopic?"Kontynuacja tematu „"+String(result.contextTopic).slice(0,80)+"”. ":"";
-    $("ispina-chat-status").textContent=range+inherited+(verified?"Znaleziono "+sources.length+" linków DO SPRAWDZENIA. Ich obecność nie potwierdza jeszcze faktów. Sprawdź oryginały.":"Nie znaleziono pasujących linków w dostępnych kanałach. Nie oznacza to braku informacji w internecie.")+coverage;
+    $("ispina-chat-status").textContent=range+inherited+(verified?"Znaleziono "+sources.length+" linków DO SPRAWDZENIA. Ich obecność nie potwierdza jeszcze faktów. Sprawdź oryginały.":"Wynik nierozstrzygający: nie ustalono, czy pojawiły się nowe publikacje. Sprawdź dziennik źródeł.")+coverage;
     $("ispina-chat-status").className=verified?"small ok":"small muted";
     endOperation();
     return verified;
@@ -1157,7 +1181,7 @@ function clearResearchResults(){
 let latestResearchMaterial=null;
 function researchCoverage(result){
   const profiles=Array.isArray(result?.profiles)?result.profiles:[];
-  return profiles.length?'<details class="source-item"><summary>Zakres sprawdzenia: '+profiles.length+' kanałów</summary>'+profiles.map(p=>'<p class="small"><b>'+esc(p.name||"Źródło")+'</b>: '+esc(({ok:"odczytano",unavailable:"niedostępne",skipped_timeout:"pominięto: limit czasu",undated_index:"brak potwierdzonych dat publikacji"}[p.status]||p.status))+'. '+esc(p.reason||"")+'</p>').join("")+'</details>':"";
+  return profiles.length?'<details class="source-item"><summary>Zakres sprawdzenia: '+profiles.length+' kanałów</summary>'+profiles.map(p=>'<p class="small"><b>'+esc(p.name||"Źródło")+'</b>: '+esc(({ok:"odczytano",unavailable:"niedostępne",skipped_timeout:"pominięto: limit czasu",undated_index:"brak potwierdzonych dat publikacji",empty_feed:"pusty kanał — brak rozstrzygnięcia"}[p.status]||p.status))+'. '+(p.address?esc(p.address)+' · ':'')+esc(p.reason||"")+(p.rawItems!==undefined?' · Odczytane pozycje: '+Number(p.rawItems):'')+'</p>').join("")+'</details>':"";
 }
 function renderResearchResult(result,query){
   if(result?.freeSearch&&(!Array.isArray(result.sources)||!result.sources.length)){

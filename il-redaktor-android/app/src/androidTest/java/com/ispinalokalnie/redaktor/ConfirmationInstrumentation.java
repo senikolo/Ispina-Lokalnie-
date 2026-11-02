@@ -139,6 +139,44 @@ public final class ConfirmationInstrumentation extends Instrumentation {
         waitForScript("window.__conflictProbe===true");captureUi("conflict");evaluate("closeRemoteConflict();rpc=window.__oldRpc;connected=window.__oldConnected;postId=null;postStatus='';remoteBaseline=null;resetEditor();showScreen('home')");if(!"true".equals(evaluate("$('screen-home').classList.contains('active') && !$('screen-editor').classList.contains('active')")))throw new AssertionError("Home not active");captureUi("home");
     }
 
+    private void testPublisherRecall() throws Exception {
+        String feed="<rss xmlns:content=\"http://purl.org/rss/1.0/modules/content/\"><channel><item><title>Wsparcie infrastruktury — materiał testowy</title><link>https://example.org/recall</link><pubDate>Mon, 12 Oct 2026 11:48:16 +0000</pubDate><description>Wstęp bez nazwy miejscowości.</description><content:encoded><![CDATA[<p>Treść testowa: Ispina. Rozbudowa kanalizacji.</p>]]></content:encoded></item></channel></rss>";
+        org.json.JSONArray hits=FreeIspinaSearchClient.parseFeed(feed,0,false);
+        if(hits.length()!=1||!hits.getJSONObject(0).getString("snippet").contains("Ispina"))throw new AssertionError("Full RSS content:encoded locality was lost");
+        String page="<html><body><header>2 listopada 2026 — Ispina</header><h1>Wyniki plebiscytu</h1><article><div class='news-list-el-date'>9 października 2026</div><div class='news-description'><p>Treść testowa: KGW Ispina.</p></div></article><footer>Ispina</footer></body></html>";
+        org.json.JSONObject article=SourceDocumentParser.article(page,"https://example.org/article");
+        if(article==null||!"9 października 2026".equals(article.getString("published")))throw new AssertionError("Publisher date/body not read independently from navigation");
+        String unrelated=page.replace("Treść testowa: KGW Ispina.","Treść dotycząca innej miejscowości.");
+        if(SourceDocumentParser.article(unrelated,"https://example.org/unrelated")!=null)throw new AssertionError("Footer Ispina produced a false article match");
+        org.json.JSONObject own=SourceDocumentParser.wordpress("{\"posts\":[{\"title\":\"Test o Ispinie\",\"URL\":\"https://ispinalokalnie.wordpress.com/test/\",\"date\":\"2026-11-01T08:39:59+01:00\",\"content\":\"<p>Treść testowa w Ispinie</p>\"}]}").getJSONObject(0);
+        if(!"OWN_PORTAL".equals(own.getString("sourceKind")))throw new AssertionError("Own portal falsely passed as an independent publisher");
+        if(!"true".equals(evaluate("window.__recallFake={id:'probe',pages:new Map(),finished:false};activeIspinaSearches.set('chat',__recallFake);window.onIspinaSearchProgress('probe',{sequence:1,url:'https://example.org/article',name:'Wydawca testowy',stage:'READING',method:'DIRECT_PUBLISHER',found:0,detail:'Czytam treść'});$('ispina-chat-live').textContent.includes('example.org/article') && $('ispina-chat-live').textContent.includes('Czytam stronę')")))throw new AssertionError("Live source address not rendered in real WebView");
+        evaluate("activeIspinaSearches.delete('chat')");
+    }
+
+    private void testLiveRecall(Bundle result) throws Exception {
+        diagnosticStage="LIVE INTERNET recall: native bridge and publishers";
+        evaluate("refreshFreeSearchState();showScreen('radar');window.__liveDone=false;window.__liveProgress=0;window.__oldProgress=window.onIspinaSearchProgress;window.onIspinaSearchProgress=(id,event)=>{window.__liveProgress++;window.__oldProgress(id,event)};$('ispina-chat-days').value='90';$('ispina-chat-input').value='Cokolwiek nowego o Ispinie';sendIspinaChat().then(()=>window.__liveDone=true)");
+        long until=SystemClock.uptimeMillis()+80000;
+        while(!"true".equals(evaluate("window.__liveDone===true"))){if(SystemClock.uptimeMillis()>until)throw new AssertionError("Live search did not finish");SystemClock.sleep(400);}
+        String raw=evaluate("JSON.stringify(ispinaChatMessages.filter(m=>m.role==='assistant').slice(-1)[0]||{})");
+        Object decoded=new org.json.JSONTokener(raw).nextValue();
+        org.json.JSONObject reply=new org.json.JSONObject(String.valueOf(decoded));
+        org.json.JSONArray found=reply.optJSONArray("sources"),safe=new org.json.JSONArray();int external=0;
+        if(found!=null)for(int i=0;i<found.length();i++){
+            org.json.JSONObject item=found.getJSONObject(i);if(!"OWN_PORTAL".equals(item.optString("sourceKind")))external++;
+            safe.put(new org.json.JSONObject().put("title",item.optString("title")).put("url",item.optString("url")).put("published",item.optString("published")).put("sourceKind",item.optString("sourceKind")));
+        }
+        org.json.JSONObject evidence=new org.json.JSONObject().put("sources",safe).put("external",external).put("progressEvents",Integer.parseInt(evaluate("String(window.__liveProgress)").replace("\"","")))
+            .put("status",new org.json.JSONTokener(evaluate("$('ispina-chat-status').textContent")).nextValue());
+        java.io.File dir=new java.io.File(getTargetContext().getFilesDir(),"qa");dir.mkdirs();
+        try(java.io.FileOutputStream out=new java.io.FileOutputStream(new java.io.File(dir,"real-source-recall.json"))){out.write(evidence.toString(2).getBytes(java.nio.charset.StandardCharsets.UTF_8));}
+        if(external<2)throw new AssertionError("LIVE recall below minimum: need two external dated publications; "+evidence);
+        if(evidence.getInt("progressEvents")<3)throw new AssertionError("Native live source progress was not delivered");
+        captureUi("radar-live");
+        result.putString("stream","IL_LIVE_RECALL_TEST=PASS external="+external+" total="+safe.length()+" progress="+evidence.getInt("progressEvents")+"\n");
+    }
+
     private void testFreeRadar() throws Exception {
         long now=System.currentTimeMillis();
         java.text.SimpleDateFormat format=new java.text.SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss Z",java.util.Locale.US);
@@ -421,6 +459,8 @@ public final class ConfirmationInstrumentation extends Instrumentation {
                 if(!"preserved".equals(getTargetContext().getSharedPreferences("il_update_probe",0).getString("marker","")))throw new AssertionError("Preferences lost after reinstall");
                 if(!"true".equals(evaluate("readDraftStore().drafts.some(d=>d.revisions.some(v=>v.snapshot.body==='Pierwsza wersja'))")))throw new AssertionError("Revision history lost");
                 result.putString("stream","IL_UPDATE_DATA_TEST=PASS (drafts, history and preferences preserved across install)\n");
+            } else if("live-recall".equals(mode)){
+                testLiveRecall(result);
             } else {
             diagnosticStage="photo crop";verifyEditorFeatures();
             verifyWorkspaceFeatures();
@@ -443,6 +483,7 @@ public final class ConfirmationInstrumentation extends Instrumentation {
             probe(AlertDialog.BUTTON_POSITIVE, "\"true:1\"", false);
             probe(AlertDialog.BUTTON_NEGATIVE, "\"false:0\"", true);
             testFreeRadar();
+            testPublisherRecall();
             testEditorialMemory();
             testChatGptLogoutSecurity();
             result.putString("memory", "IL_EDITORIAL_MEMORY_TEST=PASS (dedup, explicit review, change invalidation, persistence, export, delete)\n");

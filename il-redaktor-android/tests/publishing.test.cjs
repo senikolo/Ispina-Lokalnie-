@@ -1412,5 +1412,26 @@ test('all-new preset respects the selected window and has no fixed thirty-day wo
 });
 test('dates and incomplete channel reports remain visible alongside chat sources',()=>{
  const a=setup();a.run("ispinaChatMessages=[{role:'assistant',verified:true,content:'Nowy link',sources:[{title:'OSP Ispina',url:'https://example.org/osp',publishedAt:1793505600000}],profiles:[{name:'PSP',status:'unavailable',reason:'HTTP 403'}]}];renderIspinaChat()");
- assert.match(a.node('ispina-chat-log').innerHTML,/Data publikacji według kanału/);assert.match(a.node('ispina-chat-log').innerHTML,/HTTP 403/);
+ assert.match(a.node('ispina-chat-log').innerHTML,/Data publikacji według źródła/);assert.match(a.node('ispina-chat-log').innerHTML,/HTTP 403/);
+});
+
+
+test('live progress shows actual source URLs and access errors before the final result',async()=>{
+ const a=setup();a.run('freeSearchReady=true');a.node('ispina-chat-input').value='Cokolwiek nowego o Ispinie';let id,finish;
+ a.c.IL.askIspinaChatWithDays=rid=>{id=rid;finish=()=>a.c.window.onNativeResult(rid,true,JSON.stringify({answer:'Wynik nierozstrzygający',sources:[],outcome:'INCONCLUSIVE'}));};
+ const pending=a.c.sendIspinaChat();assert.ok(id);
+ a.c.window.onIspinaSearchProgress(id,{sequence:1,name:'Urząd',url:'https://www.drwinia.pl/aktualnosci',stage:'READING',method:'DIRECT_PUBLISHER',detail:'Czytam artykuły'});
+ assert.match(a.node('ispina-chat-live').innerHTML,/www.drwinia.pl\/aktualnosci/);assert.match(a.node('ispina-chat-live').innerHTML,/Czytam stronę/);
+ a.c.window.onIspinaSearchProgress(id,{sequence:2,name:'Urząd',url:'https://www.drwinia.pl/aktualnosci',stage:'ERROR',method:'DIRECT_PUBLISHER',detail:'HTTP 403 <script>bad</script>'});
+ assert.match(a.node('ispina-chat-live').innerHTML,/Błąd odczytu/);assert.doesNotMatch(a.node('ispina-chat-live').innerHTML,/<script>/);
+ finish();await pending;assert.match(a.node('ispina-chat-status').textContent,/nie ustalono/);
+ const before=a.node('ispina-chat-live').innerHTML;a.c.window.onIspinaSearchProgress(id,{sequence:3,name:'Stara odpowiedź',url:'https://example.org/stale',stage:'DONE'});assert.equal(a.node('ispina-chat-live').innerHTML,before);
+});
+test('undated discoveries are visible separately from new publications',async()=>{
+ const a=setup();a.run('freeSearchReady=true');a.node('ispina-chat-input').value='OSP';
+ a.c.IL.askIspinaChatWithDays=id=>a.c.window.onNativeResult(id,true,JSON.stringify({answer:'Nie ustalono dat',sources:[],outcome:'INCONCLUSIVE',undatedSources:[{title:'Dokument OSP',url:'https://example.org/osp'}]}));
+ await a.c.sendIspinaChat();assert.match(a.node('ispina-chat-log').innerHTML,/Materiały do ustalenia daty/);assert.match(a.node('ispina-chat-log').innerHTML,/Dokument OSP/);
+});
+test('quick buttons never overwrite a new question while a scan is running',()=>{
+ const a=setup();a.run('ispinaChatInProgress=true');a.node('ispina-chat-input').value='Moje nowe pytanie';assert.equal(a.c.prefillIspinaChat('Most'),false);assert.equal(a.node('ispina-chat-input').value,'Moje nowe pytanie');
 });
