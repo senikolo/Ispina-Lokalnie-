@@ -506,8 +506,8 @@ function showOutcome(kind,headline,detail,link="",linkLabel="Otwórz w WordPress
   $("finish-panel").classList.toggle("error",kind==="error");
   $("finish-panel").classList.toggle("published",kind==="success"&&isPublishedArticle);
   $("finish-symbol").textContent=kind==="success"?(isPublishedArticle?"✓ SUKCES!":"✓"):"!";
-  $("finish-title").textContent=headline;
   const scopeError=kind==="error"&&isEditorialScopeError(detail);
+  $("finish-title").textContent=scopeError?"Dostęp do wpisów zablokowany":headline;
   $("finish-detail").textContent=scopeError
     ?"Logowanie WordPress.com zostało zakończone, ale dostęp do wpisów jest zablokowany: serwer wymaga zakresu global, a obecna sesja ma zakres auth. Sprawdź ustawienia AI i MCP. Ponowne logowanie z szerszym zakresem wymaga Twojej świadomej zgody."
     :detail;
