@@ -8,6 +8,7 @@ on:
       - 'fix/il-radar-freshness-20261102'
       - 'fix/il-radar-live-recall-20261102'
       - 'fix/il-redaktor-professional-test6-20261102'
+      - 'fix/il-redaktor-test6-auth-scope-recovery-20261102'
     paths:
       - "il-redaktor-android/**"
       - ".github/workflows/il-redaktor-apk.yml"
