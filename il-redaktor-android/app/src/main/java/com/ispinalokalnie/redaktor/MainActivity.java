@@ -270,11 +270,11 @@ public class MainActivity extends Activity {
         String detail = e.getMessage() == null ? "Brak szczegółów." : e.getMessage();
         String lower = detail.toLowerCase(java.util.Locale.ROOT);
         if (lower.contains("required scope") && lower.contains("global") && lower.contains("auth"))
-            return "AUTH_SCOPE: WordPress przyznał tylko podstawowy zakres auth. Dostęp redakcyjny MCP wymaga global. Otwórz zakładkę Połączenie i wybierz Zaloguj do WordPress.com, aby ponownie zatwierdzić szerszy zakres. Nie podawaj hasła w aplikacji.";
+            return "AUTH_SCOPE: Serwer MCP wymaga zakresu global, choć bieżąca instrukcja WordPress.com MCP podaje auth. Nie zwiększam uprawnień automatycznie. Sprawdź na WordPress.com > AI i MCP > Content Authoring oraz ponów autoryzację. Nie podawaj hasła w aplikacji. Szczegóły: " + detail;
         if (lower.contains("http 401") || lower.contains("invalid_token") || lower.contains("unauthorized"))
             return "AUTH_401: Sesja WordPress.com jest nieważna lub wygasła. Rozłącz konto i zaloguj się ponownie. Szczegóły: " + detail;
         if (lower.contains("http 403") || lower.contains("forbidden") || lower.contains("permission"))
-            return "AUTH_403: Konto nie ma dostępu do odczytu MCP. Sprawdź WordPress.com > AI i MCP > Odczyt > Content Authoring. Szczegóły: " + detail;
+            return "AUTH_403: Serwer odmówił dostępu MCP. Sprawdź WordPress.com > AI i MCP, uprawnienia Odczyt i Zapis > Content Authoring oraz ustawienia witryny Ispina Lokalnie. Szczegóły: " + detail;
         if (lower.contains("http 404"))
             return "MCP_404: Serwer nie rozpoznał żądania MCP lub sesja wygasła. Spróbuj ponownie. Szczegóły: " + detail;
         if (lower.contains("timed out") || lower.contains("timeout") || lower.contains("unknownhost") ||
