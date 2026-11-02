@@ -1599,3 +1599,115 @@ test("scope recovery navigates to existing settings and never grants global scop
   assert.match(html,/function retryWithEditorialScope\(\)\{/);
   assert.match(html,/if\(!confirm\("WordPress może przyznać zakres global/);
 });
+
+// Stateful WordPress double: omitted fields retain their existing server values.
+// This detects clears that the older echo-only fixture could not distinguish.
+function editablePostFixture(options={}){
+  const a=setup(),calls=[];
+  let remote={...wpFixture(920,'draft'),featured_media:99,tags:[10,20],...options};
+  a.c.initial=remote;assert.equal(a.run('fillRemotePost(initial)'),true);
+  a.c.rpc=async(method,url,body)=>{
+    calls.push({method,url,body});
+    if(url.startsWith('tags?'))return [{id:10,name:'Ispina'},{id:20,name:'Historia'}];
+    if(method==='POST'){
+      remote={...remote,...body,title:{raw:body.title},content:{raw:body.content},excerpt:{raw:body.excerpt}};
+      return remote;
+    }
+    return remote;
+  };
+  return {...a,calls,remote:()=>remote};
+}
+test('TEST-7 removes an existing featured image with explicit zero and verifies it',async()=>{
+  const a=editablePostFixture();a.c.clearPostMedia();await a.run("savePost('draft')");
+  assert.equal(a.calls.find(x=>x.method==='POST').body.featured_media,0);
+  assert.equal(a.remote().featured_media,0);
+  assert.match(a.node('finish-title').textContent,/Szkic zapisany/);
+});
+test('TEST-7 does not confirm success when the server ignores image removal',async()=>{
+  const a=editablePostFixture();const transport=a.c.rpc;
+  a.c.rpc=async(method,url,body)=>{const r=await transport(method,url,body);return method==='GET'?{...r,featured_media:99}:r;};
+  a.c.clearPostMedia();await a.run("savePost('draft')");
+  assert.equal(a.node('finish-title').textContent,'TREŚĆ NIEPOTWIERDZONA');
+});
+test('TEST-7 displays and preserves existing tag identifiers before names load',async()=>{
+  const a=editablePostFixture();assert.equal(a.node('post-tags').value,'[ID: 10], [ID: 20]');
+  await a.run("savePost('draft')");
+  assert.deepEqual(Array.from(a.remote().tags),[10,20]);
+  assert.equal(a.calls.filter(x=>x.url.startsWith('tags')).length,0);
+});
+test('TEST-7 loads tag names and sends an empty array after the field is cleared',async()=>{
+  const a=editablePostFixture();assert.equal(await a.c.loadPostTagNames(),true);
+  assert.equal(a.node('post-tags').value,'Ispina, Historia');
+  a.node('post-tags').value='';await a.run("savePost('draft')");
+  assert.deepEqual(Array.from(a.calls.find(x=>x.method==='POST').body.tags),[]);
+  assert.deepEqual(Array.from(a.remote().tags),[]);
+});
+test('TEST-7 preserves tags in an older blank draft and supports deliberate clearing after restart',async()=>{
+  const a=editablePostFixture();a.node('post-tags').value='';
+  a.run('delete remoteBaseline.tagText;delete remoteBaseline.tags;persistDraft(true)');
+  const restored=setup([...a.storage.entries()]);restored.run("restoreLocal(true)");
+  let sent;restored.c.preflightRemote=async()=>true;
+  restored.c.rpc=async(method,url,body)=>{if(method==='POST'){sent=body;return {id:920,status:'draft'}}return {id:920,status:'draft'};};
+  await restored.run("savePost('draft')");assert.deepEqual(Array.from(sent.tags),[10,20]);
+  restored.c.clearPostTags();await restored.run("savePost('draft')");assert.deepEqual(Array.from(sent.tags),[]);
+});
+test('TEST-7 tag-name lookup cannot overwrite typing or another draft',async()=>{
+  const a=editablePostFixture();let complete;a.c.rpc=()=>new Promise(r=>{complete=r});
+  const lookup=a.c.loadPostTagNames();a.node('post-tags').value='Moja nowa lista';
+  complete([{id:10,name:'Ispina'},{id:20,name:'Historia'}]);await lookup;
+  assert.equal(a.node('post-tags').value,'Moja nowa lista');
+  const b=editablePostFixture();let done;b.c.rpc=()=>new Promise(r=>{done=r});
+  const pending=b.c.loadPostTagNames();b.run('resetEditor()');b.node('post-tags').value='Inny szkic';
+  done([{id:10,name:'Ispina'}]);await pending;assert.equal(b.node('post-tags').value,'Inny szkic');
+});
+test('TEST-7 tag lookup failure preserves IDs and unresolved IDs survive partial name lookup',async()=>{
+  const a=editablePostFixture();a.c.rpc=async()=>{throw Error('offline')};
+  assert.equal(await a.c.loadPostTagNames(),false);assert.equal(a.node('post-tags').value,'[ID: 10], [ID: 20]');
+  a.c.rpc=async()=>[{id:10,name:'Ispina'}];await a.c.loadPostTagNames();
+  assert.equal(a.node('post-tags').value,'Ispina, [ID: 20]');
+});
+test('TEST-7 pending tag deletion survives backup and restart',async()=>{
+  const a=editablePostFixture();a.c.clearPostTags();a.c.persistDraft(true);
+  const backup=JSON.parse(a.c.makeDraftBackup());assert.equal(backup.drafts.at(-1).tags,'');
+  assert.equal(backup.drafts.at(-1).remoteBaseline.tagText,'[ID: 10], [ID: 20]');
+  const b=setup([...a.storage.entries()]);b.run('restoreLocal(true)');
+  assert.equal(b.node('post-tags').value,'');assert.equal(b.run('remoteBaseline.tagText'),'[ID: 10], [ID: 20]');
+});
+test('TEST-7 verifies exact tag and category sets including empty sets',()=>{
+  const a=setup();a.c.sent={title:'T',content:'<p>C</p>',excerpt:'',categories:[1],tags:[],featured_media:0};
+  a.c.received={title:{raw:'T'},content:{raw:'<p>C</p>'},excerpt:{raw:''},categories:[1,2],tags:[10],featured_media:0};
+  const differences=a.run('verifyWordPressPostContents(sent,received)');
+  assert.ok(differences.includes('niepotwierdzone tagi'));assert.ok(differences.includes('niepotwierdzone kategorie'));
+});
+for(const field of ['post-title','post-body','post-excerpt']){
+  for(const route of ['future','published-draft','scheduled-draft']){
+    test('TEST-7 blocks placeholders in '+field+' via '+route,async()=>{
+      const a=editablePostFixture({status:route==='published-draft'?'publish':route==='scheduled-draft'?'future':'draft'});
+      a.node('post-schedule').value=dateInFuture(60);a.node(field).value='Niegotowe [DO SPRAWDZENIA: źródło]';
+      await a.run(route==='future'?"savePost('future')":"savePost('draft')");
+      assert.equal(a.calls.filter(x=>x.method==='POST').length,0);
+      assert.match(a.node('post-output').innerHTML,/Nie publikuję/);
+    });
+  }
+}
+test('TEST-7 still allows saving an incomplete unpublished draft',async()=>{
+  const a=setup();a.node('post-body').value='[DO UZUPEŁNIENIA]';let writes=0;
+  a.c.rpc=async method=>method==='POST'?(writes++,{id:930,status:'draft'}):{id:930,status:'draft'};
+  await a.run("savePost('draft')");assert.equal(writes,1);assert.match(a.node('finish-title').textContent,/Szkic zapisany/);
+});
+test('TEST-7 distinguishes saved session, read access and a verified draft write',async()=>{
+  const a=setup();a.c.loadCategories=async()=>{};
+  a.run('window.onNativeResult("auth",true,\'{"connected":true}\')');
+  assert.match(a.node('connection-checks').textContent,/Sesja: zapisana.*Odczyt wpisów: niepotwierdzony.*Zapis szkicu: niepotwierdzony/);
+  a.run('window.onNativeResult("verify",true,"{}")');
+  assert.match(a.node('connection-checks').textContent,/Odczyt wpisów: potwierdzony.*Zapis szkicu: niepotwierdzony/);
+  a.c.rpc=async method=>method==='POST'?{id:931,status:'draft'}:{id:931,status:'draft'};
+  await a.run("savePost('draft')");assert.match(a.node('connection-checks').textContent,/Zapis szkicu: potwierdzony/);
+  a.run('window.onNativeResult("auth",true,\'{"connected":false}\')');
+  assert.match(a.node('connection-checks').textContent,/Sesja: brak.*Zapis szkicu: niepotwierdzony/);
+});
+test('TEST-7 draft diagnostic rejects matching status with wrong content',async()=>{
+  const a=setup();a.c.rpc=async method=>method==='POST'?{id:932,status:'draft'}:{id:932,status:'draft',content:{raw:'Inny tekst'}};
+  await a.c.testDraftWrite();assert.match(a.node('finish-title').textContent,/NIEZWERYFIKOWANY/);
+  assert.equal(a.run('connectionChecks.draft'),false);
+});

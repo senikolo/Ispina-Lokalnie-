@@ -217,7 +217,7 @@ jobs:
           test -s "$APK"
           SDK_ROOT="${ANDROID_HOME:-/usr/local/lib/android/sdk}"
           "$SDK_ROOT/build-tools/35.0.0/apksigner" verify --verbose "$APK"
-          "$SDK_ROOT/build-tools/35.0.0/aapt" dump badging "$APK" | grep -F "package: name='com.ispinalokalnie.redaktorsmart.stable' versionCode='50' versionName='2.0.0-professional-test.6'"
+          "$SDK_ROOT/build-tools/35.0.0/aapt" dump badging "$APK" | grep -F "package: name='com.ispinalokalnie.redaktorsmart.stable' versionCode='51' versionName='2.0.0-professional-test.7'"
       - name: Upload test APK for manual login diagnostics
         uses: actions/upload-artifact@v4
         with:
@@ -251,7 +251,7 @@ jobs:
           test -s "$APK"
           test -s il-redaktor-android/app/src/main/assets/il-monogram.png
           "$SDK_ROOT/build-tools/35.0.0/apksigner" verify --verbose "$APK"
-          "$SDK_ROOT/build-tools/35.0.0/aapt" dump badging "$APK" | grep -F "package: name='com.ispinalokalnie.redaktorsmart.stable' versionCode='50' versionName='2.0.0-professional-test.6'"
+          "$SDK_ROOT/build-tools/35.0.0/aapt" dump badging "$APK" | grep -F "package: name='com.ispinalokalnie.redaktorsmart.stable' versionCode='51' versionName='2.0.0-professional-test.7'"
           unzip -l "$APK" | grep 'assets/il-monogram.png'
       - name: Upload installable APK
         uses: actions/upload-artifact@v4
@@ -296,19 +296,48 @@ jobs:
             exit 1
           fi
           mkdir -p "$RUNNER_TEMP/il-signed-upgrade"
-          cp "$APK" "$RUNNER_TEMP/il-signed-upgrade/IL-Redaktor-Smart-2.0.0-professional-test.6-UPDATE.apk"
+          cp "$APK" "$RUNNER_TEMP/il-signed-upgrade/IL-Redaktor-Smart-2.0.0-professional-test.7-UPDATE.apk"
           echo "Signed upgrade APK created with the existing release certificate."
       - name: Upload verified signed upgrade when available
         uses: actions/upload-artifact@v4
         with:
           name: IL-Redaktor-Signed-Upgrade
-          path: ${{ runner.temp }}/il-signed-upgrade/IL-Redaktor-Smart-2.0.0-professional-test.6-UPDATE.apk
+          path: ${{ runner.temp }}/il-signed-upgrade/IL-Redaktor-Smart-2.0.0-professional-test.7-UPDATE.apk
           if-no-files-found: ignore
           retention-days: 30
       - uses: actions/upload-artifact@v4
         with:
           name: IL-Redaktor-Signing-Tools
           path: /usr/local/lib/android/sdk/build-tools/35.0.0/lib/apksigner.jar
+          retention-days: 30
+      - name: Record APK signing and update eligibility
+        env:
+          IL_BUILD_SHA: ${{ github.sha }}
+        run: |
+          python3 - <<'PY'
+          import hashlib,json,os,pathlib,re,subprocess
+          root=pathlib.Path('il-redaktor-android')
+          apk=root/'app/build/outputs/apk/debug/app-debug.apk'
+          signer=pathlib.Path(os.environ.get('ANDROID_HOME','/usr/local/lib/android/sdk'))/'build-tools/35.0.0/apksigner'
+          output=subprocess.check_output([str(signer),'verify','--print-certs',str(apk)],text=True)
+          certificate=re.search(r'certificate SHA-256 digest: ([0-9a-fA-F]+)',output)
+          if not certificate: raise RuntimeError('APK certificate was not verified')
+          update=pathlib.Path(os.environ['RUNNER_TEMP'])/'il-signed-upgrade/IL-Redaktor-Smart-2.0.0-professional-test.7-UPDATE.apk'
+          evidence={'commit':os.environ['IL_BUILD_SHA'],'versionName':'2.0.0-professional-test.7','versionCode':51,
+            'apkKind':'debug','apkSha256':hashlib.sha256(apk.read_bytes()).hexdigest(),
+            'debugCertificateSha256':certificate.group(1).lower(),
+            'expectedReleaseCertificateSha256':(root/'release-certificate.sha256').read_text().strip(),
+            'signedReleaseUpdateAvailable':update.is_file(),'phoneUpdateVerified':False,
+            'note':'Debug CI migration tests use the same temporary key for both APKs. They do not verify compatibility with the installed phone APK. Preserve drafts and Radar; do not uninstall to bypass a signature conflict.'}
+          target=root/'app/build/outputs/apk/IL-Redaktor-build-evidence.json'
+          target.write_text(json.dumps(evidence,ensure_ascii=False,indent=2)+'\n')
+          print(json.dumps({'signedReleaseUpdateAvailable':update.is_file(),'phoneUpdateVerified':False}))
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: IL-Redaktor-Build-Evidence
+          path: il-redaktor-android/app/build/outputs/apk/IL-Redaktor-build-evidence.json
+          if-no-files-found: error
           retention-days: 30
 
   android:

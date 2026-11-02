@@ -14,14 +14,14 @@ main{max-width:760px;margin:auto;padding:15px}
 .panel{display:none}.panel.active{display:block}
 .card{background:white;border:1px solid #e2eaf4;border-radius:17px;padding:16px;margin:0 0 13px;box-shadow:0 2px 7px #2039580b}
 h2{font-size:18px;margin:0 0 12px}h3{font-size:15px;margin:8px 0}
-label{display:block;font-size:13px;font-weight:700;margin:12px 0 6px;color:#365a7f}
+label{display:block;font-size:14px;font-weight:700;margin:12px 0 6px;color:#365a7f}
 input,select,textarea{width:100%;min-height:44px;border:1px solid #cbd9e9;border-radius:10px;background:white;color:#1a3047;padding:11px 12px;font-family:inherit;font-size:15px}
 textarea{min-height:205px;resize:vertical;line-height:1.55}
 button{background:#116ac0;border:0;border-radius:11px;padding:11px 15px;color:white;font-weight:750;font-size:14px;min-height:43px;cursor:pointer}
 button:disabled{opacity:.5}button.secondary{background:#e7f2fc;color:#14538f}button.danger{background:#fff2ef;color:#a03027}
 .actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
-.muted{color:#5b718a;font-size:13px;line-height:1.6}
-.small{font-size:12px}.status{display:flex;align-items:center;gap:8px;font-weight:700;font-size:13px}
+.muted{color:#5b718a;font-size:14px;line-height:1.6}
+.small{font-size:14px}.status{display:flex;align-items:center;gap:8px;font-weight:700;font-size:14px}
 .dot{height:10px;width:10px;background:#e9a32c;border-radius:100%}.dot.on{background:#16a879}
 .note{padding:10px 13px;border-radius:12px;background:#eaf5ff;color:#215482;font-size:13px;margin:11px 0;line-height:1.6}
 .note.error{background:#ffefed;color:#982a26}.note.ok{background:#e6f8ee;color:#166842}
@@ -29,7 +29,7 @@ button:disabled{opacity:.5}button.secondary{background:#e7f2fc;color:#14538f}but
 .post{padding:12px 0;border-bottom:1px solid #e6ebf3}.post:last-child{border:0}
 .post b{display:block;line-height:1.45}.post span{display:block;font-size:12px;color:#637894;margin:3px 0 7px}
 nav{position:fixed;z-index:5;bottom:0;left:0;right:0;display:grid;grid-template-columns:repeat(6,minmax(0,1fr));background:white;border-top:1px solid #e0e9f5;box-shadow:0 -5px 20px #153f6810;padding:8px 4px max(9px,env(safe-area-inset-bottom))}
-nav button{background:none;color:#627b99;border-radius:12px;font-weight:700;font-size:9px;padding:7px 1px;min-width:0}
+nav button{background:none;color:#627b99;border-radius:12px;font-weight:700;font-size:12px;padding:7px 2px;min-width:0;overflow-wrap:anywhere}
 nav button.active{color:#095eb6;background:#edf6ff}nav button .sym{display:block;font-size:22px;margin-bottom:3px}
 .grid{display:grid;grid-template-columns:1fr 1fr;gap:9px}
 .badge{display:inline-block;background:#eaf4ff;color:#1758a1;border-radius:50px;padding:3px 10px;font-size:12px}
@@ -63,7 +63,7 @@ nav button.active{color:#174875;background:#edf5fb}
 .media-card button{width:100%;font-size:12px;margin-top:8px}
 #editor-metrics{font-size:12px}
 .wide{width:100%}
-@media(max-width:370px){.actions button{flex:1}header h1{font-size:22px}nav button{font-size:9px}}
+@media(max-width:370px){.actions button{flex:1}header h1{font-size:22px}nav button{font-size:12px}}
 .finish-dialog{position:fixed;top:0;right:0;bottom:0;left:0;inset:0;background:#112e4db5;z-index:20;display:flex;align-items:center;justify-content:center;padding:20px}
 .finish-panel{width:100%;max-width:470px;background:#fff;border-radius:22px;padding:24px;box-shadow:0 20px 60px #001b3650}
 .finish-symbol{font-size:35px;line-height:1;color:#148450}.finish-panel.error .finish-symbol{color:#b03f3a}
@@ -133,7 +133,7 @@ nav button.active{color:var(--il-blue);background:#e6f0f8}
 .brand .logo{animation:ilGleam 4.2s ease-in-out infinite}
 .settings-group{margin-top:15px}
 .settings-title{display:flex;align-items:center;gap:8px}
-.setting-caption{color:#62778a;font-size:12px;line-height:1.55}
+.setting-caption{color:#62778a;font-size:14px;line-height:1.55}
 .recovery-card{padding:14px;background:#f1f7fd;border:1px solid #c8e0f0;border-radius:15px;margin:14px 0;animation:ilRise .27s ease both}
 .recovery-card h3{font-size:19px;margin-bottom:7px}
 .recovery-card p{font-size:13px;line-height:1.6;color:#35536e}
@@ -172,7 +172,7 @@ a{color:#1767a8}:root[data-theme="dark"] a{color:#9ecfff}
 .correction-columns{display:grid;grid-template-columns:1fr 1fr;gap:12px}.correction-columns pre{white-space:pre-wrap;overflow-wrap:anywhere;font:inherit;margin:8px 0;max-height:280px;overflow:auto}.diff-added{background:#d9f1df;color:#153c25;text-decoration:underline}.diff-removed{background:#ffe0df;color:#7d2524;text-decoration:line-through}.correction-field{border-top:1px solid var(--ui-line,#dbe7ef);padding:14px 0}.chat-line{padding:8px 0;overflow-wrap:anywhere}.chat-line strong{display:block}#correction-fields label{display:flex;gap:10px;align-items:center}#correction-fields input[type=checkbox]{width:auto;min-height:24px}.finish-panel{max-height:90vh;overflow:auto}@media(max-width:500px){.correction-columns{grid-template-columns:1fr}}
 
 /* Explicit edges and button spacing also support older Android WebViews. */
-.actions{gap:0}.actions>button{margin-right:6px;margin-bottom:6px}.hero-card{padding:16px}.hero-card>.row{flex-wrap:nowrap;align-items:flex-start}.hero-card>.row>.home-mark{width:50px;height:50px;flex:0 0 50px}.hero-card>.row>div{flex:1 1 0;min-width:0}.hero-card h2{font-size:22px;margin-bottom:4px}.hero-card .eyebrow{font-size:9px}.hero-card .muted{font-size:12px}.hero-card .actions{margin-top:10px}#home-connection{padding:0;margin:9px 0;border:0;background:transparent}#home-connection>.note{margin:0;padding:9px 11px;font-size:12px}
+.actions{gap:0}.actions>button{margin-right:6px;margin-bottom:6px}.hero-card{padding:16px}.hero-card>.row{flex-wrap:nowrap;align-items:flex-start}.hero-card>.row>.home-mark{width:50px;height:50px;flex:0 0 50px}.hero-card>.row>div{flex:1 1 0;min-width:0}.hero-card h2{font-size:22px;margin-bottom:4px}.hero-card .eyebrow{font-size:9px}.hero-card .muted{font-size:14px}.hero-card .actions{margin-top:10px}#home-connection{padding:0;margin:9px 0;border:0;background:transparent}#home-connection>.note{margin:0;padding:9px 11px;font-size:14px}
 /* 1.16: one-shot opening motion, editorial tiles and accessible calendar */
 @keyframes ilOpen{from{opacity:0;transform:translateY(12px) scale(.99)}to{opacity:1;transform:none}}
 @keyframes ilHeader{from{opacity:0;transform:translateY(-10px)}to{opacity:1;transform:none}}
@@ -331,6 +331,7 @@ header{animation:ilHeader .38s cubic-bezier(.2,.7,.2,1) both}.brand .logo{animat
     <label style="flex:1">Format<select id="post-mode"><option value="text">Tekst → HTML</option><option value="html">HTML / bloki WordPress</option></select></label></div>
     <label for="post-excerpt">Krótki opis / zajawka SEO</label><textarea id="post-excerpt" style="min-height:80px" placeholder="Opis wyświetlany na liście wpisów..."></textarea>
     <label for="post-tags">Tagi (oddziel przecinkami)</label><input id="post-tags" placeholder="Ispina, historia Ispiny">
+    <p id="post-tags-status" class="small muted" role="status"></p><div class="actions"><button class="secondary" onclick="loadPostTagNames()">Wczytaj nazwy tagów</button><button class="secondary" onclick="clearPostTags()">Usuń wszystkie tagi</button></div>
     <label for="post-media">Zdjęcie wyróżniające</label>
     <input id="post-media" type="hidden" value="0"><p id="post-media-summary" class="small muted">Brak wybranego zdjęcia</p>
     <div class="actions"><button class="secondary" onclick="IL.chooseImage()">Dodaj zdjęcie z telefonu</button><button class="secondary" onclick="showScreen('media');loadMedia()">Wybierz z galerii IL</button><button class="secondary" onclick="clearPostMedia()">Usuń zdjęcie</button></div>
@@ -398,6 +399,7 @@ header{animation:ilHeader .38s cubic-bezier(.2,.7,.2,1) both}.brand .logo{animat
     <h2>Logowanie do WordPressa</h2>
     <p class="muted">Portal: <b>ispinalokalnie.wordpress.com</b><br>Identyfikator witryny: <b>252442125</b></p>
     <div id="settings-state" class="note">Sprawdzanie autoryzacji...</div>
+    <div id="connection-checks" class="note" role="status" aria-live="polite">Sesja: sprawdzanie · Odczyt: niepotwierdzony · Zapis szkicu: niepotwierdzony</div>
     <button class="wide primary-login" onclick="signInGoogle()"><span style="display:inline-block;background:#fff;color:#4285f4;border-radius:7px;padding:4px 9px;margin-right:8px;font-weight:900">G</span> Zaloguj do WordPress.com (także przez Google)</button>
     <p class="setting-caption">Logowanie otworzy WordPress.com w przeglądarce, także z kontem Google. Najpierw poprosimy o zakres <strong>auth</strong>, opisany w bieżącej instrukcji WordPress.com MCP. Jeśli serwer odmówi odczytu wpisów, możesz świadomie ponowić logowanie z szerszym dostępem <strong>global</strong>. Radar, IL Chat i lokalne szkice działają bez logowania.</p>
     <details id="editorial-scope-help" class="settings-group"><summary>Serwer odmawia dostępu do wpisów?</summary><p class="setting-caption">Najpierw sprawdź ustawienia WordPress.com &gt; AI i MCP &gt; Content Authoring (odczyt i zapis). Jeśli WordPress mimo to zgłasza wymagany zakres global, ta opcja poprosi o szerszy dostęp do konta, nie tylko do Ispina Lokalnie. Nie jest potrzebne hasło w Redaktorze.</p><button class="secondary" onclick="retryWithEditorialScope()">Zaloguj z pełnymi uprawnieniami redakcyjnymi</button></details>
@@ -707,7 +709,7 @@ window.onNativeResult=function(id,ok,payload){
   }
   if(id==="status"){
     try{
-      const s=JSON.parse(payload); connected=false;
+      const s=JSON.parse(payload); connected=false;connectionChecks={session:!!s.connected,read:false,draft:false};
       reflectAuth();
       IL.assistantStatus();
       if(s.connected){message("settings-state","Weryfikuję dostęp do wpisów...");IL.verify();}
@@ -773,20 +775,20 @@ window.onNativeResult=function(id,ok,payload){
     stopAuthWaitTimer();
     if(ok){
       let tokenSaved=false;try{tokenSaved=!!JSON.parse(payload).connected}catch(e){}
-      connected=false;reflectAuth();
+      connected=false;connectionChecks={session:tokenSaved,read:false,draft:false};reflectAuth();
       if(tokenSaved){showLoginRecovery(false);message("auth-output","WordPress zatwierdził logowanie. Sprawdzam dostęp do wpisów...");}
       else message("auth-output","Konto rozłączone.","ok");
     } else message("auth-output",payload,"error");
   }
   if(id==="verify"){
     stopAuthWaitTimer();
-    connected=!!ok;
+    connected=!!ok;connectionChecks.read=!!ok;if(ok)connectionChecks.session=true;else{connectionChecks.draft=false;if(/AUTH_401|NO_SESSION/.test(payload))connectionChecks.session=false;}
     reflectAuth();
     if(ok){
       showLoginRecovery(false);
       message("auth-output","✓ Zalogowano pomyślnie do Ispina Lokalnie. Odczyt artykułów potwierdzony przez WordPress.","ok");
       showOutcome("success","✓ Zalogowano pomyślnie do Ispina Lokalnie.","WordPress.com potwierdził dostęp do opublikowanych artykułów. Możliwość publikowania weryfikujemy osobno.");
-      message("home-connection","Konto WordPress połączone i zweryfikowane. Możesz pracować nad portalem.","ok");
+      message("home-connection","Odczyt wpisów potwierdzony. Zapis szkicu potwierdzimy dopiero po rzeczywistym zapisie i ponownym odczycie.","ok");
       loadCategories();
     }else{
       message("auth-output",payload,"error");
@@ -829,7 +831,13 @@ function reflectAuth(){
   $("settings-state").className="note "+(connected?"ok":"error");
   $("settings-state").textContent=connected?"Połączenie przez WordPress MCP potwierdzone (odczyt). Publikacja wymaga własnej kontroli.":"Nie masz zweryfikowanej sesji. Zaloguj się lub sprawdź połączenie.";
   if(connected)message("home-connection","Połączono z WordPressem: Ispina Lokalnie.","ok");
+  renderConnectionChecks();
 }
+let connectionChecks={session:false,read:false,draft:false};
+function renderConnectionChecks(){
+  $("connection-checks").textContent="Sesja: "+(connectionChecks.session?"zapisana":"brak")+" · Odczyt wpisów: "+(connectionChecks.read?"potwierdzony":"niepotwierdzony")+" · Zapis szkicu: "+(connectionChecks.draft?"potwierdzony w tej sesji":"niepotwierdzony w tej sesji");
+}
+function markDraftWriteConfirmed(){connectionChecks.draft=true;renderConnectionChecks();}
 function showLoginRecovery(show){$("login-recovery").classList.toggle("hidden",!show)}
 function checkLoginState(){if(IL.loginState)IL.loginState()}
 function cancelLoginFlow(){if(IL.cancelLogin)IL.cancelLogin()}
@@ -1541,8 +1549,10 @@ async function testDraftWrite(){
     operationBanner("busy","Test: sprawdzam utworzony szkic #"+createdId);
     message("test-write-result","Etap 2/2: szkic #"+createdId+" zapisany; sprawdzam jego status ponownym odczytem.");
     const confirmed=await rpc("GET","posts/"+createdId+"?context=edit");
-    if(Number(confirmed.id)!==createdId||confirmed.status!=="draft")
-      throw Error("WordPress zwrócił nieoczekiwany status: "+String(confirmed.status||"brak"));
+    const raw=v=>typeof v==="string"?v:v?.raw;
+    if(Number(confirmed.id)!==createdId||confirmed.status!=="draft"||raw(confirmed.title)!==body.title||normalizedPublishedHtml(raw(confirmed.content))!==normalizedPublishedHtml(body.content))
+      throw Error("WordPress nie potwierdził numeru, statusu, tytułu lub treści szkicu.");
+    markDraftWriteConfirmed();
     const link="https://wordpress.com/post/ispinalokalnie.wordpress.com/"+createdId;
     const detail="WordPress potwierdził utworzenie i ponowny odczyt szkicu #"+createdId+". Status: draft. Szkic nie został opublikowany; możesz otworzyć go i usunąć w WordPressie.";
     message("test-write-result","SUKCES! "+detail,"ok");
@@ -1565,7 +1575,7 @@ async function loadCategories(){
   }catch(e){ /* Existing verified category IDs remain usable. */ }
 }
 function disconnect(){
-  if(confirm("Usunąć lokalnie zapisaną sesję WordPress z tego telefonu? Aby cofnąć zgodę aplikacji, zrób to w ustawieniach dostępu MCP na WordPress.com.")){IL.disconnect();connected=false;reflectAuth()}
+  if(confirm("Usunąć lokalnie zapisaną sesję WordPress z tego telefonu? Aby cofnąć zgodę aplikacji, zrób to w ustawieniach dostępu MCP na WordPress.com.")){IL.disconnect();connected=false;connectionChecks={session:false,read:false,draft:false};reflectAuth()}
 }
 function inlineEditorialHtml(input){
   const source=String(input??""),pattern=/\[([^\]\n]+)\]\((https?:\/\/[^\s)]+)\)|\*\*([^*\n]+)\*\*|\*([^*\n]+)\*|_([^_\n]+)_/g;
@@ -1728,14 +1738,54 @@ function suggest(){
   offerCorrection(proposal,"Lokalna korekta nazw i propozycje SEO. Daty, nazwiska i wydarzenia wymagają osobnego sprawdzenia.");
 }
 async function ensureTags(list){
+  if(list.length>100)throw Error("Wpis może mieć najwyżej 100 tagów w Redaktorze. Niczego nie ucinam automatycznie.");
   const result=[];
-  for(const name of list.slice(0,6)){
+  const preserved=baselineTagIds(remoteBaseline);
+  for(const name of list){
+    const reference=/^\[ID: (\d+)\]$/.exec(name);
+    if(reference&&preserved.includes(Number(reference[1]))){result.push(Number(reference[1]));continue;}
     let found=await rpc("GET","tags?search="+encodeURIComponent(name)+"&per_page=50");
     let tag=Array.isArray(found)?found.find(t=>t.name.toLowerCase()===name.toLowerCase()):null;
     if(!tag)tag=await rpc("POST","tags",{name});
-    if(tag.id)result.push(tag.id);
+    if(!Number.isSafeInteger(Number(tag.id))||Number(tag.id)<=0)throw Error("WordPress nie potwierdził identyfikatora tagu „"+name+"”.");
+    result.push(Number(tag.id));
   }
-  return result;
+  return [...new Set(result)];
+}
+function baselineTagIds(baseline){
+  try{const ids=Array.isArray(baseline?.tags)?baseline.tags:JSON.parse(baseline?.signature||"{}").tags;return Array.isArray(ids)?[...new Set(ids.map(Number).filter(id=>Number.isSafeInteger(id)&&id>0))]:[];}catch(e){return [];}
+}
+function renderPostTagStatus(){
+  const ids=baselineTagIds(remoteBaseline),unresolved=ids.length&&typeof remoteBaseline?.tagText!=="string";
+  $("post-tags-status").textContent=unresolved?"Starsza kopia: zachowuję istniejące tagi. Wczytaj ich nazwy, aby je edytować, lub świadomie wybierz Usuń wszystkie tagi.":ids.length?"Tagi wczytane. Oznaczenie [ID: numer] zachowuje tag, którego nazwy jeszcze nie odczytano. Puste pole oznacza usunięcie wszystkich tagów przy zapisie.":"Tagi są opcjonalne. Puste pole oznacza brak tagów.";
+}
+function clearPostTags(){
+  if(publicationBusy||!confirm("Usunąć wszystkie tagi tego wpisu przy następnym zapisie do WordPressa?"))return false;
+  // A marker also records an explicit clear in legacy drafts with an empty field.
+  if(remoteBaseline)remoteBaseline={...remoteBaseline,tagsCleared:true,tagText:remoteBaseline.tagText??baselineTagIds(remoteBaseline).map(id=>"[ID: "+id+"]").join(", ")};
+  $("post-tags").value="";renderPostTagStatus();scheduleLocalSave();return true;
+}
+async function loadPostTagNames(){
+  if(publicationBusy||!connected)return false;
+  const ids=baselineTagIds(remoteBaseline),draft=activeDraftId,id=postId,baseline=remoteBaseline,text=$("post-tags").value;
+  if(!ids.length){renderPostTagStatus();return true;}
+  const names=new Map();$("post-tags-status").textContent="Odczytuję nazwy istniejących tagów…";
+  try{
+    // tags.list already supports bounded pagination; no assumed MCP include/get schema.
+    for(let page=1;page<=10;page++){
+      const tags=await rpc("GET","tags?per_page=100&page="+page);
+      if(!Array.isArray(tags))throw Error("Nieprawidłowa lista tagów.");
+      for(const tag of tags)if(ids.includes(Number(tag.id))&&typeof tag.name==="string"&&!tag.name.includes(","))names.set(Number(tag.id),tag.name);
+      if(ids.every(tag=>names.has(tag))||tags.length<100)break;
+      if(publicationBusy||id!==postId||draft!==activeDraftId||baseline!==remoteBaseline||text!==$("post-tags").value)return false;
+    }
+    if(publicationBusy||id!==postId||draft!==activeDraftId||baseline!==remoteBaseline||text!==$("post-tags").value)return false;
+    const original=baseline.tagText??"";
+    if(text!==original){renderPostTagStatus();return false;}
+    const label=ids.map(tag=>names.get(tag)||"[ID: "+tag+"]").join(", ");
+    remoteBaseline={...baseline,tagText:label};$("post-tags").value=label;
+    renderPostTagStatus();persistDraft();return true;
+  }catch(e){if(id===postId&&draft===activeDraftId&&baseline===remoteBaseline)$("post-tags-status").textContent="Nie odczytano nazw tagów: "+e.message+". Dotychczasowe identyfikatory są zachowane.";return false;}
 }
 function normalizedPublishedHtml(html){
   return String(html||"").replace(/<!--\s*\/?wp:[\s\S]*?-->/g,"").replace(/>\s+</g,"><").replace(/\s+/g," ").trim();
@@ -1752,18 +1802,24 @@ function verifyWordPressPostContents(sent,received){
   const remoteHtml=value(received.content);
   if(remoteHtml===null||normalizedPublishedHtml(remoteHtml)!==normalizedPublishedHtml(sent.content))differences.push("inna lub nieodczytana treść HTML");
   if(value(received.excerpt)!==sent.excerpt)differences.push("inna lub nieodczytana zajawka");
-  if(!Array.isArray(received.categories)||!sent.categories.every(id=>received.categories.map(Number).includes(Number(id))))differences.push("niepotwierdzone kategorie");
+  const sameIds=(a,b)=>Array.isArray(a)&&Array.isArray(b)&&JSON.stringify([...new Set(a.map(Number))].sort((x,y)=>x-y))===JSON.stringify([...new Set(b.map(Number))].sort((x,y)=>x-y));
+  if(!sameIds(sent.categories,received.categories))differences.push("niepotwierdzone kategorie");
   if(sent.featured_media!==undefined&&Number(received.featured_media)!==Number(sent.featured_media))differences.push("niepotwierdzone zdjęcie");
-  if(Array.isArray(sent.tags)&&(!Array.isArray(received.tags)||!sent.tags.every(id=>received.tags.map(Number).includes(Number(id)))))differences.push("niepotwierdzone tagi");
+  if(Array.isArray(sent.tags)&&!sameIds(sent.tags,received.tags))differences.push("niepotwierdzone tagi");
   return differences;
+}
+function publicationContentReady(status){
+  if(!["publish","future"].includes(status))return true;
+  const text=[$("post-title").value,$("post-body").value,$("post-excerpt").value].map(plainEditorialText).join("\n");
+  if(/\[\s*DO\s+(?:UZUPEŁNIENIA|SPRAWDZENIA)(?::[^\]]*)?\s*\]/i.test(text)){
+    message("post-output","Nie publikuję artykułu ani nie planuję publikacji: tytuł, treść lub zajawka zawiera [DO UZUPEŁNIENIA] albo [DO SPRAWDZENIA]. Popraw tekst przed wysłaniem.","error");return false;
+  }
+  return true;
 }
 async function savePost(status,reviewApproval=null){
   if(!connected){message("post-output","Najpierw połącz konto WordPress.","error");showScreen("settings");return}
   const title=trim($("post-title").value),body=trim($("post-body").value);
   if(!title||!body){message("post-output","Wpisz tytuł i treść.","error");return}
-  if(status==="publish"&&/\[DO (?:UZUPEŁNIENIA|SPRAWDZENIA)(?::[^\]]+)?\]/i.test(body)){
-    message("post-output","Nie publikuję artykułu: zawiera pola [DO UZUPEŁNIENIA] lub [DO SPRAWDZENIA]. Uzupełnij je albo usuń po weryfikacji.","error");return;
-  }
   if(publicationBusy){publicationPhase("Zapisywanie już trwa. Nie wysyłaj artykułu ponownie.");return}
   if(pendingPublicationWrite&&!confirm("Poprzedni zapis tego szkicu nie został potwierdzony. Najpierw użyj Sprawdź ostatni zapis i sprawdź listę w WordPressie. Ponowne wysłanie może utworzyć duplikat. Czy po sprawdzeniu chcesz świadomie ponowić zapis?"))return;
   let scheduledDate="";
@@ -1791,6 +1847,8 @@ async function savePost(status,reviewApproval=null){
     if(!Number.isFinite(timestamp)||timestamp<Date.now()+120000){message("post-output","Ustaw termin co najmniej 2 minuty w przyszłości, aby zachować harmonogram.","error");return}
     scheduledDate=new Date(timestamp).toISOString();
   }
+  // Validate the FINAL status, including draft → publish/future for existing posts.
+  if(!publicationContentReady(status))return;
   publicationButtons(true);
   $("progress-title").textContent=status==="publish"?"Publikuję — poczekaj chwilę":status==="future"?"Planuję publikację…":"Zapisuję szkic…";
   lastPublicationAttempt={title,status,id:postId,started:Date.now()};
@@ -1801,6 +1859,7 @@ async function savePost(status,reviewApproval=null){
   message("post-output",status==="publish"?"Rozpocząłem publikowanie. Najpierw sprawdzę wymagane dane, następnie wyślę wpis i odczytam go ponownie z WordPressa.":"Rozpocząłem zapis. Po odpowiedzi WordPressa sprawdzę, czy treść i status zostały zachowane.");
   const startSnapshot=draftSignature(captureDraft());
   const sentEditorSignature=draftContentSignature(captureDraft());
+  const sentTagText=$("post-tags").value;
   try{
     if(!persistDraft(true))throw Error("Nie mogę zachować lokalnej wersji przed zapisem.");
     if(postId&&!await preflightRemote(startSnapshot))return;
@@ -1808,9 +1867,13 @@ async function savePost(status,reviewApproval=null){
     const data={title,content:editorHtml(),status,excerpt:trim($("post-excerpt").value),categories:[Number($("post-category").value)]};
     if(remoteBaseline?.categories?.length&&Number($("post-category").value)===Number(remoteBaseline.categories[0]))data.categories=remoteBaseline.categories.slice();
     if(status==="future")data.date=scheduledDate;
-    if(mediaId>0)data.featured_media=mediaId;
+    data.featured_media=mediaId;
     const tagNames=trim($("post-tags").value).split(",").map(trim).filter(Boolean);
-    if(tagNames.length){
+    const originalTags=baselineTagIds(remoteBaseline);
+    if(remoteBaseline?.tagsCleared&&!tagNames.length)data.tags=[];
+    else if(remoteBaseline&&typeof remoteBaseline.tagText==="string"&&trim($("post-tags").value)===trim(remoteBaseline.tagText))data.tags=originalTags;
+    else if(!tagNames.length)data.tags=remoteBaseline&&typeof remoteBaseline.tagText!=="string"?originalTags:[];
+    else{
       try{publicationStep="sprawdzanie tagów";publicationPhase("Krok 1 z 3: sprawdzam tagi. Wpis nie został jeszcze wysłany.");data.tags=await ensureTags(tagNames);}
       catch(tagErr){
         if(!confirm("Nie udało się przygotować tagów ("+tagErr.message+"). Czy kontynuować zapis BEZ tagów?")) {
@@ -1822,6 +1885,7 @@ async function savePost(status,reviewApproval=null){
     }
     if(postId&&!await preflightRemote(startSnapshot))return;
     if(startSnapshot!==draftSignature(captureDraft()))throw Error("Tekst zmienił się podczas przygotowywania zapisu. Sprawdź go i zatwierdź ponownie.");
+    if(!publicationContentReady(status))return;
     publicationStep=status==="publish"?"wysyłanie do WordPressa":"zapisywanie w WordPressie";
     publicationPhase("Krok 2 z 3: wysyłam wpis do WordPress.com. Poczekaj na odpowiedź i nie wysyłaj go ponownie.");
     const path=postId?"posts/"+postId:"posts";
@@ -1878,7 +1942,8 @@ async function savePost(status,reviewApproval=null){
       showOutcome("error","TREŚĆ NIEPOTWIERDZONA","Wpis #"+postId+" istnieje, jednak: "+mismatches.join("; ")+". Nie publikuj ponownie — sprawdź wpis w WordPressie.");
       return;
     }
-    postStatus=verified.status;remoteBaseline=remoteVersion(verified);
+    postStatus=verified.status;remoteBaseline={...remoteVersion(verified),tagText:sentTagText};
+    if(status==="draft")markDraftWriteConfirmed();
     $("edit-status").textContent=status==="publish"?"Opublikowany":status==="future"?"Zaplanowany":"Szkic zapisany";
     const pendingBefore=pendingPublicationWrite;
     pendingPublicationWrite=null;
@@ -1945,6 +2010,7 @@ async function verifyLastPublication(){
       );
       postId=id;postStatus=p.status||"";
       if(attempted)remoteBaseline=remoteVersion(p);
+      if(expected&&p.status==="draft")markDraftWriteConfirmed();
       $("edit-status").textContent=localUnsentChanges?"Serwer potwierdził zapis, ale późniejsze zmiany są lokalne":"Sprawdzono: "+postStatus;
       const publishedLink=p.link&&p.link.startsWith("https://ispinalokalnie.wordpress.com/")?p.link:"https://ispinalokalnie.wordpress.com/?p="+id;
       const link=p.status==="publish"?publishedLink:"https://wordpress.com/post/ispinalokalnie.wordpress.com/"+id;
@@ -2066,6 +2132,7 @@ async function editPost(id){
   try{
     const p=await rpc("GET","posts/"+id+"?context=edit");
     if(!fillRemotePost(p))throw Error("Nie udało się zachować wczytanego tekstu.");
+    loadPostTagNames();
     operationFinished(true,"Wczytano artykuł #"+id,"Można rozpocząć edycję.");
   }catch(e){message("posts-output","Nie można edytować wpisu: "+e.message,"error")}
 }
@@ -2307,6 +2374,7 @@ function clearPostMedia(){
   $("post-media").value="0";updateMetrics();scheduleLocalSave();
 }
 function updateMetrics(){
+  renderPostTagStatus();
   const mediaId=Number($("post-media").value)||0;
   const mediaSummary=$("post-media-summary");
   if(mediaSummary)mediaSummary.textContent=mediaId?"Wybrano zdjęcie z biblioteki (ID "+mediaId+").":"Brak wybranego zdjęcia.";
@@ -2621,9 +2689,9 @@ function remoteVersion(post){
   const raw=v=>typeof v==="string"?v:String(v?.raw??v?.rendered??"");
   const categories=(post.categories||[]).map(Number).filter(Number.isSafeInteger),tags=(post.tags||[]).map(Number).filter(Number.isSafeInteger);
   const value={title:raw(post.title),body:post.content.raw,excerpt:raw(post.excerpt),status:String(post.status||""),categories:categories.slice().sort((a,b)=>a-b),tags:tags.slice().sort((a,b)=>a-b),media:Number(post.featured_media)||0,date:String(post.date_gmt||post.date||""),author:Number(post.author)||0};
-  return {id:Number(post.id),modified:String(post.modified_gmt||post.modified||""),signature:JSON.stringify(value),categories};
+  return {id:Number(post.id),modified:String(post.modified_gmt||post.modified||""),signature:JSON.stringify(value),categories,tags};
 }
-function validBaseline(raw,id){if(!raw||typeof raw!=="object"||Number(raw.id)!==Number(id)||!Number(id)||typeof raw.signature!=="string"||raw.signature.length>1000000||typeof raw.modified!=="string")return null;return {id:Number(id),modified:raw.modified.slice(0,80),signature:raw.signature,categories:Array.isArray(raw.categories)?raw.categories.map(Number).filter(Number.isSafeInteger).slice(0,100):[]}}
+function validBaseline(raw,id){if(!raw||typeof raw!=="object"||Number(raw.id)!==Number(id)||!Number(id)||typeof raw.signature!=="string"||raw.signature.length>1000000||typeof raw.modified!=="string")return null;return {id:Number(id),modified:raw.modified.slice(0,80),signature:raw.signature,categories:Array.isArray(raw.categories)?raw.categories.map(Number).filter(Number.isSafeInteger).slice(0,100):[],tags:baselineTagIds(raw),...(raw.tagsCleared===true?{tagsCleared:true}:{}),...(typeof raw.tagText==="string"&&raw.tagText.length<=10000?{tagText:raw.tagText}:{})}}
 function sameRemoteVersion(a,b){return !!a&&!!b&&a.id===b.id&&a.modified===b.modified&&a.signature===b.signature}
 async function preflightRemote(expected){
   publicationStep="sprawdzanie zmian na WordPressie";publicationPhase("Odczytuję aktualną wersję wpisu przed zapisem…");
@@ -2638,7 +2706,7 @@ function showConflictComparison(){const p=pendingRemoteConflict;if(!p)return;con
 function fillRemotePost(p,sources="[]"){
   if(!remoteVersion(p))throw Error("Brak pełnego wpisu do edycji.");if(!resetEditor())return false;
   postId=Number(p.id);postStatus=String(p.status||"");remoteBaseline=remoteVersion(p);
-  $("post-title").value=p.title?.raw??p.title?.rendered??p.title??"";$("post-body").value=p.content.raw;$("post-mode").value="html";$("post-excerpt").value=p.excerpt?.raw||"";$("post-category").value=(p.categories||[])[0]||"10543";$("post-media").value=p.featured_media||0;$("post-tags").value="";$("post-sources").value=JSON.stringify(normalizeSources(sources));
+  $("post-title").value=p.title?.raw??p.title?.rendered??p.title??"";$("post-body").value=p.content.raw;$("post-mode").value="html";$("post-excerpt").value=p.excerpt?.raw||"";$("post-category").value=(p.categories||[])[0]||"10543";$("post-media").value=p.featured_media||0;remoteBaseline.tagText=baselineTagIds(remoteBaseline).map(id=>"[ID: "+id+"]").join(", ");$("post-tags").value=remoteBaseline.tagText;$("post-sources").value=JSON.stringify(normalizeSources(sources));
   if(p.date){const d=remoteCalendarDate(p);if(d)$("post-schedule").value=localDateKey(d)+"T"+String(d.getHours()).padStart(2,"0")+":"+String(d.getMinutes()).padStart(2,"0")}
   $("editor-heading").textContent="Edytuj artykuł #"+postId;$("edit-status").textContent=postStatus;if(postStatus==="publish")setPublishedUrl(validPromotionUrl(p.link,postId)||"https://ispinalokalnie.wordpress.com/?p="+postId);updateMetrics();const saved=persistDraft(false,true);showScreen("editor");return saved;
 }
