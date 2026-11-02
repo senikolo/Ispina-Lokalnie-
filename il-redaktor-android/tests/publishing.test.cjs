@@ -818,7 +818,10 @@ test("AI contract only returns image search terms, not unverifiable image URLs",
 test("WordPress MCP OAuth uses documented auth scope and reports server permission mismatches",()=>{
   const main=fs.readFileSync(path.join(__dirname,"../app/src/main/java/com/ispinalokalnie/redaktor/MainActivity.java"),"utf8");
   const oauth=fs.readFileSync(path.join(__dirname,"../app/src/main/java/com/ispinalokalnie/redaktor/OAuthBrowserLogin.java"),"utf8");
-  assert.equal((oauth.match(/&scope=" \+ Uri\.encode\(SCOPE\)/g)||[]).length,2,"Start and resume must use one documented scope");
+  assert.match(oauth,/&scope=" \+ Uri\.encode\(scope\)/);
+  assert.match(oauth,/&scope=" \+ Uri\.encode\(requestedScope\)/);
+  assert.match(oauth,/PENDING_SCOPE/);
+  assert.match(main,/startWithScope\("global"\)/);
   assert.match(oauth,/public static final String SCOPE = "auth"/);
   assert.match(main,/AUTH_SCOPE: Serwer MCP wymaga zakresu global/);
   assert.match(main,/required scope/);
@@ -1550,4 +1553,24 @@ test('TEST-6 recovery keeps changed tags and body as unsent after restart',async
   assert.equal(a.run('readDraftStore().drafts[0].dirty'),true);
   assert.equal(a.node('post-tags').value,'nowe tagi lokalne');
   assert.match(a.node('finish-detail').textContent,/wyłącznie lokalnie/);
+});
+
+test('TEST-6 one-tap Free comparison never publishes or writes automatically',()=>{
+  const a=setup();let reads=0;
+  a.c.IL.readAssistantClipboard=()=>{reads++};
+  assert.equal(a.run('pasteAndCompareFreeAssistant()'),true);
+  assert.equal(reads,1);
+  a.c.window.onNativeResult('assistant-clipboard',true,JSON.stringify({text:'Propozycja do sprawdzenia'}));
+  assert.equal(a.node('assistant-return-text').value,'Propozycja do sprawdzenia');
+  assert.match(a.node('assistant-handoff-status').textContent,/Sprawdź|przygotow|porówn/i);
+  assert.equal(a.storage.has('il_last_verified_promotion_v1'),false);
+});
+test('TEST-6 access escalation requires user approval and is never the default',()=>{
+  const a=setup();let calls=0;a.c.IL.signInEditorialScope=()=>calls++;
+  a.c.confirm=()=>false;
+  assert.equal(a.run('retryWithEditorialScope()'),false);
+  assert.equal(calls,0);
+  a.c.confirm=()=>true;
+  assert.equal(a.run('retryWithEditorialScope()'),true);
+  assert.equal(calls,1);
 });
