@@ -1,8 +1,10 @@
 # IL Redaktor Smart 2.0 Professional — instrukcja wersji testowej
 
-Wersja: 2.0.0-professional-test.4, versionCode 48. Hasło: „Łączy nas Ispina”.
+Wersja źródeł: 2.0.0-professional-test.5, versionCode 49 (nowa APK jeszcze nie zbudowana). Hasło: „Łączy nas Ispina”.
 
 Aktualizacja instrukcji z 2 listopada 2026 r.: Radar ma dziennik „Na żywo — sprawdzane strony”, bezpośrednie kanały lokalnych wydawców i odczyt artykułów gminy. Test na rzeczywistych źródłach na Androidzie 11 znalazł 5 datowanych publikacji zewnętrznych, w tym artykuł gminy; odebrano 139 zdarzeń postępu. To wynik konkretnej próby, nie gwarancja kompletności wszystkich źródeł.
+
+Aktualny stan TEST-5 i ograniczenia: [raport kontynuacji](IL-Redaktor-TEST5-stan-pracy-2026-11-02.md). Ponowne sprawdzenie niepotwierdzonego zapisu porównuje również treść. Starsze szkice bez kopii wysłanego żądania wymagają ręcznego porównania w WordPressie.
 
 ## Przed instalacją
 
@@ -11,7 +13,7 @@ Ta wersja jest przeznaczona do testów. Nie odinstalowuj dotychczasowego Redakto
 1. W działającej aplikacji otwórz **Moje szkice → Zapisz kopię szkiców do pliku**. Zachowaj JSON poza pamięcią prywatną aplikacji.
 2. Jeżeli Twoja wersja ma pamięć redakcyjną, otwórz **Pamięć redakcyjna → Zapisz kopię JSON**. To osobna kopia od szkiców.
 3. Najważniejszy niedokończony tekst zachowaj dodatkowo przez **Kopia tekstu**. Jeśli starsza wersja nie ma eksportu, nie próbuj rozwiązywać problemu aktualizacji przez odinstalowanie.
-4. Aktualizuj istniejącą instalację dopiero po potwierdzeniu podpisu. Komunikat „Aplikacja nie została zainstalowana” przy różnym podpisie nie oznacza, że należy usunąć poprzednią aplikację.
+4. Zamknij aplikację po zapisaniu i wyeksportowaniu danych. Aktualizuj istniejącą instalację dopiero po potwierdzeniu podpisu. Komunikat „Aplikacja nie została zainstalowana” przy różnym podpisie nie oznacza, że należy usunąć poprzednią aplikację.
 5. Przy braku zgodnego klucza testuj APK na osobnym telefonie bez dotychczasowej instalacji albo na emulatorze. Odzyskanie klucza prywatnego z certyfikatu APK nie jest możliwe.
 
 Testy CI aktualizują 1.29.4 → 2.0 w ramach tego samego przebiegu i tego samego klucza testowego. To sprawdza zachowanie danych, ale nie potwierdza zgodności z kluczem dowolnej APK już zainstalowanej na Twoim telefonie. Odzyskany prywatny klucz zgadza się z `release-certificate.sha256`, lecz różni się od udostępnionych debug APK 1.29.4-test.1 i Professional TEST 2. Nowa APK podpisana kluczem wydaniowym nie aktualizuje bezpośrednio tych dwóch wersji. Nie odinstalowuj ich bez wyeksportowania i sprawdzenia kopii danych.
@@ -25,7 +27,9 @@ Testy CI aktualizują 1.29.4 → 2.0 w ramach tego samego przebiegu i tego sameg
 5. Czytaj oryginalny dokument przed wykorzystaniem faktów. Wyszukiwanie PDF wskazuje linki z indeksu wyszukiwarki; nie wykonuje OCR ani pełnego odczytu wszystkich załączników.
 6. Przy filtrze czasu źródła bez potwierdzonej daty publikacji są oznaczane jako ograniczenie skanu. Data aktualizacji nie zastępuje daty publikacji.
 
-Radar używa publicznych kanałów i indeksów HTML. Respektuje rozpoznane reguły robots.txt i nie obchodzi logowania, blokad ani CAPTCHA. Błąd lub przekierowanie źródła może ograniczyć wyniki. Skan nie gwarantuje kompletności całego internetu.
+Zwykłe pytanie o nowości zawsze sprawdza internet. Dopiero jawne pytanie o pamięć, np. „Co znaleźliśmy w pamięci o moście?”, odczytuje wcześniejsze materiały zamiast nowego skanu. Przycisk **Szukaj głębiej w ChatGPT Free** przygotowuje polecenie z tematem i okresem do ręcznego użycia w ChatGPT.
+
+Radar używa pełnych treści kanałów RSS, odczytu list i artykułów gminy, kanałów regionalnych, indeksów wyszukiwarek i publicznego API własnego portalu. Respektuje rozpoznane reguły robots.txt i nie obchodzi logowania, blokad ani CAPTCHA. Błąd lub przekierowanie źródła może ograniczyć wyniki. Skan ma limit czasu i liczby artykułów; nie gwarantuje kompletności internetu. Wyszukiwanie PDF nadal wskazuje linki z indeksu; nie obejmuje OCR ani pełnego odczytu wszystkich załączników.
 
 ## Wróć do zapisanych materiałów
 

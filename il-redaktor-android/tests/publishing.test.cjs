@@ -1459,3 +1459,70 @@ test('wide Radar keeps publisher dates and identifies own portal entries',()=>{
  const a=setup();a.c.renderResearchResult({freeSearch:true,text:'Znalezione publikacje',sources:[{title:'Własny tekst',url:'https://ispinalokalnie.wordpress.com/test',sourceKind:'OWN_PORTAL',published:'2026-10-09T10:00:00+02:00'}]},'Ispina');
  const rendered=a.node('research-results').innerHTML;assert.match(rendered,/Twój portal/);assert.match(rendered,/Data publikacji według źródła/);assert.doesNotMatch(rendered,/BRAK DATY/);
 });
+
+for (const changed of ['status','content']) test(`recovery preserves pending write when remote ${changed} differs`,async()=>{
+ const a=setup([],null);let reads=0;
+ a.c.rpc=async(method)=>{if(method==='POST')return {id:901,status:'draft'};if(++reads===1)throw Error('timeout');return changed==='status'?{id:901,status:'publish'}:{id:901,status:'draft',content:{raw:'Old content'}};};
+ await a.c.savePost('draft');
+ a.run("draftStore=null;activeDraftId=null;pendingPublicationWrite=null;lastPublicationAttempt=null;postId=null;$('post-title').value='';$('post-body').value='';restoreLocal(true)");
+ await a.c.verifyLastPublication();
+ assert.ok(a.run('pendingPublicationWrite'),'must retain uncertainty');
+ assert.doesNotMatch(a.node('finish-title').textContent,/STATUS ZWERYFIKOWANY/);
+ assert.equal(a.run('publicationBusy'),false);
+});
+test('recovery validates the sent payload after restart, not subsequent local edits',async()=>{
+ const a=setup([],null);let reads=0;
+ a.c.rpc=async(method)=>{if(method==='POST')return {id:902,status:'draft'};if(++reads===1)throw Error('timeout');return {id:902,status:'draft',modified:'2026-11-02T08:00:00'};};
+ await a.c.savePost('draft');
+ a.node('post-body').value='New unsent local text';a.c.persistDraft(true);
+ a.run("draftStore=null;activeDraftId=null;pendingPublicationWrite=null;lastPublicationAttempt=null;postId=null;$('post-title').value='';$('post-body').value='';restoreLocal(true)");
+ const backup=JSON.parse(a.c.makeDraftBackup());assert.equal(backup.drafts[0].pendingWrite.expected.content,'<p>Treść testowa</p>');
+ await a.c.verifyLastPublication();
+ assert.equal(a.run('pendingPublicationWrite'),null);
+ assert.equal(a.node('post-body').value,'New unsent local text');
+ assert.equal(a.run('readDraftStore().drafts[0].dirty'),true);
+ assert.ok(a.run('remoteBaseline'));
+});
+test('recovery locks draft switching and concurrent writes until its read finishes',async()=>{
+ const a=setup();a.run("postId=903;postStatus='draft'");let finish;let calls=0;
+ a.c.rpc=()=>{calls++;return new Promise(resolve=>finish=resolve)};
+ const checking=a.c.verifyLastPublication();
+ assert.equal(a.c.resetEditor(),false);
+ await a.c.verifyLastPublication();await a.c.savePost('draft');assert.equal(calls,1);
+ finish({id:903,status:'draft'});await checking;assert.equal(a.run('publicationBusy'),false);
+});
+test('legacy pending write without payload stays uncertain after checking its status',async()=>{
+ const a=setup();a.run("postId=904;pendingPublicationWrite={id:904,status:'draft',title:'Old draft'}");
+ a.c.rpc=async()=>({id:904,status:'draft'});await a.c.verifyLastPublication();assert.ok(a.run('pendingPublicationWrite'));
+});
+
+test('opening another draft cannot verify a failed attempt belonging to the previous draft',async()=>{
+ const a=setup();a.c.rpc=async()=>{throw Error('timeout')};await a.c.savePost('draft');
+ a.c.resetEditor();assert.equal(a.run('lastPublicationAttempt'),null);
+ a.run("lastPublicationAttempt={id:77,status:'draft',title:'Other'}");
+ a.c.applyDraft({title:'Current',body:'Current body',postId:88,postStatus:'draft'});
+ const calls=[];a.c.rpc=async(method,path)=>{calls.push(path);return {id:88,status:'draft'}};
+ await a.c.verifyLastPublication();assert.deepEqual(calls,['posts/88?context=edit']);
+});
+test('recovery cannot confirm a changed scheduled publication time',async()=>{
+ const a=setup([],null);let reads=0;a.node('post-schedule').value=new Date(Date.now()+86400000).toISOString().slice(0,16);
+ a.c.rpc=async(method)=>{if(method==='POST')return {id:905,status:'future'};if(++reads===1)throw Error('timeout');return {id:905,status:'future',date_gmt:'2000-01-01T00:00:00'}};
+ await a.c.savePost('future');await a.c.verifyLastPublication();assert.ok(a.run('pendingPublicationWrite'));assert.match(a.node('finish-detail').textContent,/termin/);
+});
+test('failed local confirmation keeps pending state even after a valid remote recovery',async()=>{
+ const a=setup([],null);let reads=0;
+ a.c.rpc=async(method)=>{if(method==='POST')return {id:906,status:'draft'};if(++reads===1)throw Error('timeout');return {id:906,status:'draft'}};
+ await a.c.savePost('draft');a.c.IL.writeDraftLibrary=()=>JSON.stringify({ok:false,message:'Disk full'});
+ await a.c.verifyLastPublication();assert.ok(a.run('pendingPublicationWrite'));assert.match(a.node('finish-title').textContent,/KOPIA LOKALNA NIEZAPISANA/);assert.equal(a.run('publicationBusy'),false);
+});
+test('editing while read-after-write is pending preserves unsent text as dirty',async()=>{
+ const a=setup([],null);let finish;
+ a.c.rpc=async(method)=>method==='POST'?{id:907,status:'draft'}:new Promise(resolve=>finish=resolve);
+ const saving=a.c.savePost('draft');
+ while(!finish)await new Promise(resolve=>setImmediate(resolve));
+ a.node('post-body').value='Later text not sent';
+ finish({id:907,status:'draft'});await saving;
+ assert.equal(a.node('post-body').value,'Later text not sent');
+ assert.equal(a.run('readDraftStore().drafts[0].dirty'),true);
+ assert.match(a.node('finish-detail').textContent,/nie zostały jeszcze wysłane/);
+});

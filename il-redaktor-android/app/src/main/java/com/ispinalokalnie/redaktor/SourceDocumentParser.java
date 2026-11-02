@@ -14,13 +14,14 @@ import java.util.regex.*;
 /** Publisher HTML / public WordPress JSON. Parsing only; no HTTP, credentials or UI. */
 public final class SourceDocumentParser {
     private SourceDocumentParser() {}
+    private static final Pattern LOCALITY=Pattern.compile("(?iu)\\b(?:ispin[\\p{L}]*|ispińsk[\\p{L}]*|ispni[\\p{L}]*|inspina)\\b");
     public static String plain(String html) {
         Document d=Jsoup.parse(html==null?"":html);d.select("script,style,nav,footer,header").remove();
         return d.text().replace('\u00a0',' ').replaceAll("\\s+"," ").trim();
     }
-    public static boolean mentionsIspina(String text){return text!=null&&Pattern.compile("(?iu)\\b(?:ispin[\\p{L}]*|ispni[\\p{L}]*|inspina)\\b").matcher(text).find();}
+    public static boolean mentionsIspina(String text){return text!=null&&LOCALITY.matcher(text).find();}
     public static String excerpt(String text) {
-        String value=text==null?"":text;Matcher match=Pattern.compile("(?iu)ispin|ispni|inspina").matcher(value);
+        String value=text==null?"":text;Matcher match=LOCALITY.matcher(value);
         int start=match.find()?Math.max(0,match.start()-140):0;
         return value.substring(start,Math.min(value.length(),start+650));
     }
