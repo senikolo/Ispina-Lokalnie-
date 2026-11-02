@@ -451,7 +451,8 @@ header{animation:ilHeader .38s cubic-bezier(.2,.7,.2,1) both}.brand .logo{animat
 <div id="finish-symbol" class="finish-symbol">✓</div>
 <button id="finish-promotion" class="secondary hidden" onclick="closeFinish();openPromotion()">Przygotuj zapowiedź tego artykułu</button><h2 id="finish-title" class="finish-title">SUKCES!</h2>
 <p id="finish-detail" class="finish-detail"></p>
-<div class="finish-actions"><button id="finish-preview" class="publication-action hidden" onclick="openPublishedPreview()">📖 Zobacz artykuł na WordPressie</button><button id="finish-open" class="secondary hidden" onclick="openFinishUrl()">Otwórz w przeglądarce</button><button id="finish-edit" class="publication-action secondary hidden" onclick="editPublishedAgain()">Edytuj ponownie</button><button id="finish-home" class="publication-action secondary hidden" onclick="returnToDashboard()">Wróć do pulpitu</button><button class="secondary" onclick="closeFinish()">Zamknij</button></div>
+<details id="finish-technical" class="settings-group hidden"><summary>Szczegóły techniczne błędu</summary><p id="finish-technical-code" class="small" style="white-space:pre-wrap;overflow-wrap:anywhere"></p></details>
+<div class="finish-actions"><button id="finish-preview" class="publication-action hidden" onclick="openPublishedPreview()">📖 Zobacz artykuł na WordPressie</button><button id="finish-open" class="secondary hidden" onclick="openFinishUrl()">Otwórz w przeglądarce</button><button id="finish-edit" class="publication-action secondary hidden" onclick="editPublishedAgain()">Edytuj ponownie</button><button id="finish-home" class="publication-action secondary hidden" onclick="returnToDashboard()">Wróć do pulpitu</button><button id="finish-auth-recovery" class="secondary hidden" onclick="openScopeRecovery()">Sprawdź uprawnienia i ponów logowanie</button><button class="secondary" onclick="closeFinish()">Zamknij</button></div>
 </div></div>
 <nav aria-label="Główne zakładki">
 <button id="nav-home" class="active" onclick="showScreen('home')"><span class="sym">⌂</span>Pulpit</button>
@@ -486,6 +487,17 @@ function operationFinished(ok,title,detail=""){
   recordAction(ok?"done":"failed",title,detail);
   if(window.IL && typeof IL.haptic==="function")IL.haptic(ok?"success":"error");
 }
+function isEditorialScopeError(detail){
+  const value=String(detail||"").toLowerCase();
+  return value.includes("auth_scope") || (value.includes("required scope") && value.includes("global") && value.includes("auth"));
+}
+function openScopeRecovery(){
+  closeFinish();
+  showScreen("settings");
+  const help=$("editorial-scope-help");
+  help.open=true;
+  if(typeof help.scrollIntoView==="function")help.scrollIntoView({block:"center"});
+}
 function showOutcome(kind,headline,detail,link="",linkLabel="Otwórz w WordPressie",isPublishedArticle=false){
   $("finish-promotion").classList.toggle("hidden",!(kind==="success"&&isPublishedArticle&&promotionArticle?.id===Number(postId)));
   operationFinished(kind==="success",headline,detail.slice(0,260));
@@ -495,7 +507,14 @@ function showOutcome(kind,headline,detail,link="",linkLabel="Otwórz w WordPress
   $("finish-panel").classList.toggle("published",kind==="success"&&isPublishedArticle);
   $("finish-symbol").textContent=kind==="success"?(isPublishedArticle?"✓ SUKCES!":"✓"):"!";
   $("finish-title").textContent=headline;
-  $("finish-detail").textContent=detail;
+  const scopeError=kind==="error"&&isEditorialScopeError(detail);
+  $("finish-detail").textContent=scopeError
+    ?"Logowanie WordPress.com zostało zakończone, ale dostęp do wpisów jest zablokowany: serwer wymaga zakresu global, a obecna sesja ma zakres auth. Sprawdź ustawienia AI i MCP. Ponowne logowanie z szerszym zakresem wymaga Twojej świadomej zgody."
+    :detail;
+  $("finish-technical").classList.toggle("hidden",!scopeError);
+  $("finish-technical").open=false;
+  $("finish-technical-code").textContent=scopeError?detail:"";
+  $("finish-auth-recovery").classList.toggle("hidden",!scopeError);
   $("finish-open").classList.toggle("hidden",!link);
   $("finish-open").textContent=kind==="success"&&isPublishedArticle?"Otwórz w przeglądarce":linkLabel;
   $("finish-preview").textContent="📖 Zobacz artykuł na WordPressie";
