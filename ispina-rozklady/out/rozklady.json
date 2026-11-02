@@ -1,13 +1,13 @@
 {
-  "generated_at": "2026-11-02T14:30:09.886520+01:00",
+  "generated_at": "2026-11-03T00:52:58.363943+01:00",
   "timezone": "Europe/Warsaw",
   "data_type": "scheduled_not_realtime",
-  "date": "2026-11-02",
+  "date": "2026-11-03",
   "valid": true,
   "status": "verified",
   "days": [
     {
-      "date": "2026-11-02",
+      "date": "2026-11-03",
       "departures": [
         {
           "stop": "most",
@@ -2288,7 +2288,7 @@
       }
     },
     {
-      "date": "2026-11-03",
+      "date": "2026-11-04",
       "departures": [
         {
           "stop": "most",
@@ -4570,14 +4570,14 @@
     }
   ],
   "source": "https://gtfs.kolejemalopolskie.com.pl/?download=L2hvbWUvcmdfdXNlci9yZ191c2VyL0dURlMtU1QvR1RGUy56aXA%3D",
-  "feed_sha256": "8eca0812bae86c8c44593fb6207d4c2ec80b679d946713aaf6f2d1b7ff36e581",
+  "feed_sha256": "19703270e04c3b3903f60d5edf3e34d4cec17f5b577430007a012e8f9713e286",
   "feed_info": {
     "feed_publisher_name": "R&G PLUS Sp. z o.o.",
     "feed_publisher_url": "http://www.rg.com.pl",
     "feed_lang": "pl",
-    "feed_start_date": "20261025",
+    "feed_start_date": "20261101",
     "feed_end_date": "20261130",
-    "feed_version": "1383_1384",
+    "feed_version": "1384",
     "feed_contact_email": "municom@rg.com.pl",
     "feed_contact_url": ""
   }
