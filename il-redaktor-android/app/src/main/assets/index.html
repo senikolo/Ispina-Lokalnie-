@@ -399,7 +399,8 @@ header{animation:ilHeader .38s cubic-bezier(.2,.7,.2,1) both}.brand .logo{animat
     <p class="muted">Portal: <b>ispinalokalnie.wordpress.com</b><br>Identyfikator witryny: <b>252442125</b></p>
     <div id="settings-state" class="note">Sprawdzanie autoryzacji...</div>
     <button class="wide primary-login" onclick="signInGoogle()"><span style="display:inline-block;background:#fff;color:#4285f4;border-radius:7px;padding:4px 9px;margin-right:8px;font-weight:900">G</span> Zaloguj do WordPress.com (także przez Google)</button>
-    <p class="setting-caption">Logowanie otworzy stronę WordPress.com w przeglądarce, gdzie możesz wybrać Google. Do odczytu i edycji wpisów przez MCP WordPress wymaga uprawnienia <strong>global</strong>. To szerszy zakres obejmujący konto WordPress.com, nie wyłącznie Ispina Lokalnie. Zatwierdź go wyłącznie, jeśli akceptujesz taki dostęp. Radar, IL Chat i lokalne szkice działają bez logowania.</p>
+    <p class="setting-caption">Logowanie otworzy WordPress.com w przeglądarce, także z kontem Google. Najpierw poprosimy o zakres <strong>auth</strong>, opisany w bieżącej instrukcji WordPress.com MCP. Jeśli serwer odmówi odczytu wpisów, możesz świadomie ponowić logowanie z szerszym dostępem <strong>global</strong>. Radar, IL Chat i lokalne szkice działają bez logowania.</p>
+    <details id="editorial-scope-help" class="settings-group"><summary>Serwer odmawia dostępu do wpisów?</summary><p class="setting-caption">Najpierw sprawdź ustawienia WordPress.com &gt; AI i MCP &gt; Content Authoring (odczyt i zapis). Jeśli WordPress mimo to zgłasza wymagany zakres global, ta opcja poprosi o szerszy dostęp do konta, nie tylko do Ispina Lokalnie. Nie jest potrzebne hasło w Redaktorze.</p><button class="secondary" onclick="retryWithEditorialScope()">Zaloguj z pełnymi uprawnieniami redakcyjnymi</button></details>
     <div id="login-recovery" class="recovery-card hidden" role="region" aria-label="Pomoc przy logowaniu">
       <h3>🔑 Czekam na zakończenie logowania</h3>
       <p>Zatwierdź dostęp w przeglądarce i wybierz otwarcie Redaktora IL, gdy Android o to zapyta. Jeśli jesteś już z powrotem w aplikacji, ale nadal widzisz krok 3/4, skorzystaj z opcji poniżej.</p>
@@ -412,7 +413,7 @@ header{animation:ilHeader .38s cubic-bezier(.2,.7,.2,1) both}.brand .logo{animat
       </details>
     </div>
     <details class="settings-group"><summary class="mini-label">O bezpieczeństwie połączenia i uprawnieniach</summary>
-      <p class="muted">Aplikacja korzysta z WordPress.com OAuth i MCP. Uprawnienie <strong>global</strong> może obejmować całe konto WordPress.com, a nie tylko witrynę Ispina Lokalnie. Redaktor ogranicza swoje operacje do portalu IL. Zatwierdzaj zgodę tylko wtedy, gdy akceptujesz ten zakres. Aplikacja nie potrzebuje Twojego hasła.</p>
+      <p class="muted">Aplikacja korzysta z WordPress.com OAuth 2.1 i MCP. Domyślnie prosi o zakres auth. Opcjonalny global może obejmować całe konto WordPress.com, a nie tylko Ispina Lokalnie. W każdej chwili możesz rozłączyć sesję, a zgody MCP zmienić w ustawieniach WordPress.com. Redaktor nie potrzebuje hasła.</p>
     </details>
     <div id="auth-output" aria-live="polite"></div>
     <p class="muted">Jeżeli WordPress odmawia dostępu, sprawdź, czy w ustawieniach konta WordPress.com jest włączony dostęp MCP i czy wybrane zgody pozwalają czytać oraz edytować treść.</p>
@@ -543,6 +544,15 @@ function explainPublicationFailure(error,stage,id){
   return "Nie udało mi się dokończyć publikacji. Zatrzymałem się na etapie: "+stage+".\n\n"+next+"\n\nSzczegóły z WordPressa: "+raw+(id?"\nNumer wpisu do sprawdzenia: #"+id:"\nJeśli WordPress zdążył zapisać wpis przed przerwaniem połączenia, wyszukaj go po tytule: „"+trim(lastPublicationAttempt?.title||$("post-title").value)+"”.");
 }
 
+function retryWithEditorialScope(){
+  if(!window.IL||typeof IL.signInEditorialScope!=="function"){message("auth-output","Ta instalacja nie obsługuje alternatywnego zakresu OAuth.","error");return false;}
+  if(!confirm("WordPress może przyznać zakres global obejmujący całe konto, nie tylko Ispina Lokalnie. Wybrać tę szerszą autoryzację?"))return false;
+  showScreen("settings");
+  startOperation("Logowanie redakcyjne WordPress.com");
+  message("auth-output","Otwieram WordPress.com z szerszym zakresem po Twojej zgodzie.");
+  IL.signInEditorialScope();
+  return true;
+}
 let assistantClipboardCompareRequested=false;
 function pasteAndCompareFreeAssistant(){
   if(!window.IL||typeof IL.readAssistantClipboard!=="function"){
