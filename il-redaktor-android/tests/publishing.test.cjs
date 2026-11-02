@@ -1582,6 +1582,7 @@ test("AUTH_SCOPE shows a concise recovery action with technical details hidden b
   assert.equal(a.node("finish-auth-recovery").classList.contains("hidden"),false);
   assert.equal(a.node("finish-technical").classList.contains("hidden"),false);
   assert.equal(a.node("finish-technical").open,false);
+  assert.equal(a.node("finish-title").textContent,"Dostęp do wpisów zablokowany");
   assert.match(a.node("finish-detail").textContent,/świadomej zgody/);
   assert.doesNotMatch(a.node("finish-detail").textContent,/That API call/);
   assert.match(a.node("finish-technical-code").textContent,/Required scope/);
