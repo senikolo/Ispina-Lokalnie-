@@ -1,5 +1,17 @@
 # IL Redaktor Smart 2.0 Professional — instrukcja wersji testowej
 
+## TEST-6: dostęp WordPress i bezpłatna praca redakcyjna
+
+- Główny przycisk logowania używa standardowego zakresu `auth` z aktualnej instrukcji WordPress.com MCP. Do tworzenia wpisów musisz też nadać dostęp w WordPress.com → AI i MCP → Content Authoring (Odczyt oraz Zapis). Po logowaniu aplikacja sprawdza rzeczywisty odczyt artykułów.
+- Jeżeli serwer zgłasza brak zakresu `global`, rozwiń **Serwer odmawia dostępu do wpisów?**, zapoznaj się z ostrzeżeniem i samodzielnie potwierdź ponowienie logowania z szerszym zakresem. `global` może obejmować całe konto WordPress.com. Nie ma automatycznego podwyższania uprawnień.
+- Po powrocie z ChatGPT Free możesz wybrać **Wklej i porównaj jednym kliknięciem**. Operacja odczytuje schowek po Twoim kliknięciu i wyświetla propozycję zmian, ale nie zapisuje ani nie publikuje artykułu. Osobno zaakceptuj treść po sprawdzeniu źródeł.
+- Przy przerwanym zapisie **Sprawdź ostatni zapis** porównuje pierwotne żądanie także po restarcie. Dodatkowe zmiany wprowadzone później zostają lokalne, a nie automatycznie uznane za zsynchronizowane.
+- W Radarze indeksy PDF/BIP/zamówień mają wyższy priorytet w ramach tego samego ograniczonego czasu. Wykrycie odnośnika PDF **nie oznacza odczytania jego treści**.
+
+Status: Professional TEST-6 / 50, PR #30 (draft). Warunki przejścia do stabilnego wydania i ryzyka: [raport TEST-6](IL-Redaktor-TEST6-audyt-i-wdrozenie-2026-11-02.md). Nie usuwaj aktualnej aplikacji ani jej danych, dopóki nie wyeksportujesz szkiców i pamięci Radaru oraz nie potwierdzisz zgodności podpisu APK.
+
+---
+
 Wersja źródeł: 2.0.0-professional-test.5, versionCode 49 (nowa APK jeszcze nie zbudowana). Hasło: „Łączy nas Ispina”.
 
 Aktualizacja instrukcji z 2 listopada 2026 r.: Radar ma dziennik „Na żywo — sprawdzane strony”, bezpośrednie kanały lokalnych wydawców i odczyt artykułów gminy. Test na rzeczywistych źródłach na Androidzie 11 znalazł 5 datowanych publikacji zewnętrznych, w tym artykuł gminy; odebrano 139 zdarzeń postępu. To wynik konkretnej próby, nie gwarancja kompletności wszystkich źródeł.

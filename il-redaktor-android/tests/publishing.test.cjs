@@ -815,11 +815,15 @@ test("AI contract only returns image search terms, not unverifiable image URLs",
   assert.match(backend,/wyłącznie do przekazanych wpisów ze statusem publish/);
 });
 
-test("WordPress MCP rejects auth-only tokens and requires global scope",()=>{
+test("WordPress MCP OAuth uses documented auth scope and reports server permission mismatches",()=>{
   const main=fs.readFileSync(path.join(__dirname,"../app/src/main/java/com/ispinalokalnie/redaktor/MainActivity.java"),"utf8");
   const oauth=fs.readFileSync(path.join(__dirname,"../app/src/main/java/com/ispinalokalnie/redaktor/OAuthBrowserLogin.java"),"utf8");
-  assert.equal((oauth.match(/&scope=global/g)||[]).length,2,"Start and resume must both request global");
-  assert.match(main,/AUTH_SCOPE: WordPress przyznał tylko podstawowy zakres auth/);
+  assert.match(oauth,/&scope=" \+ Uri\.encode\(scope\)/);
+  assert.match(oauth,/&scope=" \+ Uri\.encode\(requestedScope\)/);
+  assert.match(oauth,/PENDING_SCOPE/);
+  assert.match(main,/startWithScope\("global"\)/);
+  assert.match(oauth,/public static final String SCOPE = "auth"/);
+  assert.match(main,/AUTH_SCOPE: Serwer MCP wymaga zakresu global/);
   assert.match(main,/required scope/);
 });
 test("OAuth DCR, PKCE, deep-link scheme and manifest callback match without a client secret",()=>{
@@ -827,7 +831,7 @@ test("OAuth DCR, PKCE, deep-link scheme and manifest callback match without a cl
   const oauth=fs.readFileSync(path.join(root,"java/com/ispinalokalnie/redaktor/OAuthBrowserLogin.java"),"utf8");
   const wp=fs.readFileSync(path.join(root,"java/com/ispinalokalnie/redaktor/WpMcp.java"),"utf8");
   const manifest=fs.readFileSync(path.join(root,"AndroidManifest.xml"),"utf8");
-  assert.match(oauth,/scope=global/);assert.doesNotMatch(oauth,/scope=auth/);assert.match(oauth,/code_challenge_method=S256/);
+  assert.match(oauth,/String SCOPE = "auth"/);assert.doesNotMatch(oauth,/&scope=global/);assert.match(oauth,/code_challenge_method=S256/);
   assert.match(oauth,/stable:\/callback/);assert.match(manifest,/com\.ispinalokalnie\.redaktorsmart\.stable/);
   assert.match(wp,/token_endpoint_auth_method", "none"/);assert.match(wp,/code_verifier/);
   assert.doesNotMatch(wp,/put\("client_secret"/);
@@ -1525,4 +1529,48 @@ test('editing while read-after-write is pending preserves unsent text as dirty',
  assert.equal(a.node('post-body').value,'Later text not sent');
  assert.equal(a.run('readDraftStore().drafts[0].dirty'),true);
  assert.match(a.node('finish-detail').textContent,/nie zostały jeszcze wysłane/);
+});
+
+test('TEST-6 recovery marks unchanged remote-confirmed draft as synchronized',async()=>{
+  const a=setup([],null);let reads=0;
+  a.c.rpc=async method=>{if(method==='POST')return {id:947,status:'draft'};if(++reads===1)throw Error('temporary network loss');return {id:947,status:'draft'}};
+  await a.c.savePost('draft');
+  a.run("draftStore=null;activeDraftId=null;pendingPublicationWrite=null;lastPublicationAttempt=null;postId=null;$('post-title').value='';$('post-body').value='';restoreLocal(true)");
+  assert.match(a.run('pendingPublicationWrite.editorSignature'),/Testowy artykuł/);
+  await a.c.verifyLastPublication();
+  assert.equal(a.run('pendingPublicationWrite'),null);
+  assert.equal(a.run('readDraftStore().drafts[0].dirty'),false);
+  assert.match(a.node('finish-title').textContent,/STATUS ZWERYFIKOWANY/);
+});
+test('TEST-6 recovery keeps changed tags and body as unsent after restart',async()=>{
+  const a=setup([],null);let reads=0;
+  a.c.rpc=async method=>{if(method==='POST')return {id:948,status:'draft'};if(++reads===1)throw Error('temporary network loss');return {id:948,status:'draft'}};
+  await a.c.savePost('draft');
+  a.node('post-tags').value='nowe tagi lokalne';a.node('post-body').value='Dodatkowe zdanie napisane później';a.c.persistDraft(true);
+  a.run("draftStore=null;activeDraftId=null;pendingPublicationWrite=null;lastPublicationAttempt=null;postId=null;$('post-title').value='';$('post-body').value='';restoreLocal(true)");
+  await a.c.verifyLastPublication();
+  assert.equal(a.run('pendingPublicationWrite'),null);
+  assert.equal(a.run('readDraftStore().drafts[0].dirty'),true);
+  assert.equal(a.node('post-tags').value,'nowe tagi lokalne');
+  assert.match(a.node('finish-detail').textContent,/wyłącznie lokalnie/);
+});
+
+test('TEST-6 one-tap Free comparison never publishes or writes automatically',()=>{
+  const a=setup();let reads=0;
+  a.c.IL.readAssistantClipboard=()=>{reads++};
+  assert.equal(a.run('pasteAndCompareFreeAssistant()'),true);
+  assert.equal(reads,1);
+  a.c.window.onNativeResult('assistant-clipboard',true,JSON.stringify({text:'Propozycja do sprawdzenia'}));
+  assert.equal(a.node('assistant-return-text').value,'Propozycja do sprawdzenia');
+  assert.match(a.node('assistant-handoff-status').textContent,/Sprawdź|przygotow|porówn/i);
+  assert.equal(a.storage.has('il_last_verified_promotion_v1'),false);
+});
+test('TEST-6 access escalation requires user approval and is never the default',()=>{
+  const a=setup();let calls=0;a.c.IL.signInEditorialScope=()=>calls++;
+  a.c.confirm=()=>false;
+  assert.equal(a.run('retryWithEditorialScope()'),false);
+  assert.equal(calls,0);
+  a.c.confirm=()=>true;
+  assert.equal(a.run('retryWithEditorialScope()'),true);
+  assert.equal(calls,1);
 });

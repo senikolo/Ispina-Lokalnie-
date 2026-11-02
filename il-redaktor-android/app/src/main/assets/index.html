@@ -220,7 +220,7 @@ header{animation:ilHeader .38s cubic-bezier(.2,.7,.2,1) both}.brand .logo{animat
     <div id="assistant-mode" class="note">Sprawdzam dostępny tryb asystenta…</div>
     <label for="assistant-prompt">Twoje zadanie</label>
     <textarea id="assistant-prompt" style="min-height:125px" placeholder="Np. Przygotuj szkic o historii Ispiny. Nie dopisuj niepotwierdzonych dat ani nazwisk."></textarea>
-    <div class="note"><b>Bezpłatna pomoc w aplikacji AI</b><p>Redaktor skopiuje polecenie i otworzy ChatGPT Free w aplikacji lub przeglądarce. Wklej je i wyślij, a potem skopiuj odpowiedź do Redaktora. Nie jest potrzebny płatny plan ani klucz API. Obowiązują limity ChatGPT Free.</p><div class="actions"><button onclick="sendAssistantToApps()">Otwórz ChatGPT Free</button><button class="secondary" onclick="copyAssistantPrompt()">Kopiuj polecenie</button></div><label for="assistant-return-text">Odpowiedź z ChatGPT lub Gemini</label><textarea id="assistant-return-text" style="min-height:140px" placeholder="Po powrocie wklej tutaj odpowiedź AI"></textarea><label for="assistant-return-target">Porównaj tę odpowiedź z</label><select id="assistant-return-target"><option value="body">Treścią artykułu</option><option value="title">Tytułem</option><option value="excerpt">Zajawką SEO</option><option value="facebook">Postem na Facebooka</option></select><div class="actions"><button class="secondary" onclick="IL.readAssistantClipboard()">Wklej ze schowka</button><button onclick="compareExternalAssistantResponse()">Sprawdź i porównaj</button></div><p id="assistant-handoff-status" class="small" role="status" aria-live="polite">Wklejona treść pokaże się jako propozycja. Zmiany w artykule wymagają Twojego zatwierdzenia.</p></div>
+    <div class="note"><b>Bezpłatna pomoc w aplikacji AI</b><p>Redaktor skopiuje polecenie i otworzy ChatGPT Free w aplikacji lub przeglądarce. Wklej je i wyślij, a potem skopiuj odpowiedź do Redaktora. Nie jest potrzebny płatny plan ani klucz API. Obowiązują limity ChatGPT Free.</p><div class="actions"><button onclick="sendAssistantToApps()">Otwórz ChatGPT Free</button><button class="secondary" onclick="copyAssistantPrompt()">Kopiuj polecenie</button></div><label for="assistant-return-text">Odpowiedź z ChatGPT lub Gemini</label><textarea id="assistant-return-text" style="min-height:140px" placeholder="Po powrocie wklej tutaj odpowiedź AI"></textarea><label for="assistant-return-target">Porównaj tę odpowiedź z</label><select id="assistant-return-target"><option value="body">Treścią artykułu</option><option value="title">Tytułem</option><option value="excerpt">Zajawką SEO</option><option value="facebook">Postem na Facebooka</option></select><div class="actions"><button class="secondary" onclick="IL.readAssistantClipboard()">Wklej ze schowka</button><button onclick="compareExternalAssistantResponse()">Sprawdź i porównaj</button><button onclick="pasteAndCompareFreeAssistant()">Wklej i porównaj jednym kliknięciem</button></div><p id="assistant-handoff-status" class="small" role="status" aria-live="polite">Wklejona treść pokaże się jako propozycja. Zmiany w artykule wymagają Twojego zatwierdzenia.</p></div>
     <div class="actions">
       <button class="secondary" onclick="assistantExample('Dodaj artykuł o historii Ispiny, wybierz kategorię Historia i popraw język. Nie wymyślaj faktów.')">Historia Ispiny</button>
       <button class="secondary" onclick="assistantExample('Dodaj do Usług nową firmę, sprawdź, czy nie ma jej już w katalogu, i przygotuj kartę. Zostaw nieznane dane puste.')">Nowa usługa</button>
@@ -276,7 +276,7 @@ header{animation:ilHeader .38s cubic-bezier(.2,.7,.2,1) both}.brand .logo{animat
     <label for="research-query">Temat i dodatkowe wskazówki</label>
     <textarea id="research-query" maxlength="1800" style="min-height:115px" oninput="updateRadarPromptPreview()">Wyszukaj aktualne informacje o Ispinie.</textarea>
     <div class="note small">Radar sprawdza profile tematyczne i ogólne: urzędy, BIP, zamówienia, drogi, autobusy, media oraz wyszukiwanie ogólne. Pokazuje nieudane i pominięte źródła. Zakres czasu jest filtrem rzeczywistej daty publikacji, nie daty wydarzenia. Wyniki wymagają przeczytania w oryginale.</div>
-    <details class="small"><summary>Gdzie szukamy?</summary><p>Google News i Bing RSS oraz osobne zapytania do: drwinia.pl, bip.malopolska.pl, powiat.bochnia.pl, zdw.krakow.pl, ezamowienia.gov.pl, bochnianin.pl, e-bochnia.pl, radiokrakow.pl, malopolska.pl, kolejemalopolskie.com.pl, gov.pl, Eko-Drwinia. Wyniki zależą od indeksowania i dostępności RSS; nie jest to robot odwiedzający każdą podstronę.</p></details>
+    <details class="small"><summary>Gdzie szukamy?</summary><p>Google News i Bing RSS oraz osobne zapytania do: drwinia.pl, bip.malopolska.pl, powiat.bochnia.pl, zdw.krakow.pl, ezamowienia.gov.pl, bochnianin.pl, e-bochnia.pl, radiokrakow.pl, malopolska.pl, kolejemalopolskie.com.pl, gov.pl, Eko-Drwinia. Wyniki zależą od indeksowania i dostępności RSS; nie jest to robot odwiedzający każdą podstronę. Dokumenty PDF są odkrywane po linkach i metadanych wyszukiwarki: bez odczytu ich treści lub OCR; wymagają otwarcia oryginału.</p></details>
     <details class="small"><summary>Dokładne polecenie dla ChatGPT Free</summary><p>Utwórz precyzyjne polecenie zgodne z wybranym okresem. ChatGPT może szukać szerzej, jeżeli ma dostęp do przeglądania internetu; aplikacja nie przekazuje mu żadnego płatnego klucza.</p><textarea id="radar-gpt-prompt" readonly style="min-height:170px" aria-label="Polecenie do ChatGPT"></textarea><div class="actions"><button type="button" class="secondary" onclick="copyRadarChatGptPrompt()">Kopiuj polecenie</button><button type="button" class="secondary" onclick="openRadarInChatGpt()">Otwórz w ChatGPT</button></div><p id="radar-gpt-status" class="small muted" role="status"></p></details>
     <div class="actions"><button class="secondary" type="button" onclick="runRecentIspinaRadar()">Najnowsze materiały</button><button id="research-button" type="button" disabled onclick="runDeepIspinaResearch()">🔎 Wyszukaj w internecie informacje o Ispinie</button><button id="research-cancel" class="secondary hidden" type="button" onclick="cancelIspinaSearch('research')">Anuluj wyszukiwanie</button><button id="assistant-check-button" class="secondary" type="button" onclick="checkAssistantAvailability()">Gotowość wyszukiwarki</button><button class="secondary" type="button" onclick="clearResearchResults()">Wyczyść wyniki</button><button class="secondary" type="button" onclick="openRadarInChatGpt()">🌐 Głębokie wyszukiwanie w ChatGPT</button></div>
     <div class="note" id="background-radar-card" role="group" aria-label="Automatyczny radar Ispiny">
@@ -399,7 +399,8 @@ header{animation:ilHeader .38s cubic-bezier(.2,.7,.2,1) both}.brand .logo{animat
     <p class="muted">Portal: <b>ispinalokalnie.wordpress.com</b><br>Identyfikator witryny: <b>252442125</b></p>
     <div id="settings-state" class="note">Sprawdzanie autoryzacji...</div>
     <button class="wide primary-login" onclick="signInGoogle()"><span style="display:inline-block;background:#fff;color:#4285f4;border-radius:7px;padding:4px 9px;margin-right:8px;font-weight:900">G</span> Zaloguj do WordPress.com (także przez Google)</button>
-    <p class="setting-caption">Logowanie otworzy stronę WordPress.com w przeglądarce, gdzie możesz wybrać Google. Do odczytu i edycji wpisów przez MCP WordPress wymaga uprawnienia <strong>global</strong>. To szerszy zakres obejmujący konto WordPress.com, nie wyłącznie Ispina Lokalnie. Zatwierdź go wyłącznie, jeśli akceptujesz taki dostęp. Radar, IL Chat i lokalne szkice działają bez logowania.</p>
+    <p class="setting-caption">Logowanie otworzy WordPress.com w przeglądarce, także z kontem Google. Najpierw poprosimy o zakres <strong>auth</strong>, opisany w bieżącej instrukcji WordPress.com MCP. Jeśli serwer odmówi odczytu wpisów, możesz świadomie ponowić logowanie z szerszym dostępem <strong>global</strong>. Radar, IL Chat i lokalne szkice działają bez logowania.</p>
+    <details id="editorial-scope-help" class="settings-group"><summary>Serwer odmawia dostępu do wpisów?</summary><p class="setting-caption">Najpierw sprawdź ustawienia WordPress.com &gt; AI i MCP &gt; Content Authoring (odczyt i zapis). Jeśli WordPress mimo to zgłasza wymagany zakres global, ta opcja poprosi o szerszy dostęp do konta, nie tylko do Ispina Lokalnie. Nie jest potrzebne hasło w Redaktorze.</p><button class="secondary" onclick="retryWithEditorialScope()">Zaloguj z pełnymi uprawnieniami redakcyjnymi</button></details>
     <div id="login-recovery" class="recovery-card hidden" role="region" aria-label="Pomoc przy logowaniu">
       <h3>🔑 Czekam na zakończenie logowania</h3>
       <p>Zatwierdź dostęp w przeglądarce i wybierz otwarcie Redaktora IL, gdy Android o to zapyta. Jeśli jesteś już z powrotem w aplikacji, ale nadal widzisz krok 3/4, skorzystaj z opcji poniżej.</p>
@@ -412,7 +413,7 @@ header{animation:ilHeader .38s cubic-bezier(.2,.7,.2,1) both}.brand .logo{animat
       </details>
     </div>
     <details class="settings-group"><summary class="mini-label">O bezpieczeństwie połączenia i uprawnieniach</summary>
-      <p class="muted">Aplikacja korzysta z WordPress.com OAuth i MCP. Uprawnienie <strong>global</strong> może obejmować całe konto WordPress.com, a nie tylko witrynę Ispina Lokalnie. Redaktor ogranicza swoje operacje do portalu IL. Zatwierdzaj zgodę tylko wtedy, gdy akceptujesz ten zakres. Aplikacja nie potrzebuje Twojego hasła.</p>
+      <p class="muted">Aplikacja korzysta z WordPress.com OAuth 2.1 i MCP. Domyślnie prosi o zakres auth. Opcjonalny global może obejmować całe konto WordPress.com, a nie tylko Ispina Lokalnie. W każdej chwili możesz rozłączyć sesję, a zgody MCP zmienić w ustawieniach WordPress.com. Redaktor nie potrzebuje hasła.</p>
     </details>
     <div id="auth-output" aria-live="polite"></div>
     <p class="muted">Jeżeli WordPress odmawia dostępu, sprawdź, czy w ustawieniach konta WordPress.com jest włączony dostęp MCP i czy wybrane zgody pozwalają czytać oraz edytować treść.</p>
@@ -543,6 +544,26 @@ function explainPublicationFailure(error,stage,id){
   return "Nie udało mi się dokończyć publikacji. Zatrzymałem się na etapie: "+stage+".\n\n"+next+"\n\nSzczegóły z WordPressa: "+raw+(id?"\nNumer wpisu do sprawdzenia: #"+id:"\nJeśli WordPress zdążył zapisać wpis przed przerwaniem połączenia, wyszukaj go po tytule: „"+trim(lastPublicationAttempt?.title||$("post-title").value)+"”.");
 }
 
+function retryWithEditorialScope(){
+  if(!window.IL||typeof IL.signInEditorialScope!=="function"){message("auth-output","Ta instalacja nie obsługuje alternatywnego zakresu OAuth.","error");return false;}
+  if(!confirm("WordPress może przyznać zakres global obejmujący całe konto, nie tylko Ispina Lokalnie. Wybrać tę szerszą autoryzację?"))return false;
+  showScreen("settings");
+  startOperation("Logowanie redakcyjne WordPress.com");
+  message("auth-output","Otwieram WordPress.com z szerszym zakresem po Twojej zgodzie.");
+  IL.signInEditorialScope();
+  return true;
+}
+let assistantClipboardCompareRequested=false;
+function pasteAndCompareFreeAssistant(){
+  if(!window.IL||typeof IL.readAssistantClipboard!=="function"){
+    $("assistant-handoff-status").textContent="Otwórz Redaktora na Androidzie i skopiuj odpowiedź z ChatGPT.";
+    return false;
+  }
+  assistantClipboardCompareRequested=true;
+  IL.readAssistantClipboard();
+  $("assistant-handoff-status").textContent="Odczytuję skopiowaną odpowiedź. Niczego nie zapiszę bez zatwierdzenia propozycji.";
+  return true;
+}
 let authWaitTimer=0;
 function stopAuthWaitTimer(){if(authWaitTimer){clearTimeout(authWaitTimer);authWaitTimer=0}}
 function startAuthWaitTimer(){
@@ -700,9 +721,15 @@ window.onNativeResult=function(id,ok,payload){
     return;
   }
   if(id==="assistant-clipboard"){
+    const autoCompare=assistantClipboardCompareRequested;
+    assistantClipboardCompareRequested=false;
     if(!ok){$("assistant-handoff-status").textContent=payload;return;}
-    try{const data=JSON.parse(payload);$("assistant-return-text").value=String(data.text||"");$("assistant-handoff-status").textContent=data.text?"Wklejono odpowiedź ze schowka. Sprawdź ją, a potem wybierz „Sprawdź i porównaj”.":"Schowek jest pusty.";}
-    catch(e){$("assistant-handoff-status").textContent="Nie udało się odczytać odpowiedzi ze schowka.";}
+    try{
+      const data=JSON.parse(payload);
+      $("assistant-return-text").value=String(data.text||"");
+      $("assistant-handoff-status").textContent=data.text?"Wklejono odpowiedź ze schowka. Sprawdź propozycję przed przyjęciem.":"Schowek jest pusty.";
+      if(autoCompare&&data.text)compareExternalAssistantResponse(); // Only proposes a diff, never publishes or applies changes.
+    }catch(e){$("assistant-handoff-status").textContent="Nie udało się odczytać odpowiedzi ze schowka.";}
     return;
   }
   if(id==="login-state"){
@@ -1781,7 +1808,7 @@ async function savePost(status,reviewApproval=null){
     const path=postId?"posts/"+postId:"posts";
     // POST is issued exactly once: an automatic retry after network timeout could
     // publish a duplicate. Save the ID immediately, then verify persistence by GET.
-    pendingPublicationWrite={...lastPublicationAttempt,expected:JSON.parse(JSON.stringify(data))};
+    pendingPublicationWrite={...lastPublicationAttempt,expected:JSON.parse(JSON.stringify(data)),editorSignature:sentEditorSignature};
     if(!persistDraft(true)){pendingPublicationWrite=null;throw Error("Nie mogę zachować informacji o rozpoczętym zapisie. Niczego nie wysłałem.");}
     const result=await rpc("POST",path,data);
     if(!Number.isSafeInteger(Number(result.id))||Number(result.id)<=0)
@@ -1884,22 +1911,35 @@ async function verifyLastPublication(){
           return;
         }
       }
+      // Compare the current local editor with the original payload, not with
+      // the latest draft. The persisted signature detects later edits to tags,
+      // sources, categories and text even after restarting Android.
+      const expected=attempted?.expected;
+      const localUnsentChanges=!!expected&&(
+        typeof attempted.editorSignature==="string"
+          ? attempted.editorSignature!==draftContentSignature(captureDraft())
+          : trim($("post-title").value)!==String(expected.title||"")||
+            normalizedPublishedHtml(editorHtml())!==normalizedPublishedHtml(expected.content)||
+            trim($("post-excerpt").value)!==String(expected.excerpt||"")||
+            (Array.isArray(expected.categories)&&!expected.categories.map(Number).includes(Number($("post-category").value)))||
+            (expected.featured_media!==undefined&&Number($("post-media").value)!==Number(expected.featured_media))
+      );
       postId=id;postStatus=p.status||"";
       if(attempted)remoteBaseline=remoteVersion(p);
-      $("edit-status").textContent="Sprawdzono: "+postStatus;
+      $("edit-status").textContent=localUnsentChanges?"Serwer potwierdził zapis, ale późniejsze zmiany są lokalne":"Sprawdzono: "+postStatus;
       const publishedLink=p.link&&p.link.startsWith("https://ispinalokalnie.wordpress.com/")?p.link:"https://ispinalokalnie.wordpress.com/?p="+id;
       const link=p.status==="publish"?publishedLink:"https://wordpress.com/post/ispinalokalnie.wordpress.com/"+id;
       if(p.status==="publish")setPublishedUrl(publishedLink);
       const pendingBefore=pendingPublicationWrite;
       pendingPublicationWrite=null;
-      if(!persistDraft(true)){
+      if(!persistDraft(true,!!expected&&!localUnsentChanges)){
         pendingPublicationWrite=pendingBefore;
         showOutcome("error","KOPIA LOKALNA NIEZAPISANA","WordPress potwierdził wpis #"+id+", ale nie udało się zapisać potwierdzenia na telefonie. Zachowaj ten numer. Nie wysyłaj ponownie.");
         return;
       }
       lastPublicationAttempt=null;
       publicationPhase("Odczyt wpisu #"+id+" zakończony. Status: "+postStatus+".","ok");
-      showOutcome("success","STATUS ZWERYFIKOWANY","WordPress zwrócił wpis #"+id+". Status: "+postStatus+".",link,p.status==="publish"?"Zobacz artykuł":p.status==="future"?"Edytuj zaplanowany wpis":"Otwórz szkic",p.status==="publish");
+      showOutcome("success","STATUS ZWERYFIKOWANY","WordPress potwierdził wpis #"+id+(expected?" i pierwotnie wysłane dane.":". Wykonano tylko odczyt statusu, bez porównania treści.")+" Status: "+postStatus+"."+(localUnsentChanges?" Późniejsze zmiany w edytorze zachowano wyłącznie lokalnie; nie zostały wysłane.":""),link,p.status==="publish"?"Zobacz artykuł":p.status==="future"?"Edytuj zaplanowany wpis":"Otwórz szkic",p.status==="publish");
       return;
     }
     const title=trim(attempted?.title||$("post-title").value);
@@ -2467,6 +2507,10 @@ async function editorHelp(command){
 function normalizePendingWrite(raw){
   if(!raw||typeof raw!=="object"||!['draft','publish','future'].includes(raw.status))return null;
   const out={title:String(raw.title||'').slice(0,10000),status:raw.status,id:Number.isSafeInteger(Number(raw.id))&&Number(raw.id)>0?Number(raw.id):null,started:Number(raw.started)||0};
+  // The exact editor snapshot belongs to the pending POST and must survive
+  // exports, imports and Android process recreation.
+  if(typeof raw.editorSignature==="string"&&raw.editorSignature.length<=900000)
+    out.editorSignature=raw.editorSignature;
   const e=raw.expected;
   // Older backups remain readable, but cannot prove the content of a past POST.
   if(e&&typeof e==='object'&&e.status===raw.status&&
