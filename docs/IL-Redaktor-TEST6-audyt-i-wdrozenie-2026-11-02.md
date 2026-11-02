@@ -25,4 +25,15 @@ Data: 2 listopada 2026. Repozytorium: senikolo/Ispina-Lokalnie-. PR #30 (draft),
 6. ChatGPT Free: przekazanie polecenia i świadome porównanie skopiowanej odpowiedzi; brak automatycznej akceptacji.
 7. APK aktualizacyjna podpisana dotychczasowym certyfikatem i zbadana na telefonie bez reinstalacji.
 
-Status tego dokumentu: kontrolna lista testowa. Wyniki CI i telefonu trzeba potwierdzić osobno, nie wpisywać zielonych ocen z góry.
+## Wynik GitHub Actions TEST-6
+
+Przebieg: https://github.com/senikolo/Ispina-Lokalnie-/actions/runs/41414722846
+
+- JavaScript: **211/211 PASS**. Testy backendu: **12/12 PASS**.
+- Transpilacja WebView, kontrola OAuth, TypeScript, kompilacja APK: **PASS**.
+- Emulatory Android 8 (API26), 10 (API29), 11 (API30) i 13 (API33): **PASS**. Nieudany test API29 z TEST-5 nie powtórzył się przy tym przebiegu.
+- Skan publicznych źródeł na emulatorze Android 11: **PASS**. Odnaleziono 5 datowanych publikacji zewnętrznych, 1 publikację z oryginalnego HTML i 139 zdarzeń postępu; 31 pozycji łącznie. To wynik próbki, nie pokrycie całego internetu.
+- APK debug: podpis v2 potwierdzony w CI; artefakt **IL-Redaktor-Smart-APK**. Dostarczony testowy APK nie jest zgodną z wcześniejszą instalacją wersją wydaniową.
+- Brak poświadczeń klucza wydaniowego w CI, dlatego nie ma pakietu podpisanego istniejącym kluczem do bezpiecznej aktualizacji. Nie odinstalowywać poprzedniej instalacji.
+
+**Nie wykonano** rzeczywistego OAuth i zapisu szkicu na koncie właściciela ani testu na fizycznym telefonie. Wersja pozostaje TEST-6 (draft) i nie jest stabilna.
