@@ -38,6 +38,11 @@ public final class FreeIspinaSearchClient {
             List<String[]> prioritized=new ArrayList<>();
             prioritized.add(new String[]{"Eko-Drwinia — pełna treść RSS","rss","https://eko.drwinia.pl/feed/"});
             prioritized.add(new String[]{"Gmina Drwinia — wyszukiwarka i artykuły","municipal","https://www.drwinia.pl/szukaj?f%5Bfraza%5D=Ispina"});
+            // Prioritize public records before local archive, under the shared time budget.
+            // PDF results are indexed links ONLY: the app never claims it read their bodies.
+            prioritized.add(new String[]{"Dokumenty PDF — odnośniki z indeksu","bing","Ispina Drwinia filetype:pdf " + topic});
+            prioritized.add(new String[]{"BIP Małopolska — indeks dokumentów","bing","Ispina site:bip.malopolska.pl " + topic});
+            prioritized.add(new String[]{"Zamówienia publiczne — indeks","bing","Ispina site:ezamowienia.gov.pl " + topic});
             prioritized.add(new String[]{"Ispina Lokalnie — Twój portal","wordpress","https://public-api.wordpress.com/rest/v1.1/sites/ispinalokalnie.wordpress.com/posts/?number=40"});
             prioritized.add(new String[]{"Bochnianin — wyszukiwanie wydawcy","rss","https://bochnianin.pl/?s=Ispina&feed=rss2"});
             prioritized.add(new String[]{"Bochnia z Bliska — wyszukiwanie wydawcy","rss","https://bochniazbliska.pl/?s=Ispina&feed=rss2"});
@@ -63,13 +68,13 @@ public final class FreeIspinaSearchClient {
                 prioritized.add(new String[]{"Ispina — inwestycje i życie lokalne","bing","\"Ispina\" (inwestycja OR OSP OR wydarzenie OR autobus)"});
             }
             String[][] baseProfiles = {
-                {"Dokumenty PDF (indeks wyszukiwarki)", "bing", "Ispina Drwinia filetype:pdf " + topic},
+
                 {"Błędne odmiany nazwy", "bing", "\"Ispini\" OR \"Ispinii\" OR \"Ispni\" Drwinia " + topic},
                 {"Urząd Gminy Drwinia", "bing", "Ispina site:drwinia.pl " + topic},
-                {"BIP Małopolska", "bing", "Ispina site:bip.malopolska.pl " + topic},
+
                 {"Powiat bocheński", "bing", "Ispina site:powiat.bochnia.pl " + topic},
                 {"Zarząd Dróg Wojewódzkich", "bing", "Ispina site:zdw.krakow.pl " + topic},
-                {"Zamówienia publiczne", "bing", "Ispina site:ezamowienia.gov.pl " + topic},
+
                 {"Bochnianin", "bing", "Ispina site:bochnianin.pl " + topic},
                 {"E-Bochnia", "bing", "Ispina site:e-bochnia.pl " + topic},
                 {"Radio Kraków", "bing", "Ispina site:radiokrakow.pl " + topic},
@@ -154,6 +159,7 @@ public final class FreeIspinaSearchClient {
                 answer.append(" Odczytano ").append(rawItems).append(" pozycji z publicznych kanałów; poza okresem: ").append(olderItems).append(". Sprawdź dziennik źródeł poniżej.");
             }else answer.append("Publikacje z wybranego zakresu: ").append(external).append(" zewnętrznych; ").append(own)
                 .append(" z Twojego portalu (osobno). Daty pochodzą od wydawcy lub z indeksu. Otwórz źródła i sprawdź fakty przed wykorzystaniem.");
+            answer.append("\nUwaga: dokumenty PDF są znajdowane jedynie po publicznych indeksach. Ich treści i skanów OCR nie odczytano.");
             if (failed > 0 || skipped > 0)
                 answer.append("\nSkan częściowy: niedostępne kanały: ").append(failed)
                       .append(", pominięte lub bez potwierdzonych dat: ").append(skipped).append(".");
