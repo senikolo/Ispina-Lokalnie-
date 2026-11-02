@@ -8,7 +8,7 @@ import java.net.URI;
 /** Bounded reads of publisher search/listing pages. Results are discovered, never seeded articles. */
 final class DirectEditorialSources {
     private DirectEditorialSources() {}
-    static JSONArray municipality(ChatGptPlanClient.SearchControl control,long since,String topic)throws Exception {
+    static JSONObject municipality(ChatGptPlanClient.SearchControl control,long since,String topic)throws Exception {
         final String root="https://www.drwinia.pl";
         final long deadline=android.os.SystemClock.elapsedRealtime()+39000L;
         String robots="";
@@ -78,7 +78,7 @@ final class DirectEditorialSources {
             }
         }finally{for(java.util.concurrent.Future<JSONObject> job:jobs)if(!job.isDone())job.cancel(true);pool.shutdownNow();}
         control.report("Gmina Drwinia — skan",search,"DONE","DIRECT_SEARCH",out.length(),"Odczytano "+read+" artykułów z "+candidates.size()+" odkrytych adresów. Limit: 24 artykuły i budżet czasu; zakres nie jest pełny.");
-        return out;
+        return new JSONObject().put("items",out).put("readArticles",read).put("discoveredArticles",candidates.size());
     }
     private static long newsId(String url){java.util.regex.Matcher m=java.util.regex.Pattern.compile(",news-(\\d+)").matcher(url);return m.find()?Long.parseLong(m.group(1)):0;}
     private static void add(Map<String,JSONObject> map,JSONArray a)throws Exception {for(int i=0;i<a.length();i++){JSONObject v=a.getJSONObject(i);if(!map.containsKey(v.getString("url"))||v.optLong("publishedAt")>0)map.put(v.getString("url"),v);}}

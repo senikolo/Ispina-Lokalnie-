@@ -966,7 +966,7 @@ function renderLiveSearch(kind,state){
   const prefix=kind==='chat'?'ispina-chat':'research',entries=[...state.pages.values()];
   if(!state.finished)entries.sort((a,b)=>Number(b.stage==='READING')-Number(a.stage==='READING')||b.sequence-a.sequence);
   const stage={READING:'Czytam stronę',PARSED:'Treść odczytana',DONE:'Odczyt zakończony',ERROR:'Błąd odczytu',EMPTY:'Pusty kanał',SKIPPED:'Pominięto',STOPPED:'Nie ukończono'};
-  const method={SEARCH_INDEX:'Zapytanie do wyszukiwarki',DIRECT_FEED:'Bezpośredni kanał wydawcy',DIRECT_PUBLISHER:'Bezpośrednio u wydawcy',DIRECT_SEARCH:'Wyszukiwarka wydawcy',OWN_PORTAL_API:'Twój portal — publiczne API',REDIRECT_HTTPS:'Przekierowanie przez HTTPS'};
+  const method={SEARCH_INDEX:'Zapytanie do wyszukiwarki',DIRECT_FEED:'Bezpośredni kanał wydawcy',DIRECT_PUBLISHER:'Bezpośrednio u wydawcy',DIRECT_SEARCH:'Wyszukiwarka wydawcy',OWN_PORTAL_API:'Twój portal — publiczne API',REDIRECT_HTTPS:'Przekierowanie przez HTTPS',DIRECT_INDEX:'Indeks stron wydawcy'};
   $(prefix+'-live-summary').textContent='Adresy: '+entries.length+' · zakończone: '+entries.filter(e=>['DONE','ERROR','EMPTY','SKIPPED','STOPPED'].includes(e.stage)).length+'. '+(state.finished?'Skan zakończony; szczegóły poniżej.':'Trwa odczyt źródeł…');
   $(prefix+'-live').innerHTML=entries.map(e=>'<div class="live-source"><b>'+esc(e.name)+'</b><small>'+esc(method[e.method]||e.method||'Publiczne źródło')+' · '+esc(stage[e.stage]||e.stage)+'</small><small class="research-query">'+esc(e.url)+'</small><p class="small">'+esc(e.detail||'')+(e.found>0?' · Dopasowania: '+Number(e.found):'')+'</p></div>').join('');
 }
@@ -1194,9 +1194,9 @@ function renderResearchResult(result,query){
     $("research-status").textContent="Sprawdzanie zakończone. Brak pasujących wyników w dostępnych kanałach.";$("research-status").className="small muted";return;
   }
   const safeFor=items=>(Array.isArray(items)?items:[]).flatMap(source=>{
-    try{const url=new URL(String(source?.url||""));if(!["http:","https:"].includes(url.protocol)||url.username||url.password)return [];return [{url:url.href,title:String(source?.title||url.hostname).slice(0,180),host:url.hostname}]}catch(e){return []}
+    try{const url=new URL(String(source?.url||""));if(!["http:","https:"].includes(url.protocol)||url.username||url.password)return [];return [{url:url.href,title:String(source?.title||url.hostname).slice(0,180),host:url.hostname,sourceKind:source.sourceKind,published:source.published,publishedAt:source.publishedAt,snippet:source.snippet}]}catch(e){return []}
   });
-  const renderSources=sources=>sources.map(source=>'<div class="source-item"><b class="research-source-title">'+esc(source.title)+'</b><small>'+esc(source.host)+'</small><div class="actions"><button class="secondary" type="button" data-research-link="'+esc(source.url)+'">Otwórz źródło</button></div></div>').join("");
+  const renderSources=sources=>sources.map(source=>'<div class="source-item"><b class="research-source-title">'+esc(source.title)+'</b><small>'+esc(source.host)+(source.sourceKind==='OWN_PORTAL'?' · Twój portal':'')+'</small><small>Data publikacji według źródła: '+esc(editorialDisplayDate(source.publishedAt||source.published))+'</small><div class="actions"><button class="secondary" type="button" data-research-link="'+esc(source.url)+'">Otwórz źródło</button></div></div>').join("");
   const queryMarkup=queries=>queries.length?'<div class="source-item"><b>Frazy udostępnione przez wyszukiwarkę</b><ul>'+queries.map(q=>'<li class="research-query">'+esc(q)+'</li>').join("")+'</ul></div>':"";
   const sections=Array.isArray(result?.sections)?result.sections.slice(0,6):[],aggregate=String(result?.text||"").trim();
   const topSources=safeFor(result?.sources).slice(0,30),allQueries=Array.isArray(result?.queries)?result.queries.filter(q=>typeof q==="string").slice(0,60):[];

@@ -1454,3 +1454,8 @@ test('external news precedes the collapsed archive of the editors own portal',()
  assert.match(rendered,/<details class="source-item"><summary>Twój portal/);
  assert.match(rendered,/Publikacje zewnętrzne \(1\)/);assert.doesNotMatch(rendered,/<script>/);
 });
+
+test('wide Radar keeps publisher dates and identifies own portal entries',()=>{
+ const a=setup();a.c.renderResearchResult({freeSearch:true,text:'Znalezione publikacje',sources:[{title:'Własny tekst',url:'https://ispinalokalnie.wordpress.com/test',sourceKind:'OWN_PORTAL',published:'2026-10-09T10:00:00+02:00'}]},'Ispina');
+ const rendered=a.node('research-results').innerHTML;assert.match(rendered,/Twój portal/);assert.match(rendered,/Data publikacji według źródła/);assert.doesNotMatch(rendered,/BRAK DATY/);
+});

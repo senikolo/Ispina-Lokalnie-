@@ -42,6 +42,7 @@ public final class FreeIspinaSearchClient {
             prioritized.add(new String[]{"Bochnianin — wyszukiwanie wydawcy","rss","https://bochnianin.pl/?s=Ispina&feed=rss2"});
             prioritized.add(new String[]{"Bochnia z Bliska — wyszukiwanie wydawcy","rss","https://bochniazbliska.pl/?s=Ispina&feed=rss2"});
             prioritized.add(new String[]{"Informator Brzeski — wyszukiwanie wydawcy","rss","https://www.informatorbrzeski.pl/?s=Ispina&feed=rss2"});
+            prioritized.add(new String[]{"Bochnia ON — wyszukiwanie wydawcy","rss","https://bochniaon.pl/?s=Ispina&feed=rss2"});
             prioritized.add(new String[]{"Google News — nowe publikacje","news",baseQuery});
             prioritized.add(new String[]{"Google News — odmiany nazwy","news","Ispinie"+(topic.isEmpty()?"":" "+topic)});
             prioritized.add(new String[]{"Bing — temat ogólny","bing",baseQuery});
@@ -292,15 +293,22 @@ public final class FreeIspinaSearchClient {
                     "https://www.bing.com/search?format=rss&q="+java.net.URLEncoder.encode(profile[2],"UTF-8");
             }else if("wordpress".equals(profile[1]))method="OWN_PORTAL_API";
             else if("municipal".equals(profile[1]))method="DIRECT_PUBLISHER";
+            else if("html".equals(profile[1]))method="DIRECT_INDEX";
             response.put("index",index).put("name",profile[0]).put("address",address).put("method",method);control.check();
+            if("html".equals(profile[1])&&datedOnly){
+                String reason="Indeks bez dat pominięto; artykuły gminy sprawdzam osobno bezpośrednio.";
+                control.report(profile[0],address,"SKIPPED",method,0,reason);
+                return response.put("status","undated_index").put("reason",reason).put("newLinks",0);
+            }
             control.report(profile[0],address,"READING",method,0,"Łączę się ze źródłem.");
             JSONArray items;int rawCount;
             if("municipal".equals(profile[1])){
-                items=DirectEditorialSources.municipality(control,since,topic);rawCount=items.length();
+                JSONObject publisher=DirectEditorialSources.municipality(control,since,topic);
+                items=publisher.getJSONArray("items");rawCount=publisher.getInt("readArticles");
+                response.put("discoveredArticles",publisher.getInt("discoveredArticles")).put("boundedRead",true);
             }else if("wordpress".equals(profile[1])){
                 String raw=fetch(address,control);items=SourceDocumentParser.wordpress(raw);rawCount=new JSONObject(raw).getJSONArray("posts").length();
             }else if("html".equals(profile[1])) {
-                if(datedOnly)return response.put("status","undated_index").put("reason","Ten indeks nie podaje dat publikacji; artykuły gminy sprawdzam osobno bezpośrednio.").put("newLinks",0);
                 URL page=new URL(address);String robots;
                 try{robots=fetch(page.getProtocol()+"://"+page.getAuthority()+"/robots.txt",control);}catch(Exception e){if(e.getMessage()!=null&&e.getMessage().contains("HTTP 404"))robots="";else throw e;}
                 if(!PublicPageSource.allowed(robots,page.getPath().isEmpty()?"/":page.getPath()))throw new IOException("Ograniczenie robots.txt; sprawdź źródło ręcznie.");
