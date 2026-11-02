@@ -5,6 +5,15 @@ if [ -z "$api_level" ]; then echo 'Pass Android API level for the smoke test'; e
 
 current_apk="il-redaktor-android/app/build/outputs/apk/debug/app-debug.apk"
 test_apk="il-redaktor-android/app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk"
+preserve_evidence() {
+  mkdir -p "/tmp/il-editor-ui-api-$api_level"
+  if adb exec-out run-as com.ispinalokalnie.redaktorsmart.stable tar -C files/qa -cf - . > "/tmp/il-editor-ui-api-$api_level.tar"; then
+    tar -xf "/tmp/il-editor-ui-api-$api_level.tar" -C "/tmp/il-editor-ui-api-$api_level" || echo "Warning: could not unpack emulator evidence."
+  else
+    echo "Warning: emulator evidence unavailable."
+  fi
+}
+trap preserve_evidence EXIT
 
 # Upgrade from the user's latest transpiled 1.29.4 build on every OS.
 # The ancient 1.15 HTML cannot parse in Android 10's stock WebView.
@@ -28,10 +37,4 @@ if [ "$api_level" = "30" ]; then
   adb shell am force-stop com.ispinalokalnie.redaktorsmart.stable
   adb shell am instrument -w -e mode live-recall com.ispinalokalnie.redaktorsmart.stable.instrumentation/com.ispinalokalnie.redaktor.ConfirmationInstrumentation | tee "/tmp/il-live-recall-$api_level.txt"
   grep -F 'IL_LIVE_RECALL_TEST=PASS' "/tmp/il-live-recall-$api_level.txt"
-fi
-mkdir -p "/tmp/il-editor-ui-api-$api_level"
-if adb exec-out run-as com.ispinalokalnie.redaktorsmart.stable tar -C files/qa -cf - . > "/tmp/il-editor-ui-api-$api_level.tar"; then
-  tar -xf "/tmp/il-editor-ui-api-$api_level.tar" -C "/tmp/il-editor-ui-api-$api_level" || echo "Warning: could not unpack optional emulator screenshots."
-else
-  echo "Warning: emulator disconnected after successful instrumentation."
 fi

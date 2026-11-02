@@ -323,6 +323,18 @@ public final class FreeIspinaSearchClient {
         if(remaining<=0)throw new java.net.SocketTimeoutException("Upłynął budżet czasu źródła; zachowano ukończone odczyty.");
         return (int)Math.min(maximum,remaining);
     }
+    /** This publisher's missing robots.txt redirects to an old http:// homepage.
+     * Use its verified HTTPS equivalent; never send a plaintext HTTP request.
+     * Other HTTP downgrades remain rejected. */
+    static URL secureRedirect(URL from,String location)throws IOException {
+        URL next=new URL(from,location);
+        if("http".equals(next.getProtocol())&&"https".equals(from.getProtocol())
+            &&"www.drwinia.pl".equalsIgnoreCase(from.getHost())&&from.getHost().equalsIgnoreCase(next.getHost())
+            &&next.getUserInfo()==null&&(next.getPort()==-1||next.getPort()==80))
+            next=new URL("https",next.getHost(),next.getFile());
+        if(!"https".equals(next.getProtocol()))throw new IOException("Źródło przekierowuje na nieszyfrowany adres. Sprawdź je ręcznie.");
+        return next;
+    }
     static String fetch(String address, ChatGptPlanClient.SearchControl control,long deadline) throws Exception {
         String current=address;
         for(int redirects=0;redirects<=4;redirects++) {
@@ -334,10 +346,11 @@ public final class FreeIspinaSearchClient {
                 connection.setRequestProperty("Accept","application/rss+xml, application/xml, text/xml, text/html, application/json, text/plain");
                 connection.setRequestProperty("User-Agent","IL-Redaktor-Smart/2.0 PublicSources");
                 connection.connect();connection.setReadTimeout(sourceTimeout(deadline,6000));int status=connection.getResponseCode();
-                if(status==301||status==302||status==303||status==307||status==308){String location=connection.getHeaderField("Location");if(location==null)throw new IOException("Przekierowanie bez adresu.");current=new URL(url,location).toString();continue;}
+                if(status==301||status==302||status==303||status==307||status==308){String location=connection.getHeaderField("Location");if(location==null)throw new IOException("Przekierowanie bez adresu.");current=secureRedirect(url,location).toString();control.report("Przekierowanie HTTPS",current,"READING","REDIRECT_HTTPS",0,"Odczytuję docelowy adres wyłącznie przez HTTPS.");continue;}
                 if(status!=200)throw new IOException("Publiczne źródło: HTTP "+status);
                 try(InputStream input=connection.getInputStream();ByteArrayOutputStream out=new ByteArrayOutputStream()){
                     byte[] buffer=new byte[8192];int n;while((n=input.read(buffer))!=-1){control.check();sourceTimeout(deadline,6000);if(out.size()+n>1_500_000)throw new IOException("Źródło przekracza limit 1,5 MB.");out.write(buffer,0,n);}
+                    if(!current.equals(address))control.report("Przekierowanie HTTPS",current,"DONE","REDIRECT_HTTPS",0,"Odczytano adres docelowy przez HTTPS.");
                     return out.toString(StandardCharsets.UTF_8.name());
                 }
             }finally{control.detach(connection);connection.disconnect();}

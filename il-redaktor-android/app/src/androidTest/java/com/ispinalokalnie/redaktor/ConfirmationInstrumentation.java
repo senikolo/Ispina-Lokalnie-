@@ -140,6 +140,10 @@ public final class ConfirmationInstrumentation extends Instrumentation {
     }
 
     private void testPublisherRecall() throws Exception {
+        java.net.URL municipal=new java.net.URL("https://www.drwinia.pl/robots.txt");
+        if(!"https://www.drwinia.pl/".equals(FreeIspinaSearchClient.secureRedirect(municipal,"http://www.drwinia.pl/").toString()))throw new AssertionError("Publisher legacy redirect did not stay on HTTPS");
+        try{FreeIspinaSearchClient.secureRedirect(municipal,"http://example.org/");throw new AssertionError("Cross-host plaintext downgrade accepted");}catch(java.io.IOException expected){}
+        try{FreeIspinaSearchClient.secureRedirect(new java.net.URL("https://example.org/robots.txt"),"http://example.org/");throw new AssertionError("Unknown publisher plaintext downgrade accepted");}catch(java.io.IOException expected){}
         String feed="<rss xmlns:content=\"http://purl.org/rss/1.0/modules/content/\"><channel><item><title>Wsparcie infrastruktury — materiał testowy</title><link>https://example.org/recall</link><pubDate>Mon, 12 Oct 2026 11:48:16 +0000</pubDate><description>Wstęp bez nazwy miejscowości.</description><content:encoded><![CDATA[<p>Treść testowa: Ispina. Rozbudowa kanalizacji.</p>]]></content:encoded></item></channel></rss>";
         org.json.JSONArray hits=FreeIspinaSearchClient.parseFeed(feed,0,false);
         if(hits.length()!=1||!hits.getJSONObject(0).getString("snippet").contains("Ispina"))throw new AssertionError("Full RSS content:encoded locality was lost");

@@ -966,7 +966,7 @@ function renderLiveSearch(kind,state){
   const prefix=kind==='chat'?'ispina-chat':'research',entries=[...state.pages.values()];
   if(!state.finished)entries.sort((a,b)=>Number(b.stage==='READING')-Number(a.stage==='READING')||b.sequence-a.sequence);
   const stage={READING:'Czytam stronę',PARSED:'Treść odczytana',DONE:'Odczyt zakończony',ERROR:'Błąd odczytu',EMPTY:'Pusty kanał',SKIPPED:'Pominięto',STOPPED:'Nie ukończono'};
-  const method={SEARCH_INDEX:'Zapytanie do wyszukiwarki',DIRECT_FEED:'Bezpośredni kanał wydawcy',DIRECT_PUBLISHER:'Bezpośrednio u wydawcy',DIRECT_SEARCH:'Wyszukiwarka wydawcy',OWN_PORTAL_API:'Twój portal — publiczne API'};
+  const method={SEARCH_INDEX:'Zapytanie do wyszukiwarki',DIRECT_FEED:'Bezpośredni kanał wydawcy',DIRECT_PUBLISHER:'Bezpośrednio u wydawcy',DIRECT_SEARCH:'Wyszukiwarka wydawcy',OWN_PORTAL_API:'Twój portal — publiczne API',REDIRECT_HTTPS:'Przekierowanie przez HTTPS'};
   $(prefix+'-live-summary').textContent='Adresy: '+entries.length+' · zakończone: '+entries.filter(e=>['DONE','ERROR','EMPTY','SKIPPED','STOPPED'].includes(e.stage)).length+'. '+(state.finished?'Skan zakończony; szczegóły poniżej.':'Trwa odczyt źródeł…');
   $(prefix+'-live').innerHTML=entries.map(e=>'<div class="live-source"><b>'+esc(e.name)+'</b><small>'+esc(method[e.method]||e.method||'Publiczne źródło')+' · '+esc(stage[e.stage]||e.stage)+'</small><small class="research-query">'+esc(e.url)+'</small><p class="small">'+esc(e.detail||'')+(e.found>0?' · Dopasowania: '+Number(e.found):'')+'</p></div>').join('');
 }
