@@ -33,6 +33,9 @@ public final class OAuthBrowserLogin {
     }
 
     public static final String REDIRECT = "com.ispinalokalnie.redaktorsmart.stable:/callback";
+    // WordPress.com MCP OAuth 2.1 documentation (updated 2026-09-17) uses auth.
+    // Authoring permissions are also controlled in WordPress.com AI and MCP settings.
+    public static final String SCOPE = "auth";
     private static final String PREFS = "il_redaktor_settings";
     private static final String PENDING_STATE = "oauth21_pending_state";
     private static final String PENDING_VERIFIER = "oauth21_pending_verifier";
@@ -96,7 +99,7 @@ public final class OAuthBrowserLogin {
                     "&redirect_uri=" + Uri.encode(REDIRECT) +
                     "&code_challenge=" + Uri.encode(challenge) +
                     "&code_challenge_method=S256" +
-                    "&scope=global" +
+                    "&scope=" + Uri.encode(SCOPE) +
                     "&state=" + Uri.encode(state);
                 main.post(() -> {
                     try {
@@ -156,10 +159,10 @@ public final class OAuthBrowserLogin {
                 "&redirect_uri=" + Uri.encode(REDIRECT) +
                 "&code_challenge=" + Uri.encode(challenge) +
                 "&code_challenge_method=S256" +
-                "&scope=global" +
+                "&scope=" + Uri.encode(SCOPE) +
                 "&state=" + Uri.encode(state);
 
-            note("Krok 2/4: otwieram WordPress.com. Zatwierdź dostęp wymagany do zarządzania treściami. Zakres global obejmuje konto WordPress.com; aplikacja pracuje na Ispina Lokalnie.");
+            note("Krok 2/4: otwieram WordPress.com. Zatwierdź dostęp dla Ispina Lokalnie; uprawnienia odczytu i zapisu określasz w WordPress.com > AI i MCP.");
             main.post(() -> {
                 try {
                     Intent browser = new Intent(Intent.ACTION_VIEW, Uri.parse(loginUrl));
