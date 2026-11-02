@@ -1912,7 +1912,7 @@ async function verifyLastPublication(){
       }
       lastPublicationAttempt=null;
       publicationPhase("Odczyt wpisu #"+id+" zakończony. Status: "+postStatus+".","ok");
-      showOutcome("success","STATUS ZWERYFIKOWANY","WordPress potwierdził wpis #"+id+" i pierwotnie wysłane dane. Status: "+postStatus+"."+(localUnsentChanges?" Późniejsze zmiany w edytorze zachowano wyłącznie lokalnie; nie zostały wysłane.":""),link,p.status==="publish"?"Zobacz artykuł":p.status==="future"?"Edytuj zaplanowany wpis":"Otwórz szkic",p.status==="publish");
+      showOutcome("success","STATUS ZWERYFIKOWANY","WordPress potwierdził wpis #"+id+(expected?" i pierwotnie wysłane dane.":". Wykonano tylko odczyt statusu, bez porównania treści.")+" Status: "+postStatus+"."+(localUnsentChanges?" Późniejsze zmiany w edytorze zachowano wyłącznie lokalnie; nie zostały wysłane.":""),link,p.status==="publish"?"Zobacz artykuł":p.status==="future"?"Edytuj zaplanowany wpis":"Otwórz szkic",p.status==="publish");
       return;
     }
     const title=trim(attempted?.title||$("post-title").value);
@@ -2480,6 +2480,10 @@ async function editorHelp(command){
 function normalizePendingWrite(raw){
   if(!raw||typeof raw!=="object"||!['draft','publish','future'].includes(raw.status))return null;
   const out={title:String(raw.title||'').slice(0,10000),status:raw.status,id:Number.isSafeInteger(Number(raw.id))&&Number(raw.id)>0?Number(raw.id):null,started:Number(raw.started)||0};
+  // The exact editor snapshot belongs to the pending POST and must survive
+  // exports, imports and Android process recreation.
+  if(typeof raw.editorSignature==="string"&&raw.editorSignature.length<=900000)
+    out.editorSignature=raw.editorSignature;
   const e=raw.expected;
   // Older backups remain readable, but cannot prove the content of a past POST.
   if(e&&typeof e==='object'&&e.status===raw.status&&
