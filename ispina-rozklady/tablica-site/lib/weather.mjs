@@ -1,8 +1,10 @@
+import {createMetnoLoader, validateMetnoForecast} from './weather-metno.mjs';
 export const LOCATION = Object.freeze({ latitude: 50.11336, longitude: 20.37746, timezone: 'Europe/Warsaw' });
 export const REFRESH_MS = 30 * 60 * 1000;
 const MAX_CURRENT_AGE = 45 * 60;
 const transientHttp = new Set([502, 503, 504]);
 export function weatherErrorCode(error) {
+  if (error?.code === 'all-sources') return 'all-sources';
   if (/^http-\d{3}$/.test(error?.code)) return error.code;
   if (['TimeoutError', 'AbortError'].includes(error?.name)) return 'timeout';
   if (error instanceof SyntaxError) return 'invalid-json';
@@ -72,15 +74,15 @@ export function validateWeather(data, now = Date.now()) {
   return data;
 }
 
-export function createWeatherLoader(fetcher = fetch, clock = Date.now) {
+export function createWeatherLoader(fetcher = fetch, clock = Date.now, fallback = createMetnoLoader(fetcher, clock)) {
   let cached, expires = 0, pending, retryAfter = 0, lastError;
   return async function load() {
     const now = clock();
     if (cached && now < expires) {
-      try { validateWeather(cached.data, now); return cached; } catch { cached = undefined; }
+      try { cached.data.source === 'metno' ? validateMetnoForecast(cached.data, now) : validateWeather(cached.data, now); return cached; } catch { cached = undefined; }
     }
-    if (now < retryAfter) throw lastError;
     if (pending) return pending;
+    if (now < retryAfter) throw lastError;
     // No Next.js stale-on-error cache: expired data is never a fallback.
     pending = (async () => {
       try {
@@ -112,6 +114,19 @@ export function createWeatherLoader(fetcher = fetch, clock = Date.now) {
         cached = undefined;
         lastError = error;
         retryAfter = clock() + 60000;
+        if (fallback) {
+          try {
+            const data = await fallback(), fetchedAt = clock();
+            // Recheck the preferred source in five minutes. The backup loader
+            // separately respects its HTTP expiry and caches forecast data.
+            expires = Math.min(fetchedAt + 5 * 60000, (data.current.time + 3600) * 1000);
+            cached = {data, fetchedAt, expires};
+            return cached;
+          } catch (backupError) {
+            lastError = Object.assign(new Error(`Both weather sources unavailable: ${weatherErrorCode(error)} / ${weatherErrorCode(backupError)}`), {code:'all-sources'});
+            throw lastError;
+          }
+        }
         throw error;
       } finally { pending = undefined; }
     })();

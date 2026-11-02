@@ -1,6 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { createWeatherLoader, validateWeather, weatherUrl, weatherErrorCode, localDate, REFRESH_MS } from './weather.mjs';
+import { createWeatherLoader as withFallback, validateWeather, weatherUrl, weatherErrorCode, localDate, REFRESH_MS } from './weather.mjs';
+const createWeatherLoader = (fetcher, clock) => withFallback(fetcher, clock, null);
 
 import {fixture} from '../tests/fixtures/weather.mjs';
 const baseline = Date.parse('2026-10-23T10:00:00Z');
