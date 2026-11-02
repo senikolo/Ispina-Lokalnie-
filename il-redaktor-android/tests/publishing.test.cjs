@@ -1574,3 +1574,27 @@ test('TEST-6 access escalation requires user approval and is never the default',
   assert.equal(a.run('retryWithEditorialScope()'),true);
   assert.equal(calls,1);
 });
+
+
+test("AUTH_SCOPE shows a concise recovery action with technical details hidden by default",()=>{
+  const a=setup(), details="AUTH_SCOPE: That API call is not allowed for this account. Required scope: `global`. Granted scope(s): `auth`.";
+  a.c.showOutcome("error","DOSTĘP REDAKCYJNY NIEPOTWIERDZONY",details);
+  assert.equal(a.node("finish-auth-recovery").classList.contains("hidden"),false);
+  assert.equal(a.node("finish-technical").classList.contains("hidden"),false);
+  assert.equal(a.node("finish-technical").open,false);
+  assert.match(a.node("finish-detail").textContent,/świadomej zgody/);
+  assert.doesNotMatch(a.node("finish-detail").textContent,/That API call/);
+  assert.match(a.node("finish-technical-code").textContent,/Required scope/);
+  a.c.showOutcome("success","Sukces","Połączono");
+  assert.equal(a.node("finish-auth-recovery").classList.contains("hidden"),true);
+  assert.equal(a.node("finish-technical").classList.contains("hidden"),true);
+  assert.equal(a.node("finish-technical-code").textContent,"");
+});
+test("scope recovery navigates to existing settings and never grants global scope automatically",()=>{
+  const a=setup();
+  a.c.openScopeRecovery();
+  assert.equal(a.node("editorial-scope-help").open,true);
+  const html=fs.readFileSync(path.join(__dirname,"../app/src/main/assets/index.html"),"utf8");
+  assert.match(html,/function retryWithEditorialScope\(\)\{/);
+  assert.match(html,/if\(!confirm\("WordPress może przyznać zakres global/);
+});
