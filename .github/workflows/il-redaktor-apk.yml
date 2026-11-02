@@ -202,6 +202,7 @@ jobs:
       - name: Check live public RSS channels without AI or WordPress writes
         run: python3 il-redaktor-android/scripts/check-free-rss.py
       - name: Compile Android APK
+        id: compile
         working-directory: il-redaktor-android
         run: gradle --no-daemon :app:assembleDebug :app:assembleDebugAndroidTest
       - name: Verify and upload test APK before emulator tests
@@ -210,59 +211,33 @@ jobs:
           test -s "$APK"
           SDK_ROOT="${ANDROID_HOME:-/usr/local/lib/android/sdk}"
           "$SDK_ROOT/build-tools/35.0.0/apksigner" verify --verbose "$APK"
-          "$SDK_ROOT/build-tools/35.0.0/aapt" dump badging "$APK" | grep -F "package: name='com.ispinalokalnie.redaktorsmart.stable' versionCode='44' versionName='1.29.5-test.1'"
+          "$SDK_ROOT/build-tools/35.0.0/aapt" dump badging "$APK" | grep -F "package: name='com.ispinalokalnie.redaktorsmart.stable' versionCode='45' versionName='2.0.0-professional-test.1'"
       - name: Upload test APK for manual login diagnostics
         uses: actions/upload-artifact@v4
         with:
           name: IL-Redaktor-Preview-APK
           path: il-redaktor-android/app/build/outputs/apk/debug/app-debug.apk
           retention-days: 30
-      - name: Build previous 1.15 debug APK with the same CI debug signing key
+      - name: Build previous 1.29.4 debug APK with the same CI debug signing key
         run: |
-          git fetch --depth=1 origin 17333f654fae324384b5c09dd1a7fd94da8e4359
-          git worktree add --detach "$RUNNER_TEMP/il-previous" 17333f654fae324384b5c09dd1a7fd94da8e4359
+          git fetch --depth=1 origin ad9b11d96dcd59b8ea5fee19179070c94179e7ff
+          git worktree add --detach "$RUNNER_TEMP/il-previous" ad9b11d96dcd59b8ea5fee19179070c94179e7ff
           cp -R il-redaktor-android/app/src/main/res "$RUNNER_TEMP/il-previous/il-redaktor-android/app/src/main/"
+          ln -s "$GITHUB_WORKSPACE/il-redaktor-android/backend/node_modules" "$RUNNER_TEMP/il-previous/il-redaktor-android/backend/node_modules"
           gradle --no-daemon -p "$RUNNER_TEMP/il-previous/il-redaktor-android" :app:assembleDebug
           cp "$RUNNER_TEMP/il-previous/il-redaktor-android/app/build/outputs/apk/debug/app-debug.apk" /tmp/il-previous-debug.apk
-      - name: Enable Android emulator acceleration
-        run: sudo chmod a+rw /dev/kvm
-      - name: Test Android 8 (API 26) WebView and data preservation without WordPress writes
-        uses: reactivecircus/android-emulator-runner@v2
-        with:
-          api-level: 26
-          target: google_apis
-          arch: x86_64
-          disable-animations: true
-          emulator-options: -no-window -gpu swiftshader -feature -Vulkan -no-snapshot -noaudio -no-boot-anim -camera-back none
-          ram-size: 2048M
-          script: bash il-redaktor-android/scripts/run-emulator-smoke.sh 26
-      - name: Test Android 11 (API 30) WebView and update flow without WordPress writes
-        uses: reactivecircus/android-emulator-runner@v2
-        with:
-          api-level: 30
-          target: google_apis
-          arch: x86_64
-          disable-animations: true
-          emulator-options: -no-window -gpu swiftshader -feature -Vulkan -no-snapshot -noaudio -no-boot-anim -camera-back none
-          ram-size: 2048M
-          script: bash il-redaktor-android/scripts/run-emulator-smoke.sh 30
-      - name: Test Android 13 (API 33) WebView and update flow without WordPress writes
-        uses: reactivecircus/android-emulator-runner@v2
-        with:
-          api-level: 33
-          target: google_apis
-          arch: x86_64
-          disable-animations: true
-          emulator-options: -no-window -gpu swiftshader -feature -Vulkan -no-snapshot -noaudio -no-boot-anim -camera-back none
-          ram-size: 2048M
-          script: bash il-redaktor-android/scripts/run-emulator-smoke.sh 33
-      - name: Upload emulator UI checks
+      - name: Prepare emulator input bundle
+        run: |
+          mkdir -p /tmp/il-emulator-inputs
+          cp il-redaktor-android/app/build/outputs/apk/debug/app-debug.apk /tmp/il-emulator-inputs/
+          cp il-redaktor-android/app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk /tmp/il-emulator-inputs/
+          cp /tmp/il-previous-debug.apk /tmp/il-emulator-inputs/
+      - name: Upload common APK inputs for independent OS tests
         uses: actions/upload-artifact@v4
         with:
-          name: IL-Redaktor-UI-Checks
-          path: /tmp/il-editor-ui-api-*/*.png
-          if-no-files-found: warn
-          retention-days: 14
+          name: IL-Redaktor-Emulator-Inputs
+          path: /tmp/il-emulator-inputs/
+          retention-days: 7
       - name: Confirm APK and actual monogram
         run: |
           SDK_ROOT="${ANDROID_HOME:-/usr/local/lib/android/sdk}"
@@ -270,7 +245,7 @@ jobs:
           test -s "$APK"
           test -s il-redaktor-android/app/src/main/assets/il-monogram.png
           "$SDK_ROOT/build-tools/35.0.0/apksigner" verify --verbose "$APK"
-          "$SDK_ROOT/build-tools/35.0.0/aapt" dump badging "$APK" | grep -F "package: name='com.ispinalokalnie.redaktorsmart.stable' versionCode='44' versionName='1.29.5-test.1'"
+          "$SDK_ROOT/build-tools/35.0.0/aapt" dump badging "$APK" | grep -F "package: name='com.ispinalokalnie.redaktorsmart.stable' versionCode='45' versionName='2.0.0-professional-test.1'"
           unzip -l "$APK" | grep 'assets/il-monogram.png'
       - name: Upload installable APK
         uses: actions/upload-artifact@v4
@@ -315,13 +290,13 @@ jobs:
             exit 1
           fi
           mkdir -p "$RUNNER_TEMP/il-signed-upgrade"
-          cp "$APK" "$RUNNER_TEMP/il-signed-upgrade/IL-Redaktor-Smart-1.29.5-test.1-UPDATE.apk"
+          cp "$APK" "$RUNNER_TEMP/il-signed-upgrade/IL-Redaktor-Smart-2.0.0-professional-test.1-UPDATE.apk"
           echo "Signed upgrade APK created with the existing release certificate."
       - name: Upload verified signed upgrade when available
         uses: actions/upload-artifact@v4
         with:
           name: IL-Redaktor-Signed-Upgrade
-          path: ${{ runner.temp }}/il-signed-upgrade/IL-Redaktor-Smart-1.29.5-test.1-UPDATE.apk
+          path: ${{ runner.temp }}/il-signed-upgrade/IL-Redaktor-Smart-2.0.0-professional-test.1-UPDATE.apk
           if-no-files-found: ignore
           retention-days: 30
       - uses: actions/upload-artifact@v4
@@ -329,3 +304,52 @@ jobs:
           name: IL-Redaktor-Signing-Tools
           path: /usr/local/lib/android/sdk/build-tools/35.0.0/lib/apksigner.jar
           retention-days: 30
+
+  android:
+    name: Android API ${{ matrix.api }} upgrade and UI
+    needs: apk
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    strategy:
+      fail-fast: false
+      matrix:
+        api: [26, 29, 30, 33]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: actions/download-artifact@v4
+        with:
+          name: IL-Redaktor-Emulator-Inputs
+          path: /tmp/il-emulator-inputs
+      - name: Restore verified APK inputs
+        run: |
+          mkdir -p il-redaktor-android/app/build/outputs/apk/debug
+          mkdir -p il-redaktor-android/app/build/outputs/apk/androidTest/debug
+          cp /tmp/il-emulator-inputs/app-debug.apk il-redaktor-android/app/build/outputs/apk/debug/
+          cp /tmp/il-emulator-inputs/app-debug-androidTest.apk il-redaktor-android/app/build/outputs/apk/androidTest/debug/
+          cp /tmp/il-emulator-inputs/il-previous-debug.apk /tmp/il-previous-debug.apk
+          sudo chmod a+rw /dev/kvm
+      - name: Verify upgrade, WebView, SQLite, recovery, editor and haptics
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: ${{ matrix.api }}
+          target: google_apis
+          arch: x86_64
+          disable-animations: true
+          emulator-options: -no-window -gpu swiftshader -feature -Vulkan -no-snapshot -noaudio -no-boot-anim -camera-back none
+          ram-size: 2048M
+          script: bash il-redaktor-android/scripts/run-emulator-smoke.sh ${{ matrix.api }}
+      - name: Preserve OS evidence even on failure
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: IL-Redaktor-Checks-API-${{ matrix.api }}
+          path: |
+            /tmp/il-editor-ui-api-*/*.png
+            /tmp/il-update-*.txt
+            /tmp/il-confirmation-test-*.txt
+          if-no-files-found: warn
+          retention-days: 14

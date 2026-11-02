@@ -704,9 +704,12 @@ test("AI context exposes published posts only for reader recommendations",()=>{
 test("new build metadata and the PR APK workflow agree",()=>{
   const gradle=fs.readFileSync(path.join(__dirname,"../app/build.gradle"),"utf8");
   const workflow=fs.readFileSync(path.join(__dirname,"../../.github/workflows/il-redaktor-apk.yml"),"utf8");
-  assert.match(gradle,/versionCode 44/);assert.match(gradle,/versionName '1\.29\.5-test\.1'/);assert.match(gradle,/https:\/\/il-redaktor-assistant\.vercel\.app\/api\/assistant/);
+  const versionCode=gradle.match(/versionCode (\d+)/)[1],versionName=gradle.match(/versionName '([^']+)'/)[1];
+  assert.ok(Number(versionCode)>=45);assert.match(versionName,/^2\.0\.0-professional-test\./);assert.match(gradle,/https:\/\/il-redaktor-assistant\.vercel\.app\/api\/assistant/);
   assert.match(gradle,/applicationId 'com\.ispinalokalnie\.redaktorsmart\.stable'/);
-  assert.match(workflow,/versionCode='44' versionName='1\.29\.5-test\.1'/);
+  assert.ok(workflow.includes("versionCode='"+versionCode+"' versionName='"+versionName+"'"));
+  const instrumentation=fs.readFileSync(path.join(__dirname,"../app/src/androidTest/java/com/ispinalokalnie/redaktor/ConfirmationInstrumentation.java"),"utf8");
+  assert.match(instrumentation,/seed-current.*BuildConfig.VERSION_CODE/);
 });
 
 test("AI editor shortcut copies current title and text into a reviewable prompt without sending it",()=>{
@@ -1261,7 +1264,7 @@ test("free search displays empty results without an AI login or false source err
  const a=setup();a.c.IL.askResearch=(id)=>a.c.window.onNativeResult(id,true,JSON.stringify({freeSearch:true,sources:[],answer:"Brak pasujących materiałów w dostępnych kanałach."}));
  a.run("connected=false;freeSearchReady=true");a.node("research-query").value="Ispina";
  await a.run("runDeepIspinaResearch()");
- assert.match(a.node("research-results").textContent,/Brak pasujących/);
+ assert.match(a.node("research-results").innerHTML,/Brak pasujących/);
  assert.equal(a.run("requests.size"),0);assert.equal(a.node("research-button").disabled,false);
 });
 
@@ -1310,4 +1313,67 @@ test("audit repairs: cannot publish unresolved source placeholders",async()=>{
   a.node("post-body").value="Ważny fakt [DO UZUPEŁNIENIA: data]";
   await a.run("savePost('publish')");
   assert.match(a.node("post-output").innerHTML,/Nie publikuję artykułu/);
+});
+
+
+test("returned WordPress ID is durably saved before a failing read-after-write",async()=>{
+  const a=setup([],null);a.node("post-title").value="Wpis";a.node("post-body").value="Treść na stronie";a.run("connected=true");
+  let storedId;
+  a.c.rpc=async(method)=>{if(method==='POST')return {id:456,status:'draft'};
+    storedId=a.run("readDraftStore().drafts.find(d=>d.id===activeDraftId).postId");throw Error('offline after write');};
+  await a.c.savePost('draft');
+  assert.equal(storedId,456);
+  a.run("draftStore=null;activeDraftId=null;$('post-title').value='';$('post-body').value='';restoreLocal(true)");
+  assert.equal(a.run('postId'),456);
+  assert.match(a.node('finish-title').textContent,/ZAPIS NIEZWERYFIKOWANY/);
+});
+
+test("memory pagination uses offset and rejects stale responses",async()=>{
+  const a=setup();let resolveOld;
+  a.c.editorialRequest=()=>new Promise(resolve=>resolveOld=resolve);
+  const old=a.c.loadEditorialMemory();
+  a.node('editorial-memory-topic').value='OSP';let request;
+  a.c.editorialRequest=async(action,data)=>{request=data;return {items:[],total:0,hasMore:false}};
+  await a.c.loadEditorialMemory();resolveOld({items:[{url:'https://example.org/old',title:'Stary wynik'}]});await old;
+  assert.equal(request.topic,'OSP');assert.equal(request.offset,0);
+  assert.doesNotMatch(a.node('editorial-memory-results').innerHTML,/Stary wynik/);
+});
+
+
+test("zero and absent source dates are never converted to a fabricated publication date",()=>{
+ const a=setup();assert.equal(a.c.editorialDisplayDate(0),'BRAK DATY');assert.equal(a.c.editorialDisplayDate('0'),'BRAK DATY');assert.equal(a.c.editorialDisplayDate(''),'BRAK DATY');
+});
+test("source coverage reports escaped failures even when no source was found",()=>{
+ const a=setup();a.c.renderResearchResult({freeSearch:true,sources:[],profiles:[{name:'BIP',status:'unavailable',reason:'HTTP 403 <script>bad</script>'}],answer:'Brak wyników'},'Ispina');
+ assert.match(a.node('research-results').innerHTML,/BIP/);assert.match(a.node('research-results').innerHTML,/HTTP 403 &lt;script&gt;/);assert.doesNotMatch(a.node('research-results').innerHTML,/<script>/);
+});
+
+
+test("services retain the full original page before an uncertain write",async()=>{
+ const a=setup();a.run("servicesRaw='<h3>Dawna firma</h3>';servicesLoaded=true");let calls=0;
+ a.c.rpc=async(method)=>{if(method==='GET')return {id:818,content:{raw:'<h3>Dawna firma</h3>'}};calls++;throw Error('offline');};
+ await assert.rejects(a.c.persistServiceList([]),/offline/);assert.equal(calls,1);
+ a.c.showServiceRecovery();assert.equal(a.node('service-recovery-content').value,'<h3>Dawna firma</h3>');
+});
+test("services never write when the recovery copy cannot be saved",async()=>{
+ const a=setup();a.run("servicesRaw='Original page';servicesLoaded=true");let writes=0;
+ a.c.IL.saveServicePageBackup=()=>JSON.stringify({ok:false,message:'Brak miejsca'});
+ a.c.rpc=async(method)=>{if(method==='POST')writes++;return {id:818,content:{raw:'Original page'}};};
+ await assert.rejects(a.c.persistServiceList([]),/Brak miejsca/);assert.equal(writes,0);
+});
+
+
+test("a POST timeout remains flagged after restart and cannot silently send again",async()=>{
+ const a=setup([],null);let writes=0;a.c.rpc=async(method)=>{if(method==='POST')writes++;throw Error('timeout');};
+ await a.c.savePost('draft');assert.equal(writes,1);
+ a.run("draftStore=null;activeDraftId=null;pendingPublicationWrite=null;$('post-title').value='';$('post-body').value='';restoreLocal(true)");
+ assert.equal(a.run('pendingPublicationWrite.status'),'draft');
+ let warning='';a.c.confirm=text=>{warning=text;return false;};
+ await a.c.savePost('draft');assert.equal(writes,1);assert.match(warning,/duplikat/);
+ const backup=JSON.parse(a.c.makeDraftBackup());assert.equal(backup.drafts[0].pendingWrite.status,'draft');
+});
+test("verified successful writes clear the durable pending-operation warning",async()=>{
+ const a=setup([],null);a.c.rpc=async()=>({id:789,status:'draft'});
+ await a.c.savePost('draft');assert.equal(a.run('pendingPublicationWrite'),null);
+ assert.equal(a.run('readDraftStore().drafts[0].pendingWrite'),null);
 });

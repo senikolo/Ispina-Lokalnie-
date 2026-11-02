@@ -6,16 +6,11 @@ if [ -z "$api_level" ]; then echo 'Pass Android API level for the smoke test'; e
 current_apk="il-redaktor-android/app/build/outputs/apk/debug/app-debug.apk"
 test_apk="il-redaktor-android/app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk"
 
-if [ "$api_level" = "26" ]; then
-  echo "Android 8 baseline: current APK; checking cold start and data preservation across reinstall."
-  adb install -r "$current_apk"
-else
-  adb install -r /tmp/il-previous-debug.apk
-fi
-
+# Upgrade from the user's latest transpiled 1.29.4 build on every OS.
+# The ancient 1.15 HTML cannot parse in Android 10's stock WebView.
+adb install -r /tmp/il-previous-debug.apk
 adb install -r "$test_apk"
 seed_mode="seed"
-if [ "$api_level" = "26" ]; then seed_mode="seed-current"; fi
 adb shell am instrument -w -e mode "$seed_mode" com.ispinalokalnie.redaktorsmart.stable.instrumentation/com.ispinalokalnie.redaktor.ConfirmationInstrumentation | tee "/tmp/il-update-seed-$api_level.txt"
 grep -F 'IL_UPDATE_SEED=PASS' "/tmp/il-update-seed-$api_level.txt" || { adb logcat -d -s chromium AndroidRuntime ILEditorProbe ActivityManager; exit 1; }
 

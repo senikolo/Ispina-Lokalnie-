@@ -245,8 +245,41 @@ public final class ConfirmationInstrumentation extends Instrumentation {
     }
 
 
+    private void testMemoryMigration() throws Exception {
+        String name="il-v1-migration-probe.db";getTargetContext().deleteDatabase(name);
+        android.database.sqlite.SQLiteDatabase db=getTargetContext().openOrCreateDatabase(name,0,null);
+        try {
+            db.execSQL("CREATE TABLE sources(url TEXT PRIMARY KEY NOT NULL,title TEXT NOT NULL,snippet TEXT NOT NULL DEFAULT '',published_at TEXT NOT NULL DEFAULT '',first_seen INTEGER NOT NULL,last_seen INTEGER NOT NULL,changed_at INTEGER NOT NULL DEFAULT 0,fingerprint TEXT NOT NULL,status TEXT NOT NULL DEFAULT 'link_found',last_query TEXT NOT NULL DEFAULT '')");
+            db.execSQL("CREATE TABLE searches(id INTEGER PRIMARY KEY AUTOINCREMENT,question TEXT NOT NULL,answer TEXT NOT NULL,searched_at INTEGER NOT NULL,result_count INTEGER NOT NULL DEFAULT 0)");
+            db.execSQL("INSERT INTO sources(url,title,first_seen,last_seen,fingerprint,status) VALUES('https://example.org/v1','Stara notatka mostowa',1,1,'old','reviewed')");
+            db.execSQL("INSERT INTO searches(question,answer,searched_at) VALUES('Dawne wyszukiwanie','Dawna odpowiedź',1)");
+            db.setVersion(1);
+        }finally{db.close();}
+        EditorialMemory migrated=new EditorialMemory(getTargetContext(),name);
+        try {
+            org.json.JSONObject source=migrated.execute("browse",new org.json.JSONObject().put("topic","mostow")).getJSONArray("items").getJSONObject(0);
+            if(!"reviewed".equals(source.getString("status")))throw new AssertionError("Migration lost reviewed source");
+            if(migrated.execute("history",new org.json.JSONObject()).getJSONArray("items").length()!=1)throw new AssertionError("Migration lost search history");
+            if(!source.getString("notes").isEmpty())throw new AssertionError("Migration invented editorial notes");
+        }finally{migrated.close();getTargetContext().deleteDatabase(name);}
+        if(PublicPageSource.allowed("User-agent: *\nDisallow: /", "/"))throw new AssertionError("Robots exclusion ignored");
+        if(!PublicPageSource.allowed("User-agent: *\nDisallow: /\nAllow: /news", "/news/ispina"))throw new AssertionError("Robots longest allow lost");
+        if(PublicPageSource.allowed("User-agent: *\nDisallow: /*?private=", "/news?private=1"))throw new AssertionError("Robots wildcard ignored");
+        org.json.JSONArray page=PublicPageSource.links("<html><script><a href='/Ispina-secret'>Do not read</a></script><a href='/Ispina.pdf'>Most w Ispinie</a><a href='javascript:alert(1)'>Ispina</a><a href='/unrelated'>Menu</a></html>","https://example.org/","most");
+        if(page.length()!=1||!"https://example.org/Ispina.pdf".equals(page.getJSONObject(0).getString("url")))throw new AssertionError("Public HTML link extraction not bounded to locality");
+    }
+
     private void testEditorialMemory() throws Exception {
         diagnosticStage="sqlite editorial memory persistence";
+        testMemoryMigration();
+        java.io.File recoveryFile=new java.io.File(getTargetContext().getCacheDir(),"service-recovery-qa.json");
+        ServicePageBackupStore recovery=new ServicePageBackupStore(recoveryFile);
+        String original="<!-- wp:paragraph --><p>Istniejąca firma w Ispinie</p><!-- /wp:paragraph -->";
+        if(!new org.json.JSONObject(recovery.save(original)).optBoolean("ok"))throw new AssertionError("Service recovery not saved");
+        if(!original.equals(new org.json.JSONObject(new ServicePageBackupStore(recoveryFile).read()).getString("content")))throw new AssertionError("Service recovery changed serialized blocks");
+        try(java.io.FileOutputStream out=new java.io.FileOutputStream(recoveryFile)){out.write("{}".getBytes(java.nio.charset.StandardCharsets.UTF_8));}
+        if(new org.json.JSONObject(recovery.read()).optBoolean("ok"))throw new AssertionError("Corrupt service recovery accepted");
+        recoveryFile.delete();
         String url="https://example.org/il-redaktor-qa-only";
         EditorialMemory memory=new EditorialMemory(getTargetContext());
         org.json.JSONObject hit=new org.json.JSONObject()
@@ -279,6 +312,21 @@ public final class ConfirmationInstrumentation extends Instrumentation {
             if(!"link_found".equals(memory.execute("browse",new org.json.JSONObject()
                 .put("topic","Most")).getJSONArray("items").getJSONObject(0).getString("status")))
                 throw new AssertionError("Updated source retained stale review approval");
+            memory.execute("annotate",new org.json.JSONObject().put("url",url).put("notes","Unikatowa notatka konserwatorska")
+                .put("draftId","qa-draft").put("title","Szkic mostu").put("postId",123));
+            org.json.JSONObject annotated=memory.execute("browse",new org.json.JSONObject().put("topic","konserwatorsk"))
+                .getJSONArray("items").getJSONObject(0);
+            if(!url.equals(annotated.getString("url"))||annotated.getJSONArray("links").getJSONObject(0).getInt("postId")!=123)
+                throw new AssertionError("FTS notes or draft linkage not saved");
+            if(memory.execute("browse",new org.json.JSONObject().put("status","changed")).getJSONArray("items").length()<1)
+                throw new AssertionError("Changed source filter not available");
+            if(memory.execute("browse",new org.json.JSONObject().put("topic","konserwatorsk").put("offset",50)).getJSONArray("items").length()!=0)
+                throw new AssertionError("Memory pagination repeated the first page");
+            org.json.JSONObject intact=memory.execute("export",new org.json.JSONObject());
+            org.json.JSONObject tampered=new org.json.JSONObject(intact.toString());
+            tampered.getJSONArray("sources").getJSONObject(0).put("notes","Corrupted backup");
+            try{memory.execute("import",tampered);throw new AssertionError("Corrupt backup accepted");}
+            catch(IllegalArgumentException expected){}
             memory.close();
             EditorialMemory reopened=new EditorialMemory(getTargetContext());
             try {
@@ -293,6 +341,8 @@ public final class ConfirmationInstrumentation extends Instrumentation {
                     throw new AssertionError("Cleanup before import failed");
                 if(reopened.execute("import",backup).getInt("imported")<1)
                     throw new AssertionError("Editorial backup did not restore deleted source");
+                if(!"Unikatowa notatka konserwatorska".equals(reopened.execute("browse",new org.json.JSONObject().put("topic","konserwatorsk"))
+                    .getJSONArray("items").getJSONObject(0).getString("notes")))throw new AssertionError("Backup lost editorial notes");
                 reopened.execute("review",new org.json.JSONObject().put("url",url).put("confirmed",true));
                 if(reopened.execute("import",backup).getInt("existing")<1)
                     throw new AssertionError("Duplicate import did not preserve existing source");
@@ -313,7 +363,7 @@ public final class ConfirmationInstrumentation extends Instrumentation {
             activity = (MainActivity) startActivitySync(launch);
             editor = (WebView) field("editor");
             long deadline = SystemClock.uptimeMillis() + 45000;
-            String expectedAsset = "seed".equals(mode) ? "index.html" : "index-android.html";
+            String expectedAsset = "index-android.html";
             String pageReadyScript = "location.href==='file:///android_asset/" + expectedAsset + "' && document.readyState==='complete'";
             while (!"true".equals(evaluate(pageReadyScript))) {
                 if (SystemClock.uptimeMillis() >= deadline) throw new AssertionError("Editor did not finish loading");
@@ -326,14 +376,14 @@ public final class ConfirmationInstrumentation extends Instrumentation {
             // document.readyState alone only confirms DOM loading on older WebView.
             captureUi("startup");
             if ("seed".equals(mode) || "seed-current".equals(mode)) {
-                int expectedVersion = "seed-current".equals(mode) ? 43 : 21;
+                int expectedVersion = "seed-current".equals(mode) ? BuildConfig.VERSION_CODE : 43;
                 if(getTargetContext().getPackageManager().getPackageInfo(getTargetContext().getPackageName(),0).versionCode!=expectedVersion)throw new AssertionError("Seed baseline versionCode mismatch: expected "+expectedVersion);
                 String seeded=evaluate("localStorage.removeItem(draftKey);draftStore=null;activeDraftId=null;$('post-title').value='Pierwszy szkic';$('post-body').value='Pierwsza wersja';persistDraft(true);$('post-body').value='Druga wersja';persistDraft(true);resetEditor();$('post-title').value='Drugi szkic';$('post-body').value='Drugi tekst';persistDraft(true);String(readDraftStore().drafts.length)");
                 if(!"\"2\"".equals(seeded))throw new AssertionError("Draft seeding failed: "+seeded);
                 if(!getTargetContext().getSharedPreferences("il_update_probe",0).edit().putString("marker","preserved").commit())throw new AssertionError("Preferences seeding failed");
                 result.putString("stream","IL_UPDATE_SEED=PASS\n");
             } else if ("verify".equals(mode)) {
-                if(getTargetContext().getPackageManager().getPackageInfo(getTargetContext().getPackageName(),0).versionCode!=44)throw new AssertionError("Verification must run after upgrade to versionCode 44");
+                if(getTargetContext().getPackageManager().getPackageInfo(getTargetContext().getPackageName(),0).versionCode!=BuildConfig.VERSION_CODE)throw new AssertionError("Verification must run after upgrade to current versionCode");
                 String restored=evaluate("JSON.stringify(readDraftStore().drafts.map(d=>[d.title,d.body,d.revisions.length]))");
                 if(!restored.contains("Pierwszy szkic")||!restored.contains("Druga wersja")||!restored.contains("Drugi szkic"))throw new AssertionError("Drafts lost after reinstall: "+restored);
                 if(!"preserved".equals(getTargetContext().getSharedPreferences("il_update_probe",0).getString("marker","")))throw new AssertionError("Preferences lost after reinstall");

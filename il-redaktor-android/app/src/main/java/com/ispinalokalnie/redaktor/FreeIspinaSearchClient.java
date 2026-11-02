@@ -14,7 +14,7 @@ import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
 import java.util.*;
 
-/** Public RSS only: no AI inference, tokens, billing or application backend. */
+/** Public feeds and bounded public HTML indexes: no AI inference, tokens or billing. */
 public final class FreeIspinaSearchClient {
     private FreeIspinaSearchClient() {}
     private static final Map<String, JSONObject> CACHE = new LinkedHashMap<>();
@@ -36,6 +36,10 @@ public final class FreeIspinaSearchClient {
             // Indexed results are NOT a guarantee of exhaustive BIP or PDF coverage.
             String baseQuery = "Ispina Drwinia" + (topic.isEmpty() ? "" : " " + topic);
             String[][] profiles = {
+                {"Drwinia: bezpośredni indeks HTML", "html", "https://drwinia.pl/"},
+                {"Eko-Drwinia: bezpośredni indeks HTML", "html", "https://eko.drwinia.pl/"},
+                {"Dokumenty PDF (indeks wyszukiwarki)", "bing", "Ispina Drwinia filetype:pdf " + topic},
+                {"Błędne odmiany nazwy", "bing", "\"Ispini\" OR \"Ispinii\" OR \"Ispni\" Drwinia " + topic},
                 {"Google News", "news", baseQuery},
                 {"Bing ogólny", "bing", baseQuery},
                 {"Urząd Gminy Drwinia", "bing", "Ispina site:drwinia.pl " + topic},
@@ -60,20 +64,38 @@ public final class FreeIspinaSearchClient {
                 control.check();
                 // Leave enough time to assemble the report and return partial results.
                 if (System.currentTimeMillis() - started > 51000L) {
-                    skipped = profiles.length - index;
+                    skipped += profiles.length - index;
                     for(int next=index; next<profiles.length;next++)
                         profileResults.put(new JSONObject().put("name",profiles[next][0])
                             .put("status","skipped_timeout").put("newLinks",0));
                     break;
                 }
                 String[] profile = profiles[index];
-                String address = "rss".equals(profile[1]) ? profile[2] :
+                String address = ("rss".equals(profile[1]) || "html".equals(profile[1])) ? profile[2] :
                     ("news".equals(profile[1]) ?
                         "https://news.google.com/rss/search?q=" + java.net.URLEncoder.encode(profile[2],"UTF-8") + "&hl=pl&gl=PL&ceid=PL:pl" :
                         "https://www.bing.com/search?format=rss&q=" + java.net.URLEncoder.encode(profile[2],"UTF-8"));
                 searchedQueries.put(profile[2]);
                 try {
-                    JSONArray items = parseFeed(fetch(address, control), since, datedOnly);
+                    JSONArray items;
+                    if("html".equals(profile[1])) {
+                        java.net.URL page=new java.net.URL(address);
+                        String robots;
+                        try { robots=fetch(page.getProtocol()+"://"+page.getAuthority()+"/robots.txt",control); }
+                        catch(Exception ex) {
+                            if(ex.getMessage()!=null&&ex.getMessage().contains("HTTP 404"))robots="";else throw ex;
+                        }
+                        if(!PublicPageSource.allowed(robots,page.getPath().isEmpty()?"/":page.getPath()))
+                            throw new IOException("Ograniczenie robots.txt; użyj oryginalnej strony ręcznie.");
+                        items=PublicPageSource.links(fetch(address,control),address,topic);
+                        // An index without publication dates cannot establish a dated scan as complete.
+                        if(datedOnly) {
+                            skipped++;
+                            profileResults.put(new JSONObject().put("name",profile[0]).put("status","undated_index")
+                                .put("reason","Indeks HTML nie potwierdza dat publikacji; sprawdź stronę ręcznie.").put("newLinks",0));
+                            continue;
+                        }
+                    }else items=parseFeed(fetch(address, control), since, datedOnly);
                     successful++;
                     int matching = 0;
                     for (int i=0; i<items.length(); i++) {
@@ -81,14 +103,14 @@ public final class FreeIspinaSearchClient {
                         if (matchesTopic(item, topic)) {
                             String key = canonicalKey(item.getString("url"));
                             if (!found.containsKey(key)) matching++;
-                            found.put(key, item);
+                            found.put(key, item.put("url",key));
                         }
                     }
                     profileResults.put(new JSONObject().put("name",profile[0]).put("status","ok").put("newLinks",matching));
                 } catch (Exception ex) {
                     control.check();
                     failed++;
-                    profileResults.put(new JSONObject().put("name",profile[0]).put("status","unavailable"));
+                    profileResults.put(new JSONObject().put("name",profile[0]).put("status","unavailable").put("reason",ex.getMessage()==null?"Błąd odczytu publicznego źródła.":ex.getMessage()));
                 }
             }
             control.check();
@@ -114,7 +136,7 @@ public final class FreeIspinaSearchClient {
             else answer.insert(0, "Znalezione materiały do przeczytania w oryginalnych źródłach. To lista wyników, bez automatycznej oceny prawdziwości.\n\n");
             if (failed > 0 || skipped > 0)
                 answer.append("\nSkan częściowy: niedostępne kanały: ").append(failed)
-                      .append(", pominięte z powodu limitu czasu: ").append(skipped).append(".");
+                      .append(", pominięte lub bez potwierdzonych dat: ").append(skipped).append(".");
             JSONObject result = new JSONObject().put("freeSearch", true).put("answer", answer.toString())
                  .put("text", answer.toString()).put("sources", sources).put("verified", false)
                 .put("queries", searchedQueries).put("searchedAt", System.currentTimeMillis())
@@ -223,15 +245,15 @@ public final class FreeIspinaSearchClient {
             connection.setConnectTimeout(3500);
             connection.setReadTimeout(4500);
             connection.setInstanceFollowRedirects(false);
-            connection.setRequestProperty("Accept", "application/rss+xml, application/xml, text/xml");
-            connection.setRequestProperty("User-Agent", "IL-Redaktor-Smart/1.28 PublicRSS");
+            connection.setRequestProperty("Accept", "application/rss+xml, application/xml, text/xml, text/html, text/plain");
+            connection.setRequestProperty("User-Agent", "IL-Redaktor-Smart/2.0 PublicSources");
             int status = connection.getResponseCode();
-            if (status != 200) throw new IOException("Kanał RSS: HTTP " + status);
+            if (status != 200) throw new IOException("Publiczne źródło: HTTP " + status);
             try (InputStream input = connection.getInputStream(); ByteArrayOutputStream out = new ByteArrayOutputStream()) {
                 byte[] buffer = new byte[4096]; int count;
                 while ((count = input.read(buffer)) != -1) {
                     control.check();
-                    if (out.size()+count > 600000) throw new IOException("Kanał RSS jest za duży.");
+                    if (out.size()+count > 600000) throw new IOException("Publiczne źródło przekracza limit 600 KB.");
                     out.write(buffer, 0, count);
                 }
                 return out.toString(StandardCharsets.UTF_8.name());

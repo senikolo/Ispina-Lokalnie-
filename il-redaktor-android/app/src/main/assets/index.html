@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>IL Redaktor Smart</title>
+<title>IL Redaktor Smart 2.0 Professional</title>
 <style>
 :root{font-family:system-ui,-apple-system,"Roboto",sans-serif;color:#17304e;background:#f3f7fc}
 *{box-sizing:border-box}body{margin:0;padding-bottom:95px}
@@ -298,11 +298,12 @@ header{animation:ilHeader .38s cubic-bezier(.2,.7,.2,1) both}.brand .logo{animat
     <label for="editorial-memory-status">Status źródeł</label>
     <select id="editorial-memory-status">
       <option value="all">Wszystkie</option><option value="link_found">Linki do sprawdzenia</option>
-      <option value="reviewed">Sprawdzone ręcznie</option>
+      <option value="new">Nowe</option><option value="known">Znane</option><option value="changed">Zmienione</option><option value="reviewed">Sprawdzone przez redaktora</option>
     </select>
     <div class="actions"><button type="button" onclick="loadEditorialMemory()">Szukaj w pamięci</button><button class="secondary" type="button" onclick="loadEditorialHistory()">Ostatnie pytania</button><button class="secondary" type="button" onclick="exportEditorialMemory()">Zapisz kopię JSON</button><button class="secondary" type="button" onclick="importEditorialMemory()">Przywróć kopię JSON</button></div>
     <p id="editorial-memory-status-text" class="small muted" role="status">Przy pierwszym otwarciu zobaczysz tu wcześniej zapisane źródła. Historia sprzed wdrożenia bazy nie jest automatycznie odzyskiwana.</p>
     <div id="editorial-memory-results" role="region" aria-live="polite"></div>
+    <button id="memory-more" class="secondary hidden" type="button" onclick="loadEditorialMemory(true)">Wczytaj kolejne źródła</button>
     <div id="editorial-memory-history" role="region" aria-live="polite"></div>
   </div>
 </section>
@@ -369,6 +370,8 @@ header{animation:ilHeader .38s cubic-bezier(.2,.7,.2,1) both}.brand .logo{animat
     <div class="actions"><button class="secondary" onclick="loadServices()">Odczytaj usługi z WordPressa</button><button class="secondary" onclick="IL.openSite('https://ispinalokalnie.wordpress.com/uslugi-w-okolicy/')">Pokaż katalog</button></div>
     <div class="note"><b>Istniejące firmy na stronie</b><div id="legacy-services-list" class="muted" style="padding-top:6px">Odczytaj katalog, aby zobaczyć aktualne oferty.</div></div>
     <div class="actions"><button class="secondary" onclick="IL.openSite('https://wordpress.com/page/ispinalokalnie.wordpress.com/818')">Edytuj istniejące oferty w WordPressie</button></div>
+    <div class="actions"><button class="secondary" onclick="showServiceRecovery()">Kopia sprzed ostatniej zmiany</button></div>
+    <div id="service-recovery" class="note hidden"><p id="service-recovery-status"></p><label>Pełna treść kopii WordPress<textarea id="service-recovery-content" readonly style="min-height:180px"></textarea></label><p class="small">To kopia pełnej strony sprzed ostatniego zapisu z tej aplikacji. Możesz skopiować ją do edytora kodu WordPressa. Sam podgląd niczego nie publikuje.</p></div>
     <h3>Oferty dodane przez Redaktora</h3><div id="services-list"></div><hr>
     <h3 id="service-heading">Dodaj usługodawcę</h3>
     <input type="hidden" id="service-id">
@@ -426,7 +429,7 @@ header{animation:ilHeader .38s cubic-bezier(.2,.7,.2,1) both}.brand .logo{animat
     <label class="setting-row"><input type="checkbox" id="battery-saving" onchange="applyUiPreferences(true)"><span>Tryb oszczędzania baterii</span></label>
     <p id="ui-preferences-status" class="setting-caption" role="status" aria-live="polite">Ustawienia zapisują się na tym telefonie. Systemowe ograniczenie ruchu zawsze ma pierwszeństwo.</p>
   </div>
-  <div class="card"><h2>O programie</h2><p class="muted">IL Redaktor Smart 1.29.4-test.1 · Niezależna aplikacja Android 8 i nowszy. WordPress.com MCP. Publikacja wymaga potwierdzenia i ponownego odczytu wpisu.</p></div>
+  <div class="card"><h2>O programie</h2><p class="muted">IL Redaktor Smart 2.0 Professional · 2.0.0-professional-test.1 · WERSJA TESTOWA · Niezależna aplikacja Android 8 i nowszy. WordPress.com MCP. Publikacja wymaga potwierdzenia i ponownego odczytu wpisu.</p></div>
 </section>
 </main>
 <div id="conflict-dialog" class="finish-dialog hidden" role="dialog" aria-modal="true" aria-labelledby="conflict-title"><div class="finish-panel"><h2 id="conflict-title">Wersja na WordPressie wymaga porównania</h2><p id="conflict-message"></p><p>Nie wysłano zmian artykułu. Twoja praca pozostaje w szkicach na telefonie.</p><button class="secondary" onclick="showConflictComparison()">Porównaj wersje</button><div id="conflict-comparison" class="hidden"></div><p id="conflict-feedback" role="status"></p><div class="actions"><button onclick="resolveRemoteConflict(false)">Wczytaj wersję ze strony</button><button class="secondary" onclick="resolveRemoteConflict(true)">Zachowaj obie kopie</button><button class="secondary" onclick="closeRemoteConflict()">Wróć do tekstu</button></div><p class="small">Wczytanie nie usuwa Twojego szkicu. Zachowaj obie kopie odłączy lokalną wersję od wpisu na stronie.</p></div></div>
@@ -515,7 +518,7 @@ function openPublishedPost(){openPublishedPreview();}
 function setPublishedUrl(url){publishedPageUrl=url||"";$("view-published-post").classList.toggle("hidden",!publishedPageUrl);}
 function publicationPhase(text,kind=""){$("publication-phase").className="note "+kind;$("publication-phase").textContent=text;$("progress-step").textContent=text;}
 let publicationBusy=false;
-let lastPublicationAttempt=null, serviceBusy=false;
+let lastPublicationAttempt=null, pendingPublicationWrite=null, serviceBusy=false;
 let publicationStep="przygotowanie wpisu";
 function publicationButtons(busy){
   publicationBusy=busy;
@@ -1130,9 +1133,13 @@ function clearResearchResults(){
   $("research-status").className="small muted";
 }
 let latestResearchMaterial=null;
+function researchCoverage(result){
+  const profiles=Array.isArray(result?.profiles)?result.profiles:[];
+  return profiles.length?'<details class="source-item"><summary>Zakres sprawdzenia: '+profiles.length+' kanałów</summary>'+profiles.map(p=>'<p class="small"><b>'+esc(p.name||"Źródło")+'</b>: '+esc(({ok:"odczytano",unavailable:"niedostępne",skipped_timeout:"pominięto: limit czasu",undated_index:"brak potwierdzonych dat publikacji"}[p.status]||p.status))+'. '+esc(p.reason||"")+'</p>').join("")+'</details>':"";
+}
 function renderResearchResult(result,query){
   if(result?.freeSearch&&(!Array.isArray(result.sources)||!result.sources.length)){
-    latestResearchMaterial=null;$("research-results").textContent=String(result.answer||"Nie znaleziono pasujących materiałów.");
+    latestResearchMaterial=null;$("research-results").innerHTML='<p class="research-summary">'+esc(String(result.answer||"Nie znaleziono pasujących materiałów."))+'</p>'+researchCoverage(result);
     $("research-status").textContent="Sprawdzanie zakończone. Brak pasujących wyników w dostępnych kanałach.";$("research-status").className="small muted";return;
   }
   const safeFor=items=>(Array.isArray(items)?items:[]).flatMap(source=>{
@@ -1165,7 +1172,7 @@ function renderResearchResult(result,query){
   const materialSources=[...new Map(materialSections.flatMap(section=>section.sources).filter(source=>source?.url).map(source=>[String(source.url),{title:String(source.title||"Źródło").slice(0,180),url:String(source.url)}])).values()].slice(0,12);
   latestResearchMaterial={query:String(typeof query==="string"?query:$("research-query").value||"").trim().slice(0,1800),searchedAt:String(result?.searchedAt||new Date().toISOString()),sections:materialSections,sources:materialSources};
   const draftAction='<div class="actions"><button class="secondary" type="button" data-research-compose>📝 Opracuj szkic w ChatGPT/Gemini</button></div><p class="small muted">Utworzę osobny szkic lokalny i zachowam linki jako źródła „Do sprawdzenia”.</p>';
-  $("research-results").innerHTML='<div class="note"><b>Wyniki do sprawdzenia</b><p class="small">'+esc(profileLabel+'Znaleziono '+totalSources+' odnośników, bez weryfikacji faktów.')+'</p>'+(dateLabel?'<p class="small">Wyszukano: '+esc(dateLabel)+'</p>':"")+'</div>'+rendered+'<p class="muted small">Każde źródło jest przypisane do profilu. Sprawdź datę, treść i aktualność materiału w oryginalnej witrynie; fragment z kanału RSS nie zastępuje dokumentu źródłowego.</p>'+draftAction;
+  $("research-results").innerHTML='<div class="note"><b>Wyniki do sprawdzenia</b><p class="small">'+esc(profileLabel+'Znaleziono '+totalSources+' odnośników, bez weryfikacji faktów.')+'</p>'+(dateLabel?'<p class="small">Wyszukano: '+esc(dateLabel)+'</p>':"")+'</div>'+researchCoverage(result)+rendered+'<p class="muted small">Każde źródło jest przypisane do profilu. Sprawdź datę, treść i aktualność materiału w oryginalnej witrynie; fragment z kanału RSS nie zastępuje dokumentu źródłowego.</p>'+draftAction;
   const ok=Number(result?.successfulFeeds||0),failed=Number(result?.failedFeeds||0),skipped=Number(result?.skippedFeeds||0),planned=Number(result?.plannedFeeds||0);
   $("research-status").textContent="Zakończono: znaleziono "+totalSources+" linków do sprawdzenia. "+
     (planned?"Profile: "+ok+"/"+planned+" pobranych, "+failed+" niedostępnych, "+skipped+" pominiętych. ":"")+
@@ -1425,7 +1432,7 @@ async function testDraftWrite(){
   if(!confirm("Utworzyć w WordPressie prywatny szkic diagnostyczny? Nie będzie publiczny i pozostanie na liście szkiców do ręcznego usunięcia."))return;
   const testButton=$("test-draft-write");
   diagnosticWriteBusy=true;testButton.disabled=true;
-  const title="[TEST IL Redaktor Smart 1.21.0] Sprawdzenie zapisu "+new Date().toLocaleString("pl-PL");
+  const title="[TEST IL Redaktor Smart] Sprawdzenie zapisu "+new Date().toLocaleString("pl-PL");
   const body={title,content:"<p>Test techniczny zapisu z aplikacji IL Redaktor Smart. Ten szkic nie jest przeznaczony do publikacji.</p>",status:"draft",excerpt:"Test techniczny. Nie publikować."};
   let createdId=null;
   startOperation("Test: zapisuję szkic w WordPressie…");
@@ -1661,6 +1668,7 @@ async function savePost(status,reviewApproval=null){
     message("post-output","Nie publikuję artykułu: zawiera pola [DO UZUPEŁNIENIA] lub [DO SPRAWDZENIA]. Uzupełnij je albo usuń po weryfikacji.","error");return;
   }
   if(publicationBusy){publicationPhase("Zapisywanie już trwa. Nie wysyłaj artykułu ponownie.");return}
+  if(pendingPublicationWrite&&!confirm("Poprzedni zapis tego szkicu nie został potwierdzony. Najpierw użyj Sprawdź ostatni zapis i sprawdź listę w WordPressie. Ponowne wysłanie może utworzyć duplikat. Czy po sprawdzeniu chcesz świadomie ponowić zapis?"))return;
   let scheduledDate="";
   if(status==="future"){
     const rawDate=$("post-schedule").value;
@@ -1721,13 +1729,16 @@ async function savePost(status,reviewApproval=null){
     const path=postId?"posts/"+postId:"posts";
     // POST is issued exactly once: an automatic retry after network timeout could
     // publish a duplicate. Save the ID immediately, then verify persistence by GET.
+    pendingPublicationWrite={...lastPublicationAttempt};
+    if(!persistDraft(true)){pendingPublicationWrite=null;throw Error("Nie mogę zachować informacji o rozpoczętym zapisie. Niczego nie wysłałem.");}
     const result=await rpc("POST",path,data);
     if(!Number.isSafeInteger(Number(result.id))||Number(result.id)<=0)
       throw new Error("Odpowiedź zapisu nie zawiera numeru ID. Sprawdź listę artykułów przed ponowieniem.");
     if(postId&&Number(result.id)!==Number(postId))throw Error("WordPress zwrócił inny numer wpisu przy aktualizacji. Sprawdź artykuł przed ponowieniem.");
     postId=Number(result.id);
-    lastPublicationAttempt.id=postId;
+    lastPublicationAttempt.id=postId;pendingPublicationWrite.id=postId;
     postStatus=result.status||status;
+    if(!persistDraft(true))throw Error("WordPress zwrócił ID "+postId+", ale lokalny zapis numeru nie powiódł się. Zachowaj numer i sprawdź wpis przed ponowieniem.");
     $("editor-heading").textContent="Edytuj artykuł #"+postId;
     $("edit-status").textContent="Sprawdzam zapis…";
     message("post-output","WordPress zwrócił ID "+postId+". Sprawdzam, czy zmiany są widoczne po ponownym odczycie.");
@@ -1771,7 +1782,9 @@ async function savePost(status,reviewApproval=null){
     }
     postStatus=verified.status;remoteBaseline=remoteVersion(verified);
     $("edit-status").textContent=status==="publish"?"Opublikowany":status==="future"?"Zaplanowany":"Szkic zapisany";
+    pendingPublicationWrite=null;
     persistDraft(true,true);
+    linkCurrentSourcesToMemory();
     lastPublicationAttempt=null;
     const summary=status==="publish"?"✓ Sukces! Artykuł został opublikowany na Ispina Lokalnie.":status==="future"?"✓ Sukces! Publikacja artykułu została zaplanowana.":"SUKCES! Szkic zapisany.";
     const detail="WordPress zapisał wpis, a ponowny odczyt potwierdził jego status. Tytuł: "+title+
@@ -1794,7 +1807,7 @@ async function savePost(status,reviewApproval=null){
 }
 async function verifyLastPublication(){
   if(!connected){message("post-output","Połącz najpierw konto WordPress.","error");return}
-  const attempted=lastPublicationAttempt;
+  const attempted=pendingPublicationWrite||lastPublicationAttempt;
   const id=Number(attempted?.id||postId)||0;
   startOperation("Sprawdzam ostatni zapis na WordPress.com…");
   try{
@@ -1808,7 +1821,7 @@ async function verifyLastPublication(){
       if(p.status==="publish")setPublishedUrl(publishedLink);
       publicationPhase("Odczyt wpisu #"+id+" zakończony. Status: "+postStatus+".","ok");
       showOutcome("success","STATUS ZWERYFIKOWANY","WordPress zwrócił wpis #"+id+". Status: "+postStatus+".",link,p.status==="publish"?"Zobacz artykuł":p.status==="future"?"Edytuj zaplanowany wpis":"Otwórz szkic",p.status==="publish");
-      lastPublicationAttempt=null;
+      lastPublicationAttempt=null;pendingPublicationWrite=null;persistDraft(true);
       return;
     }
     const title=trim(attempted?.title||$("post-title").value);
@@ -1835,7 +1848,7 @@ function resetEditor(){
   if(publicationBusy||!persistDraft(true))return false;
   activeDraftId=null;clearTimeout(saveTimer);clearEditorialContext();
   setPublishedUrl("");publicationPhase("Gotowy do redagowania. Publikacja wymaga potwierdzenia.");
-  postId=null;postStatus="";remoteBaseline=null;$("post-sources").value="[]";
+  postId=null;postStatus="";remoteBaseline=null;pendingPublicationWrite=null;$("post-sources").value="[]";
   ["post-title","post-body","post-excerpt","post-tags","post-schedule"].forEach(id=>$(id).value="");
   $("post-category").value="10543";$("post-media").value="0";$("post-mode").value="text";
   $("editor-heading").textContent="Nowy artykuł";$("edit-status").textContent="Nowy";
@@ -2007,6 +2020,24 @@ function serviceMarkup(list){
     '<div class="il-redaktor-uslugi" aria-label="Lokalne usługi dodane przez IL Redaktor Smart">'+
     '<h2>Usługi zgłoszone do Ispina Lokalnie</h2>'+cards+'</div>\n<!-- /wp:html -->\n'+END;
 }
+function saveServiceRecovery(raw){
+  if(typeof IL.saveServicePageBackup==="function"){
+    const result=JSON.parse(IL.saveServicePageBackup(raw));if(!result.ok)throw Error(result.message||"Nie zapisano kopii katalogu.");
+  }else {
+    const payload=JSON.stringify({ok:true,content:raw,at:Date.now(),pageId:818});
+    localStorage.setItem("il_service_recovery",payload);
+    if(localStorage.getItem("il_service_recovery")!==payload)throw Error("Nie potwierdzono zapisu kopii katalogu.");
+  }
+}
+function showServiceRecovery(){
+  $("service-recovery").classList.remove("hidden");
+  try{
+    const backup=JSON.parse(typeof IL.readServicePageBackup==="function"?IL.readServicePageBackup():localStorage.getItem("il_service_recovery")||"{}");
+    if(!backup.ok||backup.pageId!==818||typeof backup.content!=="string")throw Error(backup.message||"Nie ma jeszcze kopii sprzed zmiany katalogu.");
+    $("service-recovery-content").value=backup.content;
+    $("service-recovery-status").textContent="Kopia z "+new Date(backup.at).toLocaleString("pl-PL")+". Obejmuje całą stronę, także wcześniejsze oferty.";
+  }catch(e){$("service-recovery-content").value="";$("service-recovery-status").textContent=e.message;}
+}
 async function persistServiceList(next){
   const fresh=await rpc("GET","pages/"+PAGE+"?context=edit");
   const raw=fresh.content?.raw;
@@ -2016,6 +2047,7 @@ async function persistServiceList(next){
   const a=raw.indexOf(START),b=raw.indexOf(END);
   if((a>=0)!==(b>=0))throw Error("Wykryto niekompletne znaczniki katalogu.");
   if(a>=0)content=raw.slice(0,a)+rendered+raw.slice(b+END.length);else content=raw+"\n\n"+rendered;
+  saveServiceRecovery(raw); // Abort the public write if the exact recovery copy cannot be saved.
   const result=await rpc("POST","pages/"+PAGE,{content});
   if(Number(result.id)!==PAGE)throw Error("WordPress nie potwierdził poprawnej strony.");
   const check=await rpc("GET","pages/"+PAGE+"?context=edit");
@@ -2156,7 +2188,7 @@ const draftKey="il_redaktor_drafts_v3";
 const draftFields={title:"post-title",body:"post-body",excerpt:"post-excerpt",tags:"post-tags",category:"post-category",mode:"post-mode",media:"post-media",schedule:"post-schedule",sources:"post-sources"};
 let activeDraftId=null,draftStore=null,draftStorageBroken=false,reviewSnapshot=null;
 function draftId(){return "d"+Date.now().toString(36)+Math.random().toString(36).slice(2,10)}
-function captureDraft(){const s={postId,postStatus,remoteBaseline};for(const [k,id] of Object.entries(draftFields))s[k]=$(id).value;s.mediaUrl=safeMediaUrl(mediaById.get(Number(s.media))?.url||"");return s}
+function captureDraft(){const s={postId,postStatus,remoteBaseline,pendingWrite:pendingPublicationWrite};for(const [k,id] of Object.entries(draftFields))s[k]=$(id).value;s.mediaUrl=safeMediaUrl(mediaById.get(Number(s.media))?.url||"");return s}
 function draftSignature(s){return JSON.stringify(Object.fromEntries([...Object.keys(draftFields),"postId","postStatus","mediaUrl","remoteBaseline"].map(k=>[k,s[k]??""])))}
 function commitDraftStore(next){
   if(next.sourceFiles){const used=new Set();for(const d of next.drafts){for(const snapshot of [d,...(d.revisions||[]).map(v=>v.snapshot)])for(const source of normalizeSources(snapshot.sources||"[]"))if(source.photo)used.add(source.photo);}next.sourceFiles=Object.fromEntries(Object.entries(next.sourceFiles).filter(([id])=>used.has(id)));}
@@ -2183,7 +2215,7 @@ function persistDraft(checkpoint=false,synced=false){
   const snapshot=captureDraft();if(!activeDraftId&&!Object.keys(draftFields).some(k=>!["category","mode","media","sources"].includes(k)&&trim(snapshot[k]))&&(!snapshot.sources||snapshot.sources==="[]"))return true;
   const next=JSON.parse(JSON.stringify(store));let d=next.drafts.find(x=>x.id===activeDraftId);
   if(!d){d={id:draftId(),created:Date.now(),updated:Date.now(),revisions:[],dirty:true};next.drafts.push(d);}
-  const changed=draftSignature(d)!==draftSignature(snapshot);
+  const changed=draftSignature(d)!==draftSignature(snapshot)||JSON.stringify(d.pendingWrite||null)!==JSON.stringify(snapshot.pendingWrite||null);
   if(changed&&("title" in d||"body" in d)&&(checkpoint||!d.revisions.length||Date.now()-d.revisions[d.revisions.length-1].at>=30000)){
     const previous={};for(const k of [...Object.keys(draftFields),"postId","postStatus","mediaUrl"])previous[k]=d[k]??"";
     d.revisions.push({at:d.updated||Date.now(),snapshot:previous});d.revisions=d.revisions.slice(-12);
@@ -2195,7 +2227,7 @@ function persistDraft(checkpoint=false,synced=false){
 }
 function scheduleLocalSave(){if(restoring)return;clearTimeout(saveTimer);$("local-save-status").textContent="Zapisuję na telefonie…";saveTimer=setTimeout(()=>persistDraft(),250)}
 function flushDraftOnExit(){clearTimeout(saveTimer);if(restoring)return true;return persistDraft(true)}
-function applyDraft(s){clearEditorialContext();restoring=true;try{if(s.mediaUrl&&safeMediaUrl(s.mediaUrl))mediaById.set(Number(s.media),{id:Number(s.media),url:safeMediaUrl(s.mediaUrl),name:"Zdjęcie wyróżniające"});for(const [k,id] of Object.entries(draftFields))$(id).value=s[k]??({category:"10543",mode:"text",media:"0",sources:"[]"}[k]||"");postId=s.postId||null;postStatus=s.postStatus||"";remoteBaseline=validBaseline(s.remoteBaseline,postId);setPublishedUrl(postStatus==="publish"&&postId?"https://ispinalokalnie.wordpress.com/?p="+Number(postId):"");$("editor-heading").textContent=postId?"Edycja wpisu #"+postId:"Lokalny szkic";$("edit-status").textContent="Kopia na telefonie";$("post-output").innerHTML="";$("preview-box").classList.add("hidden");updateMetrics();}finally{restoring=false}}
+function applyDraft(s){clearEditorialContext();restoring=true;try{if(s.mediaUrl&&safeMediaUrl(s.mediaUrl))mediaById.set(Number(s.media),{id:Number(s.media),url:safeMediaUrl(s.mediaUrl),name:"Zdjęcie wyróżniające"});for(const [k,id] of Object.entries(draftFields))$(id).value=s[k]??({category:"10543",mode:"text",media:"0",sources:"[]"}[k]||"");postId=s.postId||null;postStatus=s.postStatus||"";pendingPublicationWrite=normalizePendingWrite(s.pendingWrite);remoteBaseline=validBaseline(s.remoteBaseline,postId);setPublishedUrl(postStatus==="publish"&&postId?"https://ispinalokalnie.wordpress.com/?p="+Number(postId):"");$("editor-heading").textContent=postId?"Edycja wpisu #"+postId:"Lokalny szkic";$("edit-status").textContent="Kopia na telefonie";$("post-output").innerHTML="";$("preview-box").classList.add("hidden");updateMetrics();}finally{restoring=false}}
 function openLocalDraft(id){if(publicationBusy||!persistDraft(true))return;const d=readDraftStore()?.drafts.find(x=>x.id===id);if(!d)return;activeDraftId=d.id;applyDraft(d);persistDraft();showScreen("editor")}
 function restoreLocal(silent=false){if(trim($("post-title").value)||trim($("post-body").value)){if(!silent)showDraftLibrary();return}const store=readDraftStore();if(!store)return;const d=store.drafts.find(x=>x.id===store.activeId)||store.drafts[store.drafts.length-1];if(d){activeDraftId=d.id;applyDraft(d)}}
 function showDraftLibrary(){if(publicationBusy||!persistDraft(true))return;renderDrafts();showScreen("drafts")}
@@ -2210,7 +2242,7 @@ function renderBackupHealth(){
 }
 function renderDrafts(){const q=trim($("draft-search").value).toLocaleLowerCase("pl");const ds=(readDraftStore()?.drafts||[]).slice().sort((a,b)=>b.updated-a.updated).filter(d=>(d.title+" "+d.body).toLocaleLowerCase("pl").includes(q));$("draft-list").innerHTML=ds.map(d=>'<div class="note"><h3>'+esc(d.title||"Bez tytułu")+'</h3><p>'+esc(new Date(d.updated).toLocaleString("pl-PL"))+' · '+(d.postId?'WordPress #'+Number(d.postId)+' · ':'')+(d.dirty?'Zmiany lokalne':'Zsynchronizowany')+'</p><div class="actions"><button onclick="openLocalDraft(\''+esc(d.id)+'\')">Otwórz</button><button class="secondary" onclick="showDraftHistory(\''+esc(d.id)+'\')">Historia ('+d.revisions.length+')</button></div></div>').join("")||'<p>Brak szkiców pasujących do wyszukiwania.</p>';$("draft-history").innerHTML="";renderBackupHealth()}
 function showDraftHistory(id){const d=readDraftStore()?.drafts.find(x=>x.id===id);if(!d)return;$("draft-history").innerHTML='<h3>Historia: '+esc(d.title||"Bez tytułu")+'</h3><p>Przywrócenie zachowa obecną wersję. Nie zmieni artykułu w WordPressie.</p>'+d.revisions.map((v,i)=>'<div class="note"><b>'+esc(new Date(v.at).toLocaleString("pl-PL"))+'</b><p>'+esc(String(v.snapshot.body||"").slice(0,180))+'</p><button class="secondary" onclick="restoreDraftVersion(\''+esc(id)+'\','+i+')">Przywróć tę wersję</button></div>').reverse().join("")+(d.revisions.length?'':'<p>Historia pojawi się po kolejnych zmianach tekstu.</p>')}
-function restoreDraftVersion(id,index){if(publicationBusy)return false;const selected=readDraftStore()?.drafts.find(x=>x.id===id)?.revisions[index];if(!selected)return false;const snapshot=JSON.parse(JSON.stringify(selected.snapshot));if(!persistDraft(true))return false;const d=readDraftStore().drafts.find(x=>x.id===id);snapshot.postId=d.postId;snapshot.postStatus=d.postStatus;snapshot.remoteBaseline=d.remoteBaseline;activeDraftId=id;applyDraft(snapshot);if(!persistDraft(true))return false;showScreen("editor");return true}
+function restoreDraftVersion(id,index){if(publicationBusy)return false;const selected=readDraftStore()?.drafts.find(x=>x.id===id)?.revisions[index];if(!selected)return false;const snapshot=JSON.parse(JSON.stringify(selected.snapshot));if(!persistDraft(true))return false;const d=readDraftStore().drafts.find(x=>x.id===id);snapshot.postId=d.postId;snapshot.postStatus=d.postStatus;snapshot.remoteBaseline=d.remoteBaseline;snapshot.pendingWrite=d.pendingWrite;activeDraftId=id;applyDraft(snapshot);if(!persistDraft(true))return false;showScreen("editor");return true}
 function closeReview(){$("publish-review").classList.add("hidden");reviewSnapshot=null}
 function reviewPublication(){
   if(publicationBusy)return;if(!persistDraft(true))return;
@@ -2352,6 +2384,10 @@ async function editorHelp(command){
   $("editor-command").disabled=true;editorChatMessage("Redaktor IL","Wysyłam to polecenie i bieżący artykuł do skonfigurowanego AI. Przygotuję propozycję do porównania.");
   try{const result=await requestAssistant(prompt,assistantContext());if(id!==activeDraftId||signature!==draftSignature(captureDraft())){editorChatMessage("Redaktor IL","Artykuł zmienił się w trakcie pracy. Nie nakładam odpowiedzi na nowszy tekst. Przygotuj nowe polecenie.");return}if(!result.content){editorChatMessage("Redaktor IL",result.message||"Model nie zwrócił propozycji treści.");return}const changes={body:result.content,mode:"html"};if(result.title)changes.title=result.title;if(result.excerpt)changes.excerpt=result.excerpt;offerCorrection(changes,"Propozycja AI — sprawdź sens, format, daty i nazwiska przed zatwierdzeniem.");editorChatMessage("Redaktor IL",result.message||"Propozycja jest gotowa do porównania.");}catch(e){editorChatMessage("Redaktor IL","Nie udało się przygotować propozycji: "+e.message);}finally{$("editor-command").disabled=false}
 }
+function normalizePendingWrite(raw){
+  if(!raw||typeof raw!=="object"||!['draft','publish','future'].includes(raw.status))return null;
+  return {title:String(raw.title||'').slice(0,10000),status:raw.status,id:Number.isSafeInteger(Number(raw.id))&&Number(raw.id)>0?Number(raw.id):null,started:Number(raw.started)||0};
+}
 // Backup format is restricted to editorial data; never serialize preferences or auth storage.
 function normalizedBackupSnapshot(raw){
   if(!raw||typeof raw!=="object"||Array.isArray(raw))throw Error("Nieprawidłowy tekst szkicu.");
@@ -2360,7 +2396,7 @@ function normalizedBackupSnapshot(raw){
   if(out.sources.length>150000)throw Error("Lista źródeł jest zbyt długa.");out.sources=JSON.stringify(normalizeSources(out.sources));
   out.postId=Number.isSafeInteger(Number(raw.postId))&&Number(raw.postId)>0?Number(raw.postId):null;
   out.postStatus=["publish","draft","future","pending","private"].includes(raw.postStatus)?raw.postStatus:"";
-  out.mediaUrl=safeMediaUrl(raw.mediaUrl||"");out.remoteBaseline=validBaseline(raw.remoteBaseline,out.postId);return out;
+  out.pendingWrite=normalizePendingWrite(raw.pendingWrite);out.mediaUrl=safeMediaUrl(raw.mediaUrl||"");out.remoteBaseline=validBaseline(raw.remoteBaseline,out.postId);return out;
 }
 function normalizedBackupDraft(raw){
   const d=normalizedBackupSnapshot(raw);if(!Array.isArray(raw.revisions)||raw.revisions.length>12)throw Error("Nieprawidłowa historia szkicu.");
@@ -2581,6 +2617,14 @@ function editorialRequest(action, data){
     catch(e){clearTimeout(timeout);requests.delete(id);reject(e);}
   });
 }
+async function linkCurrentSourcesToMemory(){
+  if(!window.IL||typeof IL.editorialMemory!=="function"||!activeDraftId)return;
+  // Only annotate existing records. Never turn a draft's unchecked citations into reviewed facts.
+  for(const source of currentSources()){
+    try{await editorialRequest("annotate",{url:source.url,draftId:activeDraftId,title:$("post-title").value,postId:postId||0});}
+    catch(e){$("local-save-status").textContent+=" Nie zapisano powiązania źródła: "+e.message;}
+  }
+}
 function editorialTopic(raw){
   const s=String(raw||"").toLocaleLowerCase("pl");
   if(/most|mośc|moś[cć]|moście|remont/.test(s))return "most";
@@ -2598,7 +2642,7 @@ function editorialTopicKeyword(input){
   return words.find(w=>!ignore.has(w))||"";
 }
 function editorialDisplayDate(raw){
-  if(raw===null||raw===undefined||String(raw).trim()==="")return "BRAK DATY";
+  if(raw===null||raw===undefined||String(raw).trim()===""||String(raw).trim()==="0")return "BRAK DATY";
   const input=String(raw).trim();
   const n=Number(input);
   const timestamp=/^\d{10,13}$/.test(input)?(input.length===10?n*1000:n):Date.parse(input);
@@ -2606,30 +2650,53 @@ function editorialDisplayDate(raw){
   const d=new Date(timestamp);
   return Number.isNaN(d.getTime())?"BRAK DATY":d.toLocaleDateString("pl-PL",{year:"numeric",month:"long",day:"numeric"});
 }
-async function loadEditorialMemory(){
+let memoryOffset=0,memoryFilter="",memoryGeneration=0;
+const memorySources=new Map();
+async function loadEditorialMemory(more=false){
+  const generation=++memoryGeneration;
+  const topic=trim($("editorial-memory-topic").value),status=$("editorial-memory-status").value,filter=JSON.stringify([topic,status]);
+  if(!more||filter!==memoryFilter){memoryOffset=0;memorySources.clear();$("editorial-memory-results").innerHTML="";}
+  memoryFilter=filter;$("memory-more").disabled=true;
   const output=$("editorial-memory-results"),state=$("editorial-memory-status-text");
   state.textContent="Przeglądam pamięć telefonu…";
   try{
-    const data=await editorialRequest("browse",{topic:trim($("editorial-memory-topic").value),status:$("editorial-memory-status").value});
+    const data=await editorialRequest("browse",{topic,status,offset:memoryOffset});
+    if(generation!==memoryGeneration)return;
     const items=Array.isArray(data.items)?data.items:[];
-    output.innerHTML=items.length?items.map(source=>{
+    const html=items.length?items.map(source=>{
+      memorySources.set(source.url,source);
       const stamp=Number(source.lastSeen)?new Date(source.lastSeen).toLocaleString("pl-PL"):"nieznana";
-      const published='<small>Data publikacji według źródła: '+esc(editorialDisplayDate(source.publishedAt))+'</small>';
-      const review=source.status==="reviewed"?"Sprawdzone ręcznie":"Link do sprawdzenia";
+      const published='<small>'+esc(source.dateType==="PUBLISHED"?"Data publikacji według kanału: ":"Data ze źródła (rodzaj niepotwierdzony): ")+esc(editorialDisplayDate(source.publishedAt))+'</small>'+
+        (source.updatedAt?'<small>Data aktualizacji według źródła: '+esc(editorialDisplayDate(source.updatedAt))+' (nie data publikacji)</small>':'');
+      const review=(source.status==="reviewed"?"Sprawdzone przez redaktora":"Do sprawdzenia")+" · "+({new:"Nowe",known:"Znane",changed:"Zmienione"}[source.discovery]||"Znane");
       const changed=Number(source.changedAt)?" · zaktualizowany link / metadane":"";
       return '<div class="source-item"><b>'+esc(source.title||source.url)+'</b><small>'+esc(review+changed)+' · Ostatnio odnaleziono: '+stamp+'</small>'+published+
-        '<div class="actions"><button type="button" class="secondary" data-memory-action="open" data-memory-url="'+esc(source.url)+'">Otwórz</button>'+
+        '<p class="small">'+esc(source.snippet||'')+'</p>'+
+        '<p class="small">Powiązania: '+esc((source.links||[]).map(l=>(l.title||l.draftId)+(l.postId?' · WordPress #'+Number(l.postId):' · szkic lokalny')).join('; ')||'brak')+'</p>'+
+        '<label>Notatka redaktora<textarea data-memory-notes="'+esc(source.url)+'" maxlength="6000">'+esc(source.notes||'')+'</textarea></label>'+
+        '<div class="actions"><button type="button" class="secondary" data-memory-action="note" data-memory-url="'+esc(source.url)+'">Zapisz notatkę</button><button type="button" class="secondary" data-memory-action="open" data-memory-url="'+esc(source.url)+'">Otwórz</button>'+
         (source.status==="reviewed"?'':'<button type="button" class="secondary" data-memory-action="review" data-memory-url="'+esc(source.url)+'">Sprawdzone ręcznie</button>')+
         '<button type="button" class="secondary" data-memory-action="draft" data-memory-url="'+esc(source.url)+'" data-memory-title="'+esc(source.title||source.url)+'">Do szkicu</button>'+
         '<button type="button" class="secondary" data-memory-action="delete" data-memory-url="'+esc(source.url)+'">Usuń</button></div></div>';
     }).join(""):'<div class="note">Brak zapisanych źródeł dla tego filtra. Uruchom Radar i zapisz pierwsze wyszukiwanie.</div>';
-    state.textContent="Odczytano "+items.length+" źródeł z pamięci telefonu. Dane nie zostały pobrane ponownie z internetu.";
-  }catch(e){state.textContent="Błąd pamięci: "+String(e.message);output.innerHTML="";}
+    if(more)output.innerHTML+=html;else output.innerHTML=html;
+    memoryOffset+=items.length;
+    $("memory-more").classList.toggle("hidden",!data.hasMore);
+    state.textContent="Odczytano "+memoryOffset+" z "+Number(data.total||items.length)+" źródeł. Wyszukiwanie pełnotekstowe obejmuje zapisane tytuły, opisy, pytania i notatki; nie pełne dokumenty.";
+  }catch(e){if(generation===memoryGeneration)state.textContent="Błąd pamięci: "+String(e.message);}
+  finally{if(generation===memoryGeneration)$("memory-more").disabled=false;}
 }
 $("editorial-memory-results").addEventListener("click",async event=>{
   const b=event.target.closest("[data-memory-action]");if(!b)return;
   const url=b.getAttribute("data-memory-url"),action=b.getAttribute("data-memory-action");
   if(action==="open"){openResearchSource(url);return;}
+  if(action==="note"){
+    const field=b.closest(".source-item").querySelector("[data-memory-notes]");
+    b.disabled=true;
+    try{const result=await editorialRequest("annotate",{url,notes:field.value});if(!result.updated)throw Error("Źródło nie istnieje w pamięci.");memorySources.set(url,{...memorySources.get(url),notes:field.value});$("editorial-memory-status-text").textContent="Zapisano notatkę na telefonie.";}
+    catch(e){$("editorial-memory-status-text").textContent="Nie zapisano notatki: "+e.message;}
+    finally{b.disabled=false;}return;
+  }
   if(action==="draft"){
     if(!persistDraft(true)){$("editorial-memory-status-text").textContent="Nie mogę zabezpieczyć szkicu. Źródło nie zostało przeniesione.";return}
     const current=currentSources();
@@ -2638,7 +2705,9 @@ $("editorial-memory-results").addEventListener("click",async event=>{
     const title=b.getAttribute("data-memory-title")||url;
     const entry={id:draftId(),name:title,url,notes:"Źródło z lokalnej pamięci. Sprawdź pełny tekst, daty i kontekst przed publikacją.",checked:false,verifiedAt:0,photo:""};
     if(storeSources([...current,entry])){
-      $("editorial-memory-status-text").textContent="Źródło dołączono do bieżącego szkicu, bez publikowania.";
+      try{const linked=await editorialRequest("annotate",{url,draftId:activeDraftId,title:$("post-title").value,postId:postId||0});if(!linked.updated)throw Error("Brak źródła w pamięci.");
+        $("editorial-memory-status-text").textContent="Źródło dołączono do bieżącego szkicu, bez publikowania.";
+      }catch(e){$("editorial-memory-status-text").textContent="Źródło zapisano w szkicu; powiązanie w pamięci wymaga ponowienia: "+e.message;}
       showScreen("editor");
     }else $("editorial-memory-status-text").textContent="Nie udało się powiązać źródła ze szkicem.";
     return;
