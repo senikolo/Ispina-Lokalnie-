@@ -342,7 +342,7 @@ jobs:
           target: google_apis
           arch: x86_64
           disable-animations: true
-          emulator-options: -no-window -gpu swiftshader -feature -Vulkan -no-snapshot -noaudio -no-boot-anim -camera-back none
+          emulator-options: -no-window -gpu software -feature -Vulkan -no-snapshot -noaudio -no-boot-anim -camera-back none
           ram-size: 2048M
           script: bash il-redaktor-android/scripts/run-emulator-smoke.sh ${{ matrix.api }}
       - name: Preserve OS evidence even on failure
@@ -356,5 +356,53 @@ jobs:
             /tmp/il-live-recall-*.txt
             /tmp/il-update-*.txt
             /tmp/il-confirmation-test-*.txt
+            /tmp/il-emulator-logcat-*.txt
+            /tmp/il-host-*.txt
+          if-no-files-found: warn
+          retention-days: 14
+
+  radar-live:
+    name: Android API 30 live publishers and progress
+    needs: apk
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: actions/download-artifact@v4
+        with:
+          name: IL-Redaktor-Emulator-Inputs
+          path: /tmp/il-emulator-inputs
+      - name: Restore verified APK inputs for a fresh live-search session
+        run: |
+          mkdir -p il-redaktor-android/app/build/outputs/apk/debug
+          mkdir -p il-redaktor-android/app/build/outputs/apk/androidTest/debug
+          cp /tmp/il-emulator-inputs/app-debug.apk il-redaktor-android/app/build/outputs/apk/debug/
+          cp /tmp/il-emulator-inputs/app-debug-androidTest.apk il-redaktor-android/app/build/outputs/apk/androidTest/debug/
+          sudo chmod a+rw /dev/kvm
+      - name: Search actual public publishers through Android 11 UI and bridge
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 30
+          target: google_apis
+          arch: x86_64
+          disable-animations: true
+          emulator-options: -no-window -gpu software -feature -Vulkan -no-snapshot -noaudio -no-boot-anim -camera-back none
+          ram-size: 2048M
+          script: bash il-redaktor-android/scripts/run-emulator-smoke.sh 30 live-only
+      - name: Preserve live recall evidence and emulator diagnostics
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: IL-Radar-Live-API-30
+          path: |
+            /tmp/il-editor-ui-api-*/*.png
+            /tmp/il-editor-ui-api-*/*.json
+            /tmp/il-live-recall-*.txt
+            /tmp/il-emulator-logcat-*.txt
+            /tmp/il-host-*.txt
           if-no-files-found: warn
           retention-days: 14
