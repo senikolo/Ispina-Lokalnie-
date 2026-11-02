@@ -690,6 +690,20 @@ public class MainActivity extends Activity {
             });
         }
 
+        @JavascriptInterface public void signInEditorialScope() {
+            ui.post(() -> {
+                if (newOAuthLogin().hasPendingLogin()) {
+                    callback("auth-progress", false, "Zakończ lub anuluj poprzednią próbę logowania.");
+                    return;
+                }
+                if (loginInProgress) { callback("auth-progress", false, "Logowanie już trwa."); return; }
+                loginInProgress=true;
+                oauthCallbackArrived=false;
+                // Only reached after explicit confirmation in the editor UI.
+                newOAuthLogin().startWithScope("global");
+            });
+        }
+
         @JavascriptInterface public void assistantStatus() {
             callback("assistant-ready", true, new org.json.JSONObject().toString());
         }
