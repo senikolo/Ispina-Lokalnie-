@@ -1,6 +1,8 @@
 # IL Redaktor Smart 2.0 Professional — instrukcja wersji testowej
 
-Wersja: 2.0.0-professional-test.1, versionCode 45. Hasło: „Łączy nas Ispina”.
+Wersja: 2.0.0-professional-test.4, versionCode 48. Hasło: „Łączy nas Ispina”.
+
+Aktualizacja instrukcji z 2 listopada 2026 r.: Radar ma dziennik „Na żywo — sprawdzane strony”, bezpośrednie kanały lokalnych wydawców i odczyt artykułów gminy. Test na rzeczywistych źródłach na Androidzie 11 znalazł 5 datowanych publikacji zewnętrznych, w tym artykuł gminy; odebrano 139 zdarzeń postępu. To wynik konkretnej próby, nie gwarancja kompletności wszystkich źródeł.
 
 ## Przed instalacją
 
@@ -12,14 +14,14 @@ Ta wersja jest przeznaczona do testów. Nie odinstalowuj dotychczasowego Redakto
 4. Aktualizuj istniejącą instalację dopiero po potwierdzeniu podpisu. Komunikat „Aplikacja nie została zainstalowana” przy różnym podpisie nie oznacza, że należy usunąć poprzednią aplikację.
 5. Przy braku zgodnego klucza testuj APK na osobnym telefonie bez dotychczasowej instalacji albo na emulatorze. Odzyskanie klucza prywatnego z certyfikatu APK nie jest możliwe.
 
-Testy CI aktualizują 1.29.4 → 2.0 w ramach tego samego przebiegu i tego samego klucza testowego. To sprawdza zachowanie danych, ale nie potwierdza zgodności z kluczem dowolnej APK już zainstalowanej na Twoim telefonie.
+Testy CI aktualizują 1.29.4 → 2.0 w ramach tego samego przebiegu i tego samego klucza testowego. To sprawdza zachowanie danych, ale nie potwierdza zgodności z kluczem dowolnej APK już zainstalowanej na Twoim telefonie. Odzyskany prywatny klucz zgadza się z `release-certificate.sha256`, lecz różni się od udostępnionych debug APK 1.29.4-test.1 i Professional TEST 2. Nowa APK podpisana kluczem wydaniowym nie aktualizuje bezpośrednio tych dwóch wersji. Nie odinstalowuj ich bez wyeksportowania i sprawdzenia kopii danych.
 
 ## Znajdź informacje o Ispinie
 
 1. Otwórz **Radar Ispiny** i wpisz krótki temat, np. „most w Ispinie” albo „OSP Ispina”.
-2. Wybierz dostępny okres: bez ograniczenia lub ostatnią liczbę dni. Ta wersja nie ma jeszcze dowolnej pary dat od–do.
+2. Wybierz 7, 30 albo 90 dni; domyślnie 30 dni. Okres wyrażony w pytaniu ma pierwszeństwo. Pełny formularz badań oferuje też cały dostępny zakres. Ta wersja nie ma dowolnej pary dat od–do.
 3. Uruchom wyszukiwanie. Przycisk anulowania przerywa pobieranie; skan ma ograniczony czas.
-4. Otwórz **Zakres sprawdzenia**. Widać tam kanały odczytane, niedostępne i pominięte wraz z przyczyną, jeśli jest dostępna.
+4. Obserwuj **Na żywo — sprawdzane strony**, a po skanie otwórz **Zakres sprawdzenia**. Widać rzeczywiste adresy, etapy odczytu, kanały niedostępne i pominięte oraz powody ograniczeń. Dziennik pozostaje dostępny po skanie. Publikacje własnego portalu są oddzielone od materiałów zewnętrznych.
 5. Czytaj oryginalny dokument przed wykorzystaniem faktów. Wyszukiwanie PDF wskazuje linki z indeksu wyszukiwarki; nie wykonuje OCR ani pełnego odczytu wszystkich załączników.
 6. Przy filtrze czasu źródła bez potwierdzonej daty publikacji są oznaczane jako ograniczenie skanu. Data aktualizacji nie zastępuje daty publikacji.
 
