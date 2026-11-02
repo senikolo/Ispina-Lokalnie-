@@ -40,6 +40,7 @@ public final class OAuthBrowserLogin {
     private static final String PENDING_STATE = "oauth21_pending_state";
     private static final String PENDING_VERIFIER = "oauth21_pending_verifier";
     private static final String PENDING_CLIENT = "oauth21_pending_client";
+    private static final String PENDING_SCOPE = "oauth21_pending_scope";
     private static final String PENDING_EXPIRES = "oauth21_pending_expires";
     private static final long TTL_MS = 5 * 60 * 1000L;
     private static final SecureRandom RANDOM = new SecureRandom();
@@ -71,8 +72,12 @@ public final class OAuthBrowserLogin {
             "/callback".equals(uri.getPath());
     }
 
-    public void start() {
-        new Thread(this::beginLogin, "il-oauth-begin").start();
+    public void start() { startWithScope(SCOPE); }
+    /** Broader access is never silently selected: only the user's explicit action can request it. */
+    public void startWithScope(String requestedScope) {
+        if (!"auth".equals(requestedScope) && !"global".equals(requestedScope))
+            throw new IllegalArgumentException("Unsupported OAuth scope");
+        new Thread(() -> beginLogin(requestedScope), "il-oauth-begin").start();
     }
 
     /** Reopen the original PKCE authorization attempt without rotating state or the verifier. */
@@ -83,7 +88,9 @@ public final class OAuthBrowserLogin {
                 String state = storage.getString(PENDING_STATE, "");
                 String verifier = storage.getString(PENDING_VERIFIER, "");
                 String clientId = storage.getString(PENDING_CLIENT, "");
-                if (state.isEmpty() || verifier.isEmpty() || clientId.isEmpty() ||
+                String scope = storage.getString(PENDING_SCOPE, SCOPE);
+                if ((!"auth".equals(scope) && !"global".equals(scope)) ||
+                    state.isEmpty() || verifier.isEmpty() || clientId.isEmpty() ||
                     storage.getLong(PENDING_EXPIRES, 0L) <= System.currentTimeMillis()) {
                     clearPending();
                     fail("Poprzednie logowanie wygasło. Kliknij Anuluj i rozpocznij ponownie.");
@@ -99,7 +106,7 @@ public final class OAuthBrowserLogin {
                     "&redirect_uri=" + Uri.encode(REDIRECT) +
                     "&code_challenge=" + Uri.encode(challenge) +
                     "&code_challenge_method=S256" +
-                    "&scope=" + Uri.encode(SCOPE) +
+                    "&scope=" + Uri.encode(scope) +
                     "&state=" + Uri.encode(state);
                 main.post(() -> {
                     try {
@@ -118,7 +125,7 @@ public final class OAuthBrowserLogin {
         }, "il-oauth-resume").start();
     }
 
-    private void beginLogin() {
+    private void beginLogin(String requestedScope) {
         try {
             note("Krok 1/4: przygotowuję bezpieczne logowanie w aplikacji Android…");
             SharedPreferences storage = prefs();
@@ -149,6 +156,7 @@ public final class OAuthBrowserLogin {
                 .putString(PENDING_STATE, state)
                 .putString(PENDING_VERIFIER, verifier)
                 .putString(PENDING_CLIENT, clientId)
+                .putString(PENDING_SCOPE, requestedScope)
                 .putLong(PENDING_EXPIRES, System.currentTimeMillis() + TTL_MS)
                 .commit())
                 throw new Exception("Nie udało się zapisać tymczasowej sesji logowania.");
@@ -159,10 +167,10 @@ public final class OAuthBrowserLogin {
                 "&redirect_uri=" + Uri.encode(REDIRECT) +
                 "&code_challenge=" + Uri.encode(challenge) +
                 "&code_challenge_method=S256" +
-                "&scope=" + Uri.encode(SCOPE) +
+                "&scope=" + Uri.encode(requestedScope) +
                 "&state=" + Uri.encode(state);
 
-            note("Krok 2/4: otwieram WordPress.com. Zatwierdź dostęp dla Ispina Lokalnie; uprawnienia odczytu i zapisu określasz w WordPress.com > AI i MCP.");
+            note("Krok 2/4: otwieram WordPress.com. Zakres: " + requestedScope + ". Zatwierdź dostęp świadomie; osobno kontrolujesz odczyt i zapis w WordPress.com > AI i MCP.");
             main.post(() -> {
                 try {
                     Intent browser = new Intent(Intent.ACTION_VIEW, Uri.parse(loginUrl));
@@ -190,7 +198,7 @@ public final class OAuthBrowserLogin {
 
     private void clearPending() {
         prefs().edit().remove(PENDING_STATE).remove(PENDING_VERIFIER)
-            .remove(PENDING_CLIENT).remove(PENDING_EXPIRES).apply();
+            .remove(PENDING_CLIENT).remove(PENDING_SCOPE).remove(PENDING_EXPIRES).apply();
     }
 
     /** Call from MainActivity.onCreate AND onNewIntent. Never log a callback URI. */
