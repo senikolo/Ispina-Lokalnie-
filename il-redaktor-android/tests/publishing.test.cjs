@@ -1533,7 +1533,7 @@ test('TEST-6 recovery marks unchanged remote-confirmed draft as synchronized',as
   a.c.rpc=async method=>{if(method==='POST')return {id:947,status:'draft'};if(++reads===1)throw Error('temporary network loss');return {id:947,status:'draft'}};
   await a.c.savePost('draft');
   a.run("draftStore=null;activeDraftId=null;pendingPublicationWrite=null;lastPublicationAttempt=null;postId=null;$('post-title').value='';$('post-body').value='';restoreLocal(true)");
-  assert.match(a.run('pendingPublicationWrite.editorSignature'),/post/);
+  assert.match(a.run('pendingPublicationWrite.editorSignature'),/Testowy artykuł/);
   await a.c.verifyLastPublication();
   assert.equal(a.run('pendingPublicationWrite'),null);
   assert.equal(a.run('readDraftStore().drafts[0].dirty'),false);
