@@ -323,6 +323,17 @@ public final class FreeIspinaSearchClient {
         if(remaining<=0)throw new java.net.SocketTimeoutException("Upłynął budżet czasu źródła; zachowano ukończone odczyty.");
         return (int)Math.min(maximum,remaining);
     }
+    /** Keep same-host legacy redirects encrypted; never follow a plaintext hop. */
+    static String sourceRedirect(URL origin,String location)throws IOException {
+        URL target=new URL(origin,location);
+        if("https".equalsIgnoreCase(origin.getProtocol())&&"http".equalsIgnoreCase(target.getProtocol())
+                &&origin.getHost().equalsIgnoreCase(target.getHost())&&target.getUserInfo()==null
+                &&(target.getPort()==-1||target.getPort()==80)) {
+            target=new URL("https",target.getHost(),target.getFile());
+        }
+        if(!"https".equalsIgnoreCase(target.getProtocol()))throw new IOException("Źródło przekierowało poza HTTPS; nie wykonano nieszyfrowanego połączenia.");
+        return target.toString();
+    }
     static String fetch(String address, ChatGptPlanClient.SearchControl control,long deadline) throws Exception {
         String current=address;
         for(int redirects=0;redirects<=4;redirects++) {
@@ -334,7 +345,7 @@ public final class FreeIspinaSearchClient {
                 connection.setRequestProperty("Accept","application/rss+xml, application/xml, text/xml, text/html, application/json, text/plain");
                 connection.setRequestProperty("User-Agent","IL-Redaktor-Smart/2.0 PublicSources");
                 connection.connect();connection.setReadTimeout(sourceTimeout(deadline,6000));int status=connection.getResponseCode();
-                if(status==301||status==302||status==303||status==307||status==308){String location=connection.getHeaderField("Location");if(location==null)throw new IOException("Przekierowanie bez adresu.");current=new URL(url,location).toString();continue;}
+                if(status==301||status==302||status==303||status==307||status==308){String location=connection.getHeaderField("Location");if(location==null)throw new IOException("Przekierowanie bez adresu.");current=sourceRedirect(url,location);continue;}
                 if(status!=200)throw new IOException("Publiczne źródło: HTTP "+status);
                 try(InputStream input=connection.getInputStream();ByteArrayOutputStream out=new ByteArrayOutputStream()){
                     byte[] buffer=new byte[8192];int n;while((n=input.read(buffer))!=-1){control.check();sourceTimeout(deadline,6000);if(out.size()+n>1_500_000)throw new IOException("Źródło przekracza limit 1,5 MB.");out.write(buffer,0,n);}
