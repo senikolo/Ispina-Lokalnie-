@@ -1781,7 +1781,7 @@ async function savePost(status,reviewApproval=null){
     const path=postId?"posts/"+postId:"posts";
     // POST is issued exactly once: an automatic retry after network timeout could
     // publish a duplicate. Save the ID immediately, then verify persistence by GET.
-    pendingPublicationWrite={...lastPublicationAttempt,expected:JSON.parse(JSON.stringify(data))};
+    pendingPublicationWrite={...lastPublicationAttempt,expected:JSON.parse(JSON.stringify(data)),editorSignature:sentEditorSignature};
     if(!persistDraft(true)){pendingPublicationWrite=null;throw Error("Nie mogę zachować informacji o rozpoczętym zapisie. Niczego nie wysłałem.");}
     const result=await rpc("POST",path,data);
     if(!Number.isSafeInteger(Number(result.id))||Number(result.id)<=0)
@@ -1884,22 +1884,35 @@ async function verifyLastPublication(){
           return;
         }
       }
+      // Compare the current local editor with the original payload, not with
+      // the latest draft. The persisted signature detects later edits to tags,
+      // sources, categories and text even after restarting Android.
+      const expected=attempted?.expected;
+      const localUnsentChanges=!!expected&&(
+        typeof attempted.editorSignature==="string"
+          ? attempted.editorSignature!==draftContentSignature(captureDraft())
+          : trim($("post-title").value)!==String(expected.title||"")||
+            normalizedPublishedHtml(editorHtml())!==normalizedPublishedHtml(expected.content)||
+            trim($("post-excerpt").value)!==String(expected.excerpt||"")||
+            (Array.isArray(expected.categories)&&!expected.categories.map(Number).includes(Number($("post-category").value)))||
+            (expected.featured_media!==undefined&&Number($("post-media").value)!==Number(expected.featured_media))
+      );
       postId=id;postStatus=p.status||"";
       if(attempted)remoteBaseline=remoteVersion(p);
-      $("edit-status").textContent="Sprawdzono: "+postStatus;
+      $("edit-status").textContent=localUnsentChanges?"Serwer potwierdził zapis, ale późniejsze zmiany są lokalne":"Sprawdzono: "+postStatus;
       const publishedLink=p.link&&p.link.startsWith("https://ispinalokalnie.wordpress.com/")?p.link:"https://ispinalokalnie.wordpress.com/?p="+id;
       const link=p.status==="publish"?publishedLink:"https://wordpress.com/post/ispinalokalnie.wordpress.com/"+id;
       if(p.status==="publish")setPublishedUrl(publishedLink);
       const pendingBefore=pendingPublicationWrite;
       pendingPublicationWrite=null;
-      if(!persistDraft(true)){
+      if(!persistDraft(true,!!expected&&!localUnsentChanges)){
         pendingPublicationWrite=pendingBefore;
         showOutcome("error","KOPIA LOKALNA NIEZAPISANA","WordPress potwierdził wpis #"+id+", ale nie udało się zapisać potwierdzenia na telefonie. Zachowaj ten numer. Nie wysyłaj ponownie.");
         return;
       }
       lastPublicationAttempt=null;
       publicationPhase("Odczyt wpisu #"+id+" zakończony. Status: "+postStatus+".","ok");
-      showOutcome("success","STATUS ZWERYFIKOWANY","WordPress zwrócił wpis #"+id+". Status: "+postStatus+".",link,p.status==="publish"?"Zobacz artykuł":p.status==="future"?"Edytuj zaplanowany wpis":"Otwórz szkic",p.status==="publish");
+      showOutcome("success","STATUS ZWERYFIKOWANY","WordPress potwierdził wpis #"+id+" i pierwotnie wysłane dane. Status: "+postStatus+"."+(localUnsentChanges?" Późniejsze zmiany w edytorze zachowano wyłącznie lokalnie; nie zostały wysłane.":""),link,p.status==="publish"?"Zobacz artykuł":p.status==="future"?"Edytuj zaplanowany wpis":"Otwórz szkic",p.status==="publish");
       return;
     }
     const title=trim(attempted?.title||$("post-title").value);
