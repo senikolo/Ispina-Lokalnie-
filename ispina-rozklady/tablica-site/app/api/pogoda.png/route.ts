@@ -1,6 +1,6 @@
 import { ImageResponse } from "next/og";
 import { createElement as h, type CSSProperties } from "react";
-import { createWeatherLoader, type Forecast, type WeatherResult } from "../../../lib/weather.mjs";
+import { createWeatherLoader, weatherErrorCode, type Forecast, type WeatherResult } from "../../../lib/weather.mjs";
 import { summarizeWeatherChanges } from "../../../lib/weather-trends.mjs";
 import { summarizeWeatherSmart } from "../../../lib/weather-smart.mjs";
 import { createImgwLoader } from "../../../lib/imgw-warnings.mjs";
@@ -224,6 +224,8 @@ export async function GET(request: Request): Promise<Response> {
     load(), part === "brief" ? loadImgw() : Promise.resolve(null)
   ]);
   if(weather.status === "fulfilled") result = weather.value;
+  const failure = weather.status === "rejected" ? weatherErrorCode(weather.reason) : null;
+  if (failure) console.warn('[weather]', failure, weather.status === "rejected" && weather.reason instanceof Error ? weather.reason.message : 'unavailable');
   // When IMGW cannot be reached, omit official claims instead of inventing "no warnings".
   const imgw = official.status === "fulfilled" ? official.value : null;
   const warnings = imgw?.warnings || [];
@@ -238,6 +240,7 @@ export async function GET(request: Request): Promise<Response> {
     "Vercel-CDN-Cache-Control": ttl ? `public, s-maxage=${ttl}, must-revalidate` : "no-store",
     "X-Content-Type-Options": "nosniff",
     "X-Weather-Status": result ? "ok" : "unavailable",
+    ...(failure ? { "X-Weather-Error": failure } : {}),
     "X-Weather-Location": "50.11336,20.37746;Europe/Warsaw",
     ...(part === "brief" ? { "X-IMGW-Status": imgw ? "checked" : "unavailable",
       "X-IMGW-County": "1201", "X-IMGW-Warnings": String(warnings.length) } : {}),

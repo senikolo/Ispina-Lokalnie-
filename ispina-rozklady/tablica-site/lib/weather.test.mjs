@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { createWeatherLoader, validateWeather, weatherUrl, localDate, REFRESH_MS } from './weather.mjs';
+import { createWeatherLoader, validateWeather, weatherUrl, weatherErrorCode, localDate, REFRESH_MS } from './weather.mjs';
 
 import {fixture} from '../tests/fixtures/weather.mjs';
 const baseline = Date.parse('2026-10-23T10:00:00Z');
@@ -58,9 +58,38 @@ test('coalesces requests, refreshes after thirty minutes and drops expired data 
   now += REFRESH_MS - 1000; assert.strictEqual(await load(), a);
   now += 1001; const refreshed = await load(); assert.equal(calls,2); assert.ok(refreshed.fetchedAt > a.fetchedAt);
   now += REFRESH_MS + 1; fail = true;
-  await assert.rejects(load()); assert.equal(calls,3);
-  await assert.rejects(load()); assert.equal(calls,3);
-  now += 60001; fail = false; await load(); assert.equal(calls,4);
+  await assert.rejects(load()); assert.equal(calls,4);
+  await assert.rejects(load()); assert.equal(calls,4);
+  now += 60001; fail = false; await load(); assert.equal(calls,5);
+});
+test('recovers from a transient HTTP 503 with one retry', async () => {
+  let calls = 0, cancelled = false;
+  const load = createWeatherLoader(async () => {
+    calls++;
+    if (calls === 1) return {ok:false, status:503, body:{cancel:async()=>{cancelled=true;}}};
+    return {ok:true, status:200, json:async()=>fixture(baseline)};
+  }, () => baseline);
+  const result = await load();
+  assert.equal(calls,2); assert.equal(cancelled,true);
+  assert.equal(result.fetchedAt,baseline);
+});
+test('retains the cause during cooldown and never retries a rate limit', async () => {
+  for (const [status, expectedCalls] of [[503,2],[429,1],[400,1]]) {
+    let calls = 0;
+    const load = createWeatherLoader(async () => {calls++; return {ok:false,status};}, () => baseline);
+    await assert.rejects(load(),e=>weatherErrorCode(e)===`http-${status}`);
+    await assert.rejects(load(),e=>weatherErrorCode(e)===`http-${status}`);
+    assert.equal(calls,expectedCalls);
+  }
+});
+test('does not retry invalid data and exposes only a safe diagnostic code', async () => {
+  let calls = 0;
+  const load = createWeatherLoader(async () => {calls++; return {ok:true,status:200,json:async()=>({})};},()=>baseline);
+  await assert.rejects(load(),e=>weatherErrorCode(e)==='invalid-data');
+  assert.equal(calls,1);
+  assert.equal(weatherErrorCode(new DOMException('timeout','TimeoutError')),'timeout');
+  assert.equal(weatherErrorCode(new SyntaxError('bad JSON')),'invalid-json');
+  assert.equal(weatherErrorCode(new Error('private error details')),'network');
 });
 test('rejects HTTP errors and malformed payloads without keeping the previous forecast', async () => {
   for (const response of [{ok:false}, {ok:true, json:async()=>({})}, {ok:true, json:async()=>{throw new Error('bad JSON')}}]) {
