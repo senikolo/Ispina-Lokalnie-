@@ -24,8 +24,8 @@ preserve_evidence() {
 trap preserve_evidence EXIT
 
 if [ "${2:-full}" = "live-only" ]; then
-  adb install -r "$current_apk"
-  adb install -r "$test_apk"
+  adb install --no-streaming -r "$current_apk"
+  adb install --no-streaming -r "$test_apk"
   adb shell am instrument -w -e mode live-recall com.ispinalokalnie.redaktorsmart.stable.instrumentation/com.ispinalokalnie.redaktor.ConfirmationInstrumentation | tee "/tmp/il-live-recall-$api_level.txt"
   grep -F 'IL_LIVE_RECALL_TEST=PASS' "/tmp/il-live-recall-$api_level.txt"
   exit 0
@@ -33,13 +33,14 @@ fi
 
 # Upgrade from the user's latest transpiled 1.29.4 build on every OS.
 # The ancient 1.15 HTML cannot parse in Android 10's stock WebView.
-adb install -r /tmp/il-previous-debug.apk
-adb install -r "$test_apk"
+adb install --no-streaming -r /tmp/il-previous-debug.apk
+adb install --no-streaming -r "$test_apk"
 seed_mode="seed"
 adb shell am instrument -w -e mode "$seed_mode" com.ispinalokalnie.redaktorsmart.stable.instrumentation/com.ispinalokalnie.redaktor.ConfirmationInstrumentation | tee "/tmp/il-update-seed-$api_level.txt"
 grep -F 'IL_UPDATE_SEED=PASS' "/tmp/il-update-seed-$api_level.txt" || { adb logcat -d -s chromium AndroidRuntime ILEditorProbe ActivityManager; exit 1; }
 
-adb install -r "$current_apk"
+adb shell am force-stop com.ispinalokalnie.redaktorsmart.stable
+adb install --no-streaming -r "$current_apk"
 adb shell am force-stop com.ispinalokalnie.redaktorsmart.stable
 adb shell am instrument -w -e mode verify com.ispinalokalnie.redaktorsmart.stable.instrumentation/com.ispinalokalnie.redaktor.ConfirmationInstrumentation | tee "/tmp/il-update-data-$api_level.txt"
 grep -F 'IL_UPDATE_DATA_TEST=PASS' "/tmp/il-update-data-$api_level.txt"

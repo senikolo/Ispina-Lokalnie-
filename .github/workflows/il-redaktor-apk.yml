@@ -316,7 +316,15 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        api: [26, 29, 30, 33]
+        include:
+          - api: 26
+            gpu: swiftshader
+          - api: 29
+            gpu: swiftshader
+          - api: 30
+            gpu: swangle
+          - api: 33
+            gpu: swiftshader
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-java@v4
@@ -342,7 +350,7 @@ jobs:
           target: google_apis
           arch: x86_64
           disable-animations: true
-          emulator-options: -no-window -gpu software -feature -Vulkan -no-snapshot -noaudio -no-boot-anim -camera-back none
+          emulator-options: -no-window -gpu ${{ matrix.gpu }} -feature -Vulkan -no-snapshot -noaudio -no-boot-anim -camera-back none
           ram-size: 2048M
           script: bash il-redaktor-android/scripts/run-emulator-smoke.sh ${{ matrix.api }}
       - name: Preserve OS evidence even on failure
