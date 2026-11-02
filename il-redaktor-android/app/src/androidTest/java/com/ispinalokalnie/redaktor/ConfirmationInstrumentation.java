@@ -178,6 +178,38 @@ public final class ConfirmationInstrumentation extends Instrumentation {
         if(!"Co z kapliczki w Ispinie?".equals(FreeIspinaSearchClient.resolveConversationPrompt(
             "Co z kapliczki w Ispinie?",history)))
             throw new AssertionError("Explicit new topic was overwritten with previous context");
+        for(int days:new int[]{7,30,90}) {
+            if(FreeIspinaSearchClient.lookbackDays("Czy coś się pojawiło o OSP?",days)!=days)throw new AssertionError("Selected freshness window lost");
+            if(FreeIspinaSearchClient.lookbackDays("Co nowego o moście z "+days+" dni?",30)!=days)throw new AssertionError("Explicit freshness window lost");
+        }
+        if(!"osp".equals(FreeIspinaSearchClient.topic("Czy pojawiło się coś o OSP?")))throw new AssertionError("OSP intent lost");
+        if(!"most".equals(FreeIspinaSearchClient.topic("Czy pojawiło się coś o moście?")))throw new AssertionError("Bridge intent lost");
+        if(!"autobusy".equals(FreeIspinaSearchClient.topic("Nowe informacje o autobusach")))throw new AssertionError("Bus intent lost");
+        if(!"".equals(FreeIspinaSearchClient.topic("Cokolwiek nowego o Ispinie")))throw new AssertionError("All-new request became a narrow topic");
+        if(!"Cokolwiek nowego o Ispinie".equals(FreeIspinaSearchClient.resolveConversationPrompt("Cokolwiek nowego o Ispinie",history)))throw new AssertionError("Broad request inherited bridge topic");
+        try{FreeIspinaSearchClient.lookbackDays("Ostatnie 14 dni",30);throw new AssertionError("Unsupported period silently accepted");}catch(IllegalArgumentException expected){}
+        if(!FreeIspinaSearchClient.matchesTopic(new org.json.JSONObject().put("title","Ispina — zmiana kursów A65"),"autobusy"))throw new AssertionError("Bus route synonym lost");
+        StringBuilder datedFixture=new StringBuilder("<rss><channel>");
+        for(int age:new int[]{3,15,60,120}) {
+            String date=new java.text.SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss Z",java.util.Locale.US).format(new java.util.Date(now-java.util.concurrent.TimeUnit.DAYS.toMillis(age)));
+            datedFixture.append("<item><title>OSP Ispina ").append(age).append("</title><link>https://example.org/").append(age).append("</link><pubDate>").append(date).append("</pubDate></item>");
+        }
+        datedFixture.append("<item><title>OSP Ispina bez daty</title><link>https://example.org/no-date</link></item></channel></rss>");
+        int expectedFresh=1;
+        for(int days:new int[]{7,30,90}) {
+            int count=FreeIspinaSearchClient.parseFeed(datedFixture.toString(),now-java.util.concurrent.TimeUnit.DAYS.toMillis(days),true).length();
+            if(count!=expectedFresh++)throw new AssertionError("Wrong publication-date membership for "+days+" days: "+count);
+        }
+        String future=new java.text.SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss Z",java.util.Locale.US).format(new java.util.Date(now+86400000L));
+        String futureXml="<rss><channel><item><title>Ispina przyszły wpis</title><link>https://example.org/future</link><pubDate>"+future+"</pubDate></item></channel></rss>";
+        if(FreeIspinaSearchClient.parseFeed(futureXml,now-86400000L,true).length()!=0)throw new AssertionError("Future date counted as past publication");
+        java.util.concurrent.CountDownLatch disconnected=new java.util.concurrent.CountDownLatch(2);
+        ChatGptPlanClient.SearchControl multiple=new ChatGptPlanClient.SearchControl(getTargetContext(),10000);
+        for(int n=0;n<2;n++)multiple.attach(new java.net.HttpURLConnection(new java.net.URL("https://example.org/qa")){
+            public void disconnect(){disconnected.countDown();}public boolean usingProxy(){return false;}public void connect(){}
+        });
+        multiple.cancel();if(!disconnected.await(2,java.util.concurrent.TimeUnit.SECONDS))throw new AssertionError("Cancellation left a parallel connection open");
+        multiple.close();
         org.json.JSONArray manual=FreeIspinaSearchClient.parseFeed(xml,0,false);
         org.json.JSONArray background=FreeIspinaSearchClient.parseFeed(xml,now-86400000L,true);
         if(manual.length()!=3 || background.length()!=1)throw new AssertionError("Free RSS location/date/link filtering failed");

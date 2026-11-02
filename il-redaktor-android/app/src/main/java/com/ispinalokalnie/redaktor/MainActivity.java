@@ -825,6 +825,10 @@ public class MainActivity extends Activity {
         }
 
         @JavascriptInterface public void askIspinaChat(String rid, String prompt, String historyJson) {
+            askIspinaChatWithDays(rid,prompt,historyJson,30);
+        }
+        @JavascriptInterface public void askIspinaChatWithDays(String rid, String prompt, String historyJson,int days) {
+            if(days!=7&&days!=30&&days!=90){callback(rid,false,"Wybierz ostatnie 7, 30 lub 90 dni.");return;}
             if (rid == null || rid.length() > 60 || !rid.matches("[A-Za-z0-9_-]+")) return;
             if (prompt == null || prompt.trim().isEmpty() || prompt.length() > 2000) {
                 callback(rid, false, "Wpisz pytanie o Ispinę, maksymalnie 2000 znaków."); return;
@@ -844,7 +848,7 @@ public class MainActivity extends Activity {
             aiWork.execute(() -> {
                 try {
                     JSONObject result = FreeIspinaSearchClient.askConversation(MainActivity.this, prompt,
-                        safeHistory, control);
+                        safeHistory, control,days);
                     callback(rid, true, result.toString());
                 } catch (Exception ex) {
                     callback(rid, false, ex.getMessage() == null ? "Nie udało się pobrać publicznych źródeł." : ex.getMessage());
