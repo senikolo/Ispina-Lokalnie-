@@ -137,22 +137,22 @@ public final class FreeIspinaSearchClient {
             JSONArray sources = new JSONArray();
             StringBuilder answer = new StringBuilder();
             List<JSONObject> ordered = new ArrayList<>(found.values());
-            ordered.sort((a,b) -> Long.compare(b.optLong("publishedAt",0),a.optLong("publishedAt",0)));
+            ordered.sort((a,b) -> {
+                int own=Boolean.compare("OWN_PORTAL".equals(a.optString("sourceKind")),"OWN_PORTAL".equals(b.optString("sourceKind")));
+                return own!=0?own:Long.compare(b.optLong("publishedAt",0),a.optLong("publishedAt",0));
+            });
+            int external=0,own=0;
             for (JSONObject item : ordered) {
                 if (sources.length() >= 50) break;
                 item.remove("searchText");sources.put(item);
-                answer.append(sources.length()).append(". ").append(item.getString("title"));
-                String date = item.optString("published", "");
-                answer.append(date.isEmpty() ? " — data niepodana" : " — data publikacji według kanału: " + date);
-                String snippet = item.optString("snippet", "");
-                if (!snippet.isEmpty()) answer.append("\n").append(snippet);
-                answer.append("\n\n");
+                if("OWN_PORTAL".equals(item.optString("sourceKind")))own++;else external++;
             }
             if (sources.length() == 0) {
                 answer.append("Nie udało się potwierdzić pełnego wyniku wyszukiwania dla wybranego okresu. Nie mogę stwierdzić, że nic nowego o Ispinie się nie pojawiło.");
                 if(!undated.isEmpty())answer.append(" Znaleziono dodatkowo ").append(undated.size()).append(" materiałów wymagających ustalenia daty — pokazuję je osobno.");
                 answer.append(" Odczytano ").append(rawItems).append(" pozycji z publicznych kanałów; poza okresem: ").append(olderItems).append(". Sprawdź dziennik źródeł poniżej.");
-            }else answer.insert(0,"Znalezione publikacje z wybranego okresu. Daty pochodzą od wydawcy lub z kanału, a fakty wymagają przeczytania w oryginale. Materiały z Twojego portalu są oznaczone osobno.\n\n");
+            }else answer.append("Publikacje z wybranego zakresu: ").append(external).append(" zewnętrznych; ").append(own)
+                .append(" z Twojego portalu (osobno). Daty pochodzą od wydawcy lub z indeksu. Otwórz źródła i sprawdź fakty przed wykorzystaniem.");
             if (failed > 0 || skipped > 0)
                 answer.append("\nSkan częściowy: niedostępne kanały: ").append(failed)
                       .append(", pominięte lub bez potwierdzonych dat: ").append(skipped).append(".");
@@ -316,20 +316,28 @@ public final class FreeIspinaSearchClient {
     private static int countFeedItems(String xml){java.util.regex.Matcher m=java.util.regex.Pattern.compile("(?i)<(?:item|entry)(?:\\s|>)").matcher(xml);int count=0;while(m.find())count++;return count;}
 
     static String fetch(String address, ChatGptPlanClient.SearchControl control) throws Exception {
+        return fetch(address,control,Long.MAX_VALUE);
+    }
+    private static int sourceTimeout(long deadline,int maximum)throws java.net.SocketTimeoutException {
+        long remaining=deadline-android.os.SystemClock.elapsedRealtime();
+        if(remaining<=0)throw new java.net.SocketTimeoutException("Upłynął budżet czasu źródła; zachowano ukończone odczyty.");
+        return (int)Math.min(maximum,remaining);
+    }
+    static String fetch(String address, ChatGptPlanClient.SearchControl control,long deadline) throws Exception {
         String current=address;
         for(int redirects=0;redirects<=4;redirects++) {
             URL url=new URL(current);String host=url.getHost().toLowerCase(Locale.ROOT);
             if(!"https".equals(url.getProtocol())||url.getUserInfo()!=null||(url.getPort()!=-1&&url.getPort()!=443)||host.isEmpty()||host.equals("localhost")||host.endsWith(".localhost")||host.contains(":")||host.matches("^(?:10|127|0|192\\.168|169\\.254)\\..*")||host.matches("^172\\.(?:1[6-9]|2[0-9]|3[01])\\..*"))throw new IOException("Niebezpieczny adres źródła.");
             control.check();HttpURLConnection connection=(HttpURLConnection)url.openConnection();
             try {
-                control.attach(connection);connection.setConnectTimeout(4000);connection.setReadTimeout(6000);connection.setInstanceFollowRedirects(false);
+                control.attach(connection);connection.setConnectTimeout(sourceTimeout(deadline,4000));connection.setReadTimeout(sourceTimeout(deadline,6000));connection.setInstanceFollowRedirects(false);
                 connection.setRequestProperty("Accept","application/rss+xml, application/xml, text/xml, text/html, application/json, text/plain");
                 connection.setRequestProperty("User-Agent","IL-Redaktor-Smart/2.0 PublicSources");
-                int status=connection.getResponseCode();
+                connection.connect();connection.setReadTimeout(sourceTimeout(deadline,6000));int status=connection.getResponseCode();
                 if(status==301||status==302||status==303||status==307||status==308){String location=connection.getHeaderField("Location");if(location==null)throw new IOException("Przekierowanie bez adresu.");current=new URL(url,location).toString();continue;}
                 if(status!=200)throw new IOException("Publiczne źródło: HTTP "+status);
                 try(InputStream input=connection.getInputStream();ByteArrayOutputStream out=new ByteArrayOutputStream()){
-                    byte[] buffer=new byte[8192];int n;while((n=input.read(buffer))!=-1){control.check();if(out.size()+n>1_500_000)throw new IOException("Źródło przekracza limit 1,5 MB.");out.write(buffer,0,n);}
+                    byte[] buffer=new byte[8192];int n;while((n=input.read(buffer))!=-1){control.check();sourceTimeout(deadline,6000);if(out.size()+n>1_500_000)throw new IOException("Źródło przekracza limit 1,5 MB.");out.write(buffer,0,n);}
                     return out.toString(StandardCharsets.UTF_8.name());
                 }
             }finally{control.detach(connection);connection.disconnect();}

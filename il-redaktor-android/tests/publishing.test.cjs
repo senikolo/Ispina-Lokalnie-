@@ -1435,3 +1435,22 @@ test('undated discoveries are visible separately from new publications',async()=
 test('quick buttons never overwrite a new question while a scan is running',()=>{
  const a=setup();a.run('ispinaChatInProgress=true');a.node('ispina-chat-input').value='Moje nowe pytanie';assert.equal(a.c.prefillIspinaChat('Most'),false);assert.equal(a.node('ispina-chat-input').value,'Moje nowe pytanie');
 });
+
+test('live progress opens the source journal once and keeps current reads first',async()=>{
+ const a=setup();a.run('freeSearchReady=true');a.node('ispina-chat-input').value='OSP';let id,finish,scrolls=0;
+ a.node('ispina-chat-live-panel').scrollIntoView=()=>scrolls++;
+ a.c.IL.askIspinaChatWithDays=rid=>{id=rid;finish=()=>a.c.window.onNativeResult(rid,true,JSON.stringify({answer:'Wynik nierozstrzygający',sources:[]}));};
+ const pending=a.c.sendIspinaChat();
+ a.c.window.onIspinaSearchProgress(id,{sequence:1,name:'Pierwszy',url:'https://example.org/done',stage:'DONE'});
+ a.c.window.onIspinaSearchProgress(id,{sequence:2,name:'Teraz',url:'https://example.org/now',stage:'READING'});
+ assert.equal(scrolls,1);assert.equal(a.node('ispina-chat-live-panel').open,true);
+ const rendered=a.node('ispina-chat-live').innerHTML;assert.ok(rendered.indexOf('Teraz')<rendered.indexOf('Pierwszy'));
+ finish();await pending;
+});
+test('external news precedes the collapsed archive of the editors own portal',()=>{
+ const a=setup();a.run("ispinaChatMessages=[{role:'assistant',verified:true,content:'Publikacje do sprawdzenia',sources:[{title:'Własny tekst',url:'https://ispinalokalnie.wordpress.com/test',sourceKind:'OWN_PORTAL'},{title:'Wiadomość zewnętrzna',url:'https://example.org/article',snippet:'Fragment <script>bad</script>'}]}];renderIspinaChat()");
+ const rendered=a.node('ispina-chat-log').innerHTML;
+ assert.ok(rendered.indexOf('Wiadomość zewnętrzna')<rendered.indexOf('Własny tekst'));
+ assert.match(rendered,/<details class="source-item"><summary>Twój portal/);
+ assert.match(rendered,/Publikacje zewnętrzne \(1\)/);assert.doesNotMatch(rendered,/<script>/);
+});

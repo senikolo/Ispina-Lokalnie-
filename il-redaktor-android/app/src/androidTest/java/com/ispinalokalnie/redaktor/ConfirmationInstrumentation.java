@@ -156,25 +156,30 @@ public final class ConfirmationInstrumentation extends Instrumentation {
 
     private void testLiveRecall(Bundle result) throws Exception {
         diagnosticStage="LIVE INTERNET recall: native bridge and publishers";
-        evaluate("refreshFreeSearchState();showScreen('radar');window.__liveDone=false;window.__liveProgress=0;window.__oldProgress=window.onIspinaSearchProgress;window.onIspinaSearchProgress=(id,event)=>{window.__liveProgress++;window.__oldProgress(id,event)};$('ispina-chat-days').value='90';$('ispina-chat-input').value='Cokolwiek nowego o Ispinie';sendIspinaChat().then(()=>window.__liveDone=true)");
+        evaluate("refreshFreeSearchState();showScreen('radar');window.__liveDone=false;window.__liveProgress=0;window.__liveEvents=[];window.__oldProgress=window.onIspinaSearchProgress;window.onIspinaSearchProgress=(id,event)=>{window.__liveProgress++;window.__liveEvents.push(event);window.__oldProgress(id,event)};$('ispina-chat-days').value='90';$('ispina-chat-input').value='Cokolwiek nowego o Ispinie';sendIspinaChat().then(()=>window.__liveDone=true)");
+        waitForScript("window.__liveProgress>=3");
+        if(!"true".equals(evaluate("$('ispina-chat-live-panel').getBoundingClientRect().top>=-2 && $('ispina-chat-live-panel').getBoundingClientRect().top<innerHeight-160 && $('ispina-chat-live').textContent.includes('https://')")))throw new AssertionError("Live addresses are not immediately visible on the phone");
+        captureUi("radar-scanning");
         long until=SystemClock.uptimeMillis()+80000;
         while(!"true".equals(evaluate("window.__liveDone===true"))){if(SystemClock.uptimeMillis()>until)throw new AssertionError("Live search did not finish");SystemClock.sleep(400);}
         String raw=evaluate("JSON.stringify(ispinaChatMessages.filter(m=>m.role==='assistant').slice(-1)[0]||{})");
         Object decoded=new org.json.JSONTokener(raw).nextValue();
         org.json.JSONObject reply=new org.json.JSONObject(String.valueOf(decoded));
-        org.json.JSONArray found=reply.optJSONArray("sources"),safe=new org.json.JSONArray();int external=0;
+        org.json.JSONArray found=reply.optJSONArray("sources"),safe=new org.json.JSONArray();int external=0,publisherHtml=0;
         if(found!=null)for(int i=0;i<found.length();i++){
             org.json.JSONObject item=found.getJSONObject(i);if(!"OWN_PORTAL".equals(item.optString("sourceKind")))external++;
+            if("PUBLISHER_HTML".equals(item.optString("sourceMethod")))publisherHtml++;
             safe.put(new org.json.JSONObject().put("title",item.optString("title")).put("url",item.optString("url")).put("published",item.optString("published")).put("sourceKind",item.optString("sourceKind")));
         }
-        org.json.JSONObject evidence=new org.json.JSONObject().put("sources",safe).put("external",external).put("progressEvents",Integer.parseInt(evaluate("String(window.__liveProgress)").replace("\"","")))
+        org.json.JSONObject evidence=new org.json.JSONObject().put("sources",safe).put("external",external).put("publisherHtml",publisherHtml).put("progressEvents",Integer.parseInt(evaluate("String(window.__liveProgress)").replace("\"","")))
+            .put("profiles",reply.optJSONArray("profiles")).put("progress",new org.json.JSONArray(String.valueOf(new org.json.JSONTokener(evaluate("JSON.stringify(window.__liveEvents)")).nextValue())))
             .put("status",new org.json.JSONTokener(evaluate("$('ispina-chat-status').textContent")).nextValue());
         java.io.File dir=new java.io.File(getTargetContext().getFilesDir(),"qa");dir.mkdirs();
         try(java.io.FileOutputStream out=new java.io.FileOutputStream(new java.io.File(dir,"real-source-recall.json"))){out.write(evidence.toString(2).getBytes(java.nio.charset.StandardCharsets.UTF_8));}
-        if(external<2)throw new AssertionError("LIVE recall below minimum: need two external dated publications; "+evidence);
+        if(external<3||publisherHtml<1)throw new AssertionError("LIVE recall below minimum: need three external dated publications, including original publisher HTML; "+evidence);
         if(evidence.getInt("progressEvents")<3)throw new AssertionError("Native live source progress was not delivered");
         captureUi("radar-live");
-        result.putString("stream","IL_LIVE_RECALL_TEST=PASS external="+external+" total="+safe.length()+" progress="+evidence.getInt("progressEvents")+"\n");
+        result.putString("stream","IL_LIVE_RECALL_TEST=PASS external="+external+" publisherHtml="+publisherHtml+" total="+safe.length()+" progress="+evidence.getInt("progressEvents")+"\n");
     }
 
     private void testFreeRadar() throws Exception {

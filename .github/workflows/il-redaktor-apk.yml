@@ -135,6 +135,7 @@ jobs:
           print('Required features and official IL branding confirmed')
           PY
           node --check /tmp/ilredaktor-ui.js
+          node --test il-redaktor-android/tests/publishing.test.cjs
       - name: Verify OAuth redirect configuration without remote registration
         run: |
           python - <<'PY'
