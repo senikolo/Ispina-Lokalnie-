@@ -141,6 +141,8 @@ public final class ConfirmationInstrumentation extends Instrumentation {
 
     private void testPublisherRecall() throws Exception {
         java.net.URL municipal=new java.net.URL("https://www.drwinia.pl/robots.txt");
+        if(!"https://www.drwinia.pl/aktualnosci".equals(FreeIspinaSearchClient.secureRedirect(municipal,"/aktualnosci").toString()))throw new AssertionError("Relative HTTPS redirect changed");
+        try{FreeIspinaSearchClient.secureRedirect(municipal,"http://www.drwinia.pl:8080/");throw new AssertionError("Custom-port plaintext redirect accepted");}catch(java.io.IOException expected){}
         if(!"https://www.drwinia.pl/".equals(FreeIspinaSearchClient.secureRedirect(municipal,"http://www.drwinia.pl/").toString()))throw new AssertionError("Publisher legacy redirect did not stay on HTTPS");
         try{FreeIspinaSearchClient.secureRedirect(municipal,"http://example.org/");throw new AssertionError("Cross-host plaintext downgrade accepted");}catch(java.io.IOException expected){}
         try{FreeIspinaSearchClient.secureRedirect(new java.net.URL("https://example.org/robots.txt"),"http://example.org/");throw new AssertionError("Unknown publisher plaintext downgrade accepted");}catch(java.io.IOException expected){}
