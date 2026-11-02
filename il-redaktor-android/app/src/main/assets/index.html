@@ -298,11 +298,12 @@ header{animation:ilHeader .38s cubic-bezier(.2,.7,.2,1) both}.brand .logo{animat
     <label for="editorial-memory-status">Status źródeł</label>
     <select id="editorial-memory-status">
       <option value="all">Wszystkie</option><option value="link_found">Linki do sprawdzenia</option>
-      <option value="reviewed">Sprawdzone ręcznie</option>
+      <option value="new">Nowe</option><option value="known">Znane</option><option value="changed">Zmienione</option><option value="reviewed">Sprawdzone przez redaktora</option>
     </select>
     <div class="actions"><button type="button" onclick="loadEditorialMemory()">Szukaj w pamięci</button><button class="secondary" type="button" onclick="loadEditorialHistory()">Ostatnie pytania</button><button class="secondary" type="button" onclick="exportEditorialMemory()">Zapisz kopię JSON</button><button class="secondary" type="button" onclick="importEditorialMemory()">Przywróć kopię JSON</button></div>
     <p id="editorial-memory-status-text" class="small muted" role="status">Przy pierwszym otwarciu zobaczysz tu wcześniej zapisane źródła. Historia sprzed wdrożenia bazy nie jest automatycznie odzyskiwana.</p>
     <div id="editorial-memory-results" role="region" aria-live="polite"></div>
+    <button id="memory-more" class="secondary hidden" type="button" onclick="loadEditorialMemory(true)">Wczytaj kolejne źródła</button>
     <div id="editorial-memory-history" role="region" aria-live="polite"></div>
   </div>
 </section>
@@ -1728,6 +1729,7 @@ async function savePost(status,reviewApproval=null){
     postId=Number(result.id);
     lastPublicationAttempt.id=postId;
     postStatus=result.status||status;
+    if(!persistDraft(true))throw Error("WordPress zwrócił ID "+postId+", ale lokalny zapis numeru nie powiódł się. Zachowaj numer i sprawdź wpis przed ponowieniem.");
     $("editor-heading").textContent="Edytuj artykuł #"+postId;
     $("edit-status").textContent="Sprawdzam zapis…";
     message("post-output","WordPress zwrócił ID "+postId+". Sprawdzam, czy zmiany są widoczne po ponownym odczycie.");
@@ -1772,6 +1774,7 @@ async function savePost(status,reviewApproval=null){
     postStatus=verified.status;remoteBaseline=remoteVersion(verified);
     $("edit-status").textContent=status==="publish"?"Opublikowany":status==="future"?"Zaplanowany":"Szkic zapisany";
     persistDraft(true,true);
+    linkCurrentSourcesToMemory();
     lastPublicationAttempt=null;
     const summary=status==="publish"?"✓ Sukces! Artykuł został opublikowany na Ispina Lokalnie.":status==="future"?"✓ Sukces! Publikacja artykułu została zaplanowana.":"SUKCES! Szkic zapisany.";
     const detail="WordPress zapisał wpis, a ponowny odczyt potwierdził jego status. Tytuł: "+title+
@@ -2581,6 +2584,14 @@ function editorialRequest(action, data){
     catch(e){clearTimeout(timeout);requests.delete(id);reject(e);}
   });
 }
+async function linkCurrentSourcesToMemory(){
+  if(!window.IL||typeof IL.editorialMemory!=="function"||!activeDraftId)return;
+  // Only annotate existing records. Never turn a draft's unchecked citations into reviewed facts.
+  for(const source of currentSources()){
+    try{await editorialRequest("annotate",{url:source.url,draftId:activeDraftId,title:$("post-title").value,postId:postId||0});}
+    catch(e){$("local-save-status").textContent+=" Nie zapisano powiązania źródła: "+e.message;}
+  }
+}
 function editorialTopic(raw){
   const s=String(raw||"").toLocaleLowerCase("pl");
   if(/most|mośc|moś[cć]|moście|remont/.test(s))return "most";
@@ -2606,30 +2617,52 @@ function editorialDisplayDate(raw){
   const d=new Date(timestamp);
   return Number.isNaN(d.getTime())?"BRAK DATY":d.toLocaleDateString("pl-PL",{year:"numeric",month:"long",day:"numeric"});
 }
-async function loadEditorialMemory(){
+let memoryOffset=0,memoryFilter="",memoryGeneration=0;
+const memorySources=new Map();
+async function loadEditorialMemory(more=false){
+  const generation=++memoryGeneration;
+  const topic=trim($("editorial-memory-topic").value),status=$("editorial-memory-status").value,filter=JSON.stringify([topic,status]);
+  if(!more||filter!==memoryFilter){memoryOffset=0;memorySources.clear();$("editorial-memory-results").innerHTML="";}
+  memoryFilter=filter;$("memory-more").disabled=true;
   const output=$("editorial-memory-results"),state=$("editorial-memory-status-text");
   state.textContent="Przeglądam pamięć telefonu…";
   try{
-    const data=await editorialRequest("browse",{topic:trim($("editorial-memory-topic").value),status:$("editorial-memory-status").value});
+    const data=await editorialRequest("browse",{topic,status,offset:memoryOffset});
+    if(generation!==memoryGeneration)return;
     const items=Array.isArray(data.items)?data.items:[];
-    output.innerHTML=items.length?items.map(source=>{
+    const html=items.length?items.map(source=>{
+      memorySources.set(source.url,source);
       const stamp=Number(source.lastSeen)?new Date(source.lastSeen).toLocaleString("pl-PL"):"nieznana";
       const published='<small>Data publikacji według źródła: '+esc(editorialDisplayDate(source.publishedAt))+'</small>';
-      const review=source.status==="reviewed"?"Sprawdzone ręcznie":"Link do sprawdzenia";
+      const review=(source.status==="reviewed"?"Sprawdzone przez redaktora":"Do sprawdzenia")+" · "+({new:"Nowe",known:"Znane",changed:"Zmienione"}[source.discovery]||"Znane");
       const changed=Number(source.changedAt)?" · zaktualizowany link / metadane":"";
       return '<div class="source-item"><b>'+esc(source.title||source.url)+'</b><small>'+esc(review+changed)+' · Ostatnio odnaleziono: '+stamp+'</small>'+published+
-        '<div class="actions"><button type="button" class="secondary" data-memory-action="open" data-memory-url="'+esc(source.url)+'">Otwórz</button>'+
+        '<p class="small">'+esc(source.snippet||'')+'</p>'+
+        '<p class="small">Powiązania: '+esc((source.links||[]).map(l=>(l.title||l.draftId)+(l.postId?' · WordPress #'+Number(l.postId):' · szkic lokalny')).join('; ')||'brak')+'</p>'+
+        '<label>Notatka redaktora<textarea data-memory-notes="'+esc(source.url)+'" maxlength="6000">'+esc(source.notes||'')+'</textarea></label>'+
+        '<div class="actions"><button type="button" class="secondary" data-memory-action="note" data-memory-url="'+esc(source.url)+'">Zapisz notatkę</button><button type="button" class="secondary" data-memory-action="open" data-memory-url="'+esc(source.url)+'">Otwórz</button>'+
         (source.status==="reviewed"?'':'<button type="button" class="secondary" data-memory-action="review" data-memory-url="'+esc(source.url)+'">Sprawdzone ręcznie</button>')+
         '<button type="button" class="secondary" data-memory-action="draft" data-memory-url="'+esc(source.url)+'" data-memory-title="'+esc(source.title||source.url)+'">Do szkicu</button>'+
         '<button type="button" class="secondary" data-memory-action="delete" data-memory-url="'+esc(source.url)+'">Usuń</button></div></div>';
     }).join(""):'<div class="note">Brak zapisanych źródeł dla tego filtra. Uruchom Radar i zapisz pierwsze wyszukiwanie.</div>';
-    state.textContent="Odczytano "+items.length+" źródeł z pamięci telefonu. Dane nie zostały pobrane ponownie z internetu.";
-  }catch(e){state.textContent="Błąd pamięci: "+String(e.message);output.innerHTML="";}
+    if(more)output.innerHTML+=html;else output.innerHTML=html;
+    memoryOffset+=items.length;
+    $("memory-more").classList.toggle("hidden",!data.hasMore);
+    state.textContent="Odczytano "+memoryOffset+" z "+Number(data.total||items.length)+" źródeł. Wyszukiwanie pełnotekstowe obejmuje zapisane tytuły, opisy, pytania i notatki; nie pełne dokumenty.";
+  }catch(e){if(generation===memoryGeneration)state.textContent="Błąd pamięci: "+String(e.message);}
+  finally{if(generation===memoryGeneration)$("memory-more").disabled=false;}
 }
 $("editorial-memory-results").addEventListener("click",async event=>{
   const b=event.target.closest("[data-memory-action]");if(!b)return;
   const url=b.getAttribute("data-memory-url"),action=b.getAttribute("data-memory-action");
   if(action==="open"){openResearchSource(url);return;}
+  if(action==="note"){
+    const field=b.closest(".source-item").querySelector("[data-memory-notes]");
+    b.disabled=true;
+    try{const result=await editorialRequest("annotate",{url,notes:field.value});if(!result.updated)throw Error("Źródło nie istnieje w pamięci.");memorySources.set(url,{...memorySources.get(url),notes:field.value});$("editorial-memory-status-text").textContent="Zapisano notatkę na telefonie.";}
+    catch(e){$("editorial-memory-status-text").textContent="Nie zapisano notatki: "+e.message;}
+    finally{b.disabled=false;}return;
+  }
   if(action==="draft"){
     if(!persistDraft(true)){$("editorial-memory-status-text").textContent="Nie mogę zabezpieczyć szkicu. Źródło nie zostało przeniesione.";return}
     const current=currentSources();
@@ -2638,7 +2671,9 @@ $("editorial-memory-results").addEventListener("click",async event=>{
     const title=b.getAttribute("data-memory-title")||url;
     const entry={id:draftId(),name:title,url,notes:"Źródło z lokalnej pamięci. Sprawdź pełny tekst, daty i kontekst przed publikacją.",checked:false,verifiedAt:0,photo:""};
     if(storeSources([...current,entry])){
-      $("editorial-memory-status-text").textContent="Źródło dołączono do bieżącego szkicu, bez publikowania.";
+      try{const linked=await editorialRequest("annotate",{url,draftId:activeDraftId,title:$("post-title").value,postId:postId||0});if(!linked.updated)throw Error("Brak źródła w pamięci.");
+        $("editorial-memory-status-text").textContent="Źródło dołączono do bieżącego szkicu, bez publikowania.";
+      }catch(e){$("editorial-memory-status-text").textContent="Źródło zapisano w szkicu; powiązanie w pamięci wymaga ponowienia: "+e.message;}
       showScreen("editor");
     }else $("editorial-memory-status-text").textContent="Nie udało się powiązać źródła ze szkicem.";
     return;

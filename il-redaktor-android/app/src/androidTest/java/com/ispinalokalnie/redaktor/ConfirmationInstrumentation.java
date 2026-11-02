@@ -279,6 +279,21 @@ public final class ConfirmationInstrumentation extends Instrumentation {
             if(!"link_found".equals(memory.execute("browse",new org.json.JSONObject()
                 .put("topic","Most")).getJSONArray("items").getJSONObject(0).getString("status")))
                 throw new AssertionError("Updated source retained stale review approval");
+            memory.execute("annotate",new org.json.JSONObject().put("url",url).put("notes","Unikatowa notatka konserwatorska")
+                .put("draftId","qa-draft").put("title","Szkic mostu").put("postId",123));
+            org.json.JSONObject annotated=memory.execute("browse",new org.json.JSONObject().put("topic","konserwatorsk"))
+                .getJSONArray("items").getJSONObject(0);
+            if(!url.equals(annotated.getString("url"))||annotated.getJSONArray("links").getJSONObject(0).getInt("postId")!=123)
+                throw new AssertionError("FTS notes or draft linkage not saved");
+            if(memory.execute("browse",new org.json.JSONObject().put("status","changed")).getJSONArray("items").length()<1)
+                throw new AssertionError("Changed source filter not available");
+            if(memory.execute("browse",new org.json.JSONObject().put("topic","konserwatorsk").put("offset",50)).getJSONArray("items").length()!=0)
+                throw new AssertionError("Memory pagination repeated the first page");
+            org.json.JSONObject intact=memory.execute("export",new org.json.JSONObject());
+            org.json.JSONObject tampered=new org.json.JSONObject(intact.toString());
+            tampered.getJSONArray("sources").getJSONObject(0).put("notes","Corrupted backup");
+            try{memory.execute("import",tampered);throw new AssertionError("Corrupt backup accepted");}
+            catch(IllegalArgumentException expected){}
             memory.close();
             EditorialMemory reopened=new EditorialMemory(getTargetContext());
             try {
@@ -293,6 +308,8 @@ public final class ConfirmationInstrumentation extends Instrumentation {
                     throw new AssertionError("Cleanup before import failed");
                 if(reopened.execute("import",backup).getInt("imported")<1)
                     throw new AssertionError("Editorial backup did not restore deleted source");
+                if(!"Unikatowa notatka konserwatorska".equals(reopened.execute("browse",new org.json.JSONObject().put("topic","konserwatorsk"))
+                    .getJSONArray("items").getJSONObject(0).getString("notes")))throw new AssertionError("Backup lost editorial notes");
                 reopened.execute("review",new org.json.JSONObject().put("url",url).put("confirmed",true));
                 if(reopened.execute("import",backup).getInt("existing")<1)
                     throw new AssertionError("Duplicate import did not preserve existing source");
@@ -326,14 +343,14 @@ public final class ConfirmationInstrumentation extends Instrumentation {
             // document.readyState alone only confirms DOM loading on older WebView.
             captureUi("startup");
             if ("seed".equals(mode) || "seed-current".equals(mode)) {
-                int expectedVersion = "seed-current".equals(mode) ? 43 : 21;
+                int expectedVersion = "seed-current".equals(mode) ? BuildConfig.VERSION_CODE : 21;
                 if(getTargetContext().getPackageManager().getPackageInfo(getTargetContext().getPackageName(),0).versionCode!=expectedVersion)throw new AssertionError("Seed baseline versionCode mismatch: expected "+expectedVersion);
                 String seeded=evaluate("localStorage.removeItem(draftKey);draftStore=null;activeDraftId=null;$('post-title').value='Pierwszy szkic';$('post-body').value='Pierwsza wersja';persistDraft(true);$('post-body').value='Druga wersja';persistDraft(true);resetEditor();$('post-title').value='Drugi szkic';$('post-body').value='Drugi tekst';persistDraft(true);String(readDraftStore().drafts.length)");
                 if(!"\"2\"".equals(seeded))throw new AssertionError("Draft seeding failed: "+seeded);
                 if(!getTargetContext().getSharedPreferences("il_update_probe",0).edit().putString("marker","preserved").commit())throw new AssertionError("Preferences seeding failed");
                 result.putString("stream","IL_UPDATE_SEED=PASS\n");
             } else if ("verify".equals(mode)) {
-                if(getTargetContext().getPackageManager().getPackageInfo(getTargetContext().getPackageName(),0).versionCode!=44)throw new AssertionError("Verification must run after upgrade to versionCode 44");
+                if(getTargetContext().getPackageManager().getPackageInfo(getTargetContext().getPackageName(),0).versionCode!=BuildConfig.VERSION_CODE)throw new AssertionError("Verification must run after upgrade to current versionCode");
                 String restored=evaluate("JSON.stringify(readDraftStore().drafts.map(d=>[d.title,d.body,d.revisions.length]))");
                 if(!restored.contains("Pierwszy szkic")||!restored.contains("Druga wersja")||!restored.contains("Drugi szkic"))throw new AssertionError("Drafts lost after reinstall: "+restored);
                 if(!"preserved".equals(getTargetContext().getSharedPreferences("il_update_probe",0).getString("marker","")))throw new AssertionError("Preferences lost after reinstall");

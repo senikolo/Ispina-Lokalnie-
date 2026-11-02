@@ -412,7 +412,7 @@ public class MainActivity extends Activity {
                 data == null || data.length() > 100_000) return;
             if (!("save".equals(operation) || "browse".equals(operation) ||
                   "review".equals(operation) || "delete".equals(operation) ||
-                  "history".equals(operation))) {
+                  "history".equals(operation) || "annotate".equals(operation))) {
                 callback(rid, false, "Nieobsługiwana funkcja pamięci."); return;
             }
             work.execute(() -> {
