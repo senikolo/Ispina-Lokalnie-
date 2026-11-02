@@ -244,13 +244,15 @@ header{animation:ilHeader .38s cubic-bezier(.2,.7,.2,1) both}.brand .logo{animat
   <div class="card" id="ispina-chat-card">
     <div class="eyebrow">WYSZUKIWARKA · RADAR INFORMACJI</div>
     <h2>Znajdź źródła o Ispinie</h2>
-    <p class="muted">Wpisz temat, np. most, transport, OSP lub paczkomat. Aplikacja pobierze publiczne wyniki dotyczące Ispiny. Krótkie pytanie uzupełniające bez nowego tematu może odziedziczyć temat poprzedniego pytania. To wyszukiwarka RSS, nie rozmowa z modelem AI. Sprawdź daty i treść w oryginalnych witrynach.</p>
-    <div class="note small">Wyszukiwanie nie wymaga konta ChatGPT ani abonamentu AI. Powtórzenie tego samego tematu może użyć wyników zapisanych przez ostatnie 5 minut.</div>
+    <p class="muted">Pytasz o OSP, most lub autobusy? Domyślnie szukam nowych publikacji z ostatnich 30 dni. Możesz wybrać 7, 30 lub 90 dni albo podać okres w pytaniu. Sprawdzam internet; wcześniejsze materiały pokazuję na wyraźne pytanie o pamięć. To narzędzie wyszukiwania i reguł, bez automatycznej weryfikacji faktów.</p>
+    <div class="note small">Nowe oznacza opublikowane w wybranym okresie, a nie pierwszy raz znalezione. Szukanie nowych wiadomości nie korzysta ze starej odpowiedzi z pamięci ani pięciominutowej kopii wyników.</div>
+    <label for="ispina-chat-days">Nowe wiadomości — data publikacji</label>
+    <select id="ispina-chat-days" onchange="saveChatLookback()"><option value="7">Ostatnie 7 dni</option><option value="30" selected>Ostatnie 30 dni</option><option value="90">Ostatnie 90 dni</option></select>
     <div class="actions">
       <button class="secondary" type="button" onclick="prefillIspinaChat('Czy są nowe informacje o moście w Ispinie?')">Most</button>
-      <button class="secondary" type="button" onclick="prefillIspinaChat('Czy pojawiły się nowe informacje o transporcie w Ispinie?')">Transport</button>
+      <button class="secondary" type="button" onclick="prefillIspinaChat('Czy pojawiły się nowe informacje o autobusach w Ispinie?')">Autobusy</button>
       <button class="secondary" type="button" onclick="prefillIspinaChat('Czy są nowe informacje o OSP Ispina?')">OSP</button>
-      <button class="secondary" type="button" onclick="prefillIspinaChat('Co nowego o Ispinie w ostatnich 30 dniach? Sprawdź komunikaty urzędowe, lokalne media, transport, inwestycje i OSP. Podaj daty oraz źródła.')">Najnowsze materiały</button>
+      <button class="secondary" type="button" onclick="prefillIspinaChat('Cokolwiek nowego o Ispinie')">Cokolwiek nowego o Ispinie</button>
     </div>
     <div id="ispina-chat-log" class="source-item" role="log" aria-live="polite" aria-label="Rozmowa IL Wyszukiwarka">
       <p class="muted">Tutaj pojawią się odpowiedzi i źródła. Możesz zadać pytanie uzupełniające.</p>
@@ -259,7 +261,7 @@ header{animation:ilHeader .38s cubic-bezier(.2,.7,.2,1) both}.brand .logo{animat
     <textarea id="ispina-chat-input" maxlength="2000" style="min-height:92px" placeholder="Np. Czy w ostatnich dniach opublikowano coś o Ispinie?"></textarea>
     <div class="actions">
       <button id="ispina-chat-send" type="button" onclick="sendIspinaChat()">Wyszukaj bezpłatnie</button><button id="ispina-chat-cancel" class="secondary hidden" type="button" onclick="cancelIspinaSearch('chat')">Anuluj wyszukiwanie</button>
-      <button class="secondary" type="button" onclick="clearIspinaChat()">Wyczyść rozmowę</button>
+      <button class="secondary" type="button" onclick="clearIspinaChat()">Wyczyść rozmowę</button><button class="secondary" type="button" onclick="deepenIspinaChat()">Szukaj głębiej w ChatGPT Free</button>
     </div>
     <p id="ispina-chat-status" class="small muted" role="status" aria-live="polite">Przygotowuję wyszukiwarkę…</p>
   </div>
@@ -272,7 +274,7 @@ header{animation:ilHeader .38s cubic-bezier(.2,.7,.2,1) both}.brand .logo{animat
     <p class="small muted">Przy wybranym okresie pokazujemy wyłącznie wyniki z datą publikacji mieszczącą się w tym zakresie. Data wydarzenia może być inna. Wybór daty dotyczy wyszukiwania na tym ekranie.</p>
     <label for="research-query">Temat i dodatkowe wskazówki</label>
     <textarea id="research-query" maxlength="1800" style="min-height:115px" oninput="updateRadarPromptPreview()">Wyszukaj aktualne informacje o Ispinie.</textarea>
-    <div class="note small">Radar sprawdza do 15 profili: urzędy, BIP, zamówienia, drogi, transport, media oraz wyszukiwanie ogólne. Pokazuje nieudane i pominięte źródła. Zakres czasu jest filtrem rzeczywistej daty publikacji, nie daty wydarzenia. Wyniki wymagają przeczytania w oryginale.</div>
+    <div class="note small">Radar sprawdza profile tematyczne i ogólne: urzędy, BIP, zamówienia, drogi, autobusy, media oraz wyszukiwanie ogólne. Pokazuje nieudane i pominięte źródła. Zakres czasu jest filtrem rzeczywistej daty publikacji, nie daty wydarzenia. Wyniki wymagają przeczytania w oryginale.</div>
     <details class="small"><summary>Gdzie szukamy?</summary><p>Google News i Bing RSS oraz osobne zapytania do: drwinia.pl, bip.malopolska.pl, powiat.bochnia.pl, zdw.krakow.pl, ezamowienia.gov.pl, bochnianin.pl, e-bochnia.pl, radiokrakow.pl, malopolska.pl, kolejemalopolskie.com.pl, gov.pl, Eko-Drwinia. Wyniki zależą od indeksowania i dostępności RSS; nie jest to robot odwiedzający każdą podstronę.</p></details>
     <details class="small"><summary>Dokładne polecenie dla ChatGPT Free</summary><p>Utwórz precyzyjne polecenie zgodne z wybranym okresem. ChatGPT może szukać szerzej, jeżeli ma dostęp do przeglądania internetu; aplikacja nie przekazuje mu żadnego płatnego klucza.</p><textarea id="radar-gpt-prompt" readonly style="min-height:170px" aria-label="Polecenie do ChatGPT"></textarea><div class="actions"><button type="button" class="secondary" onclick="copyRadarChatGptPrompt()">Kopiuj polecenie</button><button type="button" class="secondary" onclick="openRadarInChatGpt()">Otwórz w ChatGPT</button></div><p id="radar-gpt-status" class="small muted" role="status"></p></details>
     <div class="actions"><button class="secondary" type="button" onclick="runRecentIspinaRadar()">Najnowsze materiały</button><button id="research-button" type="button" disabled onclick="runDeepIspinaResearch()">🔎 Wyszukaj w internecie informacje o Ispinie</button><button id="research-cancel" class="secondary hidden" type="button" onclick="cancelIspinaSearch('research')">Anuluj wyszukiwanie</button><button id="assistant-check-button" class="secondary" type="button" onclick="checkAssistantAvailability()">Gotowość wyszukiwarki</button><button class="secondary" type="button" onclick="clearResearchResults()">Wyczyść wyniki</button><button class="secondary" type="button" onclick="openRadarInChatGpt()">🌐 Głębokie wyszukiwanie w ChatGPT</button></div>
@@ -429,7 +431,7 @@ header{animation:ilHeader .38s cubic-bezier(.2,.7,.2,1) both}.brand .logo{animat
     <label class="setting-row"><input type="checkbox" id="battery-saving" onchange="applyUiPreferences(true)"><span>Tryb oszczędzania baterii</span></label>
     <p id="ui-preferences-status" class="setting-caption" role="status" aria-live="polite">Ustawienia zapisują się na tym telefonie. Systemowe ograniczenie ruchu zawsze ma pierwszeństwo.</p>
   </div>
-  <div class="card"><h2>O programie</h2><p class="muted">IL Redaktor Smart 2.0 Professional · 2.0.0-professional-test.1 · WERSJA TESTOWA · Niezależna aplikacja Android 8 i nowszy. WordPress.com MCP. Publikacja wymaga potwierdzenia i ponownego odczytu wpisu.</p></div>
+  <div class="card"><h2>O programie</h2><p class="muted">IL Redaktor Smart 2.0 Professional · 2.0.0-professional-test.2 · WERSJA TESTOWA · Niezależna aplikacja Android 8 i nowszy. WordPress.com MCP. Publikacja wymaga potwierdzenia i ponownego odczytu wpisu.</p></div>
 </section>
 </main>
 <div id="conflict-dialog" class="finish-dialog hidden" role="dialog" aria-modal="true" aria-labelledby="conflict-title"><div class="finish-panel"><h2 id="conflict-title">Wersja na WordPressie wymaga porównania</h2><p id="conflict-message"></p><p>Nie wysłano zmian artykułu. Twoja praca pozostaje w szkicach na telefonie.</p><button class="secondary" onclick="showConflictComparison()">Porównaj wersje</button><div id="conflict-comparison" class="hidden"></div><p id="conflict-feedback" role="status"></p><div class="actions"><button onclick="resolveRemoteConflict(false)">Wczytaj wersję ze strony</button><button class="secondary" onclick="resolveRemoteConflict(true)">Zachowaj obie kopie</button><button class="secondary" onclick="closeRemoteConflict()">Wróć do tekstu</button></div><p class="small">Wczytanie nie usuwa Twojego szkicu. Zachowaj obie kopie odłączy lokalną wersję od wpisu na stronie.</p></div></div>
@@ -974,7 +976,10 @@ function requestFreeSearch(kind,prompt,history){
     update();interval=setInterval(update,1000);
     timeout=setTimeout(()=>cancel("Przekroczono limit oczekiwania. Spróbuj później; dotychczasowe wyniki i wpisany temat zachowano."),65000);
     requests.set(id,{resolve:value=>finish(true,value),reject:error=>finish(false,error),timeout});
-    try{if(kind==="chat")IL.askIspinaChat(id,prompt,JSON.stringify(history||[]));else if(typeof IL.askResearchWithDays==="function") IL.askResearchWithDays(id,prompt,Number($("research-days").value));else IL.askResearch(id,prompt);}
+    try{if(kind==="chat"){
+      if(typeof IL.askIspinaChatWithDays!=="function")throw Error("Ta APK nie obsługuje zakresu dat w pytaniach. Zaktualizuj aplikację; nie pokazuję wyników bez filtra jako nowych.");
+      IL.askIspinaChatWithDays(id,prompt,JSON.stringify(history||[]),chatLookbackDays(prompt));
+    }else if(typeof IL.askResearchWithDays==="function") IL.askResearchWithDays(id,prompt,Number($("research-days").value));else IL.askResearch(id,prompt);}
     catch(error){finish(false,error);}
   });
 }
@@ -999,7 +1004,7 @@ function buildRadarChatGptPrompt(){
     +"PRIORYTET: strony samorządowe, BIP, uchwały, protokoły, ogłoszenia, plany, dokumenty PDF i przetargi. Następnie lokalne portale, transport, drogi, most, OSP, InPost, kultura i historia.\n"
     +"Wykonaj po kolei precyzyjne kwerendy (oraz ich sensowne warianty):\n"+queries.map((q,i)=>(i+1)+". "+q).join("\n")+"\n"
     +"Przejrzyj również inne witryny, których nie ma na tej liście. Użyj wariantów: Ispina, Ispinie, Ispiny, Ispinii (błędna odmiana w źródle), Ispnia (literówka). Nie odrzucaj dokumentu, jeśli miejscowość jest wymieniona w załączniku.\n"
-    +"Dla każdej pozycji podaj: dokładny tytuł, instytucję/portal, bezpośredni URL, datę publikacji, oddzielnie datę wydarzenia, 1–2 zdania o związku z Ispiną oraz status wiarygodności i dostępności dokumentu. Grupuj: Samorząd/BIP, Przetargi, Drogi/Most, Transport, Lokalne media, Inne. Usuń duplikaty URL.\n"
+    +"Dla każdej pozycji podaj: dokładny tytuł, instytucję/portal, bezpośredni URL, datę publikacji, oddzielnie datę wydarzenia, 1–2 zdania o związku z Ispiną oraz status wiarygodności i dostępności dokumentu. Grupuj: Samorząd/BIP, Przetargi, Drogi/Most, Autobusy, Lokalne media, Inne. Usuń duplikaty URL.\n"
     +"Nie wymyślaj faktów, numerów postępowań, dat, cytatów ani linków. Jeśli data jest nieznana, oznacz BRAK DATY, a przy zakresie 7/30/90 dni oddziel poza wyniki okresu. Jeśli nie masz przeglądania internetu, zgłoś to wprost zamiast udawać wyszukiwanie.\n"
     +"Na końcu przedstaw tabelę: źródło, zapytanie, znalezione linki, brak odpowiedzi / ograniczenie indeksu. Podaj liczbę nowych i wcześniej znanych wzmianek, o ile istnieje porównywalny raport; inaczej zaznacz, że brak punktu odniesienia. Nie publikuj i niczego nie zapisuj na portalu.";
 }
@@ -1027,13 +1032,13 @@ function renderIspinaChat(){
     const sourceItems=Array.isArray(message.sources)?message.sources:[];
     const sources=sourceItems.flatMap(source=>{
       try{const url=new URL(String(source?.url||""));if(!["http:","https:"].includes(url.protocol)||url.username||url.password)return [];
-        return ['<div class="source-item"><b>'+esc(String(source?.title||url.hostname).slice(0,180))+'</b><small>'+esc(url.hostname)+'</small><div class="actions"><button class="secondary" type="button" data-ispina-chat-link="'+esc(url.href)+'">Otwórz źródło</button></div></div>'];
+        return ['<div class="source-item"><b>'+esc(String(source?.title||url.hostname).slice(0,180))+'</b><small>'+esc(url.hostname)+'</small><small>Data publikacji według kanału: '+esc(editorialDisplayDate(source.publishedAt||source.published))+'</small><div class="actions"><button class="secondary" type="button" data-ispina-chat-link="'+esc(url.href)+'">Otwórz źródło</button></div></div>'];
       }catch(error){return []}
     }).join("");
     const draftAction=message.role==="assistant"&&message.verified===true&&sources
       ?'<div class="actions"><button class="secondary" type="button" data-ispina-chat-draft="'+index+'">📝 Opracuj szkic w ChatGPT/Gemini</button></div>'
       :"";
-    return '<div class="chat-line"><strong>'+esc(message.role==="user"?"Ty":"IL Wyszukiwarka")+'</strong><div class="research-summary">'+esc(message.content)+'</div>'+(sources?'<div class="source-item"><b>Źródła do tej odpowiedzi</b>'+sources+'</div>':"")+draftAction+'</div>';
+    return '<div class="chat-line"><strong>'+esc(message.role==="user"?"Ty":"IL Wyszukiwarka")+'</strong>'+(message.fromArchive?'<p class="small muted">Archiwalna odpowiedź z pamięci — nie nowe wyszukiwanie.</p>':'')+'<div class="research-summary">'+esc(message.content)+'</div>'+(sources?'<div class="source-item"><b>Źródła do tej odpowiedzi</b>'+sources+'</div>':"")+(message.profiles?researchCoverage({profiles:message.profiles}):'')+draftAction+'</div>';
   }).join("");
   target.scrollTop=target.scrollHeight;
 }
@@ -1047,6 +1052,21 @@ $("ispina-chat-log").addEventListener("click",event=>{
   const previous=[...ispinaChatMessages.slice(0,index)].reverse().find(message=>message.role==="user");
   createGroundedDraftFromResearch({query:item.question||previous?.content||"Informacje o Ispinie",searchedAt:item.searchedAt,sections:[{title:"Ustalenia z IL Wyszukiwarka",text:item.content,status:"ok",sources:item.sources}],sources:item.sources});
 });
+function chatLookbackDays(prompt){
+  const text=String(prompt||'').toLocaleLowerCase('pl');
+  const explicit=text.match(/(?:^|[^\d])(\d{1,3})\s*(?:dni|dniach)\b/);
+  let days=explicit?Number(explicit[1]):Number($("ispina-chat-days").value)||30;
+  if(!explicit&&/ostatni(?:m|ego)? tygodni|ostatni tydzień/.test(text))days=7;
+  if(![7,30,90].includes(days))throw Error("Wybierz okres 7, 30 lub 90 dni.");
+  return days;
+}
+function saveChatLookback(){try{localStorage.setItem('il_chat_lookback_days',String(chatLookbackDays('')))}catch(e){$("ispina-chat-status").textContent="Nie zapisano wyboru okresu: "+e.message;}}
+function asksEditorialArchive(prompt){return /w pamięci|z pamięci|w archiwum|wcześniej (?:znalezione|odnalezione)|(?:co|już) (?:ostatnio )?znaleźliśmy|co już mamy|czy wykorzystaliśmy/i.test(String(prompt||''));}
+function deepenIspinaChat(){
+  const input=trim($("ispina-chat-input").value)||[...ispinaChatMessages].reverse().find(m=>m.role==='user')?.content||'Cokolwiek nowego o Ispinie';
+  try{$("research-days").value=String(chatLookbackDays(input));$("research-query").value=input;return openRadarInChatGpt();}
+  catch(e){$("ispina-chat-status").textContent=e.message;return false;}
+}
 function prefillIspinaChat(prompt){
   $("ispina-chat-input").value=prompt;
   return sendIspinaChat();
@@ -1073,14 +1093,13 @@ async function sendIspinaChat(){
   startOperation("Pobieram bezpłatne źródła — możesz anulować poniżej");
   try{
     const history=ispinaChatMessages.filter(message=>message.role==="user"||message.verified===true).slice(-8).map(message=>({role:message.role,content:message.content}));
-    // Before a redundant search, consult on-device history. Freshness questions bypass this cache.
-    const newInformation=/\b(nowe|nowych|najnowsze|dzisiaj|wczoraj|zmieniło|aktualne|odśwież|ostatnich 30|ostatnim tygodniu)\b/i.test(prompt);
-    if(!newInformation && typeof IL.editorialMemory==="function"){
+    // Use the archive only when explicitly requested; ordinary questions always check fresh sources.
+    if(asksEditorialArchive(prompt) && typeof IL.editorialMemory==="function"){
       const cached=await editorialRequest("browse",{topic:editorialTopic(prompt),status:"all"});
       const items=Array.isArray(cached.items)?cached.items:[];
       if(items.length){
         const reply="Znalazłem "+items.length+" wcześniejszych linków w lokalnej pamięci. To nie są nowe wyniki ani zweryfikowane fakty. Możesz otworzyć je i sprawdzić lub poprosić o aktualizację, wpisując „Znajdź nowe informacje o "+editorialTopic(prompt)+"”.";
-        ispinaChatMessages.push({role:"user",content:prompt,verified:true},{role:"assistant",content:reply,sources:items.map(s=>({url:s.url,title:s.title})),verified:false});
+        ispinaChatMessages.push({role:"user",content:prompt,verified:true},{role:"assistant",content:reply,fromArchive:true,sources:items.map(s=>({url:s.url,title:s.title})),verified:false});
         renderIspinaChat();
         await editorialRequest("save",{question:prompt,answer:reply,sources:[]});
         $("ispina-chat-input").value="";
@@ -1090,13 +1109,14 @@ async function sendIspinaChat(){
         return true;
       }
     }
+    const days=chatLookbackDays(prompt);$("ispina-chat-days").value=String(days);saveChatLookback();
     const result=await requestIspinaChat(prompt,history);
     const answer=String(result?.answer||"").trim();
     const sources=Array.isArray(result?.sources)?result.sources:[];
     const verified=(result?.sourceLinksFound===true||result?.verified===true)&&!!answer&&sources.length>0;
     ispinaChatMessages.push({role:"user",content:prompt,verified:true});
-    if(verified)ispinaChatMessages.push({role:"assistant",content:answer,sources,verified:true,question:prompt,searchedAt:String(result?.searchedAt||"")});
-    else ispinaChatMessages.push({role:"assistant",content:answer||"Nie znaleziono pasujących materiałów w dostępnych kanałach.",sources:[],verified:false});
+    if(verified)ispinaChatMessages.push({role:"assistant",content:answer,sources,verified:true,profiles:result?.profiles,lookbackDays:days,question:prompt,searchedAt:String(result?.searchedAt||"")});
+    else ispinaChatMessages.push({role:"assistant",content:answer||"Nie znaleziono pasujących materiałów w dostępnych kanałach.",sources:[],profiles:result?.profiles,verified:false});
     renderIspinaChat();
     if(typeof IL.editorialMemory==="function"){
       try{
@@ -1108,8 +1128,10 @@ async function sendIspinaChat(){
       }
     }
     $("ispina-chat-input").value="";
+    const range="Ostatnie "+Number(result?.lookbackDays||days)+" dni · daty publikacji. ";
+    const coverage=result?.partialResults?" Skan częściowy — sprawdź niedostępne lub pominięte kanały.":"";
     const inherited=result?.contextInherited===true&&result?.contextTopic?"Kontynuacja tematu „"+String(result.contextTopic).slice(0,80)+"”. ":"";
-    $("ispina-chat-status").textContent=inherited+(verified?"Znaleziono "+sources.length+" linków DO SPRAWDZENIA. Ich obecność nie potwierdza jeszcze faktów. Sprawdź oryginały.":"Nie znaleziono pasujących linków w dostępnych kanałach. Nie oznacza to braku informacji w internecie.");
+    $("ispina-chat-status").textContent=range+inherited+(verified?"Znaleziono "+sources.length+" linków DO SPRAWDZENIA. Ich obecność nie potwierdza jeszcze faktów. Sprawdź oryginały.":"Nie znaleziono pasujących linków w dostępnych kanałach. Nie oznacza to braku informacji w internecie.")+coverage;
     $("ispina-chat-status").className=verified?"small ok":"small muted";
     endOperation();
     return verified;
@@ -2731,7 +2753,7 @@ async function loadEditorialHistory(){
       const chronological=items.slice(0,12).reverse();
       ispinaChatMessages=chronological.flatMap(it=>[
         {role:"user",content:String(it.question),verified:true},
-        {role:"assistant",content:String(it.answer||"Zapisany raport"),sources:[],verified:false}
+        {role:"assistant",content:String(it.answer||"Zapisany raport"),fromArchive:true,sources:[],verified:false}
       ]);
       renderIspinaChat();
     }
@@ -2759,6 +2781,7 @@ loadUiPreferences();
 restoreLocal(true);
 renderEditorialDashboard();
 $("publication-sound").checked=localStorage.getItem("il_publication_sound")!=="false";
+try{const savedDays=Number(localStorage.getItem("il_chat_lookback_days"));if([7,30,90].includes(savedDays))$("ispina-chat-days").value=String(savedDays)}catch(e){}
 if(window.IL){IL.status();if(IL.getHaptics)IL.getHaptics();if(IL.getTextZoom)IL.getTextZoom();if(IL.loginState)IL.loginState();if(IL.getIspinaRadarState)refreshIspinaRadarState();if(IL.editorialMemory)loadEditorialHistory()}else{message("auth-output","Brak mostu Android. Otwórz ten panel wewnątrz APK.","error");}
 </script>
 </body></html>

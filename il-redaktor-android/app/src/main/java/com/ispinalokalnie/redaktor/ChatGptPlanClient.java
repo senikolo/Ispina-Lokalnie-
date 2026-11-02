@@ -87,7 +87,7 @@ public final class ChatGptPlanClient {
     public static final class SearchControl implements AutoCloseable {
         private volatile boolean cancelled;
         private volatile boolean timedOut;
-        private volatile HttpURLConnection connection;
+        private final java.util.Set<HttpURLConnection> connections=java.util.concurrent.ConcurrentHashMap.newKeySet();
         final long generation;
         private final long deadline;
         private final java.util.Timer timer = new java.util.Timer(true);
@@ -101,8 +101,7 @@ public final class ChatGptPlanClient {
         }
         public void cancel() {
             cancelled = true;
-            HttpURLConnection current = connection;
-            if (current != null) new Thread(current::disconnect, "il-search-cancel").start();
+            new Thread(()->{for(HttpURLConnection current:connections)current.disconnect();connections.clear();}, "il-search-cancel").start();
             timer.cancel();
         }
         void check() throws Exception {
@@ -111,10 +110,11 @@ public final class ChatGptPlanClient {
             if (cancelled) throw new Exception("Wyszukiwanie anulowane.");
         }
         void attach(HttpURLConnection next) throws Exception {
-            connection = next;
-            try { check(); } catch (Exception ex) { next.disconnect(); throw ex; }
+            connections.add(next);
+            try { check(); } catch (Exception ex) { connections.remove(next);next.disconnect(); throw ex; }
         }
-        @Override public void close() { timer.cancel(); connection = null; }
+        void detach(HttpURLConnection current){connections.remove(current);}
+        @Override public void close() { cancelled=true;timer.cancel();for(HttpURLConnection current:connections)current.disconnect();connections.clear(); }
     }
 
     private static void checkSearch() throws Exception {

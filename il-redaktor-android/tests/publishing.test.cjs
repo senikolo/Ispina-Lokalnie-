@@ -22,7 +22,7 @@ function setup(initialStorage=[],nativeData) {
       dom.set(id, {
         id, value:"", textContent:"", innerHTML:"", className:"",
         selectionStart:0,selectionEnd:0,selectionDirection:"none",
-        style:{}, srcdoc:"",
+        style:{}, dataset:{}, srcdoc:"",
         classList: {
           add(...xs){xs.forEach(x=>classes.add(x))},
           remove(...xs){xs.forEach(x=>classes.delete(x))},
@@ -1200,12 +1200,12 @@ test("short free RSS chat followups use preceding user topic without paid AI",()
  assert.match(rss,/resolveConversationPrompt/);
  assert.match(rss,/contextInherited/);
 });
-test("wide radar has 15 public source profiles and explicit scope coverage",()=>{
+test("wide radar has thematic public profiles and explicit scope coverage",()=>{
   const native=fs.readFileSync(path.join(__dirname,"../app/src/main/java/com/ispinalokalnie/redaktor/FreeIspinaSearchClient.java"),"utf8");
   for(const host of ["drwinia.pl","bip.malopolska.pl","powiat.bochnia.pl","zdw.krakow.pl","ezamowienia.gov.pl","bochnianin.pl","e-bochnia.pl","radiokrakow.pl","kolejemalopolskie.com.pl"])
     assert.ok(native.includes("site:"+host),host);
   assert.match(native,/plannedFeeds/);assert.match(native,/skippedFeeds/);
-  assert.match(native,/System\.currentTimeMillis\(\) - started > 51000L/);
+  assert.match(native,/elapsedRealtime\(\)\+51000L/);
   const ui=fs.readFileSync(path.join(__dirname,"../app/src/main/assets/index.html"),"utf8");
   assert.match(ui,/buildRadarChatGptPrompt/);assert.match(ui,/openRadarInChatGpt/);
   assert.match(ui,/copyRadarChatGptPrompt/);
@@ -1376,4 +1376,41 @@ test("verified successful writes clear the durable pending-operation warning",as
  const a=setup([],null);a.c.rpc=async()=>({id:789,status:'draft'});
  await a.c.savePost('draft');assert.equal(a.run('pendingPublicationWrite'),null);
  assert.equal(a.run('readDraftStore().drafts[0].pendingWrite'),null);
+});
+
+
+for(const days of [7,30,90]) test(`ordinary OSP and bridge questions always search fresh sources with ${days} days`,async()=>{
+ const a=setup();a.run('freeSearchReady=true');a.node('ispina-chat-days').value=String(days);
+ for(const question of ['Czy coś się pojawiło o OSP?','Czy wiadomo coś o moście w Ispinie?']){
+  let requested=null,archiveReads=0;
+  a.c.IL.editorialMemory=(id,action)=>{if(action==='browse')archiveReads++;a.c.window.onNativeResult(id,true,JSON.stringify({saved:true,items:[{title:'Stary dokument'}]}));};
+  a.c.IL.askIspinaChatWithDays=(id,prompt,history,range)=>{requested={prompt,range};a.c.window.onNativeResult(id,true,JSON.stringify({answer:'Brak nowych publikacji',sources:[],lookbackDays:range,profiles:[{name:'BIP',status:'ok'}]}));};
+  a.node('ispina-chat-input').value=question;
+  await a.c.sendIspinaChat();assert.equal(archiveReads,0);assert.equal(requested.range,days);
+  assert.match(a.node('ispina-chat-status').textContent,new RegExp('Ostatnie '+days+' dni'));assert.match(a.node('ispina-chat-log').innerHTML,/Zakres sprawdzenia/);
+ }
+});
+test('a period in the question overrides the selector and is saved',async()=>{
+ const a=setup();a.run('freeSearchReady=true');a.node('ispina-chat-days').value='30';a.node('ispina-chat-input').value='A z ostatnich 90 dni o OSP?';let days;
+ a.c.IL.askIspinaChatWithDays=(id,p,h,d)=>{days=d;a.c.window.onNativeResult(id,true,JSON.stringify({answer:'Brak wyników',sources:[]}));};
+ await a.c.sendIspinaChat();assert.equal(days,90);assert.equal(a.node('ispina-chat-days').value,'90');assert.equal(a.storage.get('il_chat_lookback_days'),'90');
+});
+test('fresh search refuses to silently use an old unfiltered native bridge',async()=>{
+ const a=setup();a.run('freeSearchReady=true');a.node('ispina-chat-input').value='Most w Ispinie';let oldCalls=0;a.c.IL.askIspinaChat=()=>oldCalls++;
+ await a.c.sendIspinaChat();assert.equal(oldCalls,0);assert.match(a.node('ispina-chat-status').textContent,/nie obsługuje zakresu dat/);assert.equal(a.node('ispina-chat-input').value,'Most w Ispinie');
+});
+test('archive is used only for an explicit question about remembered materials',async()=>{
+ const a=setup();a.run('freeSearchReady=true');a.node('ispina-chat-input').value='Co znaleźliśmy w pamięci o moście?';let live=0;
+ a.c.IL.askIspinaChatWithDays=()=>live++;
+ a.c.IL.editorialMemory=(id,action)=>a.c.window.onNativeResult(id,true,JSON.stringify(action==='browse'?{items:[{title:'Dawne źródło',url:'https://example.org/old'}]}:{saved:true}));
+ await a.c.sendIspinaChat();assert.equal(live,0);assert.match(a.node('ispina-chat-log').innerHTML,/Archiwalna odpowiedź/);
+});
+test('all-new preset respects the selected window and has no fixed thirty-day wording',()=>{
+ const a=setup();a.node('ispina-chat-days').value='7';let value;a.c.sendIspinaChat=()=>{value=a.node('ispina-chat-input').value};a.c.prefillIspinaChat('Cokolwiek nowego o Ispinie');
+ assert.equal(value,'Cokolwiek nowego o Ispinie');assert.equal(a.c.chatLookbackDays(value),7);
+ const ui=fs.readFileSync(path.join(__dirname,'../app/src/main/assets/index.html'),'utf8');assert.match(ui,/>Autobusy<\/button>/);assert.match(ui,/>Cokolwiek nowego o Ispinie<\/button>/);
+});
+test('dates and incomplete channel reports remain visible alongside chat sources',()=>{
+ const a=setup();a.run("ispinaChatMessages=[{role:'assistant',verified:true,content:'Nowy link',sources:[{title:'OSP Ispina',url:'https://example.org/osp',publishedAt:1793505600000}],profiles:[{name:'PSP',status:'unavailable',reason:'HTTP 403'}]}];renderIspinaChat()");
+ assert.match(a.node('ispina-chat-log').innerHTML,/Data publikacji według kanału/);assert.match(a.node('ispina-chat-log').innerHTML,/HTTP 403/);
 });
