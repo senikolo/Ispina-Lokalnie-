@@ -218,11 +218,12 @@ jobs:
           name: IL-Redaktor-Preview-APK
           path: il-redaktor-android/app/build/outputs/apk/debug/app-debug.apk
           retention-days: 30
-      - name: Build previous 1.15 debug APK with the same CI debug signing key
+      - name: Build previous 1.29.4 debug APK with the same CI debug signing key
         run: |
-          git fetch --depth=1 origin 17333f654fae324384b5c09dd1a7fd94da8e4359
-          git worktree add --detach "$RUNNER_TEMP/il-previous" 17333f654fae324384b5c09dd1a7fd94da8e4359
+          git fetch --depth=1 origin ad9b11d96dcd59b8ea5fee19179070c94179e7ff
+          git worktree add --detach "$RUNNER_TEMP/il-previous" ad9b11d96dcd59b8ea5fee19179070c94179e7ff
           cp -R il-redaktor-android/app/src/main/res "$RUNNER_TEMP/il-previous/il-redaktor-android/app/src/main/"
+          ln -s "$GITHUB_WORKSPACE/il-redaktor-android/backend/node_modules" "$RUNNER_TEMP/il-previous/il-redaktor-android/backend/node_modules"
           gradle --no-daemon -p "$RUNNER_TEMP/il-previous/il-redaktor-android" :app:assembleDebug
           cp "$RUNNER_TEMP/il-previous/il-redaktor-android/app/build/outputs/apk/debug/app-debug.apk" /tmp/il-previous-debug.apk
       - name: Enable Android emulator acceleration

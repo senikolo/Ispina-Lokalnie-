@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>IL Redaktor Smart</title>
+<title>IL Redaktor Smart 2.0 Professional</title>
 <style>
 :root{font-family:system-ui,-apple-system,"Roboto",sans-serif;color:#17304e;background:#f3f7fc}
 *{box-sizing:border-box}body{margin:0;padding-bottom:95px}
@@ -370,6 +370,8 @@ header{animation:ilHeader .38s cubic-bezier(.2,.7,.2,1) both}.brand .logo{animat
     <div class="actions"><button class="secondary" onclick="loadServices()">Odczytaj usługi z WordPressa</button><button class="secondary" onclick="IL.openSite('https://ispinalokalnie.wordpress.com/uslugi-w-okolicy/')">Pokaż katalog</button></div>
     <div class="note"><b>Istniejące firmy na stronie</b><div id="legacy-services-list" class="muted" style="padding-top:6px">Odczytaj katalog, aby zobaczyć aktualne oferty.</div></div>
     <div class="actions"><button class="secondary" onclick="IL.openSite('https://wordpress.com/page/ispinalokalnie.wordpress.com/818')">Edytuj istniejące oferty w WordPressie</button></div>
+    <div class="actions"><button class="secondary" onclick="showServiceRecovery()">Kopia sprzed ostatniej zmiany</button></div>
+    <div id="service-recovery" class="note hidden"><p id="service-recovery-status"></p><label>Pełna treść kopii WordPress<textarea id="service-recovery-content" readonly style="min-height:180px"></textarea></label><p class="small">To kopia pełnej strony sprzed ostatniego zapisu z tej aplikacji. Możesz skopiować ją do edytora kodu WordPressa. Sam podgląd niczego nie publikuje.</p></div>
     <h3>Oferty dodane przez Redaktora</h3><div id="services-list"></div><hr>
     <h3 id="service-heading">Dodaj usługodawcę</h3>
     <input type="hidden" id="service-id">
@@ -427,7 +429,7 @@ header{animation:ilHeader .38s cubic-bezier(.2,.7,.2,1) both}.brand .logo{animat
     <label class="setting-row"><input type="checkbox" id="battery-saving" onchange="applyUiPreferences(true)"><span>Tryb oszczędzania baterii</span></label>
     <p id="ui-preferences-status" class="setting-caption" role="status" aria-live="polite">Ustawienia zapisują się na tym telefonie. Systemowe ograniczenie ruchu zawsze ma pierwszeństwo.</p>
   </div>
-  <div class="card"><h2>O programie</h2><p class="muted">IL Redaktor Smart 1.29.4-test.1 · Niezależna aplikacja Android 8 i nowszy. WordPress.com MCP. Publikacja wymaga potwierdzenia i ponownego odczytu wpisu.</p></div>
+  <div class="card"><h2>O programie</h2><p class="muted">IL Redaktor Smart 2.0 Professional · 2.0.0-professional-test.1 · WERSJA TESTOWA · Niezależna aplikacja Android 8 i nowszy. WordPress.com MCP. Publikacja wymaga potwierdzenia i ponownego odczytu wpisu.</p></div>
 </section>
 </main>
 <div id="conflict-dialog" class="finish-dialog hidden" role="dialog" aria-modal="true" aria-labelledby="conflict-title"><div class="finish-panel"><h2 id="conflict-title">Wersja na WordPressie wymaga porównania</h2><p id="conflict-message"></p><p>Nie wysłano zmian artykułu. Twoja praca pozostaje w szkicach na telefonie.</p><button class="secondary" onclick="showConflictComparison()">Porównaj wersje</button><div id="conflict-comparison" class="hidden"></div><p id="conflict-feedback" role="status"></p><div class="actions"><button onclick="resolveRemoteConflict(false)">Wczytaj wersję ze strony</button><button class="secondary" onclick="resolveRemoteConflict(true)">Zachowaj obie kopie</button><button class="secondary" onclick="closeRemoteConflict()">Wróć do tekstu</button></div><p class="small">Wczytanie nie usuwa Twojego szkicu. Zachowaj obie kopie odłączy lokalną wersję od wpisu na stronie.</p></div></div>
@@ -1131,9 +1133,13 @@ function clearResearchResults(){
   $("research-status").className="small muted";
 }
 let latestResearchMaterial=null;
+function researchCoverage(result){
+  const profiles=Array.isArray(result?.profiles)?result.profiles:[];
+  return profiles.length?'<details class="source-item"><summary>Zakres sprawdzenia: '+profiles.length+' kanałów</summary>'+profiles.map(p=>'<p class="small"><b>'+esc(p.name||"Źródło")+'</b>: '+esc(({ok:"odczytano",unavailable:"niedostępne",skipped_timeout:"pominięto: limit czasu",undated_index:"brak potwierdzonych dat publikacji"}[p.status]||p.status))+'. '+esc(p.reason||"")+'</p>').join("")+'</details>':"";
+}
 function renderResearchResult(result,query){
   if(result?.freeSearch&&(!Array.isArray(result.sources)||!result.sources.length)){
-    latestResearchMaterial=null;$("research-results").textContent=String(result.answer||"Nie znaleziono pasujących materiałów.");
+    latestResearchMaterial=null;$("research-results").innerHTML='<p class="research-summary">'+esc(String(result.answer||"Nie znaleziono pasujących materiałów."))+'</p>'+researchCoverage(result);
     $("research-status").textContent="Sprawdzanie zakończone. Brak pasujących wyników w dostępnych kanałach.";$("research-status").className="small muted";return;
   }
   const safeFor=items=>(Array.isArray(items)?items:[]).flatMap(source=>{
@@ -1166,7 +1172,7 @@ function renderResearchResult(result,query){
   const materialSources=[...new Map(materialSections.flatMap(section=>section.sources).filter(source=>source?.url).map(source=>[String(source.url),{title:String(source.title||"Źródło").slice(0,180),url:String(source.url)}])).values()].slice(0,12);
   latestResearchMaterial={query:String(typeof query==="string"?query:$("research-query").value||"").trim().slice(0,1800),searchedAt:String(result?.searchedAt||new Date().toISOString()),sections:materialSections,sources:materialSources};
   const draftAction='<div class="actions"><button class="secondary" type="button" data-research-compose>📝 Opracuj szkic w ChatGPT/Gemini</button></div><p class="small muted">Utworzę osobny szkic lokalny i zachowam linki jako źródła „Do sprawdzenia”.</p>';
-  $("research-results").innerHTML='<div class="note"><b>Wyniki do sprawdzenia</b><p class="small">'+esc(profileLabel+'Znaleziono '+totalSources+' odnośników, bez weryfikacji faktów.')+'</p>'+(dateLabel?'<p class="small">Wyszukano: '+esc(dateLabel)+'</p>':"")+'</div>'+rendered+'<p class="muted small">Każde źródło jest przypisane do profilu. Sprawdź datę, treść i aktualność materiału w oryginalnej witrynie; fragment z kanału RSS nie zastępuje dokumentu źródłowego.</p>'+draftAction;
+  $("research-results").innerHTML='<div class="note"><b>Wyniki do sprawdzenia</b><p class="small">'+esc(profileLabel+'Znaleziono '+totalSources+' odnośników, bez weryfikacji faktów.')+'</p>'+(dateLabel?'<p class="small">Wyszukano: '+esc(dateLabel)+'</p>':"")+'</div>'+researchCoverage(result)+rendered+'<p class="muted small">Każde źródło jest przypisane do profilu. Sprawdź datę, treść i aktualność materiału w oryginalnej witrynie; fragment z kanału RSS nie zastępuje dokumentu źródłowego.</p>'+draftAction;
   const ok=Number(result?.successfulFeeds||0),failed=Number(result?.failedFeeds||0),skipped=Number(result?.skippedFeeds||0),planned=Number(result?.plannedFeeds||0);
   $("research-status").textContent="Zakończono: znaleziono "+totalSources+" linków do sprawdzenia. "+
     (planned?"Profile: "+ok+"/"+planned+" pobranych, "+failed+" niedostępnych, "+skipped+" pominiętych. ":"")+
@@ -1426,7 +1432,7 @@ async function testDraftWrite(){
   if(!confirm("Utworzyć w WordPressie prywatny szkic diagnostyczny? Nie będzie publiczny i pozostanie na liście szkiców do ręcznego usunięcia."))return;
   const testButton=$("test-draft-write");
   diagnosticWriteBusy=true;testButton.disabled=true;
-  const title="[TEST IL Redaktor Smart 1.21.0] Sprawdzenie zapisu "+new Date().toLocaleString("pl-PL");
+  const title="[TEST IL Redaktor Smart] Sprawdzenie zapisu "+new Date().toLocaleString("pl-PL");
   const body={title,content:"<p>Test techniczny zapisu z aplikacji IL Redaktor Smart. Ten szkic nie jest przeznaczony do publikacji.</p>",status:"draft",excerpt:"Test techniczny. Nie publikować."};
   let createdId=null;
   startOperation("Test: zapisuję szkic w WordPressie…");
@@ -2010,6 +2016,24 @@ function serviceMarkup(list){
     '<div class="il-redaktor-uslugi" aria-label="Lokalne usługi dodane przez IL Redaktor Smart">'+
     '<h2>Usługi zgłoszone do Ispina Lokalnie</h2>'+cards+'</div>\n<!-- /wp:html -->\n'+END;
 }
+function saveServiceRecovery(raw){
+  if(typeof IL.saveServicePageBackup==="function"){
+    const result=JSON.parse(IL.saveServicePageBackup(raw));if(!result.ok)throw Error(result.message||"Nie zapisano kopii katalogu.");
+  }else {
+    const payload=JSON.stringify({ok:true,content:raw,at:Date.now(),pageId:818});
+    localStorage.setItem("il_service_recovery",payload);
+    if(localStorage.getItem("il_service_recovery")!==payload)throw Error("Nie potwierdzono zapisu kopii katalogu.");
+  }
+}
+function showServiceRecovery(){
+  $("service-recovery").classList.remove("hidden");
+  try{
+    const backup=JSON.parse(typeof IL.readServicePageBackup==="function"?IL.readServicePageBackup():localStorage.getItem("il_service_recovery")||"{}");
+    if(!backup.ok||backup.pageId!==818||typeof backup.content!=="string")throw Error(backup.message||"Nie ma jeszcze kopii sprzed zmiany katalogu.");
+    $("service-recovery-content").value=backup.content;
+    $("service-recovery-status").textContent="Kopia z "+new Date(backup.at).toLocaleString("pl-PL")+". Obejmuje całą stronę, także wcześniejsze oferty.";
+  }catch(e){$("service-recovery-content").value="";$("service-recovery-status").textContent=e.message;}
+}
 async function persistServiceList(next){
   const fresh=await rpc("GET","pages/"+PAGE+"?context=edit");
   const raw=fresh.content?.raw;
@@ -2019,6 +2043,7 @@ async function persistServiceList(next){
   const a=raw.indexOf(START),b=raw.indexOf(END);
   if((a>=0)!==(b>=0))throw Error("Wykryto niekompletne znaczniki katalogu.");
   if(a>=0)content=raw.slice(0,a)+rendered+raw.slice(b+END.length);else content=raw+"\n\n"+rendered;
+  saveServiceRecovery(raw); // Abort the public write if the exact recovery copy cannot be saved.
   const result=await rpc("POST","pages/"+PAGE,{content});
   if(Number(result.id)!==PAGE)throw Error("WordPress nie potwierdził poprawnej strony.");
   const check=await rpc("GET","pages/"+PAGE+"?context=edit");
@@ -2609,7 +2634,7 @@ function editorialTopicKeyword(input){
   return words.find(w=>!ignore.has(w))||"";
 }
 function editorialDisplayDate(raw){
-  if(raw===null||raw===undefined||String(raw).trim()==="")return "BRAK DATY";
+  if(raw===null||raw===undefined||String(raw).trim()===""||String(raw).trim()==="0")return "BRAK DATY";
   const input=String(raw).trim();
   const n=Number(input);
   const timestamp=/^\d{10,13}$/.test(input)?(input.length===10?n*1000:n):Date.parse(input);
@@ -2633,7 +2658,8 @@ async function loadEditorialMemory(more=false){
     const html=items.length?items.map(source=>{
       memorySources.set(source.url,source);
       const stamp=Number(source.lastSeen)?new Date(source.lastSeen).toLocaleString("pl-PL"):"nieznana";
-      const published='<small>Data publikacji według źródła: '+esc(editorialDisplayDate(source.publishedAt))+'</small>';
+      const published='<small>'+esc(source.dateType==="PUBLISHED"?"Data publikacji według kanału: ":"Data ze źródła (rodzaj niepotwierdzony): ")+esc(editorialDisplayDate(source.publishedAt))+'</small>'+
+        (source.updatedAt?'<small>Data aktualizacji według źródła: '+esc(editorialDisplayDate(source.updatedAt))+' (nie data publikacji)</small>':'');
       const review=(source.status==="reviewed"?"Sprawdzone przez redaktora":"Do sprawdzenia")+" · "+({new:"Nowe",known:"Znane",changed:"Zmienione"}[source.discovery]||"Znane");
       const changed=Number(source.changedAt)?" · zaktualizowany link / metadane":"";
       return '<div class="source-item"><b>'+esc(source.title||source.url)+'</b><small>'+esc(review+changed)+' · Ostatnio odnaleziono: '+stamp+'</small>'+published+

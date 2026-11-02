@@ -1264,7 +1264,7 @@ test("free search displays empty results without an AI login or false source err
  const a=setup();a.c.IL.askResearch=(id)=>a.c.window.onNativeResult(id,true,JSON.stringify({freeSearch:true,sources:[],answer:"Brak pasujących materiałów w dostępnych kanałach."}));
  a.run("connected=false;freeSearchReady=true");a.node("research-query").value="Ispina";
  await a.run("runDeepIspinaResearch()");
- assert.match(a.node("research-results").textContent,/Brak pasujących/);
+ assert.match(a.node("research-results").innerHTML,/Brak pasujących/);
  assert.equal(a.run("requests.size"),0);assert.equal(a.node("research-button").disabled,false);
 });
 
@@ -1337,4 +1337,27 @@ test("memory pagination uses offset and rejects stale responses",async()=>{
   await a.c.loadEditorialMemory();resolveOld({items:[{url:'https://example.org/old',title:'Stary wynik'}]});await old;
   assert.equal(request.topic,'OSP');assert.equal(request.offset,0);
   assert.doesNotMatch(a.node('editorial-memory-results').innerHTML,/Stary wynik/);
+});
+
+
+test("zero and absent source dates are never converted to a fabricated publication date",()=>{
+ const a=setup();assert.equal(a.c.editorialDisplayDate(0),'BRAK DATY');assert.equal(a.c.editorialDisplayDate('0'),'BRAK DATY');assert.equal(a.c.editorialDisplayDate(''),'BRAK DATY');
+});
+test("source coverage reports escaped failures even when no source was found",()=>{
+ const a=setup();a.c.renderResearchResult({freeSearch:true,sources:[],profiles:[{name:'BIP',status:'unavailable',reason:'HTTP 403 <script>bad</script>'}],answer:'Brak wyników'},'Ispina');
+ assert.match(a.node('research-results').innerHTML,/BIP/);assert.match(a.node('research-results').innerHTML,/HTTP 403 &lt;script&gt;/);assert.doesNotMatch(a.node('research-results').innerHTML,/<script>/);
+});
+
+
+test("services retain the full original page before an uncertain write",async()=>{
+ const a=setup();a.run("servicesRaw='<h3>Dawna firma</h3>';servicesLoaded=true");let calls=0;
+ a.c.rpc=async(method)=>{if(method==='GET')return {id:818,content:{raw:'<h3>Dawna firma</h3>'}};calls++;throw Error('offline');};
+ await assert.rejects(a.c.persistServiceList([]),/offline/);assert.equal(calls,1);
+ a.c.showServiceRecovery();assert.equal(a.node('service-recovery-content').value,'<h3>Dawna firma</h3>');
+});
+test("services never write when the recovery copy cannot be saved",async()=>{
+ const a=setup();a.run("servicesRaw='Original page';servicesLoaded=true");let writes=0;
+ a.c.IL.saveServicePageBackup=()=>JSON.stringify({ok:false,message:'Brak miejsca'});
+ a.c.rpc=async(method)=>{if(method==='POST')writes++;return {id:818,content:{raw:'Original page'}};};
+ await assert.rejects(a.c.persistServiceList([]),/Brak miejsca/);assert.equal(writes,0);
 });

@@ -387,6 +387,8 @@ public class MainActivity extends Activity {
 
     private boolean backupPickerBusy=false;
     private PhotoEditor photoEditor;
+    private ServicePageBackupStore servicePageBackups;
+    private synchronized ServicePageBackupStore serviceBackupFiles(){if(servicePageBackups==null)servicePageBackups=new ServicePageBackupStore(new File(getFilesDir(),"il-services-page-recovery.json"));return servicePageBackups;}
     private DurableDraftStore durableDraftStore;
     private synchronized DurableDraftStore draftFiles(){if(durableDraftStore==null)durableDraftStore=new DurableDraftStore(new File(getFilesDir(),"il-drafts-v3.json"));return durableDraftStore;}
     private static final int BACKUP_MAX_BYTES=8_000_000;
@@ -484,6 +486,8 @@ public class MainActivity extends Activity {
             });
         }
 
+        @JavascriptInterface public String saveServicePageBackup(String raw){return serviceBackupFiles().save(raw);}
+        @JavascriptInterface public String readServicePageBackup(){return serviceBackupFiles().read();}
         @JavascriptInterface public String readDraftLibrary(){return draftFiles().read();}
         @JavascriptInterface public String writeDraftLibrary(String payload){return draftFiles().write(payload);}
         @JavascriptInterface public void exportDraftBackup(String payload) {

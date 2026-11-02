@@ -26,7 +26,11 @@ public final class EditorialMemory extends SQLiteOpenHelper {
     private static final int MAX_QUESTION = 2000;
 
     public EditorialMemory(Context context) {
-        super(context.getApplicationContext(), "il-editorial-memory-v1.db", null, VERSION);
+        this(context,"il-editorial-memory-v1.db");
+    }
+
+    EditorialMemory(Context context,String databaseName) {
+        super(context.getApplicationContext(), databaseName, null, VERSION);
         setWriteAheadLoggingEnabled(true);
     }
 
@@ -54,6 +58,8 @@ public final class EditorialMemory extends SQLiteOpenHelper {
     }
 
     private void migrateV2(SQLiteDatabase db) {
+        db.execSQL("ALTER TABLE sources ADD COLUMN date_kind TEXT NOT NULL DEFAULT 'UNCLASSIFIED'");
+        db.execSQL("ALTER TABLE sources ADD COLUMN updated_at TEXT NOT NULL DEFAULT ''");
         db.execSQL("ALTER TABLE sources ADD COLUMN notes TEXT NOT NULL DEFAULT ''");
         db.execSQL("ALTER TABLE sources ADD COLUMN links TEXT NOT NULL DEFAULT '[]'");
         db.execSQL("ALTER TABLE sources ADD COLUMN discovery TEXT NOT NULL DEFAULT 'known'");
@@ -178,6 +184,10 @@ public final class EditorialMemory extends SQLiteOpenHelper {
                 String snippet = bounded(source.optString("snippet", ""), 1800);
                 String published = bounded(source.optString("publishedAt",
                     source.optString("published", source.optString("date", ""))), 80);
+                String kind="PUBLISHED".equals(source.optString("dateType"))?"PUBLISHED":
+                    "UPDATED_ONLY".equals(source.optString("dateType"))?"UPDATED_ONLY":"UNCLASSIFIED";
+                String updated="UPDATED_ONLY".equals(kind)?published:bounded(source.optString("updatedAt",""),80);
+                if("0".equals(published)||"UPDATED_ONLY".equals(kind))published="";
                 String digest = fingerprint(title, snippet, published);
                 String previous = null;
                 try (Cursor cursor = db.query("sources", new String[]{"fingerprint"},
@@ -188,6 +198,7 @@ public final class EditorialMemory extends SQLiteOpenHelper {
                 values.put("title", title);
                 values.put("snippet", snippet);
                 values.put("published_at", published);
+                values.put("updated_at",updated);values.put("date_kind",kind);
                 values.put("last_seen", now);
                 values.put("fingerprint", digest);
                 values.put("last_query", question);
@@ -241,7 +252,7 @@ public final class EditorialMemory extends SQLiteOpenHelper {
         JSONArray results = new JSONArray();
         try (Cursor cursor = getReadableDatabase().query("sources",
             new String[]{"url", "title", "snippet", "published_at", "first_seen",
-                "last_seen", "changed_at", "status", "last_query", "notes", "links", "discovery"},
+                "last_seen", "changed_at", "status", "last_query", "notes", "links", "discovery", "date_kind", "updated_at"},
             selection, args.toArray(new String[0]), null, null, "last_seen DESC, url ASC", offset+",50")) {
             while (cursor.moveToNext()) {
                 results.put(new JSONObject().put("url", cursor.getString(0))
@@ -254,7 +265,7 @@ public final class EditorialMemory extends SQLiteOpenHelper {
                     .put("status", cursor.getString(7))
                     .put("lastQuery", cursor.getString(8))
                     .put("notes",cursor.getString(9)).put("links",new JSONArray(cursor.getString(10)))
-                    .put("discovery",cursor.getString(11)));
+                    .put("discovery",cursor.getString(11)).put("dateType",cursor.getString(12)).put("updatedAt",cursor.getString(13)));
             }
         }
         return new JSONObject().put("items", results).put("topic", topic).put("status", status).put("offset",offset).put("total",total).put("hasMore",offset+results.length()<total);
@@ -346,6 +357,9 @@ public final class EditorialMemory extends SQLiteOpenHelper {
                 values.put("status","reviewed".equals(src.optString("status"))?"reviewed":"link_found");
                 values.put("last_query",bounded(src.optString("lastQuery",""),MAX_QUESTION));
                 values.put("notes",bounded(src.optString("notes",""),6000));
+                String kind=src.optString("dateType","UNCLASSIFIED");
+                values.put("date_kind",("PUBLISHED".equals(kind)||"UPDATED_ONLY".equals(kind))?kind:"UNCLASSIFIED");
+                values.put("updated_at",bounded(src.optString("updatedAt",""),80));
                 JSONArray links=src.optJSONArray("links");
                 JSONArray safeLinks=new JSONArray();
                 if(links!=null){if(links.length()>200)throw new IllegalArgumentException("Za dużo powiązań w kopii.");
@@ -388,13 +402,13 @@ public final class EditorialMemory extends SQLiteOpenHelper {
         // Export data only; caller performs Android SAF document creation.
         JSONArray sources = new JSONArray(), searches = new JSONArray();
         try (Cursor c = getReadableDatabase().rawQuery(
-            "SELECT url,title,snippet,published_at,first_seen,last_seen,changed_at,status,last_query,notes,links,discovery FROM sources",null)) {
+            "SELECT url,title,snippet,published_at,first_seen,last_seen,changed_at,status,last_query,notes,links,discovery,date_kind,updated_at FROM sources",null)) {
             while(c.moveToNext())sources.put(new JSONObject()
                 .put("url",c.getString(0)).put("title",c.getString(1)).put("snippet",c.getString(2))
                 .put("publishedAt",c.getString(3)).put("firstSeen",c.getLong(4))
                 .put("lastSeen",c.getLong(5)).put("changedAt",c.getLong(6))
                 .put("status",c.getString(7)).put("lastQuery",c.getString(8))
-                .put("notes",c.getString(9)).put("links",new JSONArray(c.getString(10))).put("discovery",c.getString(11)));
+                .put("notes",c.getString(9)).put("links",new JSONArray(c.getString(10))).put("discovery",c.getString(11)).put("dateType",c.getString(12)).put("updatedAt",c.getString(13)));
         }
         try (Cursor c = getReadableDatabase().rawQuery(
             "SELECT question,answer,searched_at,result_count FROM searches",null)) {
