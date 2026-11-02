@@ -226,63 +226,18 @@ jobs:
           ln -s "$GITHUB_WORKSPACE/il-redaktor-android/backend/node_modules" "$RUNNER_TEMP/il-previous/il-redaktor-android/backend/node_modules"
           gradle --no-daemon -p "$RUNNER_TEMP/il-previous/il-redaktor-android" :app:assembleDebug
           cp "$RUNNER_TEMP/il-previous/il-redaktor-android/app/build/outputs/apk/debug/app-debug.apk" /tmp/il-previous-debug.apk
-      - name: Enable Android emulator acceleration
-        run: sudo chmod a+rw /dev/kvm
-      - name: Test Android 8 (API 26) WebView and data preservation without WordPress writes
-        if: ${{ !cancelled() && steps.compile.outcome == 'success' }}
-        uses: reactivecircus/android-emulator-runner@v2
-        with:
-          api-level: 26
-          target: google_apis
-          arch: x86_64
-          disable-animations: true
-          emulator-options: -no-window -gpu swiftshader -feature -Vulkan -no-snapshot -noaudio -no-boot-anim -camera-back none
-          ram-size: 2048M
-          script: bash il-redaktor-android/scripts/run-emulator-smoke.sh 26
-      - name: Test Android 10 (API 29) WebView and update flow without WordPress writes
-        if: ${{ !cancelled() && steps.compile.outcome == 'success' }}
-        uses: reactivecircus/android-emulator-runner@v2
-        with:
-          api-level: 29
-          target: google_apis
-          arch: x86_64
-          disable-animations: true
-          emulator-options: -no-window -gpu swiftshader -feature -Vulkan -no-snapshot -noaudio -no-boot-anim -camera-back none
-          ram-size: 2048M
-          script: bash il-redaktor-android/scripts/run-emulator-smoke.sh 29
-      - name: Test Android 11 (API 30) WebView and update flow without WordPress writes
-        if: ${{ !cancelled() && steps.compile.outcome == 'success' }}
-        uses: reactivecircus/android-emulator-runner@v2
-        with:
-          api-level: 30
-          target: google_apis
-          arch: x86_64
-          disable-animations: true
-          emulator-options: -no-window -gpu swiftshader -feature -Vulkan -no-snapshot -noaudio -no-boot-anim -camera-back none
-          ram-size: 2048M
-          script: bash il-redaktor-android/scripts/run-emulator-smoke.sh 30
-      - name: Test Android 13 (API 33) WebView and update flow without WordPress writes
-        if: ${{ !cancelled() && steps.compile.outcome == 'success' }}
-        uses: reactivecircus/android-emulator-runner@v2
-        with:
-          api-level: 33
-          target: google_apis
-          arch: x86_64
-          disable-animations: true
-          emulator-options: -no-window -gpu swiftshader -feature -Vulkan -no-snapshot -noaudio -no-boot-anim -camera-back none
-          ram-size: 2048M
-          script: bash il-redaktor-android/scripts/run-emulator-smoke.sh 33
-      - name: Upload emulator UI checks
-        if: ${{ always() }}
+      - name: Prepare emulator input bundle
+        run: |
+          mkdir -p /tmp/il-emulator-inputs
+          cp il-redaktor-android/app/build/outputs/apk/debug/app-debug.apk /tmp/il-emulator-inputs/
+          cp il-redaktor-android/app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk /tmp/il-emulator-inputs/
+          cp /tmp/il-previous-debug.apk /tmp/il-emulator-inputs/
+      - name: Upload common APK inputs for independent OS tests
         uses: actions/upload-artifact@v4
         with:
-          name: IL-Redaktor-UI-Checks
-          path: |
-            /tmp/il-editor-ui-api-*/*.png
-            /tmp/il-update-*.txt
-            /tmp/il-confirmation-test-*.txt
-          if-no-files-found: warn
-          retention-days: 14
+          name: IL-Redaktor-Emulator-Inputs
+          path: /tmp/il-emulator-inputs/
+          retention-days: 7
       - name: Confirm APK and actual monogram
         run: |
           SDK_ROOT="${ANDROID_HOME:-/usr/local/lib/android/sdk}"
@@ -349,3 +304,52 @@ jobs:
           name: IL-Redaktor-Signing-Tools
           path: /usr/local/lib/android/sdk/build-tools/35.0.0/lib/apksigner.jar
           retention-days: 30
+
+  android:
+    name: Android API ${{ matrix.api }} upgrade and UI
+    needs: apk
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    strategy:
+      fail-fast: false
+      matrix:
+        api: [26, 29, 30, 33]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: actions/download-artifact@v4
+        with:
+          name: IL-Redaktor-Emulator-Inputs
+          path: /tmp/il-emulator-inputs
+      - name: Restore verified APK inputs
+        run: |
+          mkdir -p il-redaktor-android/app/build/outputs/apk/debug
+          mkdir -p il-redaktor-android/app/build/outputs/apk/androidTest/debug
+          cp /tmp/il-emulator-inputs/app-debug.apk il-redaktor-android/app/build/outputs/apk/debug/
+          cp /tmp/il-emulator-inputs/app-debug-androidTest.apk il-redaktor-android/app/build/outputs/apk/androidTest/debug/
+          cp /tmp/il-emulator-inputs/il-previous-debug.apk /tmp/il-previous-debug.apk
+          sudo chmod a+rw /dev/kvm
+      - name: Verify upgrade, WebView, SQLite, recovery, editor and haptics
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: ${{ matrix.api }}
+          target: google_apis
+          arch: x86_64
+          disable-animations: true
+          emulator-options: -no-window -gpu swiftshader -feature -Vulkan -no-snapshot -noaudio -no-boot-anim -camera-back none
+          ram-size: 2048M
+          script: bash il-redaktor-android/scripts/run-emulator-smoke.sh ${{ matrix.api }}
+      - name: Preserve OS evidence even on failure
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: IL-Redaktor-Checks-API-${{ matrix.api }}
+          path: |
+            /tmp/il-editor-ui-api-*/*.png
+            /tmp/il-update-*.txt
+            /tmp/il-confirmation-test-*.txt
+          if-no-files-found: warn
+          retention-days: 14

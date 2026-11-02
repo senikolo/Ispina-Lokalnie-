@@ -518,7 +518,7 @@ function openPublishedPost(){openPublishedPreview();}
 function setPublishedUrl(url){publishedPageUrl=url||"";$("view-published-post").classList.toggle("hidden",!publishedPageUrl);}
 function publicationPhase(text,kind=""){$("publication-phase").className="note "+kind;$("publication-phase").textContent=text;$("progress-step").textContent=text;}
 let publicationBusy=false;
-let lastPublicationAttempt=null, serviceBusy=false;
+let lastPublicationAttempt=null, pendingPublicationWrite=null, serviceBusy=false;
 let publicationStep="przygotowanie wpisu";
 function publicationButtons(busy){
   publicationBusy=busy;
@@ -1668,6 +1668,7 @@ async function savePost(status,reviewApproval=null){
     message("post-output","Nie publikuję artykułu: zawiera pola [DO UZUPEŁNIENIA] lub [DO SPRAWDZENIA]. Uzupełnij je albo usuń po weryfikacji.","error");return;
   }
   if(publicationBusy){publicationPhase("Zapisywanie już trwa. Nie wysyłaj artykułu ponownie.");return}
+  if(pendingPublicationWrite&&!confirm("Poprzedni zapis tego szkicu nie został potwierdzony. Najpierw użyj Sprawdź ostatni zapis i sprawdź listę w WordPressie. Ponowne wysłanie może utworzyć duplikat. Czy po sprawdzeniu chcesz świadomie ponowić zapis?"))return;
   let scheduledDate="";
   if(status==="future"){
     const rawDate=$("post-schedule").value;
@@ -1728,12 +1729,14 @@ async function savePost(status,reviewApproval=null){
     const path=postId?"posts/"+postId:"posts";
     // POST is issued exactly once: an automatic retry after network timeout could
     // publish a duplicate. Save the ID immediately, then verify persistence by GET.
+    pendingPublicationWrite={...lastPublicationAttempt};
+    if(!persistDraft(true)){pendingPublicationWrite=null;throw Error("Nie mogę zachować informacji o rozpoczętym zapisie. Niczego nie wysłałem.");}
     const result=await rpc("POST",path,data);
     if(!Number.isSafeInteger(Number(result.id))||Number(result.id)<=0)
       throw new Error("Odpowiedź zapisu nie zawiera numeru ID. Sprawdź listę artykułów przed ponowieniem.");
     if(postId&&Number(result.id)!==Number(postId))throw Error("WordPress zwrócił inny numer wpisu przy aktualizacji. Sprawdź artykuł przed ponowieniem.");
     postId=Number(result.id);
-    lastPublicationAttempt.id=postId;
+    lastPublicationAttempt.id=postId;pendingPublicationWrite.id=postId;
     postStatus=result.status||status;
     if(!persistDraft(true))throw Error("WordPress zwrócił ID "+postId+", ale lokalny zapis numeru nie powiódł się. Zachowaj numer i sprawdź wpis przed ponowieniem.");
     $("editor-heading").textContent="Edytuj artykuł #"+postId;
@@ -1779,6 +1782,7 @@ async function savePost(status,reviewApproval=null){
     }
     postStatus=verified.status;remoteBaseline=remoteVersion(verified);
     $("edit-status").textContent=status==="publish"?"Opublikowany":status==="future"?"Zaplanowany":"Szkic zapisany";
+    pendingPublicationWrite=null;
     persistDraft(true,true);
     linkCurrentSourcesToMemory();
     lastPublicationAttempt=null;
@@ -1803,7 +1807,7 @@ async function savePost(status,reviewApproval=null){
 }
 async function verifyLastPublication(){
   if(!connected){message("post-output","Połącz najpierw konto WordPress.","error");return}
-  const attempted=lastPublicationAttempt;
+  const attempted=pendingPublicationWrite||lastPublicationAttempt;
   const id=Number(attempted?.id||postId)||0;
   startOperation("Sprawdzam ostatni zapis na WordPress.com…");
   try{
@@ -1817,7 +1821,7 @@ async function verifyLastPublication(){
       if(p.status==="publish")setPublishedUrl(publishedLink);
       publicationPhase("Odczyt wpisu #"+id+" zakończony. Status: "+postStatus+".","ok");
       showOutcome("success","STATUS ZWERYFIKOWANY","WordPress zwrócił wpis #"+id+". Status: "+postStatus+".",link,p.status==="publish"?"Zobacz artykuł":p.status==="future"?"Edytuj zaplanowany wpis":"Otwórz szkic",p.status==="publish");
-      lastPublicationAttempt=null;
+      lastPublicationAttempt=null;pendingPublicationWrite=null;persistDraft(true);
       return;
     }
     const title=trim(attempted?.title||$("post-title").value);
@@ -1844,7 +1848,7 @@ function resetEditor(){
   if(publicationBusy||!persistDraft(true))return false;
   activeDraftId=null;clearTimeout(saveTimer);clearEditorialContext();
   setPublishedUrl("");publicationPhase("Gotowy do redagowania. Publikacja wymaga potwierdzenia.");
-  postId=null;postStatus="";remoteBaseline=null;$("post-sources").value="[]";
+  postId=null;postStatus="";remoteBaseline=null;pendingPublicationWrite=null;$("post-sources").value="[]";
   ["post-title","post-body","post-excerpt","post-tags","post-schedule"].forEach(id=>$(id).value="");
   $("post-category").value="10543";$("post-media").value="0";$("post-mode").value="text";
   $("editor-heading").textContent="Nowy artykuł";$("edit-status").textContent="Nowy";
@@ -2184,7 +2188,7 @@ const draftKey="il_redaktor_drafts_v3";
 const draftFields={title:"post-title",body:"post-body",excerpt:"post-excerpt",tags:"post-tags",category:"post-category",mode:"post-mode",media:"post-media",schedule:"post-schedule",sources:"post-sources"};
 let activeDraftId=null,draftStore=null,draftStorageBroken=false,reviewSnapshot=null;
 function draftId(){return "d"+Date.now().toString(36)+Math.random().toString(36).slice(2,10)}
-function captureDraft(){const s={postId,postStatus,remoteBaseline};for(const [k,id] of Object.entries(draftFields))s[k]=$(id).value;s.mediaUrl=safeMediaUrl(mediaById.get(Number(s.media))?.url||"");return s}
+function captureDraft(){const s={postId,postStatus,remoteBaseline,pendingWrite:pendingPublicationWrite};for(const [k,id] of Object.entries(draftFields))s[k]=$(id).value;s.mediaUrl=safeMediaUrl(mediaById.get(Number(s.media))?.url||"");return s}
 function draftSignature(s){return JSON.stringify(Object.fromEntries([...Object.keys(draftFields),"postId","postStatus","mediaUrl","remoteBaseline"].map(k=>[k,s[k]??""])))}
 function commitDraftStore(next){
   if(next.sourceFiles){const used=new Set();for(const d of next.drafts){for(const snapshot of [d,...(d.revisions||[]).map(v=>v.snapshot)])for(const source of normalizeSources(snapshot.sources||"[]"))if(source.photo)used.add(source.photo);}next.sourceFiles=Object.fromEntries(Object.entries(next.sourceFiles).filter(([id])=>used.has(id)));}
@@ -2211,7 +2215,7 @@ function persistDraft(checkpoint=false,synced=false){
   const snapshot=captureDraft();if(!activeDraftId&&!Object.keys(draftFields).some(k=>!["category","mode","media","sources"].includes(k)&&trim(snapshot[k]))&&(!snapshot.sources||snapshot.sources==="[]"))return true;
   const next=JSON.parse(JSON.stringify(store));let d=next.drafts.find(x=>x.id===activeDraftId);
   if(!d){d={id:draftId(),created:Date.now(),updated:Date.now(),revisions:[],dirty:true};next.drafts.push(d);}
-  const changed=draftSignature(d)!==draftSignature(snapshot);
+  const changed=draftSignature(d)!==draftSignature(snapshot)||JSON.stringify(d.pendingWrite||null)!==JSON.stringify(snapshot.pendingWrite||null);
   if(changed&&("title" in d||"body" in d)&&(checkpoint||!d.revisions.length||Date.now()-d.revisions[d.revisions.length-1].at>=30000)){
     const previous={};for(const k of [...Object.keys(draftFields),"postId","postStatus","mediaUrl"])previous[k]=d[k]??"";
     d.revisions.push({at:d.updated||Date.now(),snapshot:previous});d.revisions=d.revisions.slice(-12);
@@ -2223,7 +2227,7 @@ function persistDraft(checkpoint=false,synced=false){
 }
 function scheduleLocalSave(){if(restoring)return;clearTimeout(saveTimer);$("local-save-status").textContent="Zapisuję na telefonie…";saveTimer=setTimeout(()=>persistDraft(),250)}
 function flushDraftOnExit(){clearTimeout(saveTimer);if(restoring)return true;return persistDraft(true)}
-function applyDraft(s){clearEditorialContext();restoring=true;try{if(s.mediaUrl&&safeMediaUrl(s.mediaUrl))mediaById.set(Number(s.media),{id:Number(s.media),url:safeMediaUrl(s.mediaUrl),name:"Zdjęcie wyróżniające"});for(const [k,id] of Object.entries(draftFields))$(id).value=s[k]??({category:"10543",mode:"text",media:"0",sources:"[]"}[k]||"");postId=s.postId||null;postStatus=s.postStatus||"";remoteBaseline=validBaseline(s.remoteBaseline,postId);setPublishedUrl(postStatus==="publish"&&postId?"https://ispinalokalnie.wordpress.com/?p="+Number(postId):"");$("editor-heading").textContent=postId?"Edycja wpisu #"+postId:"Lokalny szkic";$("edit-status").textContent="Kopia na telefonie";$("post-output").innerHTML="";$("preview-box").classList.add("hidden");updateMetrics();}finally{restoring=false}}
+function applyDraft(s){clearEditorialContext();restoring=true;try{if(s.mediaUrl&&safeMediaUrl(s.mediaUrl))mediaById.set(Number(s.media),{id:Number(s.media),url:safeMediaUrl(s.mediaUrl),name:"Zdjęcie wyróżniające"});for(const [k,id] of Object.entries(draftFields))$(id).value=s[k]??({category:"10543",mode:"text",media:"0",sources:"[]"}[k]||"");postId=s.postId||null;postStatus=s.postStatus||"";pendingPublicationWrite=normalizePendingWrite(s.pendingWrite);remoteBaseline=validBaseline(s.remoteBaseline,postId);setPublishedUrl(postStatus==="publish"&&postId?"https://ispinalokalnie.wordpress.com/?p="+Number(postId):"");$("editor-heading").textContent=postId?"Edycja wpisu #"+postId:"Lokalny szkic";$("edit-status").textContent="Kopia na telefonie";$("post-output").innerHTML="";$("preview-box").classList.add("hidden");updateMetrics();}finally{restoring=false}}
 function openLocalDraft(id){if(publicationBusy||!persistDraft(true))return;const d=readDraftStore()?.drafts.find(x=>x.id===id);if(!d)return;activeDraftId=d.id;applyDraft(d);persistDraft();showScreen("editor")}
 function restoreLocal(silent=false){if(trim($("post-title").value)||trim($("post-body").value)){if(!silent)showDraftLibrary();return}const store=readDraftStore();if(!store)return;const d=store.drafts.find(x=>x.id===store.activeId)||store.drafts[store.drafts.length-1];if(d){activeDraftId=d.id;applyDraft(d)}}
 function showDraftLibrary(){if(publicationBusy||!persistDraft(true))return;renderDrafts();showScreen("drafts")}
@@ -2238,7 +2242,7 @@ function renderBackupHealth(){
 }
 function renderDrafts(){const q=trim($("draft-search").value).toLocaleLowerCase("pl");const ds=(readDraftStore()?.drafts||[]).slice().sort((a,b)=>b.updated-a.updated).filter(d=>(d.title+" "+d.body).toLocaleLowerCase("pl").includes(q));$("draft-list").innerHTML=ds.map(d=>'<div class="note"><h3>'+esc(d.title||"Bez tytułu")+'</h3><p>'+esc(new Date(d.updated).toLocaleString("pl-PL"))+' · '+(d.postId?'WordPress #'+Number(d.postId)+' · ':'')+(d.dirty?'Zmiany lokalne':'Zsynchronizowany')+'</p><div class="actions"><button onclick="openLocalDraft(\''+esc(d.id)+'\')">Otwórz</button><button class="secondary" onclick="showDraftHistory(\''+esc(d.id)+'\')">Historia ('+d.revisions.length+')</button></div></div>').join("")||'<p>Brak szkiców pasujących do wyszukiwania.</p>';$("draft-history").innerHTML="";renderBackupHealth()}
 function showDraftHistory(id){const d=readDraftStore()?.drafts.find(x=>x.id===id);if(!d)return;$("draft-history").innerHTML='<h3>Historia: '+esc(d.title||"Bez tytułu")+'</h3><p>Przywrócenie zachowa obecną wersję. Nie zmieni artykułu w WordPressie.</p>'+d.revisions.map((v,i)=>'<div class="note"><b>'+esc(new Date(v.at).toLocaleString("pl-PL"))+'</b><p>'+esc(String(v.snapshot.body||"").slice(0,180))+'</p><button class="secondary" onclick="restoreDraftVersion(\''+esc(id)+'\','+i+')">Przywróć tę wersję</button></div>').reverse().join("")+(d.revisions.length?'':'<p>Historia pojawi się po kolejnych zmianach tekstu.</p>')}
-function restoreDraftVersion(id,index){if(publicationBusy)return false;const selected=readDraftStore()?.drafts.find(x=>x.id===id)?.revisions[index];if(!selected)return false;const snapshot=JSON.parse(JSON.stringify(selected.snapshot));if(!persistDraft(true))return false;const d=readDraftStore().drafts.find(x=>x.id===id);snapshot.postId=d.postId;snapshot.postStatus=d.postStatus;snapshot.remoteBaseline=d.remoteBaseline;activeDraftId=id;applyDraft(snapshot);if(!persistDraft(true))return false;showScreen("editor");return true}
+function restoreDraftVersion(id,index){if(publicationBusy)return false;const selected=readDraftStore()?.drafts.find(x=>x.id===id)?.revisions[index];if(!selected)return false;const snapshot=JSON.parse(JSON.stringify(selected.snapshot));if(!persistDraft(true))return false;const d=readDraftStore().drafts.find(x=>x.id===id);snapshot.postId=d.postId;snapshot.postStatus=d.postStatus;snapshot.remoteBaseline=d.remoteBaseline;snapshot.pendingWrite=d.pendingWrite;activeDraftId=id;applyDraft(snapshot);if(!persistDraft(true))return false;showScreen("editor");return true}
 function closeReview(){$("publish-review").classList.add("hidden");reviewSnapshot=null}
 function reviewPublication(){
   if(publicationBusy)return;if(!persistDraft(true))return;
@@ -2380,6 +2384,10 @@ async function editorHelp(command){
   $("editor-command").disabled=true;editorChatMessage("Redaktor IL","Wysyłam to polecenie i bieżący artykuł do skonfigurowanego AI. Przygotuję propozycję do porównania.");
   try{const result=await requestAssistant(prompt,assistantContext());if(id!==activeDraftId||signature!==draftSignature(captureDraft())){editorChatMessage("Redaktor IL","Artykuł zmienił się w trakcie pracy. Nie nakładam odpowiedzi na nowszy tekst. Przygotuj nowe polecenie.");return}if(!result.content){editorChatMessage("Redaktor IL",result.message||"Model nie zwrócił propozycji treści.");return}const changes={body:result.content,mode:"html"};if(result.title)changes.title=result.title;if(result.excerpt)changes.excerpt=result.excerpt;offerCorrection(changes,"Propozycja AI — sprawdź sens, format, daty i nazwiska przed zatwierdzeniem.");editorChatMessage("Redaktor IL",result.message||"Propozycja jest gotowa do porównania.");}catch(e){editorChatMessage("Redaktor IL","Nie udało się przygotować propozycji: "+e.message);}finally{$("editor-command").disabled=false}
 }
+function normalizePendingWrite(raw){
+  if(!raw||typeof raw!=="object"||!['draft','publish','future'].includes(raw.status))return null;
+  return {title:String(raw.title||'').slice(0,10000),status:raw.status,id:Number.isSafeInteger(Number(raw.id))&&Number(raw.id)>0?Number(raw.id):null,started:Number(raw.started)||0};
+}
 // Backup format is restricted to editorial data; never serialize preferences or auth storage.
 function normalizedBackupSnapshot(raw){
   if(!raw||typeof raw!=="object"||Array.isArray(raw))throw Error("Nieprawidłowy tekst szkicu.");
@@ -2388,7 +2396,7 @@ function normalizedBackupSnapshot(raw){
   if(out.sources.length>150000)throw Error("Lista źródeł jest zbyt długa.");out.sources=JSON.stringify(normalizeSources(out.sources));
   out.postId=Number.isSafeInteger(Number(raw.postId))&&Number(raw.postId)>0?Number(raw.postId):null;
   out.postStatus=["publish","draft","future","pending","private"].includes(raw.postStatus)?raw.postStatus:"";
-  out.mediaUrl=safeMediaUrl(raw.mediaUrl||"");out.remoteBaseline=validBaseline(raw.remoteBaseline,out.postId);return out;
+  out.pendingWrite=normalizePendingWrite(raw.pendingWrite);out.mediaUrl=safeMediaUrl(raw.mediaUrl||"");out.remoteBaseline=validBaseline(raw.remoteBaseline,out.postId);return out;
 }
 function normalizedBackupDraft(raw){
   const d=normalizedBackupSnapshot(raw);if(!Array.isArray(raw.revisions)||raw.revisions.length>12)throw Error("Nieprawidłowa historia szkicu.");

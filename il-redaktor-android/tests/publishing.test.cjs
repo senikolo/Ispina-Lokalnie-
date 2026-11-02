@@ -1361,3 +1361,19 @@ test("services never write when the recovery copy cannot be saved",async()=>{
  a.c.rpc=async(method)=>{if(method==='POST')writes++;return {id:818,content:{raw:'Original page'}};};
  await assert.rejects(a.c.persistServiceList([]),/Brak miejsca/);assert.equal(writes,0);
 });
+
+
+test("a POST timeout remains flagged after restart and cannot silently send again",async()=>{
+ const a=setup([],null);let writes=0;a.c.rpc=async(method)=>{if(method==='POST')writes++;throw Error('timeout');};
+ await a.c.savePost('draft');assert.equal(writes,1);
+ a.run("draftStore=null;activeDraftId=null;pendingPublicationWrite=null;$('post-title').value='';$('post-body').value='';restoreLocal(true)");
+ assert.equal(a.run('pendingPublicationWrite.status'),'draft');
+ let warning='';a.c.confirm=text=>{warning=text;return false;};
+ await a.c.savePost('draft');assert.equal(writes,1);assert.match(warning,/duplikat/);
+ const backup=JSON.parse(a.c.makeDraftBackup());assert.equal(backup.drafts[0].pendingWrite.status,'draft');
+});
+test("verified successful writes clear the durable pending-operation warning",async()=>{
+ const a=setup([],null);a.c.rpc=async()=>({id:789,status:'draft'});
+ await a.c.savePost('draft');assert.equal(a.run('pendingPublicationWrite'),null);
+ assert.equal(a.run('readDraftStore().drafts[0].pendingWrite'),null);
+});
