@@ -147,6 +147,9 @@ public final class ConfirmationInstrumentation extends Instrumentation {
         String feed="<rss xmlns:content=\"http://purl.org/rss/1.0/modules/content/\"><channel><item><title>Wsparcie infrastruktury — materiał testowy</title><link>https://example.org/recall</link><pubDate>Mon, 12 Oct 2026 11:48:16 +0000</pubDate><description>Wstęp bez nazwy miejscowości.</description><content:encoded><![CDATA[<p>Treść testowa: Ispina. Rozbudowa kanalizacji.</p>]]></content:encoded></item></channel></rss>";
         org.json.JSONArray hits=FreeIspinaSearchClient.parseFeed(feed,0,false);
         if(hits.length()!=1||!hits.getJSONObject(0).getString("snippet").contains("Ispina"))throw new AssertionError("Full RSS content:encoded locality was lost");
+        for(String form:new String[]{"Ispina","w Ispinie","do Ispiny","z Ispiny","ispiński","ispińskiej","Ispini","Ispnii"})
+            if(!SourceDocumentParser.mentionsIspina(form))throw new AssertionError("Locality form lost: "+form);
+        if(FreeIspinaSearchClient.parseFeed(feed.replace("Treść testowa: Ispina. Rozbudowa kanalizacji.","Treść testowa o ispińskiej infrastrukturze."),0,false).length()!=1)throw new AssertionError("Polish adjective with ń was missed in full RSS content");
         String page="<html><body><header>2 listopada 2026 — Ispina</header><h1>Wyniki plebiscytu</h1><article><div class='news-list-el-date'>9 października 2026</div><div class='news-description'><p>Treść testowa: KGW Ispina.</p></div></article><footer>Ispina</footer></body></html>";
         org.json.JSONObject article=SourceDocumentParser.article(page,"https://example.org/article");
         if(article==null||!"9 października 2026".equals(article.getString("published")))throw new AssertionError("Publisher date/body not read independently from navigation");
