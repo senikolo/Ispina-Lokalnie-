@@ -220,7 +220,7 @@ header{animation:ilHeader .38s cubic-bezier(.2,.7,.2,1) both}.brand .logo{animat
     <div id="assistant-mode" class="note">Sprawdzam dostępny tryb asystenta…</div>
     <label for="assistant-prompt">Twoje zadanie</label>
     <textarea id="assistant-prompt" style="min-height:125px" placeholder="Np. Przygotuj szkic o historii Ispiny. Nie dopisuj niepotwierdzonych dat ani nazwisk."></textarea>
-    <div class="note"><b>Bezpłatna pomoc w aplikacji AI</b><p>Redaktor skopiuje polecenie i otworzy ChatGPT Free w aplikacji lub przeglądarce. Wklej je i wyślij, a potem skopiuj odpowiedź do Redaktora. Nie jest potrzebny płatny plan ani klucz API. Obowiązują limity ChatGPT Free.</p><div class="actions"><button onclick="sendAssistantToApps()">Otwórz ChatGPT Free</button><button class="secondary" onclick="copyAssistantPrompt()">Kopiuj polecenie</button></div><label for="assistant-return-text">Odpowiedź z ChatGPT lub Gemini</label><textarea id="assistant-return-text" style="min-height:140px" placeholder="Po powrocie wklej tutaj odpowiedź AI"></textarea><label for="assistant-return-target">Porównaj tę odpowiedź z</label><select id="assistant-return-target"><option value="body">Treścią artykułu</option><option value="title">Tytułem</option><option value="excerpt">Zajawką SEO</option><option value="facebook">Postem na Facebooka</option></select><div class="actions"><button class="secondary" onclick="IL.readAssistantClipboard()">Wklej ze schowka</button><button onclick="compareExternalAssistantResponse()">Sprawdź i porównaj</button></div><p id="assistant-handoff-status" class="small" role="status" aria-live="polite">Wklejona treść pokaże się jako propozycja. Zmiany w artykule wymagają Twojego zatwierdzenia.</p></div>
+    <div class="note"><b>Bezpłatna pomoc w aplikacji AI</b><p>Redaktor skopiuje polecenie i otworzy ChatGPT Free w aplikacji lub przeglądarce. Wklej je i wyślij, a potem skopiuj odpowiedź do Redaktora. Nie jest potrzebny płatny plan ani klucz API. Obowiązują limity ChatGPT Free.</p><div class="actions"><button onclick="sendAssistantToApps()">Otwórz ChatGPT Free</button><button class="secondary" onclick="copyAssistantPrompt()">Kopiuj polecenie</button></div><label for="assistant-return-text">Odpowiedź z ChatGPT lub Gemini</label><textarea id="assistant-return-text" style="min-height:140px" placeholder="Po powrocie wklej tutaj odpowiedź AI"></textarea><label for="assistant-return-target">Porównaj tę odpowiedź z</label><select id="assistant-return-target"><option value="body">Treścią artykułu</option><option value="title">Tytułem</option><option value="excerpt">Zajawką SEO</option><option value="facebook">Postem na Facebooka</option></select><div class="actions"><button class="secondary" onclick="IL.readAssistantClipboard()">Wklej ze schowka</button><button onclick="compareExternalAssistantResponse()">Sprawdź i porównaj</button><button onclick="pasteAndCompareFreeAssistant()">Wklej i porównaj jednym kliknięciem</button></div><p id="assistant-handoff-status" class="small" role="status" aria-live="polite">Wklejona treść pokaże się jako propozycja. Zmiany w artykule wymagają Twojego zatwierdzenia.</p></div>
     <div class="actions">
       <button class="secondary" onclick="assistantExample('Dodaj artykuł o historii Ispiny, wybierz kategorię Historia i popraw język. Nie wymyślaj faktów.')">Historia Ispiny</button>
       <button class="secondary" onclick="assistantExample('Dodaj do Usług nową firmę, sprawdź, czy nie ma jej już w katalogu, i przygotuj kartę. Zostaw nieznane dane puste.')">Nowa usługa</button>
@@ -276,7 +276,7 @@ header{animation:ilHeader .38s cubic-bezier(.2,.7,.2,1) both}.brand .logo{animat
     <label for="research-query">Temat i dodatkowe wskazówki</label>
     <textarea id="research-query" maxlength="1800" style="min-height:115px" oninput="updateRadarPromptPreview()">Wyszukaj aktualne informacje o Ispinie.</textarea>
     <div class="note small">Radar sprawdza profile tematyczne i ogólne: urzędy, BIP, zamówienia, drogi, autobusy, media oraz wyszukiwanie ogólne. Pokazuje nieudane i pominięte źródła. Zakres czasu jest filtrem rzeczywistej daty publikacji, nie daty wydarzenia. Wyniki wymagają przeczytania w oryginale.</div>
-    <details class="small"><summary>Gdzie szukamy?</summary><p>Google News i Bing RSS oraz osobne zapytania do: drwinia.pl, bip.malopolska.pl, powiat.bochnia.pl, zdw.krakow.pl, ezamowienia.gov.pl, bochnianin.pl, e-bochnia.pl, radiokrakow.pl, malopolska.pl, kolejemalopolskie.com.pl, gov.pl, Eko-Drwinia. Wyniki zależą od indeksowania i dostępności RSS; nie jest to robot odwiedzający każdą podstronę.</p></details>
+    <details class="small"><summary>Gdzie szukamy?</summary><p>Google News i Bing RSS oraz osobne zapytania do: drwinia.pl, bip.malopolska.pl, powiat.bochnia.pl, zdw.krakow.pl, ezamowienia.gov.pl, bochnianin.pl, e-bochnia.pl, radiokrakow.pl, malopolska.pl, kolejemalopolskie.com.pl, gov.pl, Eko-Drwinia. Wyniki zależą od indeksowania i dostępności RSS; nie jest to robot odwiedzający każdą podstronę. Dokumenty PDF są odkrywane po linkach i metadanych wyszukiwarki: bez odczytu ich treści lub OCR; wymagają otwarcia oryginału.</p></details>
     <details class="small"><summary>Dokładne polecenie dla ChatGPT Free</summary><p>Utwórz precyzyjne polecenie zgodne z wybranym okresem. ChatGPT może szukać szerzej, jeżeli ma dostęp do przeglądania internetu; aplikacja nie przekazuje mu żadnego płatnego klucza.</p><textarea id="radar-gpt-prompt" readonly style="min-height:170px" aria-label="Polecenie do ChatGPT"></textarea><div class="actions"><button type="button" class="secondary" onclick="copyRadarChatGptPrompt()">Kopiuj polecenie</button><button type="button" class="secondary" onclick="openRadarInChatGpt()">Otwórz w ChatGPT</button></div><p id="radar-gpt-status" class="small muted" role="status"></p></details>
     <div class="actions"><button class="secondary" type="button" onclick="runRecentIspinaRadar()">Najnowsze materiały</button><button id="research-button" type="button" disabled onclick="runDeepIspinaResearch()">🔎 Wyszukaj w internecie informacje o Ispinie</button><button id="research-cancel" class="secondary hidden" type="button" onclick="cancelIspinaSearch('research')">Anuluj wyszukiwanie</button><button id="assistant-check-button" class="secondary" type="button" onclick="checkAssistantAvailability()">Gotowość wyszukiwarki</button><button class="secondary" type="button" onclick="clearResearchResults()">Wyczyść wyniki</button><button class="secondary" type="button" onclick="openRadarInChatGpt()">🌐 Głębokie wyszukiwanie w ChatGPT</button></div>
     <div class="note" id="background-radar-card" role="group" aria-label="Automatyczny radar Ispiny">
@@ -543,6 +543,17 @@ function explainPublicationFailure(error,stage,id){
   return "Nie udało mi się dokończyć publikacji. Zatrzymałem się na etapie: "+stage+".\n\n"+next+"\n\nSzczegóły z WordPressa: "+raw+(id?"\nNumer wpisu do sprawdzenia: #"+id:"\nJeśli WordPress zdążył zapisać wpis przed przerwaniem połączenia, wyszukaj go po tytule: „"+trim(lastPublicationAttempt?.title||$("post-title").value)+"”.");
 }
 
+let assistantClipboardCompareRequested=false;
+function pasteAndCompareFreeAssistant(){
+  if(!window.IL||typeof IL.readAssistantClipboard!=="function"){
+    $("assistant-handoff-status").textContent="Otwórz Redaktora na Androidzie i skopiuj odpowiedź z ChatGPT.";
+    return false;
+  }
+  assistantClipboardCompareRequested=true;
+  IL.readAssistantClipboard();
+  $("assistant-handoff-status").textContent="Odczytuję skopiowaną odpowiedź. Niczego nie zapiszę bez zatwierdzenia propozycji.";
+  return true;
+}
 let authWaitTimer=0;
 function stopAuthWaitTimer(){if(authWaitTimer){clearTimeout(authWaitTimer);authWaitTimer=0}}
 function startAuthWaitTimer(){
@@ -700,9 +711,15 @@ window.onNativeResult=function(id,ok,payload){
     return;
   }
   if(id==="assistant-clipboard"){
+    const autoCompare=assistantClipboardCompareRequested;
+    assistantClipboardCompareRequested=false;
     if(!ok){$("assistant-handoff-status").textContent=payload;return;}
-    try{const data=JSON.parse(payload);$("assistant-return-text").value=String(data.text||"");$("assistant-handoff-status").textContent=data.text?"Wklejono odpowiedź ze schowka. Sprawdź ją, a potem wybierz „Sprawdź i porównaj”.":"Schowek jest pusty.";}
-    catch(e){$("assistant-handoff-status").textContent="Nie udało się odczytać odpowiedzi ze schowka.";}
+    try{
+      const data=JSON.parse(payload);
+      $("assistant-return-text").value=String(data.text||"");
+      $("assistant-handoff-status").textContent=data.text?"Wklejono odpowiedź ze schowka. Sprawdź propozycję przed przyjęciem.":"Schowek jest pusty.";
+      if(autoCompare&&data.text)compareExternalAssistantResponse(); // Only proposes a diff, never publishes or applies changes.
+    }catch(e){$("assistant-handoff-status").textContent="Nie udało się odczytać odpowiedzi ze schowka.";}
     return;
   }
   if(id==="login-state"){
