@@ -96,7 +96,8 @@ jobs:
           main=pathlib.Path('il-redaktor-android/app/src/main/java/com/ispinalokalnie/redaktor/MainActivity.java').read_text()
           manifest=pathlib.Path('il-redaktor-android/app/src/main/AndroidManifest.xml').read_text()
           assert 'public static final String SCOPE = "auth"' in oauth, 'WordPress MCP guide uses auth in OAuth 2.1 PKCE example'
-          assert oauth.count('"&scope=" + Uri.encode(SCOPE)') == 2, 'Start and resume must use the same scope'
+          assert '"&scope=" + Uri.encode(scope)' in oauth and '"&scope=" + Uri.encode(requestedScope)' in oauth, 'Pending authorization must retain explicit requested scope'
+          assert 'startWithScope("global")' in main, 'Optional broad access needs an explicit UI action'
           for expected in ['com.ispinalokalnie.redaktorsmart.stable:/callback','code_challenge_method=S256','PENDING_VERIFIER','handleRedirect']:
               assert expected in oauth, 'OAuth return missing: '+expected
           for required in ['\"method\", \"initialize\"', 'Mcp-Session-Id', 'notifications/initialized', 'ensureMcpSession(token)', 'ExpiredMcpSession', 'resetSession()']:
