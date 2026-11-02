@@ -389,6 +389,12 @@ public class MainActivity extends Activity {
     private PhotoEditor photoEditor;
     private ServicePageBackupStore servicePageBackups;
     private synchronized ServicePageBackupStore serviceBackupFiles(){if(servicePageBackups==null)servicePageBackups=new ServicePageBackupStore(new File(getFilesDir(),"il-services-page-recovery.json"));return servicePageBackups;}
+    private void watchPublicSearch(String rid,ChatGptPlanClient.SearchControl control){
+        control.setObserver(event -> ui.post(() -> {
+            if(editor==null||isFinishing())return;
+            editor.evaluateJavascript("window.onIspinaSearchProgress&&window.onIspinaSearchProgress("+JSONObject.quote(rid)+","+event.toString()+")",null);
+        }));
+    }
     private DurableDraftStore durableDraftStore;
     private synchronized DurableDraftStore draftFiles(){if(durableDraftStore==null)durableDraftStore=new DurableDraftStore(new File(getFilesDir(),"il-drafts-v3.json"));return durableDraftStore;}
     private static final int BACKUP_MAX_BYTES=8_000_000;
@@ -411,7 +417,8 @@ public class MainActivity extends Activity {
          */
         @JavascriptInterface public void editorialMemory(String rid, String operation, String data) {
             if (rid == null || !rid.matches("[A-Za-z0-9_-]{1,60}") ||
-                data == null || data.length() > 100_000) return;
+                data == null) return;
+            if(data.length()>100_000){callback(rid,false,"Za dużo danych jednego zapisu pamięci. Wyniki wyszukiwania pozostają widoczne.");return;}
             if (!("save".equals(operation) || "browse".equals(operation) ||
                   "review".equals(operation) || "delete".equals(operation) ||
                   "history".equals(operation) || "annotate".equals(operation))) {
@@ -788,7 +795,7 @@ public class MainActivity extends Activity {
                 callback(rid, false, "Wpisz temat wyszukiwania, maksymalnie 1800 znaków."); return;
             }
             ChatGptPlanClient.SearchControl control = new ChatGptPlanClient.SearchControl(MainActivity.this, 60000);
-            searches.put(rid, control);
+            searches.put(rid, control);watchPublicSearch(rid,control);
             aiWork.execute(() -> {
                 try {
                     JSONObject result = FreeIspinaSearchClient.ask(MainActivity.this, prompt, control);
@@ -811,7 +818,7 @@ public class MainActivity extends Activity {
             final long since = days == 0 ? 0L :
                 System.currentTimeMillis() - java.util.concurrent.TimeUnit.DAYS.toMillis(days);
             ChatGptPlanClient.SearchControl control = new ChatGptPlanClient.SearchControl(MainActivity.this, 60000);
-            searches.put(rid, control);
+            searches.put(rid, control);watchPublicSearch(rid,control);
             aiWork.execute(() -> {
                 try {
                     JSONObject result = FreeIspinaSearchClient.search(MainActivity.this, prompt,
@@ -844,7 +851,7 @@ public class MainActivity extends Activity {
             }
             org.json.JSONArray safeHistory = history;
             ChatGptPlanClient.SearchControl control = new ChatGptPlanClient.SearchControl(MainActivity.this, 60000);
-            searches.put(rid, control);
+            searches.put(rid, control);watchPublicSearch(rid,control);
             aiWork.execute(() -> {
                 try {
                     JSONObject result = FreeIspinaSearchClient.askConversation(MainActivity.this, prompt,
