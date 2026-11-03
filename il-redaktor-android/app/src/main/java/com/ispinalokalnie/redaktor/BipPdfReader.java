@@ -24,6 +24,7 @@ import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 
 import java.io.BufferedInputStream;
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
@@ -171,7 +172,7 @@ public final class BipPdfReader {
             if (response.connection.getResponseCode() != HttpURLConnection.HTTP_OK)
                 throw new java.io.IOException("BIP zwrócił HTTP " + response.connection.getResponseCode() + ".");
             byte[] bytes = readLimited(response.connection, MAX_HTML_BYTES, control, deadline);
-            Document page = Jsoup.parse(bytes, "UTF-8", response.url.toString());
+            Document page = Jsoup.parse(new ByteArrayInputStream(bytes), "UTF-8", response.url.toString());
             String title = cleanTitle(page.title());
             for (Element anchor : page.select("a[href]")) {
                 control.check();
