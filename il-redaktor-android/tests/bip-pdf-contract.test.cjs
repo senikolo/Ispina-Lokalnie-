@@ -58,6 +58,6 @@ test("OCR text is not marked as fact-checked and editorial handoff requires loca
   assert.match(reader, /Tekst odczytany automatycznie\. Wymaga sprawdzenia w oryginale\./);
   assert.match(search, /"sourcesAreFactChecked", false/);
   assert.match(search, /"sourceReviewStatus", "DO_SPRAWDZENIA"/);
-  assert.match(ui, /document\.bodyMentionsLocality && document\.matchesTopic/);
+  assert.match(ui, /document\.bodyMentionsLocality\s*&&\s*document\.matchesTopic/);
   assert.match(ui, /niczego nie publikuję/);
 });
