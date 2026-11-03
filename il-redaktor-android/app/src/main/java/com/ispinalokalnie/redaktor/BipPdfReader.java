@@ -92,8 +92,10 @@ public final class BipPdfReader {
         }
 
         pages.sort(Comparator.comparingInt(page -> {
-            String host = host(page.url);
-            return host.contains("ugdrwinia") ? 0 : 1;
+            try {
+                String path = Uri.parse(page.url).getPath();
+                return path != null && path.toLowerCase(Locale.ROOT).contains("/ugdrwinia") ? 0 : 1;
+            } catch (Exception ignored) { return 1; }
         }));
         int pageSourcesRead = 0;
         for (SourcePage page : pages) {
