@@ -20,16 +20,21 @@ public final class FreeIspinaSearchClient {
     private static final Map<String, JSONObject> CACHE = new LinkedHashMap<>();
 
     public static JSONObject ask(Context context, String prompt, ChatGptPlanClient.SearchControl control) throws Exception {
-        return search(context, prompt, control, 0L, false);
+        return search(context, prompt, control, 0L, false, true);
     }
     public static JSONObject search(Context context, String prompt, ChatGptPlanClient.SearchControl control,
                                     long since, boolean datedOnly) throws Exception {
+        return search(context, prompt, control, since, datedOnly, true);
+    }
+    public static JSONObject search(Context context, String prompt, ChatGptPlanClient.SearchControl control,
+                                    long since, boolean datedOnly, boolean readBipDocuments) throws Exception {
         try {
             control.check();
             String topic = topic(prompt);
             if (!datedOnly) synchronized (CACHE) {
                 JSONObject previous = CACHE.get(topic);
-                if (previous != null && System.currentTimeMillis() - previous.optLong("searchedAt") < 300000L)
+                if (previous != null && System.currentTimeMillis() - previous.optLong("searchedAt") < 300000L &&
+                    (!readBipDocuments || previous.optBoolean("bipDocumentsAnalyzed", false)))
                     return new JSONObject(previous.toString()).put("cached", true);
             }
             // Search several independent indexes and source-specific domains. No paid API key.
@@ -39,9 +44,11 @@ public final class FreeIspinaSearchClient {
             prioritized.add(new String[]{"Eko-Drwinia — pełna treść RSS","rss","https://eko.drwinia.pl/feed/"});
             prioritized.add(new String[]{"Gmina Drwinia — wyszukiwarka i artykuły","municipal","https://www.drwinia.pl/szukaj?f%5Bfraza%5D=Ispina"});
             // Prioritize public records before local archive, under the shared time budget.
-            // PDF results are indexed links ONLY: the app never claims it read their bodies.
+            // Discover public-record links before the broader local archive search.
             prioritized.add(new String[]{"Dokumenty PDF — odnośniki z indeksu","bing","Ispina Drwinia filetype:pdf " + topic});
             prioritized.add(new String[]{"BIP Małopolska — indeks dokumentów","bing","Ispina site:bip.malopolska.pl " + topic});
+            prioritized.add(new String[]{"BIP Gminy Drwinia — dokumenty i załączniki","bing","site:bip.malopolska.pl/ugdrwinia Ispina " + topic});
+            prioritized.add(new String[]{"BIP Gminy Drwinia — pliki PDF","bing","site:bip.malopolska.pl/ugdrwinia filetype:pdf Ispina " + topic});
             prioritized.add(new String[]{"Zamówienia publiczne — indeks","bing","Ispina site:ezamowienia.gov.pl " + topic});
             prioritized.add(new String[]{"Ispina Lokalnie — Twój portal","wordpress","https://public-api.wordpress.com/rest/v1.1/sites/ispinalokalnie.wordpress.com/posts/?number=40"});
             prioritized.add(new String[]{"Bochnianin — wyszukiwanie wydawcy","rss","https://bochnianin.pl/?s=Ispina&feed=rss2"});
@@ -124,7 +131,7 @@ public final class FreeIspinaSearchClient {
                 successful++;int matching=0,unknown=0,older=0;JSONArray items=response.getJSONArray("items");
                 for(int i=0;i<items.length();i++) {
                     JSONObject item=items.getJSONObject(i);
-                    if(!matchesTopic(item,topic))continue;
+                    if(!matchesTopic(item,topic) && !(readBipDocuments && isDrwiniaBipCandidate(item)))continue;
                     String key=canonicalKey(item.getString("url"));
                     long published=item.optLong("publishedAt");
                     if(datedOnly&&(!"PUBLISHED".equals(item.optString("dateType"))||published<=0)) {unknown++;undated.put(key,item.put("url",key));continue;}
@@ -153,13 +160,32 @@ public final class FreeIspinaSearchClient {
                 item.remove("searchText");sources.put(item);
                 if("OWN_PORTAL".equals(item.optString("sourceKind")))own++;else external++;
             }
+            JSONArray documents = readBipDocuments
+                ? BipPdfReader.read(context, sources, topic, control) : new JSONArray();
+            boolean documentPartial = false;
+            int readableDocuments = 0, ocrPages = 0;
+            for (int i = 0; i < documents.length(); i++) {
+                JSONObject document = documents.optJSONObject(i);
+                if (document == null) continue;
+                String documentStatus = document.optString("status", "");
+                if ("read".equals(documentStatus) || "partial".equals(documentStatus)) readableDocuments++;
+                if ("partial".equals(documentStatus) || "unavailable".equals(documentStatus) ||
+                    "ocr_incomplete".equals(documentStatus) || "no_readable_text".equals(documentStatus) ||
+                    "source_unavailable".equals(documentStatus)) documentPartial = true;
+                ocrPages += document.optInt("ocrPages", 0);
+            }
             if (sources.length() == 0) {
                 answer.append("Nie udało się potwierdzić pełnego wyniku wyszukiwania dla wybranego okresu. Nie mogę stwierdzić, że nic nowego o Ispinie się nie pojawiło.");
                 if(!undated.isEmpty())answer.append(" Znaleziono dodatkowo ").append(undated.size()).append(" materiałów wymagających ustalenia daty — pokazuję je osobno.");
                 answer.append(" Odczytano ").append(rawItems).append(" pozycji z publicznych kanałów; poza okresem: ").append(olderItems).append(". Sprawdź dziennik źródeł poniżej.");
             }else answer.append("Publikacje z wybranego zakresu: ").append(external).append(" zewnętrznych; ").append(own)
                 .append(" z Twojego portalu (osobno). Daty pochodzą od wydawcy lub z indeksu. Otwórz źródła i sprawdź fakty przed wykorzystaniem.");
-            answer.append("\nUwaga: dokumenty PDF są znajdowane jedynie po publicznych indeksach. Ich treści i skanów OCR nie odczytano.");
+            if (readBipDocuments) {
+                answer.append("\nDokumenty BIP: ").append(readableDocuments).append(" odczytanych; OCR rozpoznał ")
+                    .append(ocrPages).append(" stron skanów. Odczyt maszynowy wymaga sprawdzenia w oryginale.");
+            } else {
+                answer.append("\nSkan w tle odnotowuje linki do PDF. Odczyt treści i OCR wykonuje pełne wyszukiwanie uruchomione w aplikacji.");
+            }
             if (failed > 0 || skipped > 0)
                 answer.append("\nSkan częściowy: niedostępne kanały: ").append(failed)
                       .append(", pominięte lub bez potwierdzonych dat: ").append(skipped).append(".");
@@ -169,10 +195,11 @@ public final class FreeIspinaSearchClient {
                 .put("queries", searchedQueries).put("searchedAt", System.currentTimeMillis())
                 .put("profiles", profileResults).put("plannedFeeds",profiles.length)
                 .put("successfulFeeds", successful).put("failedFeeds", failed)
-                .put("skippedFeeds", skipped).put("partialResults", failed > 0 || skipped > 0)
+                .put("skippedFeeds", skipped).put("partialResults", failed > 0 || skipped > 0 || documentPartial)
                 .put("sourceLinksFound", sources.length()>0)
                 .put("sourceReviewStatus", "DO_SPRAWDZENIA")
                 .put("sourcesAreFactChecked", false).put("dateFilterApplied", datedOnly)
+                .put("documents", documents).put("bipDocumentsAnalyzed", readBipDocuments)
                 .put("since", since).put("rawItems",rawItems).put("outsideWindow",olderItems)
                 .put("undatedSources",new JSONArray(undated.values()))
                 .put("outcome",sources.length()>0?"FOUND":"INCONCLUSIVE")
@@ -216,6 +243,16 @@ public final class FreeIspinaSearchClient {
             if (text.contains(root)) matched++;
         }
         return tokens == 0 || matched == tokens;
+    }
+
+    /** Keep targeted Drwinia BIP hits for PDF inspection even when the index snippet omits the query term. */
+    private static boolean isDrwiniaBipCandidate(JSONObject item) {
+        try {
+            Uri uri = Uri.parse(item.optString("url", ""));
+            String host = uri.getHost() == null ? "" : uri.getHost().toLowerCase(Locale.ROOT);
+            String path = uri.getPath() == null ? "" : uri.getPath().toLowerCase(Locale.ROOT);
+            return host.equals("bip.malopolska.pl") && path.contains("/ugdrwinia");
+        } catch (Exception ignored) { return false; }
     }
 
     static boolean broadRequest(String prompt) {
@@ -281,7 +318,9 @@ public final class FreeIspinaSearchClient {
         int days=lookbackDays(prompt,selectedDays);
         String effectivePrompt = resolveConversationPrompt(prompt, history);
         long since=System.currentTimeMillis()-java.util.concurrent.TimeUnit.DAYS.toMillis(days);
-        JSONObject result = search(context, effectivePrompt, control, since, true);
+        // The conversational radar has a 60-second budget and presents link evidence.
+        // Full PDF extraction/OCR is handled by the dedicated editorial research flow.
+        JSONObject result = search(context, effectivePrompt, control, since, true, false);
         result.put("lookbackDays",days);
         boolean inherited = !effectivePrompt.equals(prompt);
         result.put("contextInherited", inherited)
@@ -434,3 +473,4 @@ public final class FreeIspinaSearchClient {
     private static String plain(String text,int max){String value=SourceDocumentParser.plain(text);return value.substring(0,Math.min(max,value.length()));}
     private static long parseDate(String value){return SourceDocumentParser.date(value);}
 }
+

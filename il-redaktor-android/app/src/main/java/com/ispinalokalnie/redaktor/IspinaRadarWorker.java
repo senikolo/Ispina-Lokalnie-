@@ -97,7 +97,7 @@ public final class IspinaRadarWorker extends Worker {
             long since = last > 0 ? Math.max(0L, last - TimeUnit.HOURS.toMillis(24))
                 : now - TimeUnit.HOURS.toMillis(24);
             activeSearch = new ChatGptPlanClient.SearchControl(context, 60000);
-            JSONObject result = FreeIspinaSearchClient.search(context, "Ispina", activeSearch, since, true);
+            JSONObject result = FreeIspinaSearchClient.search(context, "Ispina", activeSearch, since, true, false);
             if (isStopped() || !prefs.getBoolean(PREF_ENABLED, false)) return Result.success();
             String answer = clean(result.optString("answer", ""));
             JSONArray array = result.optJSONArray("sources");
@@ -108,6 +108,7 @@ public final class IspinaRadarWorker extends Worker {
                 || result.optInt("skippedFeeds", 0) > 0;
             ArrayList<Source> sources = sourceLinksFound ? parseSources(array) : new ArrayList<>();
             LinkedHashSet<String> seen = readSeen(prefs);
+            mergeEditorialMemorySeen(context, seen);
             ArrayList<Source> newSources = new ArrayList<>();
             for (Source source : sources) {
                 String key = fingerprint(source.url);
@@ -233,6 +234,28 @@ public final class IspinaRadarWorker extends Worker {
         return seen;
     }
 
+    /** Seed background de-duplication from links already discovered by manual searches. */
+    private static void mergeEditorialMemorySeen(Context context, Set<String> seen) {
+        try (EditorialMemory memory = new EditorialMemory(context)) {
+            final int pageSize = 50, maximum = 2000;
+            for (int offset = 0; offset < maximum; offset += pageSize) {
+                JSONObject page = memory.execute("browse",
+                    new JSONObject().put("status", "all").put("offset", offset));
+                JSONArray items = page.optJSONArray("items");
+                if (items == null || items.length() == 0) break;
+                for (int i = 0; i < items.length(); i++) {
+                    JSONObject item = items.optJSONObject(i);
+                    if (item == null) continue;
+                    String key = fingerprint(item.optString("url", ""));
+                    if (!key.isEmpty()) seen.add(key);
+                }
+                if (!page.optBoolean("hasMore", false)) break;
+            }
+        } catch (Exception ignored) {
+            // Background scan can continue with its persisted fingerprint set.
+        }
+    }
+
     private static void writeSeen(SharedPreferences prefs, Set<String> seen) {
         JSONArray items = new JSONArray();
         for (String key : seen) items.put(key);
@@ -305,3 +328,4 @@ public final class IspinaRadarWorker extends Worker {
         Source(String title, String url) { this.title = title; this.url = url; }
     }
 }
+

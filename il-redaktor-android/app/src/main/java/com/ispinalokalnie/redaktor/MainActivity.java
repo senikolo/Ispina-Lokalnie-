@@ -808,7 +808,7 @@ public class MainActivity extends Activity {
             if (prompt == null || prompt.trim().isEmpty() || prompt.length() > 1800) {
                 callback(rid, false, "Wpisz temat wyszukiwania, maksymalnie 1800 znaków."); return;
             }
-            ChatGptPlanClient.SearchControl control = new ChatGptPlanClient.SearchControl(MainActivity.this, 60000);
+            ChatGptPlanClient.SearchControl control = new ChatGptPlanClient.SearchControl(MainActivity.this, 150000);
             searches.put(rid, control);watchPublicSearch(rid,control);
             aiWork.execute(() -> {
                 try {
@@ -831,7 +831,7 @@ public class MainActivity extends Activity {
             }
             final long since = days == 0 ? 0L :
                 System.currentTimeMillis() - java.util.concurrent.TimeUnit.DAYS.toMillis(days);
-            ChatGptPlanClient.SearchControl control = new ChatGptPlanClient.SearchControl(MainActivity.this, 60000);
+            ChatGptPlanClient.SearchControl control = new ChatGptPlanClient.SearchControl(MainActivity.this, 150000);
             searches.put(rid, control);watchPublicSearch(rid,control);
             aiWork.execute(() -> {
                 try {
@@ -1559,3 +1559,4 @@ public class MainActivity extends Activity {
         super.onDestroy();
     }
 }
+

@@ -1221,7 +1221,7 @@ test("wide radar has thematic public profiles and explicit scope coverage",()=>{
   a.node("research-days").value="0";
   assert.match(a.run("buildRadarChatGptPrompt()"),/Cały dostępny zakres archiwum/);
 });
-test("free radar never claims RSS results are fact-checked and latest query applies 30 days",()=>{
+test("free radar never claims RSS results are verified and latest scan preserves editor criteria",()=>{
  const a=setup();
  const found={freeSearch:true,sourceLinksFound:true,verified:true,sources:[{title:"Most w Ispinie",url:"https://example.org/most"}],text:"Most w Ispinie",answer:"Most w Ispinie",successfulFeeds:4,failedFeeds:2,partialResults:true};
  a.run("renderResearchResult("+JSON.stringify(found)+",'Ispina')");
@@ -1229,9 +1229,14 @@ test("free radar never claims RSS results are fact-checked and latest query appl
  assert.match(output,/do sprawdzenia|do sprawdzenia/);
  assert.match(output,/wynik jest niepełny/);
  assert.doesNotMatch(output,/Zweryfikowane profile|potwierdzone źródła/);
- const ui=require("node:fs").readFileSync(require("node:path").join(__dirname,"../app/src/main/assets/index.html"),"utf8");
- assert.match(ui,/\$\("research-days"\)\.value="30"/);
- assert.match(ui,/\$\("research-query"\)\.value="Ispina"/);
+ a.node("research-query").value="Most i komunikacja";a.node("research-days").value="7";
+ a.run("runRecentIspinaRadar()");
+ assert.equal(a.node("research-query").value,"Most i komunikacja");
+ assert.equal(a.node("research-days").value,"7");
+ a.node("research-query").value="";
+ a.run("runRecentIspinaRadar()");
+ assert.equal(a.node("research-query").value,"Ispina");
+ assert.equal(a.node("research-days").value,"7");
 });
 test("research UI shows only source-backed section text and safe source links",()=>{
   const a=setup();
