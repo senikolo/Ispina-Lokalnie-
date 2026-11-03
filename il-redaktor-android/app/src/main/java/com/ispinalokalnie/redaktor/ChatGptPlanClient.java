@@ -116,7 +116,7 @@ public final class ChatGptPlanClient {
         }
         void check() throws Exception {
             if (timedOut || android.os.SystemClock.elapsedRealtime() >= deadline)
-                throw new Exception("Wyszukiwanie przekroczyło limit 60 sekund. Spróbuj krótszego pytania.");
+                throw new Exception("Wyszukiwanie przekroczyło limit czasu. Zawęź temat i spróbuj ponownie.");
             if (cancelled) throw new Exception("Wyszukiwanie anulowane.");
         }
         void attach(HttpURLConnection next) throws Exception {
