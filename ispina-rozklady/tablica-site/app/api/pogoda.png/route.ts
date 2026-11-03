@@ -1,8 +1,9 @@
 import { ImageResponse } from "next/og";
 import { createElement as h, type CSSProperties } from "react";
-import { createWeatherLoader, type Forecast, type WeatherResult } from "../../../lib/weather.mjs";
+import { createWeatherLoader, weatherErrorCode, type Forecast, type WeatherResult } from "../../../lib/weather.mjs";
 import { summarizeWeatherChanges } from "../../../lib/weather-trends.mjs";
 import { summarizeWeatherSmart } from "../../../lib/weather-smart.mjs";
+import { summarizeMetno } from "../../../lib/weather-metno.mjs";
 import { createImgwLoader } from "../../../lib/imgw-warnings.mjs";
 
 export const runtime = "nodejs";
@@ -16,6 +17,7 @@ function describe(code: number | undefined): string {
   if (code === 2) return "Częściowo pochmurno";
   if (code === 3) return "Pochmurno";
   if (code === 45 || code === 48) return "Mgła";
+  if (code === 69) return "Deszcz ze śniegiem";
   if ([51, 53, 55, 56, 57].includes(code ?? -1)) return "Mżawka";
   if ([61, 63, 65, 66, 67, 80, 81, 82].includes(code ?? -1)) return "Deszcz";
   if ([71, 73, 75, 77, 85, 86].includes(code ?? -1)) return "Śnieg";
@@ -33,7 +35,7 @@ const col = (gap: number): CSSProperties => ({ display: "flex", flexDirection: "
 function icon(code: number, size = 60, isDay = true) {
   const sun = code < 3;
   const rain = [51,53,55,56,57,61,63,65,66,67,80,81,82,95,96,99].includes(code);
-  const snow = [71,73,75,77,85,86].includes(code);
+  const snow = [69,71,73,75,77,85,86].includes(code);
   return h("svg", { width: size, height: size, viewBox: "0 0 64 64", fill: "none" },
     sun && (isDay
       ? h("g", { stroke: "#C89537", strokeWidth: 3, strokeLinecap: "round" }, h("circle", {cx: 28, cy: 25, r: 11, fill: "#FFF2D7"}), h("path", {d: "M28 6v4M28 40v4M9 25h4M43 25h4M14 11l3 3M39 36l3 3M14 39l3-3M39 14l3-3"}))
@@ -87,11 +89,11 @@ function dayCard(d: Forecast, i: number, compact: boolean) {
       h("div",{style:{display:"flex",alignItems:"center",justifyContent:"space-between"}},
         label(title,29,C.navy,700),icon(code,42),label(temps,33,C.navy,700)),
       h("div",{style:{display:"flex",justifyContent:"space-between"}},
-        label(describe(code),23,C.ink),label(`Szansa opadów do ${daily.precipitation_probability_max[i]}%`,23,C.muted)));
+        label(describe(code),23,C.ink),label(d.source === 'metno' ? 'Zakres z godzin prognozy' : `Szansa opadów do ${daily.precipitation_probability_max[i]}%`,23,C.muted)));
   }
   return h("div", { style: { ...col(12), flexShrink: 0, width: 210, padding: "22px 18px", borderRadius: 18, border: `1px solid ${C.border}`, background: "#FFFFFF" } },
     label(title, 27, C.blue, 700), icon(daily.weather_code[i], 58), label(temps, 35, C.navy, 700),
-    label(describe(daily.weather_code[i]), 25, C.ink), label(`Szansa opadów do ${daily.precipitation_probability_max[i]}%`, 24, C.muted)
+    label(describe(daily.weather_code[i]), 25, C.ink), label(d.source === 'metno' ? 'Zakres godzinowy' : `Szansa opadów do ${daily.precipitation_probability_max[i]}%`, 24, C.muted)
   );
 }
 function makeCard(result: WeatherResult | undefined, compact: boolean, part: string | null, officialWarnings: unknown[] = []) {
@@ -104,29 +106,31 @@ function makeCard(result: WeatherResult | undefined, compact: boolean, part: str
     label("CO ZMIENI SIĘ DZIŚ?", 32, C.navy, 700),
     label("Prognoza chwilowo niedostępna.", 28, C.ink, 600),
     label("Sprawdź ponownie za chwilę.", 23, C.muted),
-    label("Źródło: Open-Meteo", 19, C.muted));
+    label("Źródła: Open-Meteo / MET Norway", 19, C.muted));
   if (!result || !d || !c) return h("div", {style: {...root, justifyContent: "center", gap: 24}},
     label("POGODA W ISPINIE", compact ? 34 : 30, C.blue, 700),
     label("Dane chwilowo niedostępne", compact ? 46 : 52, C.navy, 700),
     label("Spróbuj ponownie później.", compact ? 32 : 30, C.ink),
     label("Nie pokazujemy starej prognozy jako aktualnej.", compact ? 32 : 30, C.muted),
-    label("Źródło: Open-Meteo.com", compact ? 30 : 26, C.muted));
+    label("Źródła: Open-Meteo / MET Norway", compact ? 26 : 24, C.muted));
   const checked = new Intl.DateTimeFormat("pl-PL", { timeZone: "Europe/Warsaw", day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }).format(result.fetchedAt);
   const currentTime = new Intl.DateTimeFormat("pl-PL", {timeZone: "Europe/Warsaw", hour: "2-digit", minute: "2-digit"}).format(c.time * 1000);
+  const backup = d.source === 'metno';
+  const source = backup ? 'MET Norway' : 'Open-Meteo';
   const current = h("div", {style: { ...col(compact ? 10 : 12), width: compact ? "100%" : 414, justifyContent: "center" }},
     label("POGODA W ISPINIE", compact ? 34 : 26, C.blue, 700),
     h("div", {style: {display: "flex", alignItems: "center", justifyContent: "space-between"}}, label(n(c.temperature_2m, "°C"), compact ? 106 : 100, C.navy, 700), icon(c.weather_code, compact ? 100 : 88, c.is_day === 1)),
     label(describe(c.weather_code), compact ? 36 : 32, C.navy, 700),
-    label(`Odczuwalna ${n(c.apparent_temperature, "°C")}`, compact ? 34 : 28, C.ink),
+    c.apparent_temperature !== null && label(`Odczuwalna ${n(c.apparent_temperature, "°C")}`, compact ? 34 : 28, C.ink),
     label(`Wiatr ${n(c.wind_speed_10m, " km/h")}`, compact ? 34 : 28, C.ink),
-    label(`Opady ${c.precipitation.toFixed(1).replace(".", ",")} mm / 15 min`, compact ? 32 : 26, C.ink)
+    label(`${backup ? 'Prognoza opadów' : 'Opady'} ${c.precipitation.toFixed(1).replace(".", ",")} mm / ${backup ? `${c.precipitation_hours} godz.` : '15 min'}`, compact ? 29 : 24, C.ink)
   );
   const forecast = h("div", {style: {...col(compact ? 10 : 12), ...(compact ? {} : {flex: 1}), flexShrink: 0}},
-    label("PROGNOZA · MAKS. / MIN.", compact ? 30 : 24, C.blue, 700),
+    label(backup ? 'ZAKRES TEMP. Z PROGNOZY' : "PROGNOZA · MAKS. / MIN.", compact ? 28 : 24, C.blue, 700),
     h("div", {style: compact ? col(10) : {display: "flex", gap: 12}}, ...[0,1,2].map(i => dayCard(d, i, compact)))
   );
   if (part === "brief") {
-    const outlook = summarizeWeatherSmart(d, result.fetchedAt, officialWarnings);
+    const outlook = backup ? summarizeMetno(d, result.fetchedAt, officialWarnings) : summarizeWeatherSmart(d, result.fetchedAt, officialWarnings);
     const messages = outlook.entries.slice(0, 2);
     const colorFor = (kind: string) => {
       if (kind === "storm") return {bg:"#FBE6F2",text:"#862E61",accent:"#B33A82"};
@@ -167,12 +171,12 @@ function makeCard(result: WeatherResult | undefined, compact: boolean, part: str
         ...bits),
       h("div", {style:{display:"flex",height:35,justifyContent:"space-between",
           alignItems:"center",padding:"0 20px",gap:8}},
-        label("Zmiany pogody dla Ispiny",20,"#365A77",650),
+        label(backup ? 'MET Norway · źródło zapasowe' : 'Open-Meteo · prognoza',18,"#365A77",650),
         label(`Aktualizacja: ${checked}`,17,"#647D93",500))
     );
   }
   if (part === "trend") {
-    const messages = summarizeWeatherChanges(d, result.fetchedAt);
+    const messages = backup ? summarizeMetno(d, result.fetchedAt, officialWarnings).entries.map(e=>e.text) : summarizeWeatherChanges(d, result.fetchedAt);
     const tone = (message: string) => {
       const m = message.toLowerCase();
       const dryOrEnding=/prognoza nie wskazuje opadów|opady są mało prawdopodobne|opady powinny ustąpić/.test(m);
@@ -199,19 +203,20 @@ function makeCard(result: WeatherResult | undefined, compact: boolean, part: str
             h("div", {style:{display:"flex", flexWrap:"wrap", fontSize:message.length>80?26:27,
               lineHeight:1.22, color:t.text, fontWeight:600}}, message));
         })),
-      label(`Model Open-Meteo · sprawdzono ${checked}`, 19, C.muted));
+      label(`Model ${source} · sprawdzono ${checked}`, 19, C.muted));
   }
   if (part === "now") return h("div", {style: {...root, justifyContent: "space-between"}}, current,
-    h("div", {style: col(3)}, label(`Dane modelowe na ${currentTime}`, 29, C.muted), label(`Sprawdzono ${checked}`, 29, C.muted)));
+    h("div", {style: col(3)}, label(`Dane modelowe na ${currentTime}`, 26, C.muted), label(`${source} · sprawdzono ${checked}`, 22, C.muted)));
   if (part === "daily") return h("div", {style: {...root, justifyContent: "space-between"}}, forecast,
-    h("div", {style: col(3)}, label(`Sprawdzono ${checked}`, 29, C.muted), label("Maks. szansa opadów w dobie · Open-Meteo", 22, C.muted)));
+    h("div", {style: col(3)}, label(`Sprawdzono ${checked}`, 27, C.muted), label(backup ? 'MET Norway · zakres godzinowy; dziś od teraz' : "Maks. szansa opadów w dobie · Open-Meteo", 21, C.muted)));
   return h("div", {style: root},
     compact ? current : h("div", {style: {display: "flex", gap: 24, flex: 1}}, current, forecast),
     compact && forecast,
     h("div", {style: {...col(3), borderTop: `1px solid ${C.border}`, paddingTop: 12}},
       label(`Sprawdzono ${checked}`, compact ? 30 : 24, C.muted),
-      label(`Dane na ${currentTime} · Open-Meteo.com`, compact ? 30 : 24, C.muted),
-      label("Odświeżanie ok. 30 min", compact ? 28 : 22, C.muted))
+      label(`Dane na ${currentTime} · ${source}`, compact ? 28 : 24, C.muted),
+      label(backup ? 'MET Norway · CC BY 4.0 · opracowanie IL' : 'Odświeżanie ok. 30 min', compact ? 24 : 22, C.muted),
+      backup && label('Zakres godzinowy; dziś od teraz',compact ? 22 : 20,C.muted))
   );
 }
 
@@ -224,6 +229,8 @@ export async function GET(request: Request): Promise<Response> {
     load(), part === "brief" ? loadImgw() : Promise.resolve(null)
   ]);
   if(weather.status === "fulfilled") result = weather.value;
+  const failure = weather.status === "rejected" ? weatherErrorCode(weather.reason) : null;
+  if (failure) console.warn('[weather]', failure, weather.status === "rejected" && weather.reason instanceof Error ? weather.reason.message : 'unavailable');
   // When IMGW cannot be reached, omit official claims instead of inventing "no warnings".
   const imgw = official.status === "fulfilled" ? official.value : null;
   const warnings = imgw?.warnings || [];
@@ -238,6 +245,8 @@ export async function GET(request: Request): Promise<Response> {
     "Vercel-CDN-Cache-Control": ttl ? `public, s-maxage=${ttl}, must-revalidate` : "no-store",
     "X-Content-Type-Options": "nosniff",
     "X-Weather-Status": result ? "ok" : "unavailable",
+    ...(result ? { 'X-Weather-Source': result.data.source === 'metno' ? 'metno' : 'open-meteo' } : {}),
+    ...(failure ? { "X-Weather-Error": failure } : {}),
     "X-Weather-Location": "50.11336,20.37746;Europe/Warsaw",
     ...(part === "brief" ? { "X-IMGW-Status": imgw ? "checked" : "unavailable",
       "X-IMGW-County": "1201", "X-IMGW-Warnings": String(warnings.length) } : {}),
