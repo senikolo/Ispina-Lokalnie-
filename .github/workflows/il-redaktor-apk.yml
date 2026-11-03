@@ -151,6 +151,7 @@ jobs:
           PY
           node --check /tmp/ilredaktor-ui.js
           node --test il-redaktor-android/tests/publishing.test.cjs
+          node --test il-redaktor-android/tests/bip-pdf-contract.test.cjs
       - name: Verify OAuth redirect configuration without remote registration
         run: |
           python - <<'PY'
