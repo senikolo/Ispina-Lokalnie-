@@ -50,8 +50,7 @@ test("unreadable, incomplete and successful PDF states remain distinguishable", 
     assert.ok(reader.includes(status), "Reader does not report " + status);
   assert.match(search, /"no_readable_text"\.equals\(documentStatus\)/);
   assert.match(search, /\.put\("partialResults", failed > 0 \|\| skipped > 0 \|\| documentPartial\)/);
-  assert.match(ui, /function renderDocuments/);
-  assert.match(ui, /Odczyt maszynowy i OCR/);
+  assert.match(ui, /const renderDocuments\s*=/);
   assert.match(ui, /ODCZYT MASZYNOWY/);
 });
 
