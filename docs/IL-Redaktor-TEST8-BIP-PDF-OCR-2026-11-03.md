@@ -20,4 +20,6 @@ Po ręcznym uruchomieniu pełne wyszukiwanie może trwać do 150 sekund i można
 
 ## Walidacja
 
+Dodano `tests/bip-pdf-contract.test.cjs` i włączono go do CI. Testy kontraktowe pilnują HTTPS, listy zaufanych domen, ponownej walidacji przekierowań i adresów IP, limitów pobierania/OCR, rozróżniania statusów oraz tego, że maszynowy odczyt nie jest oznaczany jako zweryfikowany fakt. Sprawdzono ręcznie 42 warunki źródłowe; nie zastępuje to uruchomienia Node, Gradle i testów urządzeń.
+
 Wynik kompilacji i emulatorów dla TEST-8 należy sprawdzić w CI. Nie wykonano logowania OAuth, zapisu WordPress ani testu na telefonie właściciela. Wersja pozostaje testowa i nie jest scalona do main.
