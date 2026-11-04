@@ -2,7 +2,7 @@
 
 **Sprawdź datę podróży. Starszy dokument nie potwierdza dzisiejszych odjazdów.**
 
-Kontrola danych: 2026-11-03T19:28:01.970697+01:00
+Kontrola danych: 2026-11-04T03:20:41.771220+01:00
 
 [Oficjalne rozkłady i komunikaty KMŁ](https://kolejemalopolskie.com.pl/pl/rozklad-jazdy/rozklady-autobusowe)
 
@@ -10,7 +10,7 @@ Kontrola danych: 2026-11-03T19:28:01.970697+01:00
 
 Czasy są planowe, bez opóźnień na żywo. Linia gminna pozostaje na stronie Ispina Lokalnie.
 
-## 2026-11-03
+## 2026-11-04
 
 **A4: potwierdzona zgodność GTFS z PDF.** [PDF przewoźnika](https://kolejemalopolskie.com.pl/brepo/panel_repo/2026/10/19/rccwk3/a4-od-25-x-2026.pdf)
 
@@ -271,7 +271,7 @@ Czasy są planowe, bez opóźnień na żywo. Linia gminna pozostaje na stronie I
 | 21:31 | A7 | Nowe Brzesko Rynek |
 | 22:51 | A7 | Proszowice P+R Kościuszki |
 
-## 2026-11-04
+## 2026-11-05
 
 **A4: potwierdzona zgodność GTFS z PDF.** [PDF przewoźnika](https://kolejemalopolskie.com.pl/brepo/panel_repo/2026/10/19/rccwk3/a4-od-25-x-2026.pdf)
 
