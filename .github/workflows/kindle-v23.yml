@@ -1,0 +1,45 @@
+name: Kindle przez Wi-Fi 2.3 - APK
+on:
+  push:
+    branches: [kindle-wifi-v23-build]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Java 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - name: Unpack application sources
+        run: unzip -q kindle-wifi-v23-sources.zip
+      - name: Build signed APK in independent package
+        shell: bash
+        run: |
+          set -euo pipefail
+          password="$(openssl rand -hex 18)"
+          printf '%s\n' "$password" > signing-password.txt
+          export KINDLE_APK_KEY_PASSWORD="$password"
+          bash kindle-wifi-v5/build.sh "$GITHUB_WORKSPACE/Kindle-przez-WiFi-2.3.apk"
+          unzip -t "$GITHUB_WORKSPACE/Kindle-przez-WiFi-2.3.apk" | tail -2
+          test -s "$GITHUB_WORKSPACE/Kindle-przez-WiFi-2.3.apk"
+          cp kindle-wifi-v5/.build-work/kindle-wifi.p12 signing-key-v23.p12
+          printf '%s\n' "UWAGA: 2.3 jest oddzielną aplikacją od 2.2. Zachowaj klucz i hasło do przyszłych aktualizacji." > INSTALACJA.txt
+      - name: Upload APK and signing key for the owner
+        uses: actions/upload-artifact@v4
+        with:
+          name: Kindle-przez-WiFi-2.3-APK-i-klucz
+          path: |
+            Kindle-przez-WiFi-2.3.apk
+            signing-key-v23.p12
+            signing-password.txt
+            INSTALACJA.txt
+          if-no-files-found: error
+          retention-days: 30

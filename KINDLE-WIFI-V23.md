@@ -1,0 +1,1 @@
+# Kindle przez Wi-Fi 2.3\nOddzielna testowa aplikacja Android 8+ z konwerterem PDF do EPUB. Żaden plik na gałęzi main nie został zmieniony. Kod źródłowy jest w kindle-wifi-v23-sources.zip, automatyczne zbudowanie APK w Actions. Brak starego klucza podpisującego v2.2, dlatego 2.3 instaluje się obok 2.2.\n
