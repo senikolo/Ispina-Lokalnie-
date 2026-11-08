@@ -151,4 +151,4 @@ dependencies {
 """)
 print("OCR patched")
 
-(root/"gradle.properties").write_text("android.useAndroidX=true\n")
+(root/"gradle.properties").write_text("android.useAndroidX=true\norg.gradle.jvmargs=-Xmx3072m -Dfile.encoding=UTF-8\norg.gradle.workers.max=2\n")
