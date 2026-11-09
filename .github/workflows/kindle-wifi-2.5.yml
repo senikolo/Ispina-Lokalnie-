@@ -15,22 +15,20 @@ jobs:
         with:
           distribution: temurin
           java-version: '17'
-      - name: Inspect Android SDK
+      - name: Check preinstalled tools
         run: |
           echo "ANDROID_HOME=$ANDROID_HOME"
-          ls -1 "$ANDROID_HOME/platforms" || true
-          ls -1 "$ANDROID_HOME/build-tools" || true
-          if [ ! -d "$ANDROID_HOME/platforms/android-35" ]; then
-            yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-35" || true
-          fi
-          if [ ! -d "$ANDROID_HOME/build-tools/35.0.0" ]; then
-            yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "build-tools;35.0.0" || true
-          fi
-      - name: Install Gradle 8.7 from GitHub
+          ls -1 "$ANDROID_HOME/platforms" | grep android-35 || true
+          ls -1 "$ANDROID_HOME/build-tools" | grep 35 || true
+          command -v gradle || true
+          find /opt/hostedtoolcache /usr/share /opt -maxdepth 4 -type f -name gradle -print 2>/dev/null | head -10 || true
+      - name: Install Gradle 8.7 using alternate mirror
         run: |
-          curl -fL --retry 4 --retry-delay 4 --output /tmp/gradle-8.7-bin.zip             https://github.com/gradle/gradle-distributions/releases/download/v8.7.0/gradle-8.7-bin.zip
-          unzip -q /tmp/gradle-8.7-bin.zip -d /tmp
-          echo "/tmp/gradle-8.7/bin" >> "$GITHUB_PATH"
+          if ! command -v gradle; then
+            curl -fL --retry 2 --retry-delay 3 --max-time 250               -o /tmp/gradle-8.7-bin.zip               https://downloads.gradle.org/distributions/gradle-8.7-bin.zip
+            unzip -q /tmp/gradle-8.7-bin.zip -d /tmp
+            echo "/tmp/gradle-8.7/bin" >> "$GITHUB_PATH"
+          fi
       - name: Unpack sources
         run: unzip -q kindle-build/Kindle-przez-WiFi-2.5-zrodla.zip -d work
       - name: Build unsigned APK
