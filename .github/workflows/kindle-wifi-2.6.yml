@@ -1,0 +1,46 @@
+name: Kindle WiFi 2.6 APK build
+on:
+  push:
+    branches:
+      - codex/kindle-wifi-2.6-user-friendly-20261109
+  workflow_dispatch:
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Check preinstalled tools
+        run: |
+          echo "ANDROID_HOME=$ANDROID_HOME"
+          ls -1 "$ANDROID_HOME/platforms" | grep android-35 || true
+          ls -1 "$ANDROID_HOME/build-tools" | grep 35 || true
+          command -v gradle || true
+          find /opt/hostedtoolcache /usr/share /opt -maxdepth 4 -type f -name gradle -print 2>/dev/null | head -10 || true
+      - name: Install Gradle 8.7 using alternate mirror
+        run: |
+          if ! command -v gradle; then
+            curl -fL --retry 2 --retry-delay 3 --max-time 250               -o /tmp/gradle-8.7-bin.zip               https://downloads.gradle.org/distributions/gradle-8.7-bin.zip
+            unzip -q /tmp/gradle-8.7-bin.zip -d /tmp
+            echo "/tmp/gradle-8.7/bin" >> "$GITHUB_PATH"
+          fi
+      - name: Unpack sources
+        run: unzip -q kindle-build/Kindle-przez-WiFi-2.6-zrodla.zip -d work
+      - name: Build unsigned APK
+        working-directory: work/kindle-wifi-ocr-v25
+        run: gradle --no-daemon assembleRelease --stacktrace
+      - name: Collect signer
+        run: cp "$ANDROID_HOME/build-tools/35.0.0/lib/apksigner.jar" work/apksigner.jar
+      - name: Save unsigned APK and signer
+        uses: actions/upload-artifact@v4
+        with:
+          name: Kindle-przez-WiFi-2.6-unsigned
+          path: |
+            work/kindle-wifi-ocr-v25/build/outputs/apk/release/*.apk
+            work/apksigner.jar
+          if-no-files-found: error
