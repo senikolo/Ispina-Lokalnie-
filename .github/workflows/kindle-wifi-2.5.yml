@@ -15,22 +15,28 @@ jobs:
         with:
           distribution: temurin
           java-version: '17'
-      - uses: android-actions/setup-android@v3
-      - name: Install SDK 35
-        run: sdkmanager "platforms;android-35" "build-tools;35.0.0"
-      - name: Install Gradle 8.7 from GitHub release
+      - name: Inspect Android SDK
         run: |
-          curl --fail --location --retry 4 --retry-delay 4 \
-            --output /tmp/gradle-8.7-bin.zip \
-            https://github.com/gradle/gradle-distributions/releases/download/v8.7.0/gradle-8.7-bin.zip
+          echo "ANDROID_HOME=$ANDROID_HOME"
+          ls -1 "$ANDROID_HOME/platforms" || true
+          ls -1 "$ANDROID_HOME/build-tools" || true
+          if [ ! -d "$ANDROID_HOME/platforms/android-35" ]; then
+            yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-35" || true
+          fi
+          if [ ! -d "$ANDROID_HOME/build-tools/35.0.0" ]; then
+            yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "build-tools;35.0.0" || true
+          fi
+      - name: Install Gradle 8.7 from GitHub
+        run: |
+          curl -fL --retry 4 --retry-delay 4 --output /tmp/gradle-8.7-bin.zip             https://github.com/gradle/gradle-distributions/releases/download/v8.7.0/gradle-8.7-bin.zip
           unzip -q /tmp/gradle-8.7-bin.zip -d /tmp
           echo "/tmp/gradle-8.7/bin" >> "$GITHUB_PATH"
-      - name: Unpack restored sources
+      - name: Unpack sources
         run: unzip -q kindle-build/Kindle-przez-WiFi-2.5-zrodla.zip -d work
-      - name: Build unsigned release
+      - name: Build unsigned APK
         working-directory: work/kindle-wifi-ocr-v25
-        run: gradle --no-daemon assembleRelease
-      - name: Collect APK signing tool
+        run: gradle --no-daemon assembleRelease --stacktrace
+      - name: Collect signer
         run: cp "$ANDROID_HOME/build-tools/35.0.0/lib/apksigner.jar" work/apksigner.jar
       - name: Save unsigned APK and signer
         uses: actions/upload-artifact@v4
