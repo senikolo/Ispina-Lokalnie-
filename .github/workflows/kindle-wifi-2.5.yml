@@ -11,24 +11,32 @@ jobs:
       contents: read
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-java@v4
+      - uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: '17'
-      - uses: gradle/actions/setup-gradle@v4
-        with:
-          gradle-version: '8.7'
       - uses: android-actions/setup-android@v3
       - name: Install SDK 35
         run: sdkmanager "platforms;android-35" "build-tools;35.0.0"
+      - name: Install Gradle 8.7 from GitHub release
+        run: |
+          curl --fail --location --retry 4 --retry-delay 4 \
+            --output /tmp/gradle-8.7-bin.zip \
+            https://github.com/gradle/gradle-distributions/releases/download/v8.7.0/gradle-8.7-bin.zip
+          unzip -q /tmp/gradle-8.7-bin.zip -d /tmp
+          echo "/tmp/gradle-8.7/bin" >> "$GITHUB_PATH"
       - name: Unpack restored sources
         run: unzip -q kindle-build/Kindle-przez-WiFi-2.5-zrodla.zip -d work
       - name: Build unsigned release
         working-directory: work/kindle-wifi-ocr-v25
         run: gradle --no-daemon assembleRelease
-      - name: Save unsigned APK
+      - name: Collect APK signing tool
+        run: cp "$ANDROID_HOME/build-tools/35.0.0/lib/apksigner.jar" work/apksigner.jar
+      - name: Save unsigned APK and signer
         uses: actions/upload-artifact@v4
         with:
           name: Kindle-przez-WiFi-2.5-unsigned
-          path: work/kindle-wifi-ocr-v25/build/outputs/apk/release/*.apk
+          path: |
+            work/kindle-wifi-ocr-v25/build/outputs/apk/release/*.apk
+            work/apksigner.jar
           if-no-files-found: error
