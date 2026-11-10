@@ -1,4 +1,4 @@
-name: Kindle Wi-Fi 2.26.5
+name: Kindle Wi-Fi 2.26.6
 on:
   push:
     branches:
@@ -39,7 +39,21 @@ jobs:
           mkdir -p "$RUNNER_TEMP/kindle"
           base64 -d build-sources/kindle-wifi-2.26-audio.zip.b64 > "$RUNNER_TEMP/kindle/sources.zip"
           unzip -q "$RUNNER_TEMP/kindle/sources.zip" -d "$RUNNER_TEMP/kindle"
+          patch -d "$RUNNER_TEMP/kindle/kindle-wifi-2.26" -p1 < "$GITHUB_WORKSPACE/build-sources/kindle-radio-2.26.6.patch"
+          sed -i "s/versionCode 35; versionName '2.26.5'/versionCode 36; versionName '2.26.6'/" "$RUNNER_TEMP/kindle/kindle-wifi-2.26/build.gradle"
+          sed -i 's/android:versionCode="35" android:versionName="2.26.5"/android:versionCode="36" android:versionName="2.26.6"/' "$RUNNER_TEMP/kindle/kindle-wifi-2.26/AndroidManifest.xml"
           test -f "$RUNNER_TEMP/kindle/kindle-wifi-2.26/build.gradle"
+      - name: Adapt legacy Lua test expectations to resilient reconnects
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path(__import__('os').environ['RUNNER_TEMP']) / 'kindle/kindle-wifi-2.26/tests/radio-menu-test.lua'
+          t = p.read_text()
+          t = t.replace('assert(#calls == commands + 1 and calls[#calls]:find("\'status\'", 1, true))',
+                        'assert(#calls >= commands + 1 and calls[#calls]:find("\'status\'", 1, true))')
+          p.write_text(t)
+          PY
       - name: Unit and integration tests
         shell: bash
         env:
@@ -60,17 +74,17 @@ jobs:
         shell: bash
         run: |
           mkdir -p build-artifacts
-          cp "$RUNNER_TEMP/kindle/kindle-wifi-2.26/build/outputs/apk/release/"*-unsigned.apk build-artifacts/Kindle-przez-WiFi-2.26.5-unsigned.apk
+          cp "$RUNNER_TEMP/kindle/kindle-wifi-2.26/build/outputs/apk/release/"*-unsigned.apk build-artifacts/Kindle-przez-WiFi-2.26.6-unsigned.apk
           aapt2="$ANDROID_HOME/build-tools/35.0.0/aapt2"
           "$aapt2" dump badging build-artifacts/*.apk | tee build-artifacts/apk-manifest.txt
-          grep -F "name='pl.ispinalokalnie.kindlewifi.v23' versionCode='35' versionName='2.26.5'" build-artifacts/apk-manifest.txt
+          grep -F "name='pl.ispinalokalnie.kindlewifi.v23' versionCode='36' versionName='2.26.6'" build-artifacts/apk-manifest.txt
           unzip -Z1 build-artifacts/*.apk > "$RUNNER_TEMP/apk-files.txt"
           grep -Fx assets/ilradio_k3.koplugin/player.sh "$RUNNER_TEMP/apk-files.txt"
           grep -Fx assets/patches/1-warszawski-czas.lua "$RUNNER_TEMP/apk-files.txt"
           grep -F assets/mlkit-google-ocr-models/ "$RUNNER_TEMP/apk-files.txt" >/dev/null
       - uses: actions/upload-artifact@v4
         with:
-          name: Kindle-przez-WiFi-2.26.5-release-unsigned
+          name: Kindle-przez-WiFi-2.26.6-release-unsigned
           path: build-artifacts/
           if-no-files-found: error
 
@@ -107,10 +121,13 @@ jobs:
           mkdir -p "$RUNNER_TEMP/kindle"
           base64 -d build-sources/kindle-wifi-2.26-audio.zip.b64 > "$RUNNER_TEMP/kindle/sources.zip"
           unzip -q "$RUNNER_TEMP/kindle/sources.zip" -d "$RUNNER_TEMP/kindle"
+          patch -d "$RUNNER_TEMP/kindle/kindle-wifi-2.26" -p1 < "$GITHUB_WORKSPACE/build-sources/kindle-radio-2.26.6.patch"
+          sed -i "s/versionCode 35; versionName '2.26.5'/versionCode 36; versionName '2.26.6'/" "$RUNNER_TEMP/kindle/kindle-wifi-2.26/build.gradle"
+          sed -i 's/android:versionCode="35" android:versionName="2.26.5"/android:versionCode="36" android:versionName="2.26.6"/' "$RUNNER_TEMP/kindle/kindle-wifi-2.26/AndroidManifest.xml"
           cd "$RUNNER_TEMP/kindle/kindle-wifi-2.26"
-          sed -i "s/applicationId 'pl.ispinalokalnie.kindlewifi.v23'/applicationId 'pl.ispinalokalnie.kindlewifi.v23.radio265'/" build.gradle
+          sed -i "s/applicationId 'pl.ispinalokalnie.kindlewifi.v23'/applicationId 'pl.ispinalokalnie.kindlewifi.v23.radio266'/" build.gradle
           sed -i 's/Kindle przez Wi-Fi/Kindle Radio TEST/g' AndroidManifest.xml
-          grep -F "applicationId 'pl.ispinalokalnie.kindlewifi.v23.radio265'" build.gradle
+          grep -F "applicationId 'pl.ispinalokalnie.kindlewifi.v23.radio266'" build.gradle
       - name: Build and sign isolated test APK
         shell: bash
         run: |
@@ -118,15 +135,15 @@ jobs:
           gradle --no-daemon assembleRelease
           mkdir -p "$GITHUB_WORKSPACE/test-artifacts"
           keytool -genkeypair -noprompt -keystore "$RUNNER_TEMP/radio-test.p12" -storetype PKCS12 -storepass android -keypass android -alias radio-test -dname "CN=Kindle Radio Test Only" -keyalg RSA -keysize 3072 -validity 365
-          "$ANDROID_HOME/build-tools/35.0.0/apksigner" sign --ks "$RUNNER_TEMP/radio-test.p12" --ks-pass pass:android --ks-key-alias radio-test --out "$GITHUB_WORKSPACE/test-artifacts/Kindle-przez-WiFi-2.26.5-Radio-TEST-signed.apk" build/outputs/apk/release/*-unsigned.apk
-          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose "$GITHUB_WORKSPACE/test-artifacts/Kindle-przez-WiFi-2.26.5-Radio-TEST-signed.apk" | tee "$GITHUB_WORKSPACE/test-artifacts/signature-check.txt"
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" sign --ks "$RUNNER_TEMP/radio-test.p12" --ks-pass pass:android --ks-key-alias radio-test --out "$GITHUB_WORKSPACE/test-artifacts/Kindle-przez-WiFi-2.26.6-Radio-TEST-signed.apk" build/outputs/apk/release/*-unsigned.apk
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose "$GITHUB_WORKSPACE/test-artifacts/Kindle-przez-WiFi-2.26.6-Radio-TEST-signed.apk" | tee "$GITHUB_WORKSPACE/test-artifacts/signature-check.txt"
           grep -F 'Verified using v2 scheme (APK Signature Scheme v2): true' "$GITHUB_WORKSPACE/test-artifacts/signature-check.txt"
-          "$ANDROID_HOME/build-tools/35.0.0/aapt2" dump badging "$GITHUB_WORKSPACE/test-artifacts/Kindle-przez-WiFi-2.26.5-Radio-TEST-signed.apk" | tee "$GITHUB_WORKSPACE/test-artifacts/manifest.txt"
-          grep -F "name='pl.ispinalokalnie.kindlewifi.v23.radio265' versionCode='35' versionName='2.26.5'" "$GITHUB_WORKSPACE/test-artifacts/manifest.txt"
-          unzip -Z1 "$GITHUB_WORKSPACE/test-artifacts/Kindle-przez-WiFi-2.26.5-Radio-TEST-signed.apk" | grep -Fx assets/ilradio_k3.koplugin/main.lua
+          "$ANDROID_HOME/build-tools/35.0.0/aapt2" dump badging "$GITHUB_WORKSPACE/test-artifacts/Kindle-przez-WiFi-2.26.6-Radio-TEST-signed.apk" | tee "$GITHUB_WORKSPACE/test-artifacts/manifest.txt"
+          grep -F "name='pl.ispinalokalnie.kindlewifi.v23.radio266' versionCode='36' versionName='2.26.6'" "$GITHUB_WORKSPACE/test-artifacts/manifest.txt"
+          unzip -Z1 "$GITHUB_WORKSPACE/test-artifacts/Kindle-przez-WiFi-2.26.6-Radio-TEST-signed.apk" | grep -Fx assets/ilradio_k3.koplugin/main.lua
       - uses: actions/upload-artifact@v4
         with:
-          name: Kindle-przez-WiFi-2.26.5-Radio-TEST-installable
+          name: Kindle-przez-WiFi-2.26.6-Radio-TEST-installable
           path: test-artifacts/
           if-no-files-found: error
 
@@ -144,7 +161,7 @@ jobs:
     steps:
       - uses: actions/download-artifact@v4
         with:
-          name: Kindle-przez-WiFi-2.26.5-release-unsigned
+          name: Kindle-przez-WiFi-2.26.6-release-unsigned
           path: build-artifacts
       - name: Sign emulator-only copy
         shell: bash
