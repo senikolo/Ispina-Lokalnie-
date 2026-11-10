@@ -848,7 +848,7 @@ index 6a54d57..fb2efa0 100644
              local details = shell_call("diagnose")
              if #details > 1100 then details = details:sub(1, 1100) end
 diff --git a/assets/ilradio_k3.koplugin/player.sh b/assets/ilradio_k3.koplugin/player.sh
-index 9d36412..a7b7935 100644
+index 9d36412..5691acf 100644
 --- a/assets/ilradio_k3.koplugin/player.sh
 +++ b/assets/ilradio_k3.koplugin/player.sh
 @@ -8,6 +8,12 @@ PID="$R/pid"
@@ -892,7 +892,7 @@ index 9d36412..a7b7935 100644
          mplayer)
              mplayer=$(mplayer_path)
              [ -n "$mplayer" ] || return 2
-@@ -137,13 +146,186 @@ play_backend() {
+@@ -137,13 +146,197 @@ play_backend() {
              if [ -n "$local_path" ]; then
                  exec "$mplayer" "$@" -ss "$offset" "$local_path"
              fi
@@ -942,6 +942,16 @@ index 9d36412..a7b7935 100644
 +    (
 +        count=0
 +        while IFS= read -r line; do
++            # Keep one copy of each startup fact when the rolling log later fills with titles.
++            key=
++            case "$line" in
++                AUDIO:*) if [ -z "$pcm_seen" ]; then key=pcm; pcm_seen=1; fi;;
++                AO:*|*audio-codec*) if [ -z "$audio_seen" ]; then key=audio; audio_seen=1; fi;;
++                "Selected audio codec:"*) if [ -z "$decoder_seen" ]; then key=decoder; decoder_seen=1; fi;;
++                *"Starting playback"*|*"new-state=(GstState)playing"*|*ILRADIO_OUTPUT*)
++                    if [ -z "$play_seen" ]; then key=play; play_seen=1; fi;;
++            esac
++            if [ -n "$key" ]; then printf '%.384s\n' "$line" >> "$LOG.audio"; fi
 +            case "$line" in
 +                *AO:*|*AUDIO:*|*ILRADIO_*|*"Starting playback"*|*ANS_TIME_POSITION*|*"Selected audio codec"*|*audio-codec*|*StreamTitle*|*ICY-META*|*title=*|*playing*|*PLAYING*|*[Ee]rror*|*[Ff]ail*|*[Cc]"ould not"*|*[Cc]annot*|*[Tt]"imed out"*|*[Bb]uffer*|*[Cc]ertificate*|*[Dd]ecoder*|*SSL*|*TLS*|*Exiting*)
 +                    printf '%.384s\n' "$line" >> "$LOG"
@@ -1013,8 +1023,9 @@ index 9d36412..a7b7935 100644
 +    reason=$(stream_reason "$details")
 +    if [ "$reason" != unconfirmed ]; then echo "failed:$reason"; return; fi
 +    if ! is_ours; then echo failed:unconfirmed; return; fi
-+    if printf '%s' "$details" | grep -Eq '^AO: |^ILRADIO_OUTPUT|audio-codec=' &&
-+       printf '%s' "$details" | grep -Eq 'Starting playback|ILRADIO_OUTPUT|new-state=\(GstState\)playing'; then
++    startup=$(cat "$LOG.audio" 2>/dev/null)
++    if printf '%s' "$startup" | grep -Eq '^AO: |ILRADIO_OUTPUT|audio-codec=' &&
++       printf '%s' "$startup" | grep -Eq 'Starting playback|ILRADIO_OUTPUT|new-state=\(GstState\)playing'; then
 +        echo decoded
 +    else
 +        echo pending
@@ -1081,7 +1092,7 @@ index 9d36412..a7b7935 100644
  control() {
      is_ours || return 1
      fifo="$R/control-$token"
-@@ -155,7 +337,7 @@ control() {
+@@ -155,7 +348,7 @@ control() {
  case "${1:-}" in
      probe) backend "${2:-auto}";;
      start)
@@ -1090,7 +1101,7 @@ index 9d36412..a7b7935 100644
          case "$uri" in http://*|https://*|file://*) :;; *) echo invalid_target; exit 2;; esac
          case "$local_path" in
              "") :;;
-@@ -167,19 +349,40 @@ case "${1:-}" in
+@@ -167,19 +360,40 @@ case "${1:-}" in
          case "$pct" in ''|*[!0-9]*|????*) pct=70;; esac
          case "$offset" in ''|*[!0-9]*|????????*) offset=0;; esac
          [ "$pct" -le 100 ] || pct=100
@@ -1127,7 +1138,7 @@ index 9d36412..a7b7935 100644
 +    probe-stop) probe_stop;;
 +    evidence) play_evidence;;
 +    facts)
-+        tail -n 36 "$LOG" 2>/dev/null | sed -n \
++        { cat "$LOG.audio" 2>/dev/null; tail -n 36 "$LOG" 2>/dev/null | grep '^ANS_TIME_POSITION='; } | sed -n \
 +            -e 's/^AUDIO: \([0-9][0-9]*\) Hz, \([0-9][0-9]*\) ch,.*/pcm=\1 \2/p' \
 +            -e 's/^AUDIO: .* \([0-9.]*\) kbit.*/bitrate=\1/p' \
 +            -e 's/^Selected audio codec: /decoder=/p' \
@@ -1135,7 +1146,7 @@ index 9d36412..a7b7935 100644
      health)
          if ! is_ours; then echo failed
          elif [ -s "$LOG" ] && tail -n 25 "$LOG" | grep -Eiq '(^| )ERROR(:| from)|Could not (open|connect|resolve)|No suitable plugins|Failed to (open|connect)'; then echo failed
-@@ -192,14 +395,34 @@ case "${1:-}" in
+@@ -192,14 +406,34 @@ case "${1:-}" in
              echo stopped
          fi;;
      pause)
@@ -1173,7 +1184,7 @@ index 9d36412..a7b7935 100644
      position)
          if [ ! -e "$PAUSED" ]; then control get_time_pos || exit 0; fi
          if [ -r "$LOG" ]; then
-@@ -220,7 +443,22 @@ case "${1:-}" in
+@@ -220,7 +454,22 @@ case "${1:-}" in
              if has "$program"; then echo "+ $program"; fi
          done
          path=$(mplayer_path)
@@ -1197,7 +1208,7 @@ index 9d36412..a7b7935 100644
          for device in /dev/dsp /dev/snd; do if [ -e "$device" ]; then echo "+ $device"; fi; done
          echo "status=$(sh "$0" status)" 
          echo "health=$(sh "$0" health)"
-@@ -234,8 +472,21 @@ case "${1:-}" in
+@@ -234,8 +483,21 @@ case "${1:-}" in
          case "$pct" in ''|*[!0-9]*|????*) exit 2;; esac
          [ "$pct" -le 100 ] || exit 2
          if control "volume $pct 1"; then echo adjusted; fi;;
@@ -3084,24 +3095,26 @@ index 6d6ceed..57852f0 100644
 +plugin:stop()
 +print((legacy and "Legacy" or "Modern") .. " filesystem module: PASS IL Radio menu")
 diff --git a/tests/run-radio-tests.sh b/tests/run-radio-tests.sh
-index a60cad6..679f549 100644
+index a60cad6..291b788 100644
 --- a/tests/run-radio-tests.sh
 +++ b/tests/run-radio-tests.sh
-@@ -47,3 +47,19 @@ done
+@@ -47,3 +47,21 @@ done
  [ -s "$PCM_OUTPUT" ] && [ "$(sh "$player" status)" = stopped ]
  [ "$(sh "$player" stop)" = stopped ]
  echo 'PASS: local HTTP MP3 through the legacy player pipeline, decoded PCM verified via FFmpeg'
 +cat > "$fixture/bin/mplayer" <<'PLAYER'
 +#!/bin/sh
 +printf '%s\n' 'AUDIO: 22050 Hz, 2 ch, s16le, 32.0 kbit/3%' 'AO: [alsa]' 'Starting playback...'
++for i in $(seq 1 80); do printf "StreamTitle='Fixture %s'\n" "$i"; done
 +exec sleep 20
 +PLAYER
 +chmod +x "$fixture/bin/mplayer"
 +[ "$(sh "$player" start "http://127.0.0.1:$port/sample.mp3" mplayer 65)" = 'starting:mplayer' ]
 +for delay in {1..30}; do
-+    if [ "$(sh "$player" evidence)" = decoded ]; then break; fi
++    if [ "$(sh "$player" title)" = "Fixture 80" ]; then break; fi
 +    sleep .1
 +done
++[ "$(sh "$player" title)" = "Fixture 80" ]
 +[ "$(sh "$player" status)" = active ]
 +[ "$(sh "$player" evidence)" = decoded ]
 +sh "$player" facts | grep -Fx 'pcm=22050 2'
