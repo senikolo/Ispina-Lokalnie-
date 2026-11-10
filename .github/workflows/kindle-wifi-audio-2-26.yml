@@ -46,12 +46,10 @@ jobs:
           JAVA_TOOL_OPTIONS: -Dfile.encoding=UTF-8
           LANG: C.UTF-8
         run: |
-          if ! command -v ffmpeg >/dev/null || ! command -v lua5.3 >/dev/null; then
-            sudo apt-get update -qq
-            sudo apt-get install -y -qq ffmpeg lua5.3 lua-filesystem
-          fi
           cd "$RUNNER_TEMP/kindle/kindle-wifi-2.26"
           bash tests/run-atomic-tests.sh
+          curl --max-time 30 --retry 2 -fsSL https://repo.maven.apache.org/maven2/org/luaj/luaj-jse/3.0.1/luaj-jse-3.0.1.jar -o "$RUNNER_TEMP/luaj.jar"
+          java -cp "$RUNNER_TEMP/luaj.jar" lua -e 'package.preload["lfs"]=function() return {} end' tests/radio-menu-test.lua assets/ilradio_k3.koplugin
       - name: Build release APK
         shell: bash
         run: |
