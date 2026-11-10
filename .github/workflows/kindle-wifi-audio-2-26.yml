@@ -46,6 +46,10 @@ jobs:
           JAVA_TOOL_OPTIONS: -Dfile.encoding=UTF-8
           LANG: C.UTF-8
         run: |
+          if ! command -v ffmpeg >/dev/null; then
+            sudo apt-get update -qq
+            sudo apt-get install -y -qq ffmpeg
+          fi
           cd "$RUNNER_TEMP/kindle/kindle-wifi-2.26"
           bash tests/run-atomic-tests.sh
       - name: Build release APK
@@ -70,3 +74,45 @@ jobs:
           name: Kindle-przez-WiFi-2.26-release-unsigned
           path: build-artifacts/
           if-no-files-found: error
+
+  android-smoke:
+    name: Android API ${{ matrix.api }} smoke test
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        api: [26, 29, 30, 33]
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: Kindle-przez-WiFi-2.26-release-unsigned
+          path: build-artifacts
+      - name: Sign emulator-only copy
+        shell: bash
+        run: |
+          keytool -genkeypair -keystore "$RUNNER_TEMP/emulator.p12" -storepass android -keypass android -alias emulator -dname CN=Emulator -keyalg RSA -keysize 2048 -validity 2
+          sdkmanager="$(find "$ANDROID_HOME/cmdline-tools" -type f -name sdkmanager | head -n 1)"
+          "$sdkmanager" 'build-tools;35.0.0'
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" sign --ks "$RUNNER_TEMP/emulator.p12" --ks-pass pass:android --out "$RUNNER_TEMP/emulator.apk" build-artifacts/*-unsigned.apk
+      - name: Enable KVM access
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kindlewifi-kvm.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - name: Install and open Kindle Wi-Fi
+        uses: reactivecircus/android-emulator-runner@4c44018e59b437e86cdfc41da381398f93ed8808
+        with:
+          api-level: ${{ matrix.api }}
+          arch: x86_64
+          target: google_apis
+          disable-animations: true
+          script: |
+            adb install "$RUNNER_TEMP/emulator.apk"
+            adb shell am start -W -n pl.ispinalokalnie.kindlewifi.v23/pl.ispinalokalnie.kindlewifi.MainActivity | tee "$RUNNER_TEMP/launch.txt"
+            grep -F "Status: ok" "$RUNNER_TEMP/launch.txt"
+            adb shell uiautomator dump /sdcard/kindle-ui.xml
+            adb shell cat /sdcard/kindle-ui.xml | grep -Fq 'Twoja kolejka'
