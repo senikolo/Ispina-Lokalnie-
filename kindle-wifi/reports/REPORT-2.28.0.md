@@ -20,6 +20,8 @@ Gdy aktualizacja wtyczki okaże się nieudana, użyj w telefonie opcji **Przywr�
 
 ## Co zawiera wersja
 
+Aktualizacja katalogu w telefonie polega na wysłaniu wersji dołączonej do APK; można też edytować własne adresy. Nie dodano pobierania nowej bazy z niezależnej usługi w tle.
+
 Zachowano cztery tryby jakości, limity 24/32/48/64/96/128/bez limitu, wybór preferowanego kodeka, najmniejszy transfer, edycję własnych adresów na Androidzie, podgląd katalogu, wysyłanie ustawień i instalację wtyczki przez Wi-Fi. „Bez limitu” nie znosi ograniczenia trybów Ultraoszczędnego i Oszczędnego; dotyczy Auto i Wysokiej jakości. W trybie oszczędnym AAC ma limit 48, a MP3 jest wariantem zapasowym do 64 kb/s; ręczny limit 48 ogranicza także MP3.
 
 Zachowano sterowanie radiem, stacje poprzednią/następną, pauzę i stop, ekranowe przyciski głośności z możliwością ukrycia, obsługę klawiszy K3, ulubione, zapamiętywanie stacji oraz ograniczony mechanizm ponownych prób. Wtyczka dopuszcza maksymalnie osiem uruchomień silnika i sprawdza ograniczoną kolejkę źródeł. Wymagające przekroczenia limitu źródło wymaga jednorazowego wyboru użytkownika.
@@ -96,7 +98,7 @@ Obsługa HTTPS zależy również od wersji curl/wget, certyfikatów i TLS, nie t
 | Menedżer plików i audio | SFTP: zmiana nazwy, przeniesienie, usuwanie, metadane czytania, ochrona ścieżek — poprawnie |
 | Wtyczki | SFTP: instalacja, aktualizacja, przywrócenie i usunięcie; obca wtyczka zachowana — poprawnie |
 
-Nie wykonano tych testów na fizycznym Kindle ani na telefonie użytkownika. Sprawdzenie podpisu i manifestu nie jest testem uruchomienia na Androidzie 8/10/11/13. Dodano odrębny workflow emulatorów tych czterech wersji; jego stan należy sprawdzać osobno, bez traktowania definicji workflow jako zaliczonego testu.
+Testy instalacji APK, uruchomienia aplikacji i obecności głównego ekranu **przeszły na emulatorach Androida 8, 10, 11 i 13** (API 26/29/30/33). Pełny build oraz testy kontrolera i transmisji przeszły również w GitHub Actions. [Wyniki przebiegu CI](https://github.com/senikolo/Ispina-Lokalnie-/actions/runs/42915440886) i zestawienie `reports/android-ci-2.28.0.json` dokumentują te próby. Nie jest to test wszystkich funkcji na każdej wersji Androida. Nie wykonano odsłuchu na fizycznym Kindle ani testu na telefonie użytkownika.
 
 ## Pamięć, procesor i bateria
 
