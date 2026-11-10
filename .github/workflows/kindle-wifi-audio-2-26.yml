@@ -25,8 +25,6 @@ jobs:
         uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: "8.7"
-      - name: Android SDK
-        uses: android-actions/setup-android@v3
       - name: Android SDK platforms
         run: sdkmanager 'platforms;android-35' 'build-tools;35.0.0'
       - name: Decode checked source bundle
