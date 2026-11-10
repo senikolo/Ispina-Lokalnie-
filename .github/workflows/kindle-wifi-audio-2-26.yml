@@ -5,6 +5,7 @@ on:
       - codex/kindle-wifi-radio-audio-2-26-20261110
     paths:
       - build-sources/kindle-wifi-2.26-audio.zip.b64
+      - build-sources/kindle-radio-2.26.6.patch
       - .github/workflows/kindle-wifi-audio-2-26.yml
   workflow_dispatch:
 
