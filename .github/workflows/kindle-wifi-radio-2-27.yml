@@ -1,0 +1,102 @@
+name: Kindle przez Wi-Fi 2.27.0
+on:
+  push:
+    branches: [codex/kindle-wifi-radio-audio-2-26-20261110]
+    paths:
+      - build-sources/kindle-radio-2.27.0.patch
+      - .github/workflows/kindle-wifi-radio-2-27.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.7'
+      - name: Prepare sources and SDK
+        run: |
+          mkdir -p "$RUNNER_TEMP/kindle"
+          base64 -d build-sources/kindle-wifi-2.26-audio.zip.b64 > "$RUNNER_TEMP/kindle/base.zip"
+          unzip -q "$RUNNER_TEMP/kindle/base.zip" -d "$RUNNER_TEMP/kindle"
+          cd "$RUNNER_TEMP/kindle/kindle-wifi-2.26"
+          patch -p1 < "$GITHUB_WORKSPACE/build-sources/kindle-radio-2.26.6.patch"
+          sed -i "s/versionCode 35; versionName '2.26.5'/versionCode 36; versionName '2.26.6'/" build.gradle
+          sed -i 's/android:versionCode="35" android:versionName="2.26.5"/android:versionCode="36" android:versionName="2.26.6"/' AndroidManifest.xml
+          git apply --binary "$GITHUB_WORKSPACE/build-sources/kindle-radio-2.27.0.patch"
+          sdkmanager="$(find "$ANDROID_HOME/cmdline-tools" -name sdkmanager -type f | head -n 1)"
+          yes | "$sdkmanager" --licenses >/dev/null || true
+          "$sdkmanager" 'platforms;android-35' 'build-tools;35.0.0'
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq ffmpeg openssh-server
+      - name: Check playback, source policy and transfers
+        run: |
+          cd "$RUNNER_TEMP/kindle/kindle-wifi-2.26"
+          bash tests/run-atomic-tests.sh
+          bash tests/run-sftp-tests.sh
+          bash tests/run-radio-tests.sh
+          bash tests/run-stream-probe-tests.sh
+          curl --max-time 30 --retry 2 -fsSL https://repo.maven.apache.org/maven2/org/luaj/luaj-jse/3.0.1/luaj-jse-3.0.1.jar -o "$RUNNER_TEMP/luaj.jar"
+          plugin=assets/ilradio_k3.koplugin
+          java -cp "$RUNNER_TEMP/luaj.jar" lua tests/tuning-test.lua "$plugin" | grep -F 'PASS policy caps'
+          java -cp "$RUNNER_TEMP/luaj.jar" lua tests/radio-menu-test.lua "$plugin" | grep -F 'Modern filesystem module: PASS IL Radio menu'
+          java -cp "$RUNNER_TEMP/luaj.jar" lua tests/radio-menu-test.lua "$plugin" legacy | grep -F 'Legacy filesystem module: PASS IL Radio menu'
+      - name: Build phone and emulator APKs
+        run: |
+          cd "$RUNNER_TEMP/kindle/kindle-wifi-2.26"
+          mkdir -p "$GITHUB_WORKSPACE/build-artifacts"
+          gradle --no-daemon -ParmOnly assembleRelease
+          cp build/outputs/apk/release/*-unsigned.apk "$GITHUB_WORKSPACE/build-artifacts/Kindle-przez-WiFi-2.27.0-arm-unsigned.apk"
+          test "$(stat -c %s "$GITHUB_WORKSPACE/build-artifacts/Kindle-przez-WiFi-2.27.0-arm-unsigned.apk")" -lt 30000000
+          gradle --no-daemon assembleRelease
+          cp build/outputs/apk/release/*-unsigned.apk "$GITHUB_WORKSPACE/build-artifacts/Kindle-przez-WiFi-2.27.0-emulator-unsigned.apk"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Kindle-przez-WiFi-2.27.0
+          path: build-artifacts/
+          if-no-files-found: error
+
+  android-smoke:
+    name: Android API ${{ matrix.api }}
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        api: [26, 29, 30, 33]
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: Kindle-przez-WiFi-2.27.0
+          path: build-artifacts
+      - name: Sign and enable emulator
+        run: |
+          keytool -genkeypair -keystore "$RUNNER_TEMP/emulator.p12" -storepass android -alias emulator -dname CN=Emulator -keyalg RSA -keysize 2048 -validity 2
+          sdkmanager="$(find "$ANDROID_HOME/cmdline-tools" -name sdkmanager -type f | head -n 1)"
+          "$sdkmanager" 'build-tools;35.0.0'
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" sign --ks "$RUNNER_TEMP/emulator.p12" --ks-pass pass:android --out "$RUNNER_TEMP/emulator.apk" build-artifacts/*emulator-unsigned.apk
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kindlewifi-kvm.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - uses: reactivecircus/android-emulator-runner@4c44018e59b437e86cdfc41da381398f93ed8808
+        with:
+          api-level: ${{ matrix.api }}
+          arch: x86_64
+          target: google_apis
+          disable-animations: true
+          script: |
+            adb install "$RUNNER_TEMP/emulator.apk"
+            adb shell am start -W -n pl.ispinalokalnie.kindlewifi.v23/pl.ispinalokalnie.kindlewifi.MainActivity | tee "$RUNNER_TEMP/launch.txt"
+            grep -F "Status: ok" "$RUNNER_TEMP/launch.txt"
+            adb shell uiautomator dump /sdcard/kindle-ui.xml
+            adb shell cat /sdcard/kindle-ui.xml | grep -Fq 'Twoja kolejka'

@@ -1,0 +1,3193 @@
+diff --git a/AndroidManifest.xml b/AndroidManifest.xml
+index 372c6dc..8be3404 100644
+--- a/AndroidManifest.xml
++++ b/AndroidManifest.xml
+@@ -1,5 +1,5 @@
+ <manifest xmlns:android="http://schemas.android.com/apk/res/android"
+-    android:versionCode="36" android:versionName="2.26.6">
++    android:versionCode="37" android:versionName="2.27.0">
+     <uses-sdk android:minSdkVersion="26" android:targetSdkVersion="34"/>
+     <uses-permission android:name="android.permission.INTERNET"/>
+     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
+diff --git a/assets/ilradio_k3.koplugin/main.lua b/assets/ilradio_k3.koplugin/main.lua
+index 6a54d57..cb39590 100644
+--- a/assets/ilradio_k3.koplugin/main.lua
++++ b/assets/ilradio_k3.koplugin/main.lua
+@@ -10,23 +10,52 @@ local modern_lfs, lfs = pcall(require, "libs/libkoreader-lfs")
+ if not modern_lfs then
+     lfs = require("lfs")
+ end
+-local stations = dofile((debug.getinfo(1, "S").source:sub(2):match("^(.*)/") or ".") .. "/stations.lua")
+-
+ local dir = debug.getinfo(1, "S").source:sub(2):match("^(.*)/") or "."
+ local player = dir .. "/player.sh"
++local T = dofile(dir .. "/tuning.lua")
++local stations = dofile(dir .. "/stations.lua")
++local catalog = T.rows(dir .. "/streams.tsv")
++local PHONE_CONFIG = "/mnt/us/koreader/settings/ilradio-phone.tsv"
++local SPEECH = {["TOK FM"] = true, ["RMF 24"] = true, ["Polskie Radio 24"] = true}
++local ERRORS = {
++    network = "Brak połączenia z serwerem. Sprawdź Wi-Fi i dostęp do internetu.",
++    tls = "Nie udało się bezpiecznie połączyć przez HTTPS. Sprawdź datę i certyfikaty Kindle’a.",
++    address = "Serwer odrzucił adres lub adres jest nieaktualny.",
++    buffer = "Strumień buforuje się za długo lub transmisja przerwała.",
++    codec = "Silnik nie rozpoznał formatu audio albo brakuje dekodera.",
++    output = "Silnik nie uzyskał dostępu do wyjścia audio.",
++    unconfirmed = "Brak potwierdzenia dźwięku. Sprawdź głośność i uruchom próbkę diagnostyczną.",
++    engine = "Brak silnika dla tego formatu. Sprawdź „Diagnostykę audio”.",
++    limit = "Parametry źródła przekraczają limit lub przepływność jest nieustalona.",
++    unavailable = "Brak curl na Kindle’u. Używam tylko danych sprawdzonych w katalogu lub jakości wybranej ręcznie.",
++}
+ local AUDIO_ROOTS = {
+     music = { "/mnt/us/music", "/mnt/us/koreader/audio/Muzyka" },
+     books = { "/mnt/us/audiobooks", "/mnt/us/koreader/audio/Audiobooki" },
+ }
+ local ENGINE_OPTIONS = {"auto", "gst-legacy", "gst-mixer", "mplayer", "mpg123", "gst-modern", "mpv"}
+ local volume_input_open = false
+-local RADIO_VERSION = "2.26.6"
++local RADIO_VERSION = "2.27.0"
+ 
+-local function economy_stream(station)
+-    local stream = station.economy
+-    if stream and stream.kbps > 0 and stream.kbps <= 64 then
+-        return stream
+-    end
++local function read_small(path, limit)
++    local file = io.open(path, "rb")
++    if not file then return "" end
++    local data = file:read(limit or 4096) or ""
++    file:close()
++    return data
++end
++
++local function family(codec)
++    return codec and codec:find("AAC", 1, true) and "AAC" or codec
++end
++
++local function host(url)
++    return (url or ""):match("^https?://([^/%?#]+)") or "Nieustalony"
++end
++
++local function label(stream)
++    return (stream.codec or "Format nieustalony") .. " · "
++        .. (stream.kbps and (stream.kbps .. " kb/s") or "bitrate nieustalony")
+ end
+ 
+ local function quote(s)
+@@ -89,14 +118,19 @@ function ILRadio:init()
+         local input = Device.input
+         input.event_map[114] = input.event_map[114] or "VMinus"
+         input.event_map[115] = input.event_map[115] or "VPlus"
+-        volume_input_open = pcall(input.open, input, "/dev/input/event2", "Kindle Keyboard volume keys")
++        local node = shell_call("volume-node")
++        if not node:match("^/dev/input/event%d+$") then node = "/dev/input/event2" end
++        volume_input_open = pcall(input.open, input, node, "Kindle Keyboard volume keys")
+     end
+     self.settings = LuaSettings:open(DataStorage:getSettingsDir() .. "/ilradio_k3.lua")
+     self.engine = self.settings:readSetting("engine") or "auto"
+     self.volume = tonumber(self.settings:readSetting("volume")) or 70
+     self.volume = math.max(0, math.min(100, self.volume))
+-    self.economy = self.settings:readSetting("radio_economy") == true
++    self.radio = self.settings:readSetting("radio_quality") or {mode = "eco", codec = "auto", buffer = 128}
++    self.working = self.settings:readSetting("radio_last_working") or {}
++    self.decoded = self.settings:readSetting("radio_last_decoded") or {}
+     self.show_volume_buttons = self.settings:readSetting("show_volume_buttons") ~= false
++    self:read_phone_config()
+     self.volume_step = tonumber(self.settings:readSetting("volume_step")) or 5
+     if self.volume_step ~= 2 and self.volume_step ~= 5 and self.volume_step ~= 10 then self.volume_step = 5 end
+     self.last_station_name = self.settings:readSetting("last_station_name")
+@@ -104,67 +138,301 @@ function ILRadio:init()
+     self.positions = self.settings:readSetting("positions") or {}
+     self.current = nil
+     self.position_tick = function() self:track_position() end
+-    self.radio_tick = function()
+-        local item = self.current
+-        if not item or item.kind ~= "radio" then return end
+-        if self:health() == "failed" then
+-            self:recover_radio()
+-            return
+-        end
+-        -- Odzyskaj pełny budżet prób dopiero po minucie stabilnej pracy.
+-        item.stable_ticks = (item.stable_ticks or 0) + 1
+-        if item.stable_ticks >= 4 then item.retries = 0 end
+-        UIManager:scheduleIn(15, self.radio_tick)
+-    end
++    self.radio_tick = function() self:monitor_radio() end
++    self.probe_tick = function() self:check_probe() end
++    self.retry_tick = function() self:advance_radio() end
++    self.decode_tick = function() self:check_decode_test() end
+     self.start_check = function()
+-        local item = self.current
+-        if not item then return end
+-        if self:health() == "failed" then
+-            if item.kind == "radio" then self:recover_radio()
+-            else self:notice("Odtwarzanie pliku nie powiodło się. Sprawdź silnik audio.", 8) end
+-        elseif item.kind == "radio" then
+-            UIManager:scheduleIn(15, self.radio_tick)
++        if self.current and self:health() == "failed" then
++            self:notice("Odtwarzanie pliku nie powiodło się. Sprawdź silnik audio.", 8)
+         end
+     end
+     self.playlist = nil
+     self.track_index = nil
+     self.ui.menu:registerToMainMenu(self)
+ end
+-function ILRadio:radio_failure(station, reason)
++function ILRadio:read_phone_config()
++    self.custom = {}
++    for _, row in ipairs(T.rows(PHONE_CONFIG)) do
++        if row[1] == "@" and row[2] and row[2] ~= "-" and row[2] ~= self.settings:readSetting("radio_phone_revision") then
++            local mode = ({ultra = true, eco = true, auto = true, high = true})[row[3] or ""]
++            local codec = ({auto = true, aac = true, mp3 = true})[row[5] or ""]
++            local buffer = tonumber(row[6])
++            local limit = tonumber(row[4])
++            local valid_limit = row[4] == ""
++            for _, value in ipairs(T.limits) do if value == limit then valid_limit = true end end
++            if mode and codec and valid_limit and (buffer == 64 or buffer == 128 or buffer == 256) then
++                self.radio = {mode = row[3], limit = limit, codec = row[5], buffer = buffer, minimum = row[7] == "1"}
++                if row[8] == "0" or row[8] == "1" then
++                    self.show_volume_buttons = row[8] == "1"
++                    self.settings:saveSetting("show_volume_buttons", self.show_volume_buttons)
++                end
++                self.settings:saveSetting("radio_quality", self.radio)
++                self:save("radio_phone_revision", row[2])
++            end
++        elseif row[1] ~= "@" and T.url(row[2]) then
++            self.custom[#self.custom + 1] = row
++        end
++    end
++end
++
++function ILRadio:available_engines(codec, hls)
++    local options = {"mplayer", "gst-legacy", "gst-modern", "mpg123", "mpv"}
++    if self.engine ~= "auto" then
++        local preferred = self.engine
++        for i, engine in ipairs(options) do if engine == preferred then table.remove(options, i); break end end
++        table.insert(options, 1, preferred)
++    end
++    local result = {}
++    for _, engine in ipairs(options) do
++        if (not hls or engine == "gst-modern" or engine == "mpv")
++            and (engine ~= "mpg123" or codec == "MP3" or codec == nil)
++            and shell_call("probe", engine) == engine then result[#result + 1] = engine end
++    end
++    return result
++end
++
++function ILRadio:radio_result(code)
++    local job = self.job
++    if not job then return end
++    local source = job.active and job.active.url or job.station[1]
++    shell_call("report", job.station[1], source, code)
++end
++
++function ILRadio:finish_radio()
++    local job = self.job
++    if not job then return end
++    local higher = job.higher
++    local message = ERRORS[job.reason] or ERRORS.unconfirmed
++    self:radio_result(job.reason or "unconfirmed")
+     self:stop()
+-    UIManager:show(ConfirmBox:new {
+-        text = (reason or "Nie udało się uruchomić stacji.") .. "\n\nMenu Radia pozostaje dostępne. Ponów próbę lub wybierz inną stację.",
+-        ok_text = "Spróbuj ponownie",
+-        cancel_text = "Wróć do listy",
+-        ok_callback = function() if station then self:play_station(station) end end,
+-    })
++    if higher and not job.approved then
++        UIManager:show(ConfirmBox:new {
++            text = message .. "\n\n„" .. job.station[1] .. "” ma inny wariant (" .. label(higher)
++                .. "). Czy uruchomić go jednorazowo poza limitem?",
++            ok_text = "Uruchom ten wariant", cancel_text = "Zostań przy limicie",
++            ok_callback = function() self:play_station(job.station, higher.url) end,
++        })
++    else
++        self:notice(message, 9)
++    end
+ end
+ 
+-function ILRadio:recover_radio()
+-    local item = self.current
+-    if not item or item.kind ~= "radio" then return end
+-    local tries = item.retries or 0
+-    if tries >= 3 then
+-        self:radio_failure(item.station, "Trzy próby naprawy połączenia nie pomogły. Możesz ponowić ręcznie.")
++function ILRadio:continue_radio(reason)
++    local job = self.job
++    if not job then return end
++    job.reason = reason or job.reason
++    if reason then self:radio_result(reason) end
++    self.current = nil
++    shell_call("stop")
++    UIManager:unschedule(self.radio_tick)
++    UIManager:scheduleIn(reason == "network" and 6 or 2, self.retry_tick)
++end
++
++function ILRadio:start_radio_variant(stream)
++    local job = self.job
++    local codec = family(stream.codec)
++    local hls = stream.live_container == "HLS" or (stream.container or ""):match("^HLS")
++    local key = hls and "HLS" or codec or "?"
++    stream.engine_key = key
++    local options = job.engines[key]
++    if not options then
++        options = self:available_engines(codec, hls)
++        job.engines[key] = options
++    end
++    local engine = options[job.engine_index]
++    if not engine or job.starts >= 8 then self:continue_radio("engine"); return end
++    job.starts = job.starts + 1
++    local uri = stream.play_url or stream.url
++    local result = shell_call("start", uri, engine, self.volume, "", 0, self.radio.buffer)
++    if not result:match("^starting:") then
++        job.engine_index = job.engine_index + 1
++        self:continue_radio("engine")
++        return
++    end
++    self.current = {kind = "radio", name = job.station[1], station = job.station, uri = uri,
++        engine = engine, stream = stream, evidence = "pending", checks = 0}
++    self:radio_result("pending")
++    self:notice("Łączę z „" .. job.station[1] .. "” · " .. label(stream), 3)
++    UIManager:scheduleIn(5, self.radio_tick)
++end
++
++local function offer_higher(job, stream)
++    if not job.higher or (stream.kbps and (not job.higher.kbps or stream.kbps < job.higher.kbps)) then
++        job.higher = stream
++    end
++end
++
++function ILRadio:accept_probe(stream)
++    local job = self.job
++    if job.approved or T.allowed(self.radio, stream) then
++        job.ready = stream
++        self:start_radio_variant(stream)
++    else
++        offer_higher(job, stream)
++        self:continue_radio("limit")
++    end
++end
++
++function ILRadio:check_probe()
++    local job = self.job
++    if not job or not job.probe then return end
++    local prefix = job.probe
++    local done = read_small(prefix .. ".done", 16)
++    if done == "" and job.probe_checks < 5 then
++        job.probe_checks = job.probe_checks + 1
++        UIManager:scheduleIn(2, self.probe_tick)
+         return
+     end
+-    local next_no = tries + 1
+-    local retry_url = item.uri
+-    local retry_engine = item.forced_engine
+-    if next_no == 1 and item.alternate then
+-        retry_url = item.alternate
+-    elseif next_no == 2 and self.engine == "auto" then
+-        -- Gdy adres nie działa, spróbuj innego dekodera, bez zmiany ustawień użytkownika.
+-        local candidate = item.engine == "mplayer" and "gst-legacy" or "mplayer"
+-        if shell_call("probe", candidate) ~= "" then retry_engine = candidate end
+-        retry_url = item.station and item.station[3] or item.uri
++    job.probe = nil
++    local raw = read_small(prefix .. ".meta", 2048)
++    local code, final = raw:match("^(%d+)\n([^\r\n]+)")
++    local exit = tonumber(done)
++    local stream = job.active
++    local headers = read_small(prefix .. ".headers", 16384):lower():gsub("\r", "")
++    -- Only the last response's bitrate belongs to the active endpoint.
++    local final_header
++    for block in headers:gmatch("(.-)\n\n") do if block:match("^http/") then final_header = block end end
++    local nominal = tonumber((final_header or ""):match("\nicy%-br:%s*(%d+)"))
++        or tonumber((final_header or ""):match("\nice%-bitrate:%s*(%d+)"))
++    if (code == "200" or code == "206") and T.url(final) then
++        local sample = read_small(prefix .. ".sample", 16384)
++        local codec, kbps, measured, container, core_rate, core_channels = T.sample(sample, nominal)
++        if codec then
++            stream.live_codec = codec
++            stream.live_kbps = kbps
++            stream.live_measured = measured
++            stream.live_nominal = nominal
++            stream.live_final = final
++            -- Avoid reusing short-lived redirect tokens on a separate connection.
++            stream.play_url = final:find("rj%-tok=") and stream.url or final
++            stream.live_container = container
++            stream.core_rate, stream.core_channels = core_rate, core_channels
++            if family(stream.codec) ~= codec then stream.codec = codec end
++            stream.kbps = kbps
++            self:accept_probe(stream)
++            return
++        elseif job.approved or T.cap(self.radio, stream.codec) == math.huge then
++            stream.live_final = final
++            stream.play_url = final:find("rj%-tok=") and stream.url or final
++            if sample:match("^#EXTM3U") then stream.live_container = "HLS" end
++            self:accept_probe(stream)
++            return
++        end
++        if sample:match("^#EXTM3U") then
++            offer_higher(job, stream)
++            self:continue_radio("limit")
++        else
++            self:continue_radio(exit == 28 and "buffer" or "codec")
++        end
++    elseif exit == 35 or exit == 51 or exit == 58 or exit == 59 or exit == 60 or exit == 77 or exit == 90 then
++        self:continue_radio("tls")
++    elseif exit == 5 or exit == 6 or exit == 7 then self:continue_radio("network")
++    elseif exit == 28 or not exit then self:continue_radio("buffer")
++    else self:continue_radio("address") end
++end
++
++function ILRadio:advance_radio()
++    local job = self.job
++    if not job then return end
++    if job.ready then
++        local stream = job.ready
++        local engines = job.engines[stream.engine_key]
++        if engines and engines[job.engine_index] and job.engine_index <= 2 and job.starts < 8 then
++            self:start_radio_variant(stream)
++            return
++        end
++        job.ready = nil
+     end
+-    local station, name, alternate = item.station, item.name, item.alternate
+-    if self:play(retry_url, name, "radio", nil, alternate, station, retry_engine, next_no) then
+-        self:notice("Ponawiam: „" .. name .. "” (próba " .. next_no .. "/3).", 5)
++    if job.starts >= 8 or job.index >= 6 then self:finish_radio(); return end
++    job.index = job.index + 1
++    local stream = job.variants[job.index]
++    if not stream then self:finish_radio(); return end
++    job.active = stream
++    job.engine_index = 1
++    if not job.approved and stream.kbps and not T.allowed(self.radio, stream) then
++        offer_higher(job, stream)
++        if job.checked_over_limit then
++            job.reason = "limit"
++            self:finish_radio()
++            return
++        end
++        job.checked_over_limit = true
++    end
++    local probe = shell_call("probe-start", stream.url)
++    if probe:match("^/[^\r\n]+/probe%-%d+%-%d+$") then
++        job.probe = probe
++        job.probe_checks = 0
++        UIManager:scheduleIn(2, self.probe_tick)
++    elseif probe == "unavailable" then
++        if not stream.kbps and not job.higher then job.higher = stream end
++        self:accept_probe(stream)
++    else
++        self:continue_radio("address")
+     end
+ end
+ 
++function ILRadio:monitor_radio()
++    local job, item = self.job, self.current
++    if not job or not item then return end
++    local evidence = shell_call("evidence")
++    local reason = evidence:match("^failed:(%w+)")
++    if item.engine == "mplayer" and evidence == "decoded" then
++        local pos = tonumber(shell_call("position"))
++        if pos then
++            if item.last_pos and pos <= item.last_pos then item.stalls = (item.stalls or 0) + 1
++            else item.stalls = 0 end
++            item.last_pos = pos
++            if item.stalls >= 2 then reason = "buffer" end
++        end
++    end
++    if reason then
++        if item.established and (item.stable or 0) >= 3 and not job.reconnecting then
++            -- New bounded budget after an established session, with one retry of the last source.
++            job.starts, job.reconnecting, job.engine_index = 0, true, 1
++            local ranked = T.rank(self.radio, T.variants(job.station, catalog, self.custom),
++                item.stream.url, SPEECH[item.name])
++            job.variants = {item.stream}
++            for _, variant in ipairs(ranked) do
++                if variant.url ~= item.stream.url and not job.approved then
++                    job.variants[#job.variants + 1] = variant
++                end
++            end
++            job.index, job.ready, job.checked_over_limit = 0, nil, false
++        else
++            job.engine_index = job.engine_index + 1
++            -- Network/TLS errors usually need another URL, rather than another decoder.
++            if reason == "tls" or reason == "address" or reason == "network" then job.ready = nil end
++        end
++        if reason == "network" and not job.network_retry then
++            job.network_retry = true
++            job.index = math.max(0, job.index - 1)
++        end
++        self:continue_radio(reason)
++        return
++    end
++    item.checks = item.checks + 1
++    if evidence == "decoded" then
++        if item.evidence ~= "decoded" then self:radio_result("decoded") end
++        item.evidence = "decoded"
++        if not item.decoder_facts then item.decoder_facts = shell_call("facts") end
++        item.stable = (item.stable or 0) + 1
++        if item.stable >= 3 and not item.established then
++            job.reconnecting = false
++            item.established = true
++            job.network_retry = false
++            if self.decoded[item.name] ~= item.stream.url then
++                self.decoded[item.name] = item.stream.url
++                self:save("radio_last_decoded", self.decoded)
++            end
++        end
++    elseif item.checks >= 3 and item.evidence ~= "unconfirmed" then
++        item.evidence = "unconfirmed"
++        self:radio_result("unconfirmed")
++    end
++    UIManager:scheduleIn(item.checks < 3 and 5 or 20, self.radio_tick)
++end
++
+ function ILRadio:find_last_station()
+     for _, item in ipairs(stations) do
+         if item[1] == self.last_station_name then return item end
+@@ -206,77 +474,86 @@ function ILRadio:stop()
+     UIManager:unschedule(self.position_tick)
+     UIManager:unschedule(self.start_check)
+     UIManager:unschedule(self.radio_tick)
++    UIManager:unschedule(self.probe_tick)
++    UIManager:unschedule(self.retry_tick)
++    self.job = nil
+     self:remember_position()
+     shell_call("stop")
+     self.current = nil
+ end
+ 
+ function ILRadio:onCloseWidget()
+-    if self.current then self:stop() end
++    UIManager:unschedule(self.decode_tick)
++    if self.current or self.job then self:stop() end
+ end
+ 
+-function ILRadio:play(uri, name, kind, path, alternate, station, forced_engine, retries)
+-    local requested = forced_engine or self.engine
+-    local engine = shell_call("probe", requested)
++function ILRadio:play(uri, name, kind, path)
++    local engine = shell_call("probe", self.engine)
+     if engine == "" then
+-        if kind == "radio" then self:radio_failure(station, "Brak działającego silnika audio. Sprawdź diagnostykę na telefonie.")
+-        else self:notice("Nie znaleziono odtwarzacza. Otwórz Diagnostykę audio.", 8) end
++        self:notice("Nie znaleziono odtwarzacza. Otwórz Diagnostykę audio.", 8)
+         return false
+     end
+-    if self.current then self:stop() end
++    if self.current or self.job then self:stop() end
+     local offset = kind == "books" and engine == "mplayer" and self.positions[path] or 0
+-    local result = shell_call("start", uri, requested, self.volume, path or "", offset)
+-    if not result:match("^starting:") then
+-        if kind == "radio" then self:radio_failure(station, "Silnik odtwarzania nie uruchomił się.")
+-        else self:notice("Nie udało się uruchomić odtwarzacza. Otwórz Diagnostykę audio.", 8) end
++    if not shell_call("start", uri, engine, self.volume, path or "", offset):match("^starting:") then
++        self:notice("Nie udało się uruchomić odtwarzacza. Otwórz Diagnostykę audio.", 8)
+         return false
+     end
+-    self.current = {
+-        uri = uri, name = name, kind = kind, path = path, engine = engine,
+-        alternate = alternate, station = station, retries = retries or 0,
+-        forced_engine = forced_engine, stable_ticks = 0,
+-    }
+-    self:notice("Łączę z „" .. name .. "”… Jeśli nie zagra, wybierz inną stację.", 3)
+-    UIManager:scheduleIn(kind == "radio" and 7 or 4, self.start_check)
+-    if kind == "books" and engine == "mplayer" then
+-        UIManager:scheduleIn(6, self.position_tick)
+-    end
++    self.current = {uri = uri, name = name, kind = kind, path = path, engine = engine}
++    self:notice("Otwieram „" .. name .. "”…", 3)
++    UIManager:scheduleIn(4, self.start_check)
++    if kind == "books" and engine == "mplayer" then UIManager:scheduleIn(6, self.position_tick) end
+     return true
+ end
+ 
+-function ILRadio:play_station(station)
+-    local uri, alternate = station[3], station[5]
+-    if self.economy then
+-        local stream = economy_stream(station)
+-        if not stream then
+-            self:notice("Ta stacja nie ma wariantu do 64 kb/s w katalogu.")
+-            return
++function ILRadio:play_station(station, approved_url)
++    self:read_phone_config()
++    local variants = T.variants(station, catalog, self.custom)
++    if approved_url then
++        local filtered = {}
++        for _, stream in ipairs(variants) do
++            if stream.url == approved_url then filtered[1] = stream; break end
+         end
+-        uri, alternate = stream.url, nil
++        variants = filtered
+     end
+-    if self:play(uri, station[1], "radio", nil, alternate, station) then
+-        self.last_station_name = station[1]
+-        self:save("last_station_name", self.last_station_name)
+-        self.playlist = nil
+-        self.track_index = nil
++    self:stop()
++    self.job = {station = station, variants = T.rank(self.radio, variants, self.working[station[1]] or self.decoded[station[1]], SPEECH[station[1]]),
++        index = 0, starts = 0, engines = {}, approved = approved_url ~= nil}
++    self.last_station_name = station[1]
++    self:save("last_station_name", self.last_station_name)
++    self.playlist = nil
++    self.track_index = nil
++    self:advance_radio()
++end
++
++function ILRadio:next_station(delta)
++    for i, station in ipairs(stations) do
++        if station[1] == self.last_station_name then
++            self:play_station(stations[(i - 1 + delta) % #stations + 1])
++            return
++        end
+     end
++    self:play_station(stations[1])
+ end
+ 
+-function ILRadio:toggle_economy()
+-    local current = self.current
+-    if not self.economy and current and current.kind == "radio" and not economy_stream(current.station) then
+-        self:notice("Ta stacja nie ma wersji do 64 kb/s. Wybierz inną stację przed włączeniem oszczędzania.", 9)
++function ILRadio:confirm_sound()
++    local item = self.current
++    if not item or item.kind ~= "radio" or self:status() ~= "active" then
++        self:notice("Najpierw uruchom stację.")
+         return
+     end
+-    self.economy = not self.economy
+-    self:save("radio_economy", self.economy)
+-    if current and current.kind == "radio" then
+-        self:stop()
+-        self:play_station(current.station)
+-    else
+-        self:notice(self.economy and "Tryb oszczędny włączony. Radio wybierze wariant do 64 kb/s."
+-            or "Tryb oszczędny wyłączony.")
+-    end
++    item.audible = true
++    self.working[item.name] = item.stream.url
++    self:save("radio_last_working", self.working)
++    self:radio_result("audible")
++    self:notice("Zapisano, że słychać tę stację.")
++end
++
++function ILRadio:set_quality(key, value)
++    self.radio[key] = value
++    self:save("radio_quality", self.radio)
++    if self.job then self:play_station(self.job.station)
++    else self:notice("Ustawienie zadziała przy następnym uruchomieniu stacji.") end
+ end
+ 
+ function ILRadio:play_file(items, idx, group)
+@@ -301,19 +578,76 @@ function ILRadio:next_track(delta)
+     self:play_file(self.playlist, next_index, self.track_group)
+ end
+ 
+-function ILRadio:playing_info()
+-    local state = self:status()
+-    if not self.current or state == "stopped" then
+-        self:notice("Brak aktywnego odtwarzania. Jeśli dźwięk się nie pojawił, otwórz Diagnostykę audio.", 9)
++function ILRadio:playing_info(full)
++    local item = self.current
++    if not item then
++        self:notice(self.job and ("Sprawdzam źródła stacji „" .. self.job.station[1] .. "”…")
++            or "Brak aktywnego odtwarzania. Wybierz stację lub otwórz Diagnostykę audio.", 8)
+         return
+     end
++    local state = self:status()
+     local title = shell_call("title")
+-    local text = self.current.name .. "\nWtyczka IL Radio: " .. RADIO_VERSION
+-        .. "\nSilnik: " .. tostring(self.current.engine)
+-        .. "\nStan: " .. (state == "paused" and "pauza" or "odtwarzacz uruchomiony (dźwięk wymaga sprawdzenia)")
+-    if title ~= "" then text = text .. "\nUtwór: " .. title
+-    elseif self.current.kind == "radio" then text = text .. "\nTytuł utworu niedostępny." end
+-    self:notice(text, 10)
++    local stream = item.stream
++    local status = state == "paused" and "Pauza" or state == "stopped" and "Zatrzymane"
++        or item.audible and "Dźwięk potwierdzony przez słuchacza"
++        or item.evidence == "decoded" and "Silnik zgłosił dekodowanie i wyjście audio"
++        or "Odtwarzacz uruchomiony, dźwięk niepotwierdzony"
++    local text = item.name .. "\nStan: " .. status
++        .. "\nSilnik: " .. item.engine .. "\nGłośność: " .. self.volume .. "%"
++    if stream then
++        local mode = self.radio.mode
++        for _, option in ipairs(T.modes) do if option[1] == mode then mode = option[2]; break end end
++        local codec = stream.live_codec or "Nieustalony"
++        local facts = item.decoder_facts or ""
++        local output_rate, output_channels = facts:match("pcm=(%d+) (%d+)")
++        if codec == "AAC" and stream.core_rate and tonumber(output_rate) == stream.core_rate * 2 then
++            codec = stream.core_channels == 1 and tonumber(output_channels) == 2 and "HE-AAC v2" or "HE-AAC"
++            codec = codec .. " (próbka i dekoder)"
++        elseif codec == "Nieustalony" and stream.catalog_label then
++            codec = codec .. " · " .. stream.catalog_label .. " (katalog)"
++        elseif codec == "AAC" and stream.catalog_label then
++            codec = "AAC (próbka) · " .. stream.catalog_label .. " (katalog)"
++            if stream.catalog_label:find("^HE%-AAC") and stream.core_rate == tonumber(output_rate) then
++                codec = codec .. " · dekoder zgłasza wyjście w częstotliwości rdzenia"
++            end
++        end
++        local rate = stream.live_measured and string.format("%.1f kb/s (próbka)", stream.live_measured) or "Nieustalony"
++        if stream.live_nominal then rate = rate .. " · " .. stream.live_nominal .. " kb/s (serwer)"
++        elseif not stream.live_measured and stream.kbps then rate = rate .. " · " .. stream.kbps .. " kb/s (katalog)" end
++        local origin = stream.source or "Nieustalony"
++        local active_host = host(stream.live_final or item.uri)
++        if stream.live_final and active_host ~= host(stream.final or stream.url) then
++            origin = "Przekierowanie · typ serwera nieustalony"
++        end
++        text = text .. "\nTryb: " .. mode .. (self.job.approved and " · zgoda jednorazowa" or "")
++            .. "\nKodek: " .. codec .. "\nBitrate: " .. rate
++            .. "\nSerwer: " .. active_host .. "\nŹródło: " .. origin
++            .. "\nPołączenie: Wi-Fi"
++        if stream.live_measured and stream.live_measured < 128 then
++            text = text .. string.format("\nTransfer audio względem 128 kb/s: −%.1f%%",
++                (128 - stream.live_measured) * 100 / 128)
++        end
++        if full then
++            local facts = shell_call("facts")
++            local decoder = facts:match("decoder=([^\r\n]+)")
++            text = text .. "\n\nAdres katalogowy: " .. stream.url
++                .. "\nPo przekierowaniu (próba): " .. (stream.live_final or "Nieustalony")
++                .. "\nAdres przekazany silnikowi: " .. item.uri
++                .. "\nFormat próbki: " .. (stream.live_container or "Nieustalony")
++                .. "\nKatalog: " .. (stream.catalog_label or "Parametry nieustalone")
++                .. "\nWeryfikacja katalogu: " .. (stream.verified and stream.verified ~= "" and stream.verified or "Nieustalona")
++                .. "\nDekoder zgłoszony przez silnik: " .. (decoder or "Nieustalony")
++        end
++    end
++    if title ~= "" then text = text .. "\nUtwór: " .. title end
++    if full then
++        local ok, TextViewer = pcall(require, "ui/widget/textviewer")
++        if ok then
++            UIManager:show(TextViewer:new {title = "Szczegóły źródła", text = text})
++            return
++        end
++    end
++    self:notice(text, full and 32 or 16)
+ end
+ 
+ function ILRadio:toggle_pause()
+@@ -321,7 +655,7 @@ function ILRadio:toggle_pause()
+     if state == "active" and self.current then
+         if self.current.kind == "radio" then
+             self:stop()
+-            self:notice("Radio zatrzymane. Wybierz „Wznów ostatnią stację”, aby słuchać ponownie.")
++            self:notice("Radio wstrzymane. Wybierz „Wznów ostatnią stację”, aby słuchać ponownie.")
+         else
+             self:remember_position()
+             local paused = shell_call("pause")
+@@ -330,6 +664,9 @@ function ILRadio:toggle_pause()
+     elseif state == "paused" then
+         local resumed = shell_call("resume")
+         self:notice(resumed == "active" and "Wznowiono odtwarzanie." or "Odtwarzanie zostało zakończone.")
++    elseif self.job then
++        self:stop()
++        self:notice("Łączenie wstrzymane.")
+     elseif self.playlist and self.track_index then
+         self:play_file(self.playlist, self.track_index, self.track_group)
+     elseif self:find_last_station() then
+@@ -343,9 +680,11 @@ function ILRadio:onKeyPress(key)
+     if Device.model ~= "Kindle3" or not self.current then return end
+     -- Avoid a modal notice for the rocker so repeated presses reach the player.
+     if key:match({"VPlus"}) then
++        self.volume_keys_seen = true
+         self:volume_change(self.volume_step, true)
+         return true
+     elseif key:match({"VMinus"}) then
++        self.volume_keys_seen = true
+         self:volume_change(-self.volume_step, true)
+         return true
+     end
+@@ -363,7 +702,7 @@ function ILRadio:volume_change(delta, quiet)
+             self:notice(adjusted and ("Głośność " .. self.volume .. "%.")
+                 or ("Głośność przy następnym uruchomieniu: " .. self.volume .. "%."), 5)
+         end
+-    elseif shell_call("system-volume", delta > 0 and "up" or "down") == "adjusted" then
++    elseif shell_call("system-volume", self.volume) == "adjusted" then
+         if not quiet then self:notice("Głośność Kindle’a zmieniona. Ustawienie: " .. self.volume .. "%.") end
+     elseif current and current.kind == "radio" and self:status() == "active" then
+         if not quiet then
+@@ -382,11 +721,9 @@ function ILRadio:station_menu(category)
+         local entry = station
+         local name = entry[1]
+         local matches_category = entry[2] == category or (category == "Ulubione" and self.favorites[name])
+-        local stream = economy_stream(entry)
+-        if matches_category and (not self.economy or stream) then
+-            local label = self.economy and (name .. " · " .. stream.kbps .. " kb/s") or name
++        if matches_category then
+             menu[#menu + 1] = {
+-                text_func = function() return (self.favorites[name] and "★ " or "") .. label end,
++                text_func = function() return (self.favorites[name] and "★ " or "") .. name end,
+                 sub_item_table = {
+                     { text = "Słuchaj", keep_menu_open = true, callback = function() self:play_station(entry) end },
+                     {
+@@ -406,8 +743,7 @@ function ILRadio:station_menu(category)
+     end
+     if #menu == 0 then
+         menu[1] = {
+-            text = self.economy and "Brak stacji do 64 kb/s w tej kategorii."
+-                or "Brak ulubionych. Wybierz stację w innej kategorii.",
++            text = "Brak ulubionych. Wybierz stację w innej kategorii.",
+             enabled = false,
+         }
+     end
+@@ -435,31 +771,101 @@ function ILRadio:files_menu(group)
+     end
+     return menu
+ end
++function ILRadio:quality_options(key, options)
++    local list = {}
++    for _, row in ipairs(options) do
++        local value = row[1] or nil
++        list[#list + 1] = {text = row[2], keep_menu_open = true,
++            checked_func = function() return self.radio[key] == value end,
++            callback = function() self:set_quality(key, value) end}
++    end
++    return list
++end
++
++function ILRadio:check_decode_test()
++    local result = shell_call("decode-result")
++    self.decode_checks = self.decode_checks + 1
++    if result == "" and self.decode_checks <= 7 then
++        UIManager:scheduleIn(2, self.decode_tick)
++    elseif result:match("^pcm:%d+") then
++        self:notice("Silnik zdekodował próbkę do PCM. Odsłuch stacji pozwoli sprawdzić głośnik i połączenie Wi-Fi.", 12)
++    elseif result:match("^pcm%-core:%d+") then
++        self:notice("Silnik zdekodował rdzeń AAC. Wyjście ma częstotliwość rdzenia. Pełne odtworzenie SBR/PS pozostaje niepotwierdzone.", 13)
++    elseif result:match("^pcm%-unknown:%d+") then
++        self:notice("Silnik wygenerował PCM. Nie udało się ustalić parametrów rozszerzenia HE-AAC.", 12)
++    else
++        self:notice(ERRORS[result] or ERRORS.unconfirmed, 10)
++    end
++end
++
++function ILRadio:decode_menu()
++    local menu = {}
++    for _, sample in ipairs({
++        {"AAC-LC 48 kb/s · ADTS", "test-lc48.aac"},
++        {"HE-AAC 32 kb/s · ADTS", "test-he32.aac"},
++        {"HE-AAC v2 24 kb/s · ADTS", "test-hev224.aac"},
++        {"AAC-LC · M4A", "test-lc48.m4a"},
++        {"MP3 64 kb/s", "test-mp364.mp3"},
++    }) do
++        local title, name = sample[1], sample[2]
++        menu[#menu + 1] = {text = title, keep_menu_open = true, callback = function()
++            if self.job or self.current then self:notice("Zatrzymaj odtwarzanie przed próbą dekodera."); return end
++            local options = self:available_engines(name == "test-mp364.mp3" and "MP3" or "AAC")
++            local engine = options[1]
++            if not engine then self:notice(ERRORS.engine, 9); return end
++            local result = shell_call("decode-test", engine, name)
++            if result == "testing" then
++                self.decode_checks = 0
++                self:notice("Sprawdzam " .. title .. " · " .. engine, 3)
++                UIManager:unschedule(self.decode_tick)
++                UIManager:scheduleIn(2, self.decode_tick)
++            else
++                self:notice(result == "busy" and "Trwa poprzednia próba dekodera." or (ERRORS[result] or ERRORS.unconfirmed))
++            end
++        end}
++    end
++    return menu
++end
++
+ function ILRadio:radio_menu()
+     local menu = {
+         { text = "Stan Radia · v" .. RADIO_VERSION, callback = function()
+             local selected = (self.current and self.current.engine) or shell_call("probe", self.engine)
+             self:notice("IL Radio v" .. RADIO_VERSION .. "\nSilnik: " .. (selected ~= "" and selected or "brak")
+-                .. "\nKlawiatura K3: " .. (volume_input_open and "wejście podłączone" or "brak potwierdzenia")
++                .. "\nKlawiatura K3: " .. (self.volume_keys_seen and "odebrano klawisz głośności" or "oczekuje na próbę klawiszy")
+                 .. "\nOdtwarzanie: " .. self:status()
+                 .. "\nUwaga: działanie klawiszy i dźwięku wymaga testu na Kindle.", 18)
+         end },
+         { text = "Co gra?", callback = function() self:playing_info() end },
+-        { text = "Wznów / zatrzymaj radio lub pauza pliku", keep_menu_open = true, callback = function() self:toggle_pause() end },
++        { text = "Szczegóły źródła", callback = function() self:playing_info(true) end },
++        { text = "Potwierdź, że słychać dźwięk", callback = function() self:confirm_sound() end },
++        { text = "Następna stacja", callback = function() self:next_station(1) end },
++        { text = "Poprzednia stacja", callback = function() self:next_station(-1) end },
++        { text = "Odtwarzaj / pauza", keep_menu_open = true, callback = function() self:toggle_pause() end },
+         { text = "Wznów ostatnią stację", keep_menu_open = true, callback = function()
+             local station = self:find_last_station()
+             if station then self:play_station(station)
+             else self:notice("Brak ostatnio słuchanej stacji.") end
+         end },
+         { text = "Zatrzymaj", keep_menu_open = true, callback = function() self:stop(); self:notice("Odtwarzanie zatrzymane.") end },
++        { text_func = function() return "Głośność · " .. self.volume .. "%" end, enabled = false },
+         { text = "Następny utwór", callback = function() self:next_track(1) end },
+         { text = "Poprzedni utwór", callback = function() self:next_track(-1) end },
+         { text = "Ustawienia radia", sub_item_table = {
+-            {
+-                text = "Tryb oszczędny (do 64 kb/s)",
+-                checked_func = function() return self.economy end,
+-                callback = function() self:toggle_economy() end,
+-            },
++            { text = "Tryb jakości", sub_item_table_func = function() return self:quality_options("mode", T.modes) end },
++            { text = "Maksymalny bitrate", sub_item_table_func = function()
++                local options = {{false, "Według trybu"}}
++                for _, value in ipairs(T.limits) do
++                    options[#options + 1] = {value, value == 0 and "Bez limitu trybu Auto / Wysoka" or (value .. " kb/s")}
++                end
++                return self:quality_options("limit", options)
++            end },
++            { text = "Preferowany kodek", sub_item_table_func = function() return self:quality_options("codec", T.codecs) end },
++            { text = "Bufor odtwarzacza", sub_item_table_func = function()
++                return self:quality_options("buffer", {{64, "64 KiB"}, {128, "128 KiB"}, {256, "256 KiB"}})
++            end },
++            { text = "Najmniejszy transfer", checked_func = function() return self.radio.minimum end,
++                callback = function() self:set_quality("minimum", not self.radio.minimum) end },
+             {
+                 text = "Ekranowe przyciski głośności +/−",
+                 checked_func = function() return self.show_volume_buttons end,
+@@ -499,6 +905,7 @@ function ILRadio:radio_menu()
+             end
+             return opts
+         end },
++        { text = "Próby kodeków bez internetu", sub_item_table_func = function() return self:decode_menu() end },
+         { text = "Diagnostyka audio", callback = function()
+             local details = shell_call("diagnose")
+             if #details > 1100 then details = details:sub(1, 1100) end
+diff --git a/assets/ilradio_k3.koplugin/player.sh b/assets/ilradio_k3.koplugin/player.sh
+index 9d36412..9bd73bc 100644
+--- a/assets/ilradio_k3.koplugin/player.sh
++++ b/assets/ilradio_k3.koplugin/player.sh
+@@ -8,6 +8,12 @@ PID="$R/pid"
+ TOKEN="$R/token"
+ PAUSED="$R/paused"
+ LOG="$R/player.log"
++case "${ILRADIO_K3_SESSION:-}" in
++    *[!0-9-]*|"") last_token=$(cat "$R/last" 2>/dev/null);;
++    *) last_token=$ILRADIO_K3_SESSION;;
++esac
++case "$last_token" in *[!0-9-]*|"") :;; *) LOG="$R/log-$last_token.txt";; esac
++HERE=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd) || exit 1
+ [ ! -L "$R" ] && mkdir -p "$R" 2>/dev/null || exit 1
+ 
+ has() { command -v "$1" >/dev/null 2>&1; }
+@@ -57,7 +63,6 @@ is_ours() {
+ 
+ stop_audio() {
+     if is_ours; then
+-        kill -CONT "$p" 2>/dev/null || :
+         kill -TERM "$p" 2>/dev/null || :
+     fi
+     rm -f "$PID" "$TOKEN" "$PAUSED"
+@@ -117,6 +122,7 @@ play_backend() {
+     pct=$3
+     local_path=$4
+     offset=$5
++    cache=$6
+     volume=$(awk -v percent="$pct" 'BEGIN {printf "%.2f", percent / 100}')
+     case "$engine" in
+         gst-legacy|gst-mixer)
+@@ -126,7 +132,9 @@ play_backend() {
+                 exec "$gst" -m uridecodebin "uri=$uri" ! audioconvert ! audioresample ! mixersink
+             fi
+             exec "$gst" -m playbin "uri=$uri" "volume=$volume";;
+-        gst-modern) exec gst-launch-1.0 -m playbin "uri=$uri" "volume=$volume";;
++        gst-modern)
++            if [ -n "$local_path" ]; then exec gst-launch-1.0 -m playbin "uri=$uri" "volume=$volume"; fi
++            exec gst-launch-1.0 -m playbin "uri=$uri" "volume=$volume" "buffer-size=$((cache * 1024))";;
+         mplayer)
+             mplayer=$(mplayer_path)
+             [ -n "$mplayer" ] || return 2
+@@ -137,13 +145,176 @@ play_backend() {
+             if [ -n "$local_path" ]; then
+                 exec "$mplayer" "$@" -ss "$offset" "$local_path"
+             fi
+-            exec "$mplayer" "$@" "$uri";;
++            if [ "$cache" -gt 0 ]; then set -- "$@" -cache "$cache" -cache-min 15; fi
++            case "$uri" in
++                https://*) transport "$uri" "$mplayer" "$@" -;;
++                *) exec "$mplayer" "$@" "$uri";;
++            esac;;
+         mpg123) exec mpg123 -f "$((32768 * pct / 100))" -- "${local_path:-$uri}";;
+-        mpv) exec mpv --no-video --terminal=no "--volume=$pct" -- "${local_path:-$uri}";;
++        mpv) exec mpv --no-video --no-input-terminal --no-config --msg-level=all=warn \
++            "--term-playing-msg=ILRADIO_OUTPUT" "--volume=$pct" -- "${local_path:-$uri}";;
+     esac
+     return 2
+ }
+ 
++curl_stream() {
++    exec curl -fLsS --max-redirs 5 --connect-timeout 6 --speed-time 14 --speed-limit 128 \
++        --proto '=http,https' --proto-redir '=http,https' "$@"
++}
++
++transport() {
++    uri=$1
++    shift
++    if ! has curl; then echo 'ILRADIO_ERROR tls-tool'; return 2; fi
++    fifo="$R/stream-$ILRADIO_K3_SESSION"
++    mkfifo "$fifo" || return 2
++    curl_stream "$uri" > "$fifo" &
++    downloader=$!
++    "$@" < "$fifo" &
++    decoder=$!
++    trap 'kill "$downloader" "$decoder" 2>/dev/null; rm -f "$fifo"; exit 0' TERM INT HUP
++    wait "$decoder"
++    result=$?
++    kill "$downloader" 2>/dev/null || :
++    rm -f "$fifo"
++    return "$result"
++}
++
++run_logged() {
++    fifo="$R/log-$ILRADIO_K3_SESSION"
++    mkfifo "$fifo" || exit 2
++    # Only playback evidence, diagnostics and tags reach the rolling log.
++    tr '\r' '\n' < "$fifo" | awk -v out="$LOG" '
++        /AO:|AUDIO:|ILRADIO_|Starting playback|ANS_TIME_POSITION|Selected audio codec|[Aa]udio:|audio-codec|StreamTitle|ICY-META|title=|PLAYING|playing|[Ee]rror|[Ff]ail|[Cc]ould not|[Cc]annot|[Tt]imed out|[Bb]uffer|[Cc]ertificate|decoder|Decoder|SSL|TLS|Exiting/ {
++            rows[count % 36] = substr($0, 1, 384); count++
++            for (i = (count > 36 ? count - 36 : 0); i < count; i++) print rows[i % 36] > out
++            close(out)
++        }' &
++    logger=$!
++    sh "$0" backend-run "$@" > "$fifo" 2>&1 &
++    worker=$!
++    printf '%s\n' "$worker" > "$R/worker-$ILRADIO_K3_SESSION"
++    trap 'kill -CONT "$worker" 2>/dev/null; kill "$worker" 2>/dev/null; wait "$worker" 2>/dev/null; rm -f "$fifo" "$R/worker-$ILRADIO_K3_SESSION"; exit 0' TERM INT HUP
++    wait "$worker"
++    wait "$logger"
++    rm -f "$fifo" "$R/worker-$ILRADIO_K3_SESSION"
++}
++
++probe_stop() {
++    # A token guards against killing a process whose PID the kernel has reused.
++    probe_pid=$(cat "$R/probe.pid" 2>/dev/null)
++    probe_token=$(cat "$R/probe.token" 2>/dev/null)
++    case "$probe_pid" in ''|*[!0-9]*) :;;
++        *) if [ -n "$probe_token" ] && [ -r "/proc/$probe_pid/environ" ] &&
++              tr '\000' '\n' < "/proc/$probe_pid/environ" 2>/dev/null | grep -Fx "ILRADIO_K3_PROBE=$probe_token" >/dev/null; then
++               kill "$probe_pid" 2>/dev/null || :
++           fi;;
++    esac
++    rm -f "$R/probe.pid" "$R/probe.token"
++}
++
++probe_run() {
++    prefix="$R/probe-$ILRADIO_K3_PROBE"
++    mkfifo "$prefix.pipe" || exit 2
++    head -c 16384 < "$prefix.pipe" > "$prefix.sample" &
++    reader=$!
++    # Open the FIFO before curl. The reader sees EOF even if TLS fails before a response.
++    (
++        exec 3> "$prefix.pipe"
++        curl_stream --max-time 9 -D "$prefix.headers" -o /proc/self/fd/3 \
++            -w '%{http_code}\n%{url_effective}\n' "$1"
++    ) > "$prefix.meta" 2> "$prefix.error" &
++    downloader=$!
++    trap 'kill "$downloader" "$reader" 2>/dev/null; rm -f "$prefix".*; exit 0' TERM INT HUP
++    wait "$downloader"
++    result=$?
++    wait "$reader" 2>/dev/null || :
++    rm -f "$prefix.pipe"
++    printf '%s\n' "$result" > "$prefix.done"
++}
++
++stream_reason() {
++    pattern="$1"
++    if printf '%s' "$pattern" | grep -Eiq 'tls-tool|certificate|SSL|TLS|curl: \((35|51|58|59|60|77|83|90|91)\)'; then echo tls
++    elif printf '%s' "$pattern" | grep -Eiq 'No suitable plugins|No decoder|Cannot find codec|Cannot find audio codec|missing (a )?plug-?in|unrecognized format'; then echo codec
++    elif printf '%s' "$pattern" | grep -Eiq 'HTTP/[0-9.]+ [45][0-9][0-9]|[45][0-9][0-9] (Not Found|Forbidden|Unauthorized)|curl: \(22\)'; then echo address
++    elif printf '%s' "$pattern" | grep -Eiq 'Could not (connect|resolve)|Connection refused|Network is unreachable|curl: \((5|6|7)\)'; then echo network
++    elif printf '%s' "$pattern" | grep -Eiq 'timeout|timed out|too slow|curl: \(28\)'; then echo buffer
++    elif printf '%s' "$pattern" | grep -Eiq 'audio device|audio driver|alsa.*(error|fail)|Failed to initialize audio'; then echo output
++    else echo unconfirmed; fi
++}
++
++play_evidence() {
++    if [ -e "$PAUSED" ] && is_ours; then echo paused; return; fi
++    details=$(tail -n 36 "$LOG" 2>/dev/null)
++    reason=$(stream_reason "$details")
++    if [ "$reason" != unconfirmed ]; then echo "failed:$reason"; return; fi
++    if ! is_ours; then echo failed:unconfirmed; return; fi
++    if printf '%s' "$details" | grep -Eq '^AO: |^ILRADIO_OUTPUT|audio-codec=' &&
++       printf '%s' "$details" | grep -Eq 'Starting playback|ILRADIO_OUTPUT|new-state=\(GstState\)playing'; then
++        echo decoded
++    else
++        echo pending
++    fi
++}
++
++
++decode_sample() {
++    engine=$1
++    name=$2
++    input="$HERE/$name"
++    pcm="$R/diagnostic.pcm"
++    errors="$R/diagnostic.log"
++    [ -s "$input" ] || return 2
++    rm -f "$pcm" "$errors"
++    case "$engine" in
++        mplayer)
++            exe=$(mplayer_path)
++            set -- "$exe" -noconfig all -really-quiet -novideo -ao "pcm:fast:file=$pcm" "$input";;
++        gst-legacy|gst-mixer)
++            exe=$(gst_legacy)
++            if gst_has wavenc; then
++                set -- "$exe" -q filesrc "location=$input" ! decodebin ! audioconvert ! wavenc ! filesink "location=$pcm"
++            else
++                set -- "$exe" -q filesrc "location=$input" ! decodebin ! audioconvert ! filesink "location=$pcm"
++            fi;;
++        gst-modern)
++            set -- gst-launch-1.0 -q filesrc "location=$input" ! decodebin ! audioconvert ! wavenc ! filesink "location=$pcm";;
++        mpg123)
++            if [ "$name" != test-mp364.mp3 ]; then echo codec; return; fi
++            set -- mpg123 -q -w "$pcm" "$input";;
++        mpv)
++            set -- mpv --no-config --no-video --ao=pcm "--ao-pcm-file=$pcm" -- "$input";;
++        *) echo engine; return;;
++    esac
++    (ulimit -f 2048; exec "$@") > "$errors" 2>&1 &
++    decoder=$!
++    (sleep 12; kill "$decoder" 2>/dev/null || :) &
++    timeout_pid=$!
++    trap 'kill "$decoder" "$timeout_pid" 2>/dev/null; rm -f "$pcm" "$errors"; exit 0' TERM INT HUP
++    wait "$decoder"
++    result=$?
++    kill "$timeout_pid" 2>/dev/null || :
++    size=0
++    if [ -s "$pcm" ]; then size=$(wc -c < "$pcm"); fi
++    if [ "$result" = 0 ] && [ "${size:-0}" -gt 4096 ]; then
++        case "$name" in
++            test-he32.aac|test-hev224.aac)
++                rate=$(od -An -t u1 -j 24 -N 4 "$pcm" 2>/dev/null | awk 'NF==4 {print $1 + 256*$2 + 65536*$3 + 16777216*$4}')
++                case "$rate" in
++                    44100|48000) echo "pcm:$size";;
++                    22050|24000) echo "pcm-core:$size";;
++                    *) echo "pcm-unknown:$size";;
++                esac;;
++            *) echo "pcm:$size";;
++        esac
++    else
++        stream_reason "$(tail -n 12 "$errors" 2>/dev/null)"
++    fi
++    rm -f "$pcm" "$errors"
++}
++
++
+ control() {
+     is_ours || return 1
+     fifo="$R/control-$token"
+@@ -155,7 +326,7 @@ control() {
+ case "${1:-}" in
+     probe) backend "${2:-auto}";;
+     start)
+-        uri="${2:-}"; wanted="${3:-auto}"; pct="${4:-70}"; local_path="${5:-}"; offset="${6:-0}"
++        uri="${2:-}"; wanted="${3:-auto}"; pct="${4:-70}"; local_path="${5:-}"; offset="${6:-0}"; cache="${7:-128}"
+         case "$uri" in http://*|https://*|file://*) :;; *) echo invalid_target; exit 2;; esac
+         case "$local_path" in
+             "") :;;
+@@ -167,19 +338,40 @@ case "${1:-}" in
+         case "$pct" in ''|*[!0-9]*|????*) pct=70;; esac
+         case "$offset" in ''|*[!0-9]*|????????*) offset=0;; esac
+         [ "$pct" -le 100 ] || pct=100
++        case "$cache" in 64|128|256) :;; *) cache=128;; esac
+         engine=$(backend "$wanted")
+         [ -n "$engine" ] || { echo no_engine; exit 3; }
+         stop_audio
+         # Only filenames generated by this script live in this private directory.
+-        rm -f "$R"/control-* "$R"/stream-*
+-        : > "$LOG"
++        rm -f "$R"/control-* "$R"/stream-* "$R"/log-* "$R"/worker-*
+         token="$$-$(date +%s)"
++        printf '%s\n' "$token" > "$R/last"
+         printf '%s\n' "$token" > "$TOKEN"
+-        ILRADIO_K3_SESSION="$token" sh "$0" run "$engine" "$uri" "$pct" "$local_path" "$offset" </dev/null >> "$LOG" 2>&1 &
++        ILRADIO_K3_SESSION="$token" sh "$0" run "$engine" "$uri" "$pct" "$local_path" "$offset" "$cache" </dev/null >/dev/null 2>&1 &
+         echo "$!" > "$PID"
+         echo "starting:$engine"
+         ;;
+-    run) shift; play_backend "$@";;
++    run) shift; run_logged "$@";;
++    backend-run) shift; play_backend "$@";;
++    probe-start)
++        case "${2:-}" in http://*|https://*) :;; *) echo address; exit 0;; esac
++        if ! has curl; then echo unavailable; exit 0; fi
++        probe_stop
++        rm -f "$R"/probe-*.sample "$R"/probe-*.meta "$R"/probe-*.headers "$R"/probe-*.done "$R"/probe-*.error
++        token="$$-$(date +%s)"
++        printf '%s\n' "$token" > "$R/probe.token"
++        ILRADIO_K3_PROBE="$token" sh "$0" probe-run "$2" </dev/null >/dev/null 2>&1 &
++        echo "$!" > "$R/probe.pid"
++        echo "$R/probe-$token";;
++    probe-run) probe_run "$2";;
++    probe-stop) probe_stop;;
++    evidence) play_evidence;;
++    facts)
++        tail -n 36 "$LOG" 2>/dev/null | sed -n \
++            -e 's/^AUDIO: \([0-9][0-9]*\) Hz, \([0-9][0-9]*\) ch,.*/pcm=\1 \2/p' \
++            -e 's/^AUDIO: .* \([0-9.]*\) kbit.*/bitrate=\1/p' \
++            -e 's/^Selected audio codec: /decoder=/p' \
++            -e 's/^ANS_TIME_POSITION=/position=/p';;
+     health)
+         if ! is_ours; then echo failed
+         elif [ -s "$LOG" ] && tail -n 25 "$LOG" | grep -Eiq '(^| )ERROR(:| from)|Could not (open|connect|resolve)|No suitable plugins|Failed to (open|connect)'; then echo failed
+@@ -192,14 +384,34 @@ case "${1:-}" in
+             echo stopped
+         fi;;
+     pause)
+-        if is_ours && kill -STOP "$p" 2>/dev/null; then : > "$PAUSED"; echo paused
++        # Local direct engines are children of the logging wrapper.
++        if is_ours && child=$(cat "$R/worker-$token" 2>/dev/null) && kill -STOP "$child" 2>/dev/null; then : > "$PAUSED"; echo paused
+         else echo stopped
+         fi;;
+     resume)
+-        if is_ours && kill -CONT "$p" 2>/dev/null; then rm -f "$PAUSED"; echo active
++        if is_ours && child=$(cat "$R/worker-$token" 2>/dev/null) && kill -CONT "$child" 2>/dev/null; then rm -f "$PAUSED"; echo active
+         else echo stopped
+         fi;;
+-    stop) stop_audio; echo stopped;;
++    stop) probe_stop; stop_audio; echo stopped;;
++    report)
++        printf '%s\n' "$2" "$3" "$4" > "$R/report.new" && mv "$R/report.new" "$R/report";;
++    decode-test)
++        name="$3"
++        case "$name" in test-lc48.aac|test-he32.aac|test-hev224.aac|test-lc48.m4a|test-mp364.mp3) :;; *) exit 2;; esac
++        case "$2" in auto|gst-legacy|gst-mixer|mplayer|mpg123|gst-modern|mpv) :;; *) exit 2;; esac
++        engine=$(backend "$2")
++        if [ -z "$engine" ]; then echo engine; exit 0; fi
++        if ! mkdir "$R/test-running" 2>/dev/null; then echo busy; exit 0; fi
++        rm -f "$R/test-done"
++        sh "$0" decode-run "$engine" "$name" </dev/null >/dev/null 2>&1 &
++        echo testing;;
++    decode-run)
++        result=$(decode_sample "$2" "$3")
++        printf '%s\n' "$3 · $2 · ${result:-unconfirmed}" > "$R/test-$3"
++        printf '%s\n' "${result:-unconfirmed}" > "$R/test-done"
++        rmdir "$R/test-running";;
++    decode-result)
++        if [ -r "$R/test-done" ]; then cat "$R/test-done"; fi;;
+     position)
+         if [ ! -e "$PAUSED" ]; then control get_time_pos || exit 0; fi
+         if [ -r "$LOG" ]; then
+@@ -220,7 +432,22 @@ case "${1:-}" in
+             if has "$program"; then echo "+ $program"; fi
+         done
+         path=$(mplayer_path)
+-        if [ -n "$path" ]; then echo "+ MPlayer ($path)"; fi
++        if [ -n "$path" ]; then
++            echo "+ MPlayer ($path)"
++            "$path" -noconfig all -ac help 2>/dev/null | grep -Ei 'aac|faad|mp3' | head -n 10 | cut -c 1-135
++        fi
++        for inspector in gst-inspect-0.10 gst-inspect gst-inspect-1.0; do
++            if has "$inspector"; then
++                for element in faad ffdec_aac avdec_aac aacparse qtdemux souphttpsrc; do
++                    if "$inspector" "$element" >/dev/null 2>&1; then echo "+ $inspector: $element"; fi
++                done
++            fi
++        done
++        echo "evidence=$(play_evidence)"
++        if [ -r "$R/report" ]; then echo "Ostatnia stacja / adres / wynik:"; head -n 3 "$R/report" | cut -c 1-180; fi
++        for file in "$R"/test-*.aac "$R"/test-*.m4a "$R"/test-*.mp3; do
++            if [ -f "$file" ]; then head -n 1 "$file"; fi
++        done
+         for device in /dev/dsp /dev/snd; do if [ -e "$device" ]; then echo "+ $device"; fi; done
+         echo "status=$(sh "$0" status)" 
+         echo "health=$(sh "$0" health)"
+@@ -234,8 +461,21 @@ case "${1:-}" in
+         case "$pct" in ''|*[!0-9]*|????*) exit 2;; esac
+         [ "$pct" -le 100 ] || exit 2
+         if control "volume $pct 1"; then echo adjusted; fi;;
++    volume-node)
++        if [ -r /proc/bus/input/devices ]; then
++            awk '/^N: Name=/ {volume = tolower($0) ~ /volume|vol[ _-]?keys/}
++                 /^H: Handlers=/ && volume {
++                     for (i=1; i<=NF; i++) if ($i ~ /^event[0-9]+$/) {
++                         print "/dev/input/" $i; exit
++                     }
++                 }' /proc/bus/input/devices
++        fi;;
+     system-volume)
+-        case "${2:-}" in up) adj='5%+';; down) adj='5%-';; *) echo unsupported; exit 2;; esac
++        case "${2:-}" in
++            up) adj='5%+';; down) adj='5%-';;
++            *[!0-9]*|""|????*) echo unsupported; exit 2;;
++            *) if [ "$2" -gt 100 ]; then exit 2; fi; adj="$2%";;
++        esac
+         if has amixer && { amixer -q sset Master "$adj" >/dev/null 2>&1 ||
+             amixer -q sset PCM "$adj" >/dev/null 2>&1; }; then echo adjusted
+         else echo unsupported
+diff --git a/assets/ilradio_k3.koplugin/stations.lua b/assets/ilradio_k3.koplugin/stations.lua
+index 2b5b05c..694d633 100644
+--- a/assets/ilradio_k3.koplugin/stations.lua
++++ b/assets/ilradio_k3.koplugin/stations.lua
+@@ -1,9 +1,10 @@
+ -- Katalog Radio Browser oraz adresy nadawców (10.11.2026).
+ -- Strumienie mogą zmienić adres lub wymagać kodeka/HTTPS niedostępnego na Kindle K3.
+ -- Wiersz: { nazwa, kategoria, URL, typ, zapasowy URL, economy = { url, kbps } }
+--- Warianty oszczędne mają potwierdzoną nominalną przepływność audio.
++-- Zweryfikowane parametry i dodatkowe źródła znajdują się w streams.tsv.
+ return {
+     {"RMF FM",                 "Popularne", "http://31.192.216.8/rmf_fm", "MP3", "https://rs101-krk.rmfstream.pl/rmf_fm", economy = { url = "http://195.150.20.9/RMFFM48", kbps = 48 }},
++    {"RMF MAXX",               "Popularne", "http://rs202-krk.rmfstream.pl/RMFMAXXX48", "AAC"},
+     {"Radio ZET",              "Popularne", "https://zt.cdn.eurozet.pl/zet-net.mp3", "MP3/HTTPS"},
+     {"RMF Classic",            "Popularne", "http://rmfstream1.interia.pl:8000/rmf_classic", "MP3", "https://rs203-krk-cyfronet.rmfstream.pl/rmf_classic", economy = { url = "http://31.192.216.8/RMFCLASSIC48", kbps = 48 }},
+     {"Chilli ZET",             "Popularne", "https://ch.cdn.eurozet.pl/chi-net.mp3", "MP3/HTTPS"},
+@@ -35,6 +36,7 @@ return {
+     {"Radio Poznań",           "Regionalne", "http://stream4.nadaje.com:8578/poznan", "MP3"},
+     {"Radio Rzeszów",          "Regionalne", "https://streaming.g-news.pl:8040/rzeszow", "MP3/HTTPS"},
+     {"Radio Warszawa",         "Regionalne", "http://streaming01.technologicznie.net:8765/radio_warszawa.mp3", "MP3"},
++    {"RMF Chillout",           "Muzyczne", "http://31.192.216.8/CHILLOUT", "AAC"},
+     {"RMF 90s",                "Muzyczne", "http://31.192.216.7/90S", "AAC+", economy = { url = "http://31.192.216.7/90S", kbps = 64 }},
+     {"RMF Dance",              "Muzyczne", "http://rmfstream1.interia.pl:8000/rmf_dance", "MP3", economy = { url = "http://31.192.216.10/DANCE", kbps = 64 }},
+     {"RMF Polski Rock",        "Muzyczne", "http://195.150.20.9/rmf_polski_rock", "MP3"},
+diff --git a/assets/ilradio_k3.koplugin/streams.tsv b/assets/ilradio_k3.koplugin/streams.tsv
+new file mode 100644
+index 0000000..d571c45
+--- /dev/null
++++ b/assets/ilradio_k3.koplugin/streams.tsv
+@@ -0,0 +1,79 @@
++# Stacja	URL	Kodek próbki	Nominalny kb/s	Dostawca	Data weryfikacji	Adres końcowy (próbka)	Format	Zmierzony kb/s
++RMF FM	http://31.192.216.8/rmf_fm	MP3	128	Adres IP katalogu RMF · typ serwera nieustalony	2026-11-10	http://31.192.216.8/rmf_fm	MPEG Audio	128.00
++RMF FM	https://rs101-krk.rmfstream.pl/rmf_fm			Infrastruktura RMF	-
++RMF FM	http://195.150.20.9/RMFFM48	HE-AAC v2	48	Adres IP katalogu RMF · typ serwera nieustalony	2026-11-10	http://195.150.20.9/RMFFM48	ADTS	47.63
++RMF FM	https://rs101-krk.rmfstream.pl/RMFFM48	HE-AAC v2	48	Infrastruktura RMF	2026-11-10	https://rs101-krk.rmfstream.pl/RMFFM48	ADTS	47.81
++RMF MAXX	http://rs202-krk.rmfstream.pl/RMFMAXXX48	HE-AAC v2	48	Infrastruktura RMF	2026-11-10	http://rs202-krk.rmfstream.pl/RMFMAXXX48	ADTS	47.70
++RMF MAXX	https://rs9-krk2-cyfronet.rmfstream.pl/RMFMAXXX48	HE-AAC v2	48	Infrastruktura RMF	2026-11-10	https://rs9-krk2-cyfronet.rmfstream.pl/RMFMAXXX48	ADTS	47.98
++RMF MAXX	https://rs202-krk-cyfronet.rmfstream.pl/rmf_maxxx	MP3	128	Infrastruktura RMF	2026-11-10	https://rs202-krk-cyfronet.rmfstream.pl/rmf_maxxx	MPEG Audio	128.00
++Radio ZET	https://zt.cdn.eurozet.pl/zet-net.mp3	MP3	128	Infrastruktura Eurozet	2026-11-10	https://zt.cdn.eurozet.pl/zet-net.mp3	MPEG Audio	128.00
++RMF Classic	http://rmfstream1.interia.pl:8000/rmf_classic	MP3	128	Infrastruktura RMF	2026-11-10	http://rmfstream1.interia.pl:8000/rmf_classic	MPEG Audio	128.00
++RMF Classic	https://rs203-krk-cyfronet.rmfstream.pl/rmf_classic			Infrastruktura RMF	-
++RMF Classic	http://31.192.216.8/RMFCLASSIC48	HE-AAC v2	48	Adres IP katalogu RMF · typ serwera nieustalony	2026-11-10	http://31.192.216.8/RMFCLASSIC48	ADTS	48.16
++RMF Classic	https://rs201-krk.rmfstream.pl/RMFCLASSIC48	HE-AAC v2	48	Infrastruktura RMF	2026-11-10	https://rs201-krk.rmfstream.pl/RMFCLASSIC48	ADTS	48.03
++Chilli ZET	https://ch.cdn.eurozet.pl/chi-net.mp3	MP3	128	Infrastruktura Eurozet	2026-11-10	https://ch.cdn.eurozet.pl/chi-net.mp3	MPEG Audio	128.00
++TOK FM	http://stream30.radiostream.pl/tuba10-1.mp3	MP3	128	Operator RadioStream	2026-11-10	http://stream30.radiostream.pl/tuba10-1.mp3	MPEG Audio	128.00
++TOK FM	https://radiostream.pl/tuba10-1.mp3	MP3	128	Operator RadioStream	2026-11-10	https://radiostream.pl/tuba10-1.mp3	MPEG Audio	128.00
++TOK FM	http://stream30.radiostream.pl/tuba10-2.mp3	MP3	64	Operator RadioStream	2026-11-10	http://stream30.radiostream.pl/tuba10-2.mp3	MPEG Audio	64.00
++TOK FM	https://radiostream.pl/tuba10-2.mp3	MP3	64	Operator RadioStream	2026-11-10	https://radiostream.pl/tuba10-2.mp3	MPEG Audio	64.00
++Antyradio	https://an.cdn.eurozet.pl/ant-web.mp3	MP3	128	Infrastruktura Eurozet	2026-11-10	https://an.cdn.eurozet.pl/ant-web.mp3	MPEG Audio	128.00
++ESKA ROCK	https://ic2.smcdn.pl/5380-1.mp3	MP3	128	CDN grupy ZPR Media	2026-11-10	https://ic2.smcdn.pl/5380-1.mp3	MPEG Audio	128.00
++ESKA ROCK	https://ic2.smcdn.pl/5380-2.aac	HE-AAC	48	CDN grupy ZPR Media	2026-11-10	https://ic2.smcdn.pl/5380-2.aac	ADTS	48.18
++ESKA ROCK	http://ic2.smcdn.pl/5380-2.aac	HE-AAC	48	CDN grupy ZPR Media	2026-11-10	http://ic2.smcdn.pl/5380-2.aac	ADTS	48.00
++Radio ESKA Kraków	http://ic1.smcdn.pl/2070-1.mp3	MP3	128	CDN grupy ZPR Media	2026-11-10	http://ic1.smcdn.pl/2070-1.mp3	MPEG Audio	128.00
++Radio ESKA Kraków	http://ic1.smcdn.pl/2070-2.aac	HE-AAC	48	CDN grupy ZPR Media	2026-11-10	http://ic1.smcdn.pl/2070-2.aac	ADTS	47.78
++Radio ESKA Kraków	https://ic1.smcdn.pl/2070-2.aac	HE-AAC	48	CDN grupy ZPR Media	2026-11-10	https://ic1.smcdn.pl/2070-2.aac	ADTS	48.37
++VOX FM	http://ic1.smcdn.pl/3990-1.mp3	MP3	128	CDN grupy ZPR Media	2026-11-10	http://ic1.smcdn.pl/3990-1.mp3	MPEG Audio	128.00
++VOX FM	http://ic1.smcdn.pl/3990-2.aac	HE-AAC	48	CDN grupy ZPR Media	2026-11-10	http://ic1.smcdn.pl/3990-2.aac	ADTS	48.37
++VOX FM	https://ic1.smcdn.pl/3990-2.aac	HE-AAC	48	CDN grupy ZPR Media	2026-11-10	https://ic1.smcdn.pl/3990-2.aac	ADTS	48.32
++Złote Przeboje	http://radiostream.pl/tuba8928-1.mp3	MP3	128	Operator RadioStream	2026-11-10	http://radiostream.pl/tuba8928-1.mp3	MPEG Audio	128.00
++Radio Plus	https://pl02.cdn.eurozet.pl/plu-waw.mp3	MP3	128	Infrastruktura Eurozet	2026-11-10	https://pl02.cdn.eurozet.pl/plu-waw.mp3	MPEG Audio	128.00
++Radio 357	https://stream.radio357.pl/			Oficjalny adres Radia 357	-
++Radio 357	https://n-11-21.dcs.redcdn.pl/sc/o2/radio357/live/radio357_pr.livx?preroll=0	AAC-LC	196	Zewnętrzny operator CDN	2026-11-10	https://n-11-21.dcs.redcdn.pl/sc/o2/radio357/live/radio357_pr.livx?preroll=0	ADTS	195.08
++Radio Nowy Świat	http://stream.rcs.revma.com/ypqt40u0x1zuv	MP3	128	Zewnętrzny operator CDN	2026-11-10	http://n03-eu2.rcs.revma.com/ypqt40u0x1zuv	MPEG Audio	128.00
++Radio Nowy Świat	https://go-audio.toya.net.pl/63214			Zewnętrzny operator CDN	-
++Radio Nowy Świat	https://stream.rcs.revma.com/ypqt40u0x1zuv	MP3	128	Zewnętrzny operator CDN	2026-11-10	https://n02-eu1.rcs.revma.com/ypqt40u0x1zuv	MPEG Audio	128.00
++Radio Wnet	http://audio.radiownet.pl:8000/stream	MP3	160	Dotychczasowy katalog · dostawca nieustalony	2026-11-10	http://audio.radiownet.pl:8000/stream	MPEG Audio	160.00
++Rock Radio	https://radiostream.pl/tuba8-1.mp3	MP3	128	Operator RadioStream	2026-11-10	https://radiostream.pl/tuba8-1.mp3	MPEG Audio	128.00
++Radio Pogoda	https://radiostream.pl/tuba140-1.mp3	MP3	128	Operator RadioStream	2026-11-10	https://radiostream.pl/tuba140-1.mp3	MPEG Audio	128.00
++Jedynka PR1	http://mp3.polskieradio.pl:8900/			Serwer Polskiego Radia	-
++Jedynka PR1	https://stream11.polskieradio.pl/pr1/pr1.sdp/playlist.m3u8	AAC-LC	195	Serwer Polskiego Radia	2026-11-10	https://stream11.polskieradio.pl/pr1/pr1.sdp/playlist.m3u8	HLS	194.14
++Dwójka PR2	http://mp3.polskieradio.pl:8902/			Serwer Polskiego Radia	-
++Dwójka PR2	https://stream12.polskieradio.pl/pr2/pr2.sdp/playlist.m3u8	AAC-LC	323	Serwer Polskiego Radia	2026-11-10	https://stream12.polskieradio.pl/pr2/pr2.sdp/playlist.m3u8	HLS	322.62
++Trójka PR3	http://stream3.polskieradio.pl:8904/			Serwer Polskiego Radia	-
++Trójka PR3	https://stream13.polskieradio.pl/pr3/pr3.sdp/playlist.m3u8	AAC-LC	195	Serwer Polskiego Radia	2026-11-10	https://stream13.polskieradio.pl/pr3/pr3.sdp/playlist.m3u8	HLS	194.55
++Czwórka PR4	http://stream3.polskieradio.pl:8906/			Serwer Polskiego Radia	-
++Czwórka PR4	https://stream14.polskieradio.pl/pr4/pr4.sdp/playlist.m3u8	AAC-LC	196	Serwer Polskiego Radia	2026-11-10	https://stream14.polskieradio.pl/pr4/pr4.sdp/playlist.m3u8	HLS	195.04
++Polskie Radio 24	http://stream3.polskieradio.pl:8080/			Serwer Polskiego Radia	-
++Polskie Radio 24	https://stream15.polskieradio.pl/pr24/pr24.sdp/playlist.m3u8	AAC-LC	195	Serwer Polskiego Radia	2026-11-10	https://stream15.polskieradio.pl/pr24/pr24.sdp/playlist.m3u8	HLS	194.67
++Radio Chopin	http://stream3.polskieradio.pl:8910/			Serwer Polskiego Radia	-
++Polskie Radio Kierowców	http://stream3.polskieradio.pl:8918/			Serwer Polskiego Radia	-
++Polskie Radio Kierowców	https://stream10.polskieradio.pl/prk/rdk.sdp/playlist.m3u8	AAC-LC	194	Serwer Polskiego Radia	2026-11-10	https://stream10.polskieradio.pl/prk/rdk.sdp/playlist.m3u8	HLS	193.50
++Radio Kraków	http://stream3.nadaje.com:9116/radiokrakow	MP3	256	Zewnętrzny operator nadaje.com	2026-11-10	http://stream3.nadaje.com:9116/radiokrakow	MPEG Audio	256.00
++Radio Kraków	https://stream3.nadaje.com:9117/radiokrakow	MP3	256	Zewnętrzny operator nadaje.com	2026-11-10	https://stream3.nadaje.com:9117/radiokrakow	MPEG Audio	256.00
++Radio RDC	http://stream2.nadaje.com:11140/rdc	MP3	256	Zewnętrzny operator nadaje.com	2026-11-10	http://stream2.nadaje.com:11140/rdc	MPEG Audio	256.00
++Radio Katowice	http://stream4.nadaje.com:9212/radiokatowice	MP3	128	Zewnętrzny operator nadaje.com	2026-11-10	http://stream4.nadaje.com:9212/radiokatowice	MPEG Audio	128.00
++Radio Gdańsk	http://stream.task.gda.pl:8000/rg1	MP3	128	Dotychczasowy katalog · dostawca nieustalony	2026-11-10	http://stream.task.gda.pl:8000/rg1	MPEG Audio	128.00
++Radio Gdańsk	https://stream.task.gda.pl:8443/rg1	MP3	128	Dotychczasowy katalog · dostawca nieustalony	2026-11-10	https://stream.task.gda.pl:8443/rg1	MPEG Audio	128.00
++Radio Szczecin	http://stream4.nadaje.com:11986/prs	MP3	128	Zewnętrzny operator nadaje.com	2026-11-10	http://stream4.nadaje.com:11986/prs	MPEG Audio	128.00
++Radio Wrocław	http://stream4.nadaje.com:9240/prw	MP3	128	Zewnętrzny operator nadaje.com	2026-11-10	http://stream4.nadaje.com:9240/prw	MPEG Audio	128.00
++Radio Poznań	http://stream4.nadaje.com:8578/poznan	MP3	96	Zewnętrzny operator nadaje.com	2026-11-10	http://stream4.nadaje.com:8578/poznan	MPEG Audio	96.00
++Radio Rzeszów	https://streaming.g-news.pl:8040/rzeszow	MP3	128	Dotychczasowy katalog · dostawca nieustalony	2026-11-10	https://streaming.g-news.pl:8040/rzeszow	MPEG Audio	128.00
++Radio Warszawa	http://streaming01.technologicznie.net:8765/radio_warszawa.mp3	MP3	256	Dotychczasowy katalog · dostawca nieustalony	2026-11-10	http://streaming01.technologicznie.net:8765/radio_warszawa.mp3	MPEG Audio	256.00
++RMF Chillout	http://31.192.216.8/CHILLOUT	HE-AAC	64	Adres IP katalogu RMF · typ serwera nieustalony	2026-11-10	http://31.192.216.8/CHILLOUT	ADTS	64.34
++RMF Chillout	https://rs101-krk.rmfstream.pl/CHILLOUT	HE-AAC	64	Infrastruktura RMF	2026-11-10	https://rs101-krk.rmfstream.pl/CHILLOUT	ADTS	64.09
++RMF 90s	http://31.192.216.7/90S	HE-AAC	64	Adres IP katalogu RMF · typ serwera nieustalony	2026-11-10	http://31.192.216.7/90S	ADTS	63.66
++RMF Dance	http://rmfstream1.interia.pl:8000/rmf_dance	MP3	128	Infrastruktura RMF	2026-11-10	http://rmfstream1.interia.pl:8000/rmf_dance	MPEG Audio	128.00
++RMF Dance	http://31.192.216.10/DANCE	HE-AAC	64	Adres IP katalogu RMF · typ serwera nieustalony	2026-11-10	http://31.192.216.10/DANCE	ADTS	63.91
++RMF Polski Rock	http://195.150.20.9/rmf_polski_rock	MP3	128	Adres IP katalogu RMF · typ serwera nieustalony	2026-11-10	http://195.150.20.9/rmf_polski_rock	MPEG Audio	128.00
++RMF 80s	http://195.150.20.9/80S	HE-AAC	64	Adres IP katalogu RMF · typ serwera nieustalony	2026-11-10	http://195.150.20.9/80S	ADTS	64.13
++RMF 24	http://rmfstream1.interia.pl/rmf_24	MP3	128	Infrastruktura RMF	2026-11-10	http://rmfstream1.interia.pl/rmf_24	MPEG Audio	128.00
++RMF 24	http://rs201-krk.rmfstream.pl/RMF24	HE-AAC	64	Infrastruktura RMF	2026-11-10	http://rs201-krk.rmfstream.pl/RMF24	ADTS	64.12
++Radio Kampus	http://193.0.98.66:8005/	MP3	128	Dotychczasowy katalog · dostawca nieustalony	2026-11-10	http://193.0.98.66:8005/	MPEG Audio	128.00
++Radio Kampus	https://stream.radiokampus.fm/kampus	MP3	128	Dotychczasowy katalog · dostawca nieustalony	2026-11-10	https://stream.radiokampus.fm/kampus	MPEG Audio	128.00
++Radio Kampus	http://193.0.98.66:8002/;	MP3	64	Dotychczasowy katalog · dostawca nieustalony	2026-11-10	http://193.0.98.66:8002/;	MPEG Audio	64.00
++Radio RAM	http://stream4.nadaje.com:9220/ram	MP3	128	Zewnętrzny operator nadaje.com	2026-11-10	http://stream4.nadaje.com:9220/ram	MPEG Audio	128.00
++Radio RAM	http://stream2.nadaje.com:9228/ram.aac			Zewnętrzny operator nadaje.com	-
++ESKA Warszawa	http://waw.ic.smcdn.pl/2380-1.mp3	MP3	128	CDN grupy ZPR Media	2026-11-10	http://ic1.smcdn.pl/2380-1.mp3	MPEG Audio	128.00
++ESKA Warszawa	https://waw.ic.smcdn.pl/2380-2.aac	HE-AAC	48	CDN grupy ZPR Media	2026-11-10	https://ic2.smcdn.pl/2380-2.aac	ADTS	48.39
++ESKA Warszawa	https://ic1.smcdn.pl/2380-2.aac	HE-AAC	48	CDN grupy ZPR Media	2026-11-10	https://ic1.smcdn.pl/2380-2.aac	ADTS	47.81
+diff --git a/assets/ilradio_k3.koplugin/test-he32.aac b/assets/ilradio_k3.koplugin/test-he32.aac
+new file mode 100644
+index 0000000000000000000000000000000000000000..9ca14b048ae8674c2a77a7312b575cc438396e8e
+GIT binary patch
+literal 10589
+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
+
+literal 0
+HcmV?d00001
+
+diff --git a/assets/ilradio_k3.koplugin/test-hev224.aac b/assets/ilradio_k3.koplugin/test-hev224.aac
+new file mode 100644
+index 0000000000000000000000000000000000000000..1c9559dcd6bc801a99e6e5c85ce03acce8a7c157
+GIT binary patch
+literal 8081
+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
+Z$Xq<Q{e2h^4<-JskDVjN|Na;0{{eei2aW&$
+
+literal 0
+HcmV?d00001
+
+diff --git a/assets/ilradio_k3.koplugin/test-lc48.aac b/assets/ilradio_k3.koplugin/test-lc48.aac
+new file mode 100644
+index 0000000000000000000000000000000000000000..cb97bd2f93af464b40001bf162f665d38e0c7837
+GIT binary patch
+literal 15424
+zcmc(Gc|6qn`}SwX3^Uf5K@C}E#xg>-Y-Jlvj3|^-lo(5?)FG9F#Ah@ZA!|s5P-&A=
+zQAdoW4k{c8sccb-vNQJQGvl0Z&hPmyzwfE%^}PQme~o+Y<+`u?x^GLP4j|UElt|nJ
+zNI1Z(rYZ$@{eOCHOOPqD7A&I8bI@#hmWn^_|K)+DM%?Oc317anNwa43F6HmA-GfnR
+zqr~XtsCHvX!Ov4G=**59B^B_=K0Z)o-ly*u-ODOljT9sNcL%7m%p+qeei3@)%=hK1
+z^f4dU?8GZ+OUnkfRKQI4-g>EksND|2U!2ksnP)^!Pej%zD2H@RCT{~aK4QuigM~Q$
+zV!xpUuN!RA-CY9=xqHZ6@In~w=2gtC{c$_QQ#)_WUO4o?-`{X>%>PYu>DpX`2W4#f
+zi(!M4%eWZTIXOQ3E64m9=+?9LP47u^b&ZJ{f2{i+7mdh-ltzE<Hx-Wni9uU2x0lM5
+zTbbf~l5&ipL3nH1HZm%R6C8oDRJL<->)W84zekbvp)J%oJ?0qm_9n$A$=()Jv8j?r
+z9t<HNTU(<0#--F2{Rj{wSaxJoIe7f^cvkFPf05oxVL3Nt%r-2gWc97E6Q9i-d*3Qq
+zx(7~el{lOh@IdQ~fc3W6-jREE4WsZhPBFjXdwrat(XXims0&=%1T8KQ@mqjTgiaU}
+zekTUZ#T=P~%`vhv2VJQ2pwwu$uS^AfW8hHxJ?k;0R4YjU)@a$H={nZF(VmbSE>ecG
+zofQtDrDtk(blf?|=6zySDG_fEjFNCN0^Zn2HYi7<5=G6bS&I_-95K@#f~EoxbteYS
+zc+41rTUeMg7+JMx!E#Dpaq_hC!<dGl%TX|s2#I_DcxBvA#d1G&`)Ay9q&QeZFvpJ$
+z7|+3N0WIxvrHxjPjPcg!wlTr<9Sovb26luTQTu4eWmCb3ZZSZJ03<Riw-4g#*TDp>
+z%lS_P=TH)XFMFmsSJ$r!@X14cGESvxxBh%Dr8-DBJ;y|1^Wk@sB6HKjU4gR>NH(5*
+z3(kHtynjbGz`AU4DS*NIj#$zk-?1F}jyNQk2*0Fq#O6o^JY`<`cyeg}j$hlPbC{OS
+z)qsO`n#+|X?d`hT+z|Kd$CWbJGX_G|!3B})zV~VJ+yd1z<m~XJMH#dgj===AQNlC<
+zH)<k$@3WMKP&cK~xh}=~tpgr{%4wy5zMT*lK^H`g0Gy|HVks7h!&-V(u>Ba}={G0u
+zPquA2_Bcs4*;u~UM(jexp4z>oPNkR1Gbd935YBeN<s)k%N&sYa;+dw>)g46J6>r%m
+zTvKR}DGQ4YsxTJVYgs~U8RMfUZw^+e0<k|e8<{y_X7xVcWR!m@2x#n|e-N(OUl?#9
+z*+$zRorprQtoAZyM7&lps5KYMTTJH(%p!p}u^AJeCE@2_06y!Ab+ai&!8AQ2p|02i
+zBLr${J&DXwgdNSh>4?M(UU^0-H-`X?2QAnLo>vA*X($^nB+I;VfFr^{Y$q0sOUY--
+zsVJ01A51Mxr0B}VX$2ipez{)ChmiJ0#lBAyAjgsg4}T=B$i9E1;eY?ba^fyWXsKcm
+zjrPJbsEh%VguO5!0FRd%e}G97dXvA9G|(LMX>Q1JW-h&AeA;hn__3-hh*U<hFUHnL
+zls4H2i3>c{i^D0xPV*hpb)^XS_#B*UyB%0=vFQZPczTpzIf9-2N-Q0@48s9vRvcTz
+z-*q!pRa_&&Nl@%J8pG97;@(PAdQ|mM(NJZ+D1c$9BFO=sDIdaMN}SfuHIJ?z-XF`N
+zT)OE2K7sY83X6R>NF}roI~Ikp^QTT~C_E_{d;adjcY0^pl;sG0B4w$gJ#laZ;iGxq
+zPJLf@tHkG_!3`OAR1yb#@gB`*i%eY*%=vr^+qD{uR+~lsvSj<?TiasFx-HUvz)Kfc
+zQA497X<jj3jLv|$!=z-g!076?ksf(HfXiJKgkGGM%osqU*&hxW-!Nr^&$>!%HZ{kX
+zCKq)6{Fho-Q5OHzkKby@9_S%FBA~snk(FK>y=py7C6cBpifMhmeo3)a#G4*baXE66
+z-C8EfET&DqF>+|kEJHKBFIf43OI}&~5Ae$$URjRNC_#GJ6ncsp?p^RicFV9_O0VPL
+zV-gmycrP4M0-y{H4K*}-b-Y#be649U??s-MH*FFhF0*of!a5jr>jV6|ifLuyLeRpo
+z@mdYxzcwNC)NKN)NUcEmxw*-7dELo<liC{VHb>c5h<&-<|HK?XvRy%O9I(zo-l0`{
+zKWf_{wr&#^10VSHamj4OtN4_0>g%b{beVZJZuRb~QFDVCi73D%1!*1<xjpFXDj;JI
+zoIx*$IUKRV_;04z06nB+gpC(2(sGJ#UaWsUHV`W%TN)i1qAe&;2cS2v6@gqM7P%8V
+zS^cnv9%5GoM~h6aQy6Px_XXe%JHhok-M%YnmXl>ULNkO+$P{b@g7Ch?qb;d;FH<mC
+zs@&81eTBHfEin}7MG}F%-w03dqNCC1^<?3+l)My<ZEtT7da86f6Sb}RJKqSmh9n|x
+zLhboo{w_F%fnadL3$iF!I*}S_vkBwKyyqSTce}N8tjFx5-eLwk954-k9eANP(4@@v
+zX@y=4wf&3w8>rt_giU^We7qJ=Mm~!L!BTZv%&3450u6X-VdBihzMhF?0$N(@Rm|0I
+zze{!tUfMBZ*5|Rfj}%rlvt{Ql@mlApQF-b4Rs}LRc3lgEA0;RQ^{egfUQ$$jq`<3l
+zQ46RmKvaj6j1=%DMQ#SbcHPU?%%VD__olA)9OWapu%AV4AMZxxo>s}BwQ8|_PBg(J
+z_WX`y!DVhIC(Su_)((1g6dA<+Z+yn{${&3Q>dp}M%Zg!SPpA+m6v21DcJ|GGGO8e<
+zL(X^isBh)VizMH=?LM}+{a&(o3JTthh@fB0fwN&S9l~m?w-Qz~>JF=tgu!2$-Y_y?
+zk_#9Xn>B|8;A)dRlSk!WM1<!hR3(`neWn!h{*`1mf-UEAU&tYzVy?qhkO@Tkvv?$w
+z%lz@SK#wZ_a^eoj+AGY!6+vswc3SAJkKTIx_u(%12P90ZHbKHdG<40780epP{_VDL
+zW4R5+ewXV)vfn$ZZWQf+`x~5P{oSltcFVFU?+KZ@5NU~|guN$Fi8~)Bjr%z&oHV)z
+zL!grD6$C+G_rA-|+Kl5YKGlXa-oq}c%6TaC?3yaH+f>%_{V=zTa;vLypuFuBZ6NUp
+zRZn;I5h73!r+naO;kI*L8aF?@bf20%+Z$eqvmZS%yi1y~Rw~&|eooGQ!e(Ya`NeF_
+zZ8vlLg%ObKuL2{K!r1`o9%8%TM%NsZT@DdBm^g%j*wdw=Y>6DwD#W#nT^YO5JrQNs
+zI9f_GJxd2;%qDA=A{4XV^L6UXu+Esvp+A%4b;C>&>-YCFC#o6uwY0SKFB*Kjfy*UG
+z6sg1<B=H4R7$vt5G==vfINYieBJp@mCAW)m+eMSIb;|SO0q*$VbL(sl(^D<5B3{C}
+zdjU=!UTWg$CtY`Peb^@4oXPZ|wBmT%CWDB7631^5vWH3~OM)9Ab9*{<O|oJ3wHlKz
+z<A^AC@~cxRdIStqB1bzwMMY(oy@C=oK@?W#C)bDRJ(B+~x^oX<Q3^u2$fv6SYMBZO
+zVR+cW>}Y>|Sss&B7Kajv_7c|OGcwUDL95|xGv`Oh)3GB%_6MF{4%+>Kx%R+!zaSn_
+zh=ANp1D2K+7GgZ5fSTXv>SJ&W7+9FRzAeSjL#XQ*YPRCj0ht}3U)PEF>CPMsvVJR_
+z-~hk^fJC%ai3+C5NGnkg;&JjqZ<<Vd_5)YXN+S;7+oe);n?sLwD3;%xuU5)$v)zio
+z0CtF%$TWDBP{gz=h_%>j>F|$<VI}eJA(i88yu^`wO(%>Q1vI2mRIlQ~lZWiF@LtD)
+zS2vspJRFNo#7a0)4{!D~-8$%P=3Q<_e06YF`t-Sf68`_L8LUhes5?)@c*)Ai!M^mt
+z5D2lnMz|+i{I@wodX=9MuJQSO(BZu6{lN=W0h^sEs{s(OL$AsJSXh)$s)i?lW$9eg
+z?TA8co0s|M(HERZ5L2(PnYC|r*|QDp@mSx!$xH_QqG?3CkgoBlhhPVzsFGlUF|ZE(
+zjMeqLR{E_aa=Y^)Z<@8ZIw0p}Y5c0Mz0Y4xj5yd(V~H=cQ;)d=0cw=!*;>(lOFllx
+z`4*wSG$@we3e{4|f7aB{>HS^38Df1ax!ij~7KCz8aSpA|t)+*+<mmx$!{5gac+(T1
+z`Z>3o?}e6@L0vrQE_T4gIJ*1PZ&ZV0hiShyP=7$yLTS%ST*<0}Wt2m$j_$3<88gQ~
+z<HsAahsN%yn)F7$i5~GKi~#3>&4M&1*cblb`sUkJI$?^lVOv+jU+%X=!3m0hFbgaK
+z?6!)CbPL|d=X;g!fWQKgu-1wklLAEwgl*0l&Zn!<2g>ouQ}WYJ<VAwm=%JKZgOQG%
+z$ULWbcc!<o&BQ!YgRjW+&GftZh0?X=A?ktzbzmxzf@~<c)P7H8t&XD_&v7ElsP>6;
+zMx7@h48Vtk^T%h#+!aPA(|(JTvMP{(rXivLKQeA_s@D4c(~5m9<X+8F-W68aThK?d
+zVC!}=$|(P~L;MfoUyiWx#6^OD@}pVC2KUTfH^uoq$(O62J`U-|LqTHm2L}G)lWCJ$
+z+kD0P*%F)<)?*r*IJD-Wmq6L`fBSp>7c<IVO!-8};?5wElmvogZFQ9OnO_3rPo2rM
+zyhv&Z8TTmkr}^UPY8RV~U+($x^W8#%O%{P<zpJ5?YV@M!N2JR)l!Imv(gT3Ya4CSn
+zlB3{B?`XIAsiXy1m@$e&K3!idF5h-?iU2~yQqe-x@#|d7DN|?Wg*xxax5v_-6n5H*
+ztZG#k>Cat3pa0AG`5W7|2j)nfKn#R(VxrY~?V;r~L?j{2teU!rnYtVNVOO^bc<?4#
+z`YB%cV<K|(v;Hvy<+wBHml8QHy%Bh+)|}~#@5H%pD7TfXv_OC>Yy3X(;V1=T4)~6s
+ztDdI3mq*rx@jni=&1|`Jp_D2AM*nfhOSl~&ql`@jlmS=3+#q1BBAnI2_gVU>0w2U_
+z!H+QGWEA4=yCwVC@RxD5_+F{-{F;;ZIkgJz+4VWnlh0xKh~JUUAS%LJjRXW*JZ*Xk
+z!O}OBgQy(j6(08Y>5j?Q`nVEh$PZ{I+<&L)tS_nbesP|3iu9UKNDB!5tYUfuy`c#`
+zv!*V;!d-4wsYQE2@5={^zaJc4ELTPd>O;K5b?ccJgY6z?s`b-mmc*#t6%>)kCKX?9
+zlHjjz6cAP7=Wnj}b}>$%O>2u)SvQbm_<Yo@V#?UxRYognXe+NhqdiwKkekftbB(0P
+zT)>ULrP0XlUYYmSlJJtZ2E$!v09Ev90A9y1>4uj8IqPt=9TZdTo1Wd693!>~NFwmP
+z+(SM*H~i??RRlVYSRKZ~&Z0S26f!^RT(7J+IsI-^6<q|(F-Zfao|Bybu^S`mQUbOV
+zMyThXN(+}M*aQ6}ZaH%`P)Rh^T*IucZc*IO#WYmN4c?1^ypkwL6hHz+{08cs=`)dJ
+z=bHJ2*XVF~!aCg7<F^h`UZDtn8koy}|8=jBH=x87hPWKV3b-)_<*jmqj{OOas?uca
+zV4a5Awe;k*w|9@7eF2oVz(L><pbB7q3d*UW2r2BzF{xbkj9I|~rwBs<Y5AvV#Wt%7
+znv-iAo3WQ_SV60AV~(w(8FaUq_1{`cJBP75h{#_J_?FrM*pixdL~;?sRpuY2*Z}Vd
+zra&Eccpj788f`O6qaH!^8}*2>PST>1^mA+#Rz3FL4*{JU@Jr@^eAAm6$rxh8;_;-p
+zCC<+ZB_DKdn)LU6PwFn`?Q(=(LJ{IJT*?W!@DogDD4)Wl*Q@-XiyI}CPI;<q@e&r(
+zXyM!Uf>D(j-Gggu$Xcygbt8D-A5`pnHQaS8x!lq)cTB|PL;^$<%1%BfOyRW!8h}Ci
+zcqenSy)U_^fweVe%vrv%1ICEqQ&H6gG?1HuL3j_08k1^q88#a4g@}QWrEej7z!kHs
+z659XbmStsnGu|}KvRY1$2#*?K!KdM#^hBW4F8)yRCDo12{707eK+DRhCogd!@Ymvz
+zmOgQ8-TN7=CiAUKTBwYQpq@D-KryuVo~aa>T`FNwsxU+D8mL9R3Irl3S}}d^u>SYt
+z>z|pvGH-iGS&C>+@krR!#9K!c-G_T+y<RDjn#J|4JyEgV!u&=+aH_*&{~cCJPm8@5
+z^G9++NF84~k9{wN`%}C72DsdoSdQn({eW@%UD|kPu-I==f~-MT#Z7&lpqFzEgYs^J
+zSWZJj!^By=mm5ejQZhTQ&_Z^;KY*T<yUFJ^PW;Y=+qVd9=F04&P)meSLC5tc!YPY>
+zFVOq>n(eH@gDJ1qpTRbcsD}uE2E%?`*R+t8tkrNy4GB^N;VFTX0m)&)4vSkp)`lLT
+zD^dXXV~>DF^|AFE6{GShu$<rllA&7aS^>t1f>Jc7gAxV>-|2u41B6>Y!0XifH8XfX
+zy#jFUfd$oa6<)Hi6@$F*UF^<&W}0RHbF6EmbPm2%TLohw3IMVfFD89RvAPU*-i&zs
+z<ZEtt-TIFk%%r|3m9@XRvEzD<pW5Hfo8@F#E@uejsAw;71_IQknEk?5#0b8v>3ULk
+ze9x3=Yz`wM?U8B|Y;%oJ3w$RaE*>FlF4<-!o+EbC7k`gm1)t*suQCTbb&PzkJU(%M
+z3`gp~cAK5{l-H{8=+kkN&cPUThOjR%x5KtE{P|s=x?2+>k?2J#jX6pB6OO*ML@vsu
+z@rDp{62@g7wg}70{F;IAIo>O0`cYBs{5C-Eg${tIxx=cu0thPz;rcp>8$XFDgdS6v
+zou4~qU2w!DaHKex{<ooKC9;f@vY<r>HnO^J;~ITPQHyfFjpaOSpnVoO$h@n?+k+Ik
+zF;r+YW@@hUEk`rE0Nl}+opV2S2Fc~lAn)=!_#_0nDn41ewV()~lHJ+$f~0E}u9{zo
+zn(=0zcaZ1Tg`dA>MhW&DFQnU)6A0nE>hV;O!+sB1p?CATqAebNA5M2@^ark$oth?Y
+zQ$i;T)W}}2LgIiL3Xu?IFeQY>0CcZIxrkDqx1R3O;VrrLGgp=lCx?wsN!~m-sCTx!
+zG3Ci3eVu8ExT99<R)P>K;y~;>ApVe5A>!I5wm-K~iCFMpaFmoLSqJe>fG-EDsc)8L
+zUvMxc%%@n=AgIT?P!GXv;dGty{j%Hg_?q{H`A4a_S~p*~5I6Zt;i%((uJv!_%!3w8
+zH1wM&0_K{=2hZ&6VGf;aRvPfT+*cF=+fb2)C#(^Dig(}-49<5@Qof{#4P8T?)t~jY
+zzcAeYXzuy<N*sSB{(p!*+iMl{E9K$`lI71fDq_AQeW4A$NOBulW^=+fjlsmk^Y2P#
+zvj#)*KhG;D^~zuEyW}scCmsy`?WE=Q)0K(aLnuc<EfERA#W$cu8Jv9zGrDt5*2TX4
+z?Y|`q9+QShzY8eG*PJ&aO%lI^86&5&7Jn^ACw-dPxa#Y;_J5ASzdwLj8KD_c8l;6m
+zb37&0bw*>;m~(c|sh$m{rx=&IWr)DjJ24g>_xZrUz(60Ls{*+W2a~_ZqtJ^crWeI~
+zFYxcq5ULXCulf@vc=Y+d`)4I-=_fq+18|jHsN;(yr7^RIxc0lPQdA<O$<dfHzo#0C
+z;bp(R`4r#mQJL~4v{-3u^@y(RYDnp(cJBM`*0|ggxlF-^D-m+_<OnLEXg)f<C|t8|
+zcX4g)n4=h)W5?u35zr|S-l|ZT^z?I#n9nq4tcVzdF|wYuNH0TJC)4ilAO2wscbt&6
+zED^%l)G`!BTXgl)+Jz_GhSMqjaq6$(a8KtNk8J=-c%m)gSmNfWxb(B-bK(mHVGQ(S
+zVbA*RO>drk*AV@!hHSar`3u?;mPCn|Jn{I1W=E=X1Z-)|KwH+a;{74I38J$HH%Uu<
+z+-aaY-cSH;>sEnLGWcBCi0vqSP}@Qun1}R!b`=Gm<8IWqaZH_}Ue@^1^xVYL;7%74
+zpCWYVmKg_I^z}5B!SHE7mxTh<0S&m`U9k89F~31A&LZtE?Rk<^4!K1fi42YIJWioj
+zzZ$G5=ta+1^$YlpvYFENEs97Gj2U!*QMYzQFttT7I%XSpYxHwA`TaO9x5^?P0{{L3
+zX9)b?hqu`81*jB$N!%*CXIE_|hVLpaRxaiBrE}!WitcD;c3w@7pyBEcE%@8Nzg<@q
+zbdmbN>r!FJ<Y3zdh7N!RGx(I)@Ca0aMH8A#$5<E{#&IQ8S^3A|doLg&fLGUq?q%<v
+zN2kmKOLt1sXC;>E(rib3MmyVx*xwb{3!g1N_%tR<H|S|lc8So;?NC4l8q@%+#&d`v
+zLV}kz*(@)GBOr@;*9@N<{9vbLrl!Swr*hB;*tN?#j*$RKr7u8Ef;f^_jA<-vf%&XI
+zC;up9YwN2#EU6Y;M==C+Kz?ih8l#MIrdZ_+RW+%cTilY(p7$?O0u3u!O$wB!m2N55
+zipfWFaAP}Jbynw_EKh!1?~I_x6*&Wf%)<&fxPVt$_B>mJm&wg1LMC^DLm&ta(ulQ(
+zYL9p2*Myt7lWRE&^6Jlx4;49?qt$b@3P9N5%+qeiodXQ)tXofJM2|X*eG(IFy|3ft
+z{mZ{p{8xE$BLpo%gfI+h<=n?<gXt#Tx{atQw5VhgrW4-v*?vLWy^lra?BjI#3K6#`
+zWlRN|1%y_Rz4okQIyjO0OJUA2Pa;!^ItQ)Ta<^1G422!!;}$DNoiJ2j^SQ{FNY+;e
+zr5^X17|o|U=N4?1uBgo?A(lksrT32Yb$B1EK%hdEXDuvYkJI^I4R*BS6SW3kx2tXk
+zcD!$J&;V)x4JX1KLb7N`AvK%Zr2lYB<+5hRJ;J$WcmzG#uxLAS_!atSen+G0!3Z?8
+z0YRri^9r5r8Dl6}HzgKDt&np6DaL<MXx-*c{J#dnZzyLEOcJs%&=7*8_^Y`|TZz4k
+zkd6Ix2{nr?q(NH{Z50^{ArWvtbj;+)7kW-gs!^dYK{j!LaUv+%@rgq^NWD{5_C5N>
+zU&<Nca?6}VQWk~^?DHu~upjU?(|OB^4wSv76pW7{{GluNXl1pHY3@kv-Ep$a{^^ol
+zOilY2lOHSk5V*8bM4)udbKIz)T#-WGurBt#S|Af6BH$&gmWbo$U$4wkoUu-+JDEBC
+zX`P#C6r*hDdpxmHPyNFy%eApU$l_^Xa)PK}`G)&A#-Vi4iBD#a7M;oU-n)iWS}?ER
+zd>-x9!i~<N4UO6rPZVNbCQfw85Y1&jl{J00Nq>pZ@*+f>f&5yJ7=u>=!5<kLpvypm
+zL5AjY>le*?UanhbvoYL{&+S&o2M|ujLXc(v3O;v@4WTH;KRY!DDTMGCiYLRU>!y4H
+z$sCZ7khpq$s>@gP)7cU?vV6VHN%N<V_i6y$G%{Tf#FpAk7g$tXBgW;F^GN46(!%Y|
+zX)p*f7)-+ZB2j?s`n=EmhC=1yFPORQqczdQC$>T|tybEErdF*=30UW6N@E(4tZ~Fl
+z>I6Ogv)YFP8qq~*w|>xQ_MT7(DJ|HD8bXmhfw{KEup+T`k>6O_I+K0hwd{1Cp!8Ek
+z1j^hKRM*O+)BQO0-aZ{rLd7D?yqCOK$K7N#+}Etq@KgP}bK>%t$R#a2iEtF{xgG|c
+z%UJ@e6d{eJJgzS%h@CFBh-NN+U3?TXR+wwL?$+x){&ojpzQ8s*9KaD^LSU$u^Ak3t
+z&TN)#l7prVNv=#dfBV7QkqqViQD#HG%kNxtLp2Y&)f<!yca={_tUb=&(T@g7HCzeF
+zXJJ|EVTn+x{Uuo-hAY972!Tw;?RCe6yq9z(_JxgB)wv!7p_SMrt<C_k9DV~8`o0Ug
+z=P35410vivpO{gfh;;$4i+q6e#_xM8Y2_#>3nSnyVgj^EcUBt8MJlzGu{P`O=McC%
+zkk=F+AD_U$P`BF30_*$ptBEtH*<F^ge*G~&c2&hYQ{Y}eWl3;J3m`xVMeL)qCdBq(
+z=FbPuNAEjtVP$$K*7XAex~_y#v@(4k-)`!mqBDp!VO2@9+B41y7d{uOPN#pD=KoFc
+zhnC=kv_H1%4XG%4*#+zN#Z?MtPSssbj}~{X<~!XE>4Op7hseK|25VM+bWtjg^tI{?
+z{MUWuPi5(U`9H4>ts-%|^Q+4&HCW84;q0R0P8bH%Qq{KGI=-c($CuY9&)*Kux67VW
+zF=K1lkG}tEleGcwOfo6y*A}b&r5hi;x(}D%<@l@7j^_2nC66*RFZ+WU+u6tgC!bOv
+z60yk%g**O`5^Das5>BDSnYk`RMS;S?hf~?MznSerhwU_LR<>VAmG8!rIm6SNZpoy|
+zU^QNkWn}jmjR@Pv21teZPV5Ji$)R-kdKk}O;VRw$-A`Htg%KP1Rt8iRPmd-yp6s(7
+z)B7~GCn{b<@(4;1x~fxl5aq<ShFf01=p&+~XLPMU+jr?~)G*R03G)9pbL7e?5$ev+
+zjhZ+gli;wsR!5W?A0CY`UigxXS6kE6yzfPl5DK?0QEQEZ9JC2>E4`Mr)(q~dG?V<I
+z+x2{8URmvTqW@p|P!B;4WzD?^Mxo+!605bM<7SES-DhiSXG%kr+EVttNEGIhZ71GF
+z@ya8&+RTS?>qlCmTM}+~>$*z2{yYx*uA%iC`16L4Q5#PQ7y^<AtB<YrNo*1bKYn`p
+zO=cB#F$6o}^PA`TJC<Q1=Kgk0a&JK7Pv#QIFpGY=JVk3aq=yk<G3bm1fv#BCDtLDk
+zVvWT`!2n0}BTu~PBkLE7_6izTmE(_g*}e=CbcJVvE{O=~T4zCPP~@LzVLblC9iF-1
+zZyd4R7dNmNM4s^;tuuYMsx7g!<s5Vn9>te60<hUHw`gsyR4OU7?{nKa{M7$S=fNLP
+zNy}7jnJGXLp$vp93`ioh9DY-Dybp)slR>;VOU~uw+x8p$T6g%cL$$<~RtHCbpS>FJ
+z0RXBCK|=SP1BCrGIpzcjJJ}D_XZW@OK1O~I${&3yOfMU>J9D+$Lo9m98bzN@uH>H^
+zyl@#nA3`uxS?w8H=<r<}RQ&&NOYgmZOcyjh6x-A1WSPLOsa!?i-~qc-4+`o`j7-T{
+zROq&m*CM)W9F!Qh2fAJ!tqcBu{EA>0Q}~QuZdJLi4%Y+bp{e#sjy4`;RUW!g@(B|I
+zIu|R|d0-K?#6I_H-r;W9iEtCMy!w)8hHR3Mx(32FStt#rjXV^ezAGkdUI@)YI!y0!
+zwet8JbWHNrFqogs*o$cl%1@|0Gh$7D<Fq$P|Ild^|EW7sk`yKM42_wepUw&uw4c~B
+zP!-xcDdrv=^lz&5Kki9*<@_hgi7La<)n6AYzc|5Zz}fXe;zC$w4~?rFMWv~{g>1#8
+z=5vb?7U7YNnavM%M5;E3#ZygurwSrXl|CRf-DdT#D1}V+y0mwL$Z;XCRkWMxhCE1t
+zZDVsz6|>m66g-PxL9Fe!c0))fWIugvjy~>Qxk2;3{Ll<}{zF9u!wi(Ozn_p;lwTaK
+zSvU7=#CdBQIlU^i%DWplM*uT2^DVA9vO8pW6UZ{kaaF212<3ju+3z|TQ<OjL>X6>@
+z?t^KstEwOoZUv>b!Do<A5nk~+n@v2`Lk;a}p*=fQ_iN36)EkyH1y5ddCZT%>=vEq8
+z*;F`Gw-~Ruq}2F(O*i`xblMrjXJp)rr$s2$1dp2KnG(ns&imdD0lp_7|5wD80e88E
+zdPs7-Q|WB_JVkK6*=o;SxwUyZ+XvZ)PQygJ5YWMW!vF_HB%0hGeBLjmX!AK)x-0SF
+zcG>{rM;<6IyJhr`Ap|sF@|_``=2%#Fbv{+dxba583R+b~zteflo^s=Z^x5#7s1vbC
+z9D&!gw=oA}gKK|`cUJbHeuC*Ar#?DIW86L~F1SC7>5b{z3#|^Iqe{m+&%h>retzf*
+z*V{%zsW%%`T(UK@M329FUP4Ftt^d2k_Rpo+Wgf$o?Bz0rQPJmn;b<V&)4r>s$q)ge
+zV%0Vvvhz&aQWo}yU&&9ORS7@0L9=o?bs*@KoWw=@bBHoC&PFAH)FDk$+C8<k1flqJ
+z5jqSIf{uJP^Noo<*MJEMW#3MyJx;+Q;BOwqX(fln%{kdmURumdcJI$w+)z{gE+}(H
+z{C*GGPcw<u)k~*xwH{j4l|K%<$P;crkdLksVVhf|3{c^|m`C*Z(>!TI1P<jkbg)H`
+z`%^_65~DA=*OKC~vhMZ0@`j6Yn6B;ti!*kuuBRZz$A2F9isMh{+t1o^+Ok$IOkuWz
+z6J>p6U%~EQtEm6{1ZHIo%@MMYTv{mrTGl?VN$@}&VI8U9PnyRE!j1cP+-OTe<xrr4
+z@^FFJ?g0t(#seCchkC=K8`JYS`VV#|{g5*S$q3#e<TAfH3|&3iIK64!0bveU#0V-$
+zY}(1ZBOkTR&2;H_omuVlv?00uWNO>)vWsE_+=%tV7|Uk|l{MW)Z~JwXr*~}<B*1LI
+z96MkYAH3TM=5z!+Y5tlCbtqvAI4*j)Yx25jHw)yKIgIE|lOJiY{cY*%Loz39@dk6&
+z?6Uigz6i<rcIzkEg0u>$^T$xW<^ZA|xrqV~ydH7z%tMVtp2Q-uTx0J^4<sRxH`21t
+zlng0|W3xxpk=w!^pHq7uo|@+*eV-DeehCDK1(!cc{*L(-5q)Dm$C{IQf|J0!GofJ{
+zl=vS?ZDkEX?HLurz43>}t1!!9lT?f%>|>T>S+3uxw#J=zHk%HG@;|))tml1qRU+P8
+z+h1HAg`lzk3%UX=&_e}7<HLeXzlkjs38e`n3&5sM$H~Sy)2@VRTRMM{Jfku<W*>j#
+zQ<y)8dI|;aCDBz8wz*q8lWJ+}QM{ApZ^Yk*d%dxIDm^6@T?FN1{Z$3uB+Nv#05MWv
+z04B~ouEoKqgx*&af6*R;Q>Gd3lwHxLYsW&<n=2})#c#vh=!%T8g1<>GSI|mZV3d#s
+zF<j_OAry|POl+B>CA<i?Na}33zuB1(36+Hi-oaGdR&&PorV?gEnVRsyGSE6jjG6aC
+zFL75$gwUS{&3+s)j0O1l_3Kq^tCs?7!i>yX>g^Y7vb!h9oM;Zx*Erb^_aR(9W}$5^
+z*?#Yne$G~G3XIO*1e9LDkSX|UQtbjaY$dkAp>?1cIKCN<p+MWfn9J9W*V<NB9Ek}t
+zT54(GecmjYb9#EBa7?w#Ix{qkIPLz`MkIZ8I&r@N^oLNd+g;kv<n~|${gGHC+gT7m
+z_+pT<ejZ18@FHoE%Duw@!WVU33RtLAZsJckuvv+3kIO*|03az#6l114*LDprxmDGJ
+zYyqRh3&G6MP+I!E(v!F1$cP2^v&aO2k2<p0@aUn~;;H)D8s);9PRjh}Jt?P@T^4}^
+zAHb>|aTv57dR=y4n+qYsc4vX~&C#f~`68#>cgw#-lXX5!zISlAIh6Y5<H>02y_6k5
+z{V<ul!!~J5%4T+HYBHQlB_w)Tkfj*N(rvG-NK!C<i4A0I^=sGYpF(_ZNCpAMp`n$m
+zutqb-*TzQk?~d<co|Z~5U&0Z^G_r@^)Nksy+Mjt^qOR_|gle*tp76NGuKM7ktMcRC
+z1SZ6H=$PjzN*iB$@l5nkjjoR%FkIL1n9`zR$Z@2!?NA*7f;cm$T>9~9kuMHgmio;H
+dldr@8?psTuZ0r@h_^q*#Y3qJ|jGg}ae*o3_q^JM@
+
+literal 0
+HcmV?d00001
+
+diff --git a/assets/ilradio_k3.koplugin/test-lc48.m4a b/assets/ilradio_k3.koplugin/test-lc48.m4a
+new file mode 100644
+index 0000000000000000000000000000000000000000..ae9c542c10a2e18f7ab497410db807cd0118f347
+GIT binary patch
+literal 15889
+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
+M)m3y<)YUfq4~u4&QUCw|
+
+literal 0
+HcmV?d00001
+
+diff --git a/assets/ilradio_k3.koplugin/test-mp364.mp3 b/assets/ilradio_k3.koplugin/test-mp364.mp3
+new file mode 100644
+index 0000000000000000000000000000000000000000..ce397345698171683540223da0b217013cd59e5e
+GIT binary patch
+literal 20523
+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
+
+literal 0
+HcmV?d00001
+
+diff --git a/assets/ilradio_k3.koplugin/tuning.lua b/assets/ilradio_k3.koplugin/tuning.lua
+new file mode 100644
+index 0000000..faa8c09
+--- /dev/null
++++ b/assets/ilradio_k3.koplugin/tuning.lua
+@@ -0,0 +1,152 @@
++local T = {}
++T.modes = {{"ultra", "Ultraoszczędny"}, {"eco", "Oszczędny"},
++    {"auto", "Automatyczny"}, {"high", "Wysoka jakość"}}
++T.limits = {24, 32, 48, 64, 96, 128, 0}
++T.codecs = {{"auto", "Według trybu"}, {"aac", "AAC jako pierwszy"}, {"mp3", "MP3 jako pierwszy"}}
++T.buffers = {64, 128, 256}
++
++function T.url(value)
++    return type(value) == "string" and #value <= 1024
++        and value:match("^https?://[%w%.%-]+[:%d]*/?[^%s%c]*$") ~= nil
++        and value:match("^https?://([^/?#]+)") ~= nil
++        and not value:match("^https?://[^/?#]*@")
++end
++
++function T.rows(path)
++    local rows = {}
++    local f = io.open(path, "rb")
++    if not f then return rows end
++    local contents = f:read(65537) or ""
++    f:close()
++    if #contents > 65536 then return rows end
++    for line in contents:gmatch("[^\r\n]+") do
++        local row = {}
++        for column in (line .. "\t"):gmatch("(.-)\t") do row[#row + 1] = column end
++        if row[1]:sub(1, 1) ~= "#" then rows[#rows + 1] = row end
++    end
++    return rows
++end
++
++function T.variants(station, catalog, custom)
++    local list, seen = {}, {}
++    local function add(row)
++        if T.url(row.url) and not seen[row.url] then
++            list[#list + 1] = row
++            seen[row.url] = true
++        end
++    end
++    for _, r in ipairs(custom) do
++        if r[1] == station[1] then add({url = r[2], source = "Adres użytkownika", custom = true}) end
++    end
++    for _, r in ipairs(catalog) do
++        if r[1] == station[1] then
++            add({url = r[2], codec = r[3] ~= "" and r[3] or nil, catalog_label = r[3] ~= "" and r[3] or nil, kbps = tonumber(r[4]), source = r[5],
++                verified = r[6], final = r[7], container = r[8], measured = tonumber(r[9])})
++        end
++    end
++    add({url = station[3], source = "Katalog dotychczasowy"})
++    add({url = station[5], source = "Katalog dotychczasowy"})
++    if station.economy then add({url = station.economy.url, source = "Katalog dotychczasowy"}) end
++    return list
++end
++
++function T.cap(settings, codec)
++    local limit = settings.limit
++    if limit == 0 then limit = nil end
++    local maximum
++    if settings.mode == "ultra" then maximum = 32
++    elseif settings.mode == "eco" then maximum = codec == "MP3" and 64 or 48
++    elseif settings.mode == "auto" then maximum = limit and math.huge or (settings.limit == 0 and math.huge or 64)
++    else maximum = math.huge end
++    return limit and math.min(limit, maximum) or maximum
++end
++
++function T.allowed(settings, stream)
++    local cap = T.cap(settings, stream.codec)
++    return stream.kbps and stream.kbps > 0 and stream.kbps <= cap
++        or (not stream.kbps and cap == math.huge)
++end
++
++function T.rank(settings, list, last, speech)
++    local function score(v)
++        if v.custom then return 50000 end
++        if not v.kbps or v.kbps <= 0 then return 0 end
++        if not T.allowed(settings, v) then return -1000 + math.min(v.kbps, 999) * -1 end
++        local aac = v.codec and v.codec:find("AAC", 1, true)
++        local smallest = settings.mode == "ultra" or (settings.mode ~= "high" and settings.minimum)
++            or (settings.mode ~= "high" and speech)
++        local base = smallest and (300 - v.kbps) or math.min(v.kbps, 512)
++        local codec_bonus = aac and 6000 or 0
++        if settings.mode == "high" then codec_bonus = 0 end
++        if settings.codec == "mp3" then codec_bonus = v.codec == "MP3" and 6000 or 0 end
++        if settings.codec == "aac" then codec_bonus = aac and 6000 or 0 end
++        if settings.mode == "auto" and settings.codec == "auto" and last == v.url then
++            -- A recent audible stream can be more stable than a fresh choice.
++            codec_bonus = codec_bonus + 1800
++        end
++        return 1000 + base * 10 + codec_bonus
++            + (v.codec == "HE-AAC v2" and 4 or 0) + (last == v.url and 2 or 0)
++    end
++    -- Stable order for equal candidates, including user-supplied addresses.
++    for i, item in ipairs(list) do item.order = i end
++    table.sort(list, function(a, b)
++        local x, y = score(a), score(b)
++        if x == y then return a.order < b.order end
++        return x > y
++    end)
++    return list
++end
++
++local adts_rates = {96000, 88200, 64000, 48000, 44100, 32000, 24000, 22050, 16000, 12000, 11025, 8000, 7350}
++local function adts(data, i)
++    local a,b,c,d,e,f,g = data:byte(i,i+6)
++    if not g or a ~= 255 or b % 8 >= 2 or b < 240 then return end
++    local rate = adts_rates[math.floor(c / 4) % 16 + 1]
++    local size = (d % 4) * 2048 + e * 8 + math.floor(f / 32)
++    if not rate or size <= 7 then return end
++    return size, (g % 4 + 1) * 1024 / rate, nil, rate, (c % 2) * 4 + math.floor(d / 64)
++end
++
++local mp3_rates = {44100, 48000, 32000}
++local mpeg1 = {32, 40, 48, 56, 64, 80, 96, 112, 128, 160, 192, 224, 256, 320}
++local mpeg2 = {8, 16, 24, 32, 40, 48, 56, 64, 80, 96, 112, 128, 144, 160}
++local function mp3(data, i)
++    local a,b,c,d = data:byte(i,i+3)
++    if not d or a ~= 255 or b < 224 or math.floor(b / 2) % 4 ~= 1 then return end
++    local version = math.floor(b / 8) % 4
++    if version == 1 then return end
++    local rate = mp3_rates[math.floor(c / 4) % 4 + 1]
++    local kbps = (version == 3 and mpeg1 or mpeg2)[math.floor(c / 16)]
++    if not rate or not kbps then return end
++    rate = rate / (version == 3 and 1 or (version == 2 and 2 or 4))
++    local samples = version == 3 and 1152 or 576
++    return math.floor(samples * 125 * kbps / rate) + math.floor(c / 2) % 2, samples / rate, kbps
++end
++
++function T.sample(data, nominal)
++    local function scan(parser)
++        for i = 1, #data - 4 do
++            local pos, frames, seconds, peak, core, channels = i, 0, 0, 0
++            while true do
++                local len, duration, rate, sample_rate, channel_count = parser(data, pos)
++                if not len or pos + len > #data + 1 then break end
++                pos, frames, seconds = pos + len, frames + 1, seconds + duration
++                peak = math.max(peak, rate or 0)
++                core, channels = sample_rate, channel_count
++            end
++            if frames >= 8 and seconds >= 0.32 then
++                local measured = (pos - i) * 0.008 / seconds
++                local rounded = math.ceil(measured - 0.0001)
++                -- ICY bitrate is a nominal claim. Reject a materially faster sample.
++                if nominal and nominal > 0 and measured <= nominal * 1.04 then rounded = nominal end
++                return math.max(rounded, peak), measured, core, channels
++            end
++        end
++    end
++    local rate, measured, core, channels = scan(adts)
++    if rate then return "AAC", rate, measured, "ADTS", core, channels end
++    rate, measured = scan(mp3)
++    if rate then return "MP3", rate, measured, "MPEG Audio" end
++end
++
++return T
+diff --git a/build.gradle b/build.gradle
+index 5b86edc..b74b86d 100644
+--- a/build.gradle
++++ b/build.gradle
+@@ -2,13 +2,21 @@ plugins { id 'com.android.application' version '8.6.1' }
+ android {
+     namespace 'pl.ispinalokalnie.kindlewifi'
+     compileSdk 35
+-    defaultConfig { applicationId 'pl.ispinalokalnie.kindlewifi.v23'; minSdk 26; targetSdk 34; versionCode 36; versionName '2.26.6' }
++    buildToolsVersion "35.0.0"
++    defaultConfig { applicationId 'pl.ispinalokalnie.kindlewifi.v23'; minSdk 26; targetSdk 34; versionCode 37; versionName '2.27.0' }
+     sourceSets { main { manifest.srcFile 'AndroidManifest.xml'; java.srcDirs = ['src']; res.srcDirs = ['res']; assets.srcDirs = ['assets'] } }
++    // Keep the existing OCR model while excluding desktop-only emulator ABIs from the phone build.
++    if (project.hasProperty('armOnly')) {
++        defaultConfig { ndk { abiFilters 'armeabi-v7a', 'arm64-v8a' } }
++    }
+     buildTypes {
+         debug { debuggable false }
+         release { minifyEnabled false }
+     }
+-    packaging { resources { excludes += ['/META-INF/{AL2.0,LGPL2.1}', '/META-INF/LICENSE.md', '/META-INF/NOTICE.md'] } }
++    packaging {
++        jniLibs { useLegacyPackaging = true }
++        resources { excludes += ['/META-INF/{AL2.0,LGPL2.1}', '/META-INF/LICENSE.md', '/META-INF/NOTICE.md'] }
++    }
+     compileOptions { sourceCompatibility JavaVersion.VERSION_1_8; targetCompatibility JavaVersion.VERSION_1_8 }
+ }
+ dependencies {
+diff --git a/src/pl/ispinalokalnie/kindlewifi/MainActivity.java b/src/pl/ispinalokalnie/kindlewifi/MainActivity.java
+index b4dba87..99f5005 100644
+--- a/src/pl/ispinalokalnie/kindlewifi/MainActivity.java
++++ b/src/pl/ispinalokalnie/kindlewifi/MainActivity.java
+@@ -38,7 +38,9 @@ import android.provider.OpenableColumns;
+ import android.text.InputType;
+ import android.view.View;
+ import android.view.WindowManager;
++import android.widget.ArrayAdapter;
+ import android.widget.Button;
++import android.widget.Spinner;
+ import android.widget.EditText;
+ import android.widget.LinearLayout;
+ import android.widget.ProgressBar;
+@@ -55,7 +57,10 @@ import java.io.File;
+ import java.io.IOException;
+ import java.io.InputStream;
+ import java.nio.charset.StandardCharsets;
++import java.util.ArrayList;
++import java.util.List;
+ import java.util.Locale;
++import java.util.Map;
+ import java.util.concurrent.CountDownLatch;
+ import java.util.concurrent.TimeUnit;
+ import java.util.concurrent.atomic.AtomicBoolean;
+@@ -1245,6 +1250,8 @@ public final class MainActivity extends Activity {
+                 "Zainstaluj MPlayer dla Kindle K3",
+                 "Przywróć kopię IL Radio",
+                 "Usuń IL Radio z KOReadera",
++                "Jakość i zużycie transferu",
++                "Katalog stacji i własne adresy",
+                 "Gdzie znajdę radio?"
+         };
+         new DialogUi.Builder(this).setTitle("Radio")
+@@ -1255,6 +1262,8 @@ public final class MainActivity extends Activity {
+                         case 2: withKindle(this::installMplayer); break;
+                         case 3: confirmRadioChange(true); break;
+                         case 4: confirmRadioChange(false); break;
++                        case 5: withKindle(() -> loadRadioSettings(this::editRadioSettings)); break;
++                        case 6: showRadioCatalog(); break;
+                         default: showDeviceResult("Słuchanie radia",
+                                 "Po instalacji uruchom ponownie KOReadera z KUAL. "
+                                 + "W menu Narzędzia → Więcej narzędzi wybierz „Radio i audiobooki”. "
+@@ -1263,6 +1272,134 @@ public final class MainActivity extends Activity {
+                 }).setNegativeButton("Zamknij", null).show();
+     }
+ 
++    private interface RadioSettingsAction { void show(RadioSettings.Config config); }
++
++    private void loadRadioSettings(RadioSettingsAction action) {
++        final RadioSettings.Config[] config = new RadioSettings.Config[1];
++        deviceAction("Pobieram ustawienia radia z Kindle’a…", () -> {
++            Session session = openPairedDevice();
++            try { config[0] = RadioSettings.read(session); return "Gotowe"; }
++            finally { session.disconnect(); }
++        }, result -> action.show(config[0]));
++    }
++
++    private Spinner radioChoice(LinearLayout form, String label, String[] names, int selected) {
++        TextView title = new TextView(this);
++        title.setText(label);
++        title.setTextColor(INK);
++        form.addView(title);
++        Spinner choices = new Spinner(this);
++        ArrayAdapter<String> adapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, names);
++        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
++        choices.setAdapter(adapter);
++        choices.setSelection(selected);
++        choices.setMinimumHeight(dp(45));
++        form.addView(choices);
++        return choices;
++    }
++
++    private void editRadioSettings(RadioSettings.Config config) {
++        LinearLayout form = new LinearLayout(this);
++        form.setOrientation(LinearLayout.VERTICAL);
++        form.setPadding(dp(20), dp(12), dp(20), dp(10));
++        Spinner mode = radioChoice(form, "Tryb jakości", new String[]{"Ultraoszczędny", "Oszczędny", "Automatyczny", "Wysoka jakość"},
++                RadioSettings.index(RadioSettings.MODES, config.mode, 1));
++        Spinner limit = radioChoice(form, "Maksymalny bitrate", new String[]{"Według trybu", "24 kb/s", "32 kb/s",
++                "48 kb/s", "64 kb/s", "96 kb/s", "128 kb/s", "Bez limitu w trybach Auto i Wysoka"},
++                RadioSettings.index(RadioSettings.LIMITS, config.limit, 0));
++        Spinner codec = radioChoice(form, "Preferowany kodek", new String[]{"Według trybu", "AAC jako pierwszy", "MP3 jako pierwszy"},
++                RadioSettings.index(RadioSettings.CODECS, config.codec, 0));
++        Spinner buffer = radioChoice(form, "Bufor odtwarzacza", new String[]{"64 KiB", "128 KiB", "256 KiB"},
++                RadioSettings.index(RadioSettings.BUFFERS, config.buffer, 1));
++        CheckBox minimum = new CheckBox(this);
++        minimum.setText("Najmniejszy transfer");
++        minimum.setChecked(config.minimum);
++        form.addView(minimum);
++        CheckBox screen = new CheckBox(this);
++        screen.setText("Ekranowe przyciski głośności +/−");
++        screen.setChecked(config.showVolume);
++        form.addView(screen);
++        TextView hint = new TextView(this);
++        hint.setText("Oszczędny: AAC do 48 kb/s, zapasowe MP3 do 64 kb/s. Limit ręczny obowiązuje dla obu formatów. "
++                + "Na Kindle ustawienia zaczną działać przy kolejnym wyborze stacji.");
++        form.addView(hint);
++        ScrollView scroll = new ScrollView(this);
++        scroll.addView(form);
++        new DialogUi.Builder(this).setTitle("Jakość radia na Kindle’u").setView(scroll)
++                .setNegativeButton("Anuluj", null).setPositiveButton("Wyślij przez Wi-Fi", (dialog, which) -> {
++                    config.mode = RadioSettings.MODES[mode.getSelectedItemPosition()];
++                    config.limit = RadioSettings.LIMITS[limit.getSelectedItemPosition()];
++                    config.codec = RadioSettings.CODECS[codec.getSelectedItemPosition()];
++                    config.buffer = RadioSettings.BUFFERS[buffer.getSelectedItemPosition()];
++                    config.minimum = minimum.isChecked();
++                    config.showVolume = screen.isChecked();
++                    sendRadioSettings(config, null, null);
++                }).show();
++    }
++
++    private void showRadioCatalog() {
++        try {
++            Map<String, List<String[]>> catalog = RadioSettings.catalog(this);
++            String[] names = catalog.keySet().toArray(new String[0]);
++            new DialogUi.Builder(this).setTitle("Stacje i warianty")
++                    .setItems(names, (d, which) -> showRadioStation(names[which], catalog.get(names[which])))
++                    .setNeutralButton("Wyślij katalog", (d, which) -> withKindle(this::installRadio))
++                    .setNegativeButton("Zamknij", null).show();
++        } catch (IOException error) {
++            showDeviceResult("Katalog stacji", "Katalog jest niedostępny. Sprawdź aktualizację aplikacji.");
++        }
++    }
++
++    private void showRadioStation(String name, List<String[]> rows) {
++        StringBuilder details = new StringBuilder();
++        for (String[] row : rows) {
++            if (details.length() > 0) details.append("\n\n");
++            details.append(row[2].isEmpty() ? "Parametry nieustalone" : row[2] + " · " + row[3] + " kb/s")
++                    .append("\n").append(row[4]).append("\n").append(row[1]);
++            if (!row[5].isEmpty()) details.append("\nWeryfikacja próbki: ").append(row[5]);
++        }
++        new DialogUi.Builder(this).setTitle(name).setMessage(details.toString())
++                .setPositiveButton("Własne adresy", (d, which) -> withKindle(() ->
++                        loadRadioSettings(config -> editRadioAddresses(name, config))))
++                .setNegativeButton("Zamknij", null).show();
++    }
++
++    private void editRadioAddresses(String name, RadioSettings.Config config) {
++        EditText addresses = new EditText(this);
++        addresses.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_MULTI_LINE
++                | InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS);
++        addresses.setHint("Jeden adres HTTP lub HTTPS w każdym wierszu");
++        List<String> saved = config.custom.get(name);
++        if (saved != null) addresses.setText(TextUtils.join("\n", saved));
++        AlertDialog dialog = new DialogUi.Builder(this).setTitle(name + " · własne źródła")
++                .setMessage("Możesz wpisać do trzech własnych wariantów. Puste pole przywraca same adresy katalogowe.")
++                .setView(addresses).setPositiveButton("Wyślij", null).setNegativeButton("Anuluj", null).show();
++        dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(v -> {
++            List<String> urls = new ArrayList<>();
++            for (String line : addresses.getText().toString().split("\n")) {
++                String url = line.trim();
++                if (url.isEmpty() || urls.contains(url)) continue;
++                if (urls.size() == 3 || !RadioSettings.validUrl(url)) {
++                    addresses.setError("Podaj maksymalnie trzy poprawne adresy HTTP lub HTTPS.");
++                    return;
++                }
++                urls.add(url);
++            }
++            dialog.dismiss();
++            sendRadioSettings(null, name, urls);
++        });
++    }
++
++    private void sendRadioSettings(RadioSettings.Config config, String name, List<String> urls) {
++        deviceAction("Wysyłam ustawienia radia przez Wi-Fi…", () -> {
++            Session session = openPairedDevice();
++            try {
++                RadioSettings.update(session, config, name, urls);
++                return "Ustawienia zapisano na Kindle’u. Zostaną odczytane przy wyborze następnej stacji.";
++            } finally { session.disconnect(); }
++        }, result -> showDeviceResult("Ustawienia radia", result));
++    }
++
+     private void confirmRadioChange(boolean restore) {
+         DialogUi.Builder prompt = new DialogUi.Builder(this)
+                 .setTitle(restore ? "Przywrócić kopię IL Radio?" : "Usunąć IL Radio z KOReadera?")
+diff --git a/src/pl/ispinalokalnie/kindlewifi/RadioInstaller.java b/src/pl/ispinalokalnie/kindlewifi/RadioInstaller.java
+index 919970e..f130561 100644
+--- a/src/pl/ispinalokalnie/kindlewifi/RadioInstaller.java
++++ b/src/pl/ispinalokalnie/kindlewifi/RadioInstaller.java
+@@ -14,8 +14,10 @@ import java.util.UUID;
+ /** Installs the bundled IL Radio only on the authenticated, paired reader. */
+ final class RadioInstaller {
+     private static final String NAME = "ilradio_k3.koplugin";
+-    private static final String[] FILES = {"_meta.lua", "stations.lua", "player.sh", "main.lua"};
+-    private static final int MAX_FILE = 32768;
++    private static final String[] LEGACY_FILES = {"_meta.lua", "stations.lua", "player.sh", "main.lua"};
++    private static final String[] FILES = {"_meta.lua", "stations.lua", "player.sh", "main.lua", "tuning.lua", "streams.tsv",
++            "test-lc48.aac", "test-he32.aac", "test-hev224.aac", "test-lc48.m4a", "test-mp364.mp3"};
++    private static final int MAX_FILE = 65536;
+     private static final String LEGACY_META =
+             "5846de1c14e95256bdc7ecf0600a84177d23142eb41544bf617952c057bc7f08";
+     private static final String ACTIVE = CompanionFiles.PLUGINS + "/" + NAME;
+@@ -77,7 +79,7 @@ final class RadioInstaller {
+             throw new IOException("Nie udało się zakończyć instalacji. Po odzyskaniu połączenia możesz użyć opcji „Przywróć kopię IL Radio”.", failure);
+         } finally {
+             if (staged && sftp.isConnected()) {
+-                for (String file : FILES) CompanionFiles.remove(sftp, stage + "/" + file);
++                for (String file : contents.keySet()) CompanionFiles.remove(sftp, stage + "/" + file);
+                 try { sftp.rmdir(stage); } catch (SftpException ignored) {}
+             }
+         }
+@@ -173,7 +175,8 @@ final class RadioInstaller {
+ 
+     private static void requireComplete(ChannelSftp sftp, String directory, byte[] metadata) throws Exception {
+         requireOwned(sftp, directory, metadata);
+-        for (String file : FILES) {
++        String[] expected = CompanionFiles.stat(sftp, directory + "/tuning.lua") == null ? LEGACY_FILES : FILES;
++        for (String file : expected) {
+             SftpATTRS entry = CompanionFiles.stat(sftp, directory + "/" + file);
+             if (entry == null || entry.getSize() == 0 || entry.getSize() > MAX_FILE)
+                 throw new IOException("Kopia IL Radio jest niepełna.");
+@@ -235,7 +238,7 @@ final class RadioInstaller {
+         String details = KindleTools.run(session, "sh " + ACTIVE + "/player.sh diagnose");
+         return (details.startsWith("engine=none")
+                 ? "Nie wykryto odtwarzacza. Na Kindle Keyboard 3 wybierz „Zainstaluj MPlayer dla Kindle K3”."
+-                : "Znaleziono odtwarzacz. Sprawdź dźwięk w KOReaderze na lokalnym MP3 i wybranej stacji.")
++                : "Sprawdź poniżej wyniki prób i stan ostatniego źródła. Próbę dekodowania uruchomisz w menu IL Radio na Kindle’u.")
+                 + "\n" + details;
+     }
+ }
+diff --git a/src/pl/ispinalokalnie/kindlewifi/RadioSettings.java b/src/pl/ispinalokalnie/kindlewifi/RadioSettings.java
+new file mode 100644
+index 0000000..15fa7db
+--- /dev/null
++++ b/src/pl/ispinalokalnie/kindlewifi/RadioSettings.java
+@@ -0,0 +1,132 @@
++package pl.ispinalokalnie.kindlewifi;
++
++import android.content.Context;
++import com.jcraft.jsch.ChannelSftp;
++import com.jcraft.jsch.Session;
++import com.jcraft.jsch.SftpATTRS;
++import java.io.IOException;
++import java.io.InputStream;
++import java.net.URI;
++import java.nio.charset.StandardCharsets;
++import java.util.ArrayList;
++import java.util.LinkedHashMap;
++import java.util.List;
++import java.util.Map;
++import java.util.UUID;
++
++final class RadioSettings {
++    static final String[] MODES = {"ultra", "eco", "auto", "high"};
++    static final String[] LIMITS = {"", "24", "32", "48", "64", "96", "128", "0"};
++    static final String[] CODECS = {"auto", "aac", "mp3"};
++    static final String[] BUFFERS = {"64", "128", "256"};
++    private static final int MAX_BYTES = 65536;
++    private static final String NAME = "ilradio-phone.tsv";
++
++    static final class Config {
++        String revision = "-", mode = "eco", limit = "", codec = "auto", buffer = "128";
++        boolean minimum, showVolume = true;
++        final Map<String, List<String>> custom = new LinkedHashMap<>();
++    }
++
++    static Config read(Session session) throws Exception {
++        ChannelSftp files = CompanionFiles.channel(session);
++        try {
++            CompanionFiles.requireDirectory(files, CompanionFiles.SETTINGS);
++            return read(files);
++        } finally {
++            files.disconnect();
++        }
++    }
++
++    private static Config read(ChannelSftp files) throws Exception {
++        String path = CompanionFiles.SETTINGS + "/" + NAME;
++        SftpATTRS entry = CompanionFiles.stat(files, path);
++        if (entry == null) return new Config();
++        if (!entry.isReg() || entry.isLink() || entry.getSize() > MAX_BYTES)
++            throw new IOException("Plik ustawień radia jest niedostępny.");
++        try (InputStream input = files.get(path)) {
++            return parse(new String(BialolekaForecast.readBounded(input, MAX_BYTES), StandardCharsets.UTF_8));
++        }
++    }
++
++    static Config parse(String text) {
++        Config config = new Config();
++        for (String line : text.split("\\r?\\n")) {
++            String[] row = line.split("\\t", -1);
++            if (row.length >= 8 && row[0].equals("@")) {
++                config.revision = row[1];
++                config.mode = MODES[index(MODES, row[2], 1)];
++                config.limit = LIMITS[index(LIMITS, row[3], 0)];
++                config.codec = CODECS[index(CODECS, row[4], 0)];
++                config.buffer = BUFFERS[index(BUFFERS, row[5], 1)];
++                config.minimum = row[6].equals("1");
++                config.showVolume = !row[7].equals("0");
++            } else if (row.length == 2 && !row[0].isEmpty() && validUrl(row[1])) {
++                config.custom.computeIfAbsent(row[0], key -> new ArrayList<>()).add(row[1]);
++            }
++        }
++        return config;
++    }
++
++    static int index(String[] options, String value, int fallback) {
++        for (int i = 0; i < options.length; i++) if (options[i].equals(value)) return i;
++        return fallback;
++    }
++
++    static boolean validUrl(String address) {
++        if (address.length() > 1024) return false;
++        try {
++            URI uri = URI.create(address);
++            return ("http".equals(uri.getScheme()) || "https".equals(uri.getScheme()))
++                    && uri.getHost() != null && uri.getRawUserInfo() == null && uri.getRawFragment() == null;
++        } catch (IllegalArgumentException invalid) {
++            return false;
++        }
++    }
++
++    static synchronized void update(Session session, Config quality, String station, List<String> urls) throws Exception {
++        ChannelSftp files = CompanionFiles.channel(session);
++        try {
++            CompanionFiles.requireDirectory(files, CompanionFiles.SETTINGS);
++            Config saved = read(files);
++            if (quality != null) {
++                saved.revision = UUID.randomUUID().toString();
++                saved.mode = quality.mode;
++                saved.limit = quality.limit;
++                saved.codec = quality.codec;
++                saved.buffer = quality.buffer;
++                saved.minimum = quality.minimum;
++                saved.showVolume = quality.showVolume;
++            }
++            if (station != null) {
++                if (urls.isEmpty()) saved.custom.remove(station);
++                else saved.custom.put(station, urls);
++            }
++            StringBuilder data = new StringBuilder("@\t").append(saved.revision).append('\t')
++                    .append(saved.mode).append('\t').append(saved.limit).append('\t').append(saved.codec)
++                    .append('\t').append(saved.buffer).append('\t').append(saved.minimum ? '1' : '0')
++                    .append('\t').append(saved.showVolume ? '1' : '0').append('\n');
++            for (Map.Entry<String, List<String>> row : saved.custom.entrySet()) {
++                for (String url : row.getValue()) data.append(row.getKey()).append('\t').append(url).append('\n');
++            }
++            byte[] bytes = data.toString().getBytes(StandardCharsets.UTF_8);
++            if (bytes.length > MAX_BYTES) throw new IOException("Lista własnych adresów jest za długa.");
++            CompanionFiles.replace(files, CompanionFiles.SETTINGS, NAME, bytes);
++        } finally {
++            files.disconnect();
++        }
++    }
++
++    static Map<String, List<String[]>> catalog(Context context) throws IOException {
++        Map<String, List<String[]>> catalog = new LinkedHashMap<>();
++        try (InputStream input = context.getAssets().open("ilradio_k3.koplugin/streams.tsv")) {
++            String contents = new String(BialolekaForecast.readBounded(input, MAX_BYTES), StandardCharsets.UTF_8);
++            for (String line : contents.split("\\r?\\n")) {
++                if (line.startsWith("#")) continue;
++                String[] row = line.split("\\t", -1);
++                if (row.length == 9) catalog.computeIfAbsent(row[0], key -> new ArrayList<>()).add(row);
++            }
++        }
++        return catalog;
++    }
++}
+diff --git a/tests/radio-menu-test.lua b/tests/radio-menu-test.lua
+index 6d6ceed..57852f0 100644
+--- a/tests/radio-menu-test.lua
++++ b/tests/radio-menu-test.lua
+@@ -16,6 +16,7 @@ local input = { event_map = {} }
+ input.open = function(_, path) volume_opened = path end
+ package.preload["device"] = function() return { model = "Kindle3", input = input } end
+ local state, last_position = "stopped", "56"
++local evidence = "pending"
+ package.preload["ui/widget/container/widgetcontainer"] = function()
+     return { extend = function(_, class) return class end }
+ end
+@@ -41,7 +42,9 @@ package.preload["datastorage"] = function() return { getSettingsDir = function()
+ io.popen = function(command)
+     calls[#calls + 1] = command
+     local response = ""
+-    if command:find("'probe'", 1, true) then response = "mplayer"
++    if command:find("'probe-start'", 1, true) then response = "unavailable"
++    elseif command:find("'evidence'", 1, true) then response = evidence
++    elseif command:find("'probe' 'mplayer'", 1, true) then response = "mplayer"
+     elseif command:find("'start'", 1, true) then response, state = "starting:mplayer", "active"
+     elseif command:find("'stop'", 1, true) then response, state = "stopped", "stopped"
+     elseif command:find("'pause'", 1, true) then response, state = "paused", "paused"
+@@ -67,93 +70,63 @@ local menu = {}
+ plugin:addToMainMenu(menu)
+ assert(menu.ilradio_k3 and menu.ilradio_k3.sorting_hint == "more_tools")
+ local catalog = dofile(source .. "/stations.lua")
+-assert(#catalog == 40)
+-local function entry_with_text(items, title)
++assert(#catalog == 42)
++local function menu_item(items, title)
+     for _, item in ipairs(items) do
+         if item.text == title then return item end
+     end
+ end
+-local popular = plugin:station_menu("Popularne")
+-local first = popular[1]
++local first = plugin:station_menu("Popularne")[1]
+ assert(first.text_func() == "RMF FM")
+-assert(first.sub_item_table[1].keep_menu_open and first.sub_item_table[2].keep_menu_open)
+ first.sub_item_table[2].callback()
+ assert(data.favorites["RMF FM"] and #plugin:station_menu("Ulubione") == 1)
+ first.sub_item_table[1].callback()
+-assert(plugin.current.name == "RMF FM" and plugin.current.alternate)
+-assert(data.last_station_name == "RMF FM")
+-local count, notices = #calls, #messages
++assert(plugin.current.name == "RMF FM" and plugin.current.stream.kbps == 48)
++assert(plugin.current.stream.codec:find("AAC"))
++assert(data.last_station_name == "RMF FM" and not data.radio_last_working)
+ assert(plugin:onKeyPress(key(115)) and data.volume == 75)
+ assert(plugin:onKeyPress(key(114)) and data.volume == 70)
+-assert(#calls == count + 2 and #messages == notices)
+-assert(calls[count + 1]:find("'volume' '75'", 1, true))
+-assert(calls[count + 2]:find("'volume' '70'", 1, true))
+-assert(not plugin:onKeyPress(key(139)))
+-state = "stopped"
+-plugin.start_check()
+-assert(plugin.current.uri:find("https://", 1, true) and not plugin.current.alternate)
++assert(calls[#calls]:find("'volume' '70'", 1, true))
+ plugin:playing_info()
++assert(messages[#messages]:find("dźwięk niepotwierdzony", 1, true))
+ assert(messages[#messages]:find("Próbny utwór", 1, true))
+-local radio_menu = menu.ilradio_k3.sub_item_table_func
+-local options = entry_with_text(radio_menu(), "Ustawienia radia").sub_item_table
+-assert(not options[1].checked_func() and options[2].checked_func())
+-assert(entry_with_text(radio_menu(), "Głośniej +") and entry_with_text(radio_menu(), "Ciszej -"))
+-options[2].callback()
+-assert(data.show_volume_buttons == false and not options[2].checked_func())
+-assert(not entry_with_text(radio_menu(), "Głośniej +") and not entry_with_text(radio_menu(), "Ciszej -"))
++evidence = "decoded"
++plugin.radio_tick()
++assert(plugin.current.evidence == "decoded" and not data.radio_last_working)
++plugin:confirm_sound()
++assert(data.radio_last_working["RMF FM"] == plugin.current.stream.url)
++
++local options = menu_item(plugin:radio_menu(), "Ustawienia radia").sub_item_table
++local volume = menu_item(options, "Ekranowe przyciski głośności +/−")
++assert(volume.checked_func())
++volume.callback()
++assert(not volume.checked_func() and not data.show_volume_buttons)
++assert(not menu_item(plugin:radio_menu(), "Głośniej +"))
+ assert(plugin:onKeyPress(key(115)) and data.volume == 75)
+-assert(plugin:onKeyPress(key(114)) and data.volume == 70)
+ 
+-options[1].callback()
+-assert(data.radio_economy == true and options[1].checked_func())
+-assert(plugin.current.uri == catalog[1].economy.url and not plugin.current.alternate)
+-assert(plugin:station_menu("Popularne")[1].text_func():find("48 kb/s", 1, true))
+-assert(#plugin:station_menu("Popularne") < #popular)
+-assert(plugin:station_menu("Polskie Radio")[1].enabled == false)
+-local commands = #calls
+-plugin:play_station(catalog[2])
+-plugin:play_station({ "Zbyt wysoka jakość", nil, "http://test/standard",
+-    economy = { url = "http://test/128", kbps = 128 } })
+-assert(#calls == commands)
+-state = "stopped"
+-plugin.start_check()
+-assert(plugin.current and plugin.current.retries == 1 and plugin.current.uri == catalog[1].economy.url)
+-options[1].callback()
+-assert(data.radio_economy == false and plugin.current.uri == catalog[1][3])
+-plugin:play_station(catalog[2])
+-assert(plugin.current.uri == catalog[2][3])
+-options[1].callback()
+-assert(not data.radio_economy and plugin.current.name == "Radio ZET" and state == "active")
+-assert(messages[#messages]:find("nie ma wersji do 64 kb/s", 1, true))
+-state = "stopped"
+-plugin.radio_tick()
+-assert(plugin.current and plugin.current.retries == 1)
+-state = "stopped"
+-plugin.start_check()
+-assert(plugin.current.retries == 2)
+-state = "stopped"
+-plugin.start_check()
+-assert(plugin.current == nil and state == "stopped")
+-assert(messages[#messages].kind == "radio-error" and messages[#messages].ok_text == "Spróbuj ponownie")
+-messages[#messages].ok_callback()
+-assert(plugin.current and plugin.current.name == "Radio ZET" and state == "active")
++plugin:set_quality("limit", 32)
++plugin:play_station(catalog[1])
++while plugin.job and not plugin.current do plugin.retry_tick() end
++assert(not plugin.current and not plugin.job)
++local permission = messages[#messages]
++assert(permission.kind == "radio-error" and permission.ok_text == "Uruchom ten wariant")
++permission.ok_callback()
++assert(plugin.job.approved and plugin.current.stream.kbps == 48)
++plugin:stop()
++assert(not scheduled[plugin.retry_tick] and not scheduled[plugin.probe_tick])
++plugin:set_quality("limit", nil)
+ 
+-local files = {
+-    { path = "/mnt/us/audiobooks/Rozdział 1.mp3", name = "Rozdział 1.mp3" },
+-    { path = "/mnt/us/audiobooks/Rozdział 2.mp3", name = "Rozdział 2.mp3" },
+-}
+-plugin:play_file(files, 1, "books")
+-plugin:toggle_pause()
+-assert(state == "paused" and data.positions[files[1].path] == 56)
+-plugin:toggle_pause()
+-assert(state == "active")
+-plugin:next_track(1)
+-assert(plugin.current.name == files[2].name)
+-plugin:next_track(-1)
+-assert(calls[#calls]:find("'56'", 1, true))
+-plugin:onCloseWidget()
+-assert(state == "stopped")
+-plugin:init()
+-assert(not plugin.economy and not plugin.show_volume_buttons)
+-assert(plugin.volume_step == 5 and data.last_station_name == "Radio ZET")
+-print((legacy and "Legacy" or "Modern") .. " filesystem module: PASS IL Radio menu: 40 stations, favorites, alternate URL, title, track navigation, pause, audiobook offset, 64 kb/s mode, independent volume visibility")
++-- Fake a candidate rejection until the bounded queue is exhausted.
++plugin:play_station(catalog[1])
++evidence = "failed:tls"
++local steps = 0
++while plugin.job and steps < 20 do
++    steps = steps + 1
++    if plugin.current then plugin.radio_tick() else plugin.retry_tick() end
++end
++assert(not plugin.job and steps < 20)
++assert(#plugin:station_menu("Polskie Radio") >= 6)
++plugin:next_station(1)
++assert(plugin.last_station_name == catalog[2][1])
++plugin:stop()
++print((legacy and "Legacy" or "Modern") .. " filesystem module: PASS IL Radio menu")
+diff --git a/tests/run-stream-probe-tests.sh b/tests/run-stream-probe-tests.sh
+new file mode 100755
+index 0000000..ef368bf
+--- /dev/null
++++ b/tests/run-stream-probe-tests.sh
+@@ -0,0 +1,69 @@
++#!/usr/bin/env bash
++set -euo pipefail
++cd "$(dirname "$0")/.."
++player="$PWD/assets/ilradio_k3.koplugin/player.sh"
++fixture="$(mktemp -d)"
++export TMPDIR="$fixture"
++trap 'sh "$player" stop >/dev/null; if [ -n "${server:-}" ]; then kill "$server" 2>/dev/null || true; fi; rm -rf "$fixture"' EXIT
++cp assets/ilradio_k3.koplugin/test-he32.aac "$fixture/radio.aac"
++openssl req -new -x509 -nodes -newkey rsa:2048 -days 1 -subj /CN=localhost \
++    -addext subjectAltName=DNS:localhost -keyout "$fixture/key" -out "$fixture/cert" >/dev/null 2>&1
++python3 - "$fixture" <<'PY' &
++import http.server, pathlib, ssl, sys, threading, time
++root = pathlib.Path(sys.argv[1])
++class Handler(http.server.BaseHTTPRequestHandler):
++    def do_GET(self):
++        if self.path == '/start':
++            self.send_response(302)
++            self.send_header('Location','/radio.aac')
++            self.end_headers()
++            return
++        if self.path not in ('/radio.aac','/stall'):
++            self.send_error(404)
++            return
++        self.send_response(200)
++        self.send_header('Content-Type','audio/aacp')
++        self.send_header('icy-br','32')
++        self.end_headers()
++        if self.path == '/stall':
++            time.sleep(12)
++            return
++        self.wfile.write((root/'radio.aac').read_bytes() * 4)
++    def log_message(self, *args):
++        pass
++plain = http.server.ThreadingHTTPServer(('127.0.0.1',0),Handler)
++https = http.server.ThreadingHTTPServer(('127.0.0.1',0),Handler)
++ctx=ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
++ctx.load_cert_chain(root/'cert',root/'key')
++https.socket=ctx.wrap_socket(https.socket,server_side=True)
++(root/'ports').write_text(f'{plain.server_port} {https.server_port}\n')
++threading.Thread(target=plain.serve_forever,daemon=True).start()
++https.serve_forever()
++PY
++server=$!
++for i in {1..50}; do [ ! -s "$fixture/ports" ] || break; sleep .1; done
++read -r port secure < "$fixture/ports"
++export NO_PROXY=localhost,127.0.0.1
++export no_proxy="$NO_PROXY"
++probe() {
++    prefix=$(sh "$player" probe-start "$1")
++    for i in {1..115}; do [ ! -s "$prefix.done" ] || return 0; sleep .1; done
++    return 1
++}
++probe "http://127.0.0.1:$port/start"
++grep -Fx "http://127.0.0.1:$port/radio.aac" "$prefix.meta"
++[ "$(wc -c < "$prefix.sample")" = 16384 ]
++grep -iq '^icy-br: 32' "$prefix.headers"
++probe "http://127.0.0.1:$port/404"
++[ "$(cat "$prefix.done")" = 22 ]
++probe "https://localhost:$secure/radio.aac"
++[ "$(cat "$prefix.done")" = 60 ]
++export CURL_CA_BUNDLE="$fixture/cert"
++probe "https://localhost:$secure/radio.aac"
++grep -Fx 200 "$prefix.meta"
++[ "$(wc -c < "$prefix.sample")" = 16384 ]
++probe "http://127.0.0.1:1/radio.aac"
++[ "$(cat "$prefix.done")" = 7 ]
++probe "http://127.0.0.1:$port/stall"
++[ "$(cat "$prefix.done")" = 28 ]
++echo 'PASS real HTTP redirect, HTTPS certificate, timeout, dead server and capped sample'
+diff --git a/tests/tuning-test.lua b/tests/tuning-test.lua
+new file mode 100644
+index 0000000..42e0dd4
+--- /dev/null
++++ b/tests/tuning-test.lua
+@@ -0,0 +1,40 @@
++local dir = arg[1]
++local T = dofile(dir .. "/tuning.lua")
++local eco = {mode = "eco", codec = "auto"}
++local ultra = {mode = "ultra", codec = "auto"}
++local list = {{codec = "HE-AAC v2", kbps = 24}, {codec = "HE-AAC", kbps = 32},
++    {codec = "AAC-LC", kbps = 48}, {codec = "MP3", kbps = 64}, {codec = "AAC-LC", kbps = 64},
++    {codec = "MP3", kbps = 128}}
++assert(T.rank(eco, list)[1].kbps == 48)
++assert(T.rank(ultra, list)[1].kbps == 24)
++assert(T.rank({mode = "eco", minimum = true}, list)[1].kbps == 24)
++assert(T.rank({mode = "eco", limit = 32}, list)[1].kbps == 32)
++assert(T.rank({mode = "high"}, list)[1].kbps == 128)
++assert(T.rank({mode = "eco", codec = "mp3"}, list)[1].codec == "MP3")
++assert(T.allowed(eco, {codec = "MP3", kbps = 64}))
++assert(not T.allowed(eco, {codec = "AAC-LC", kbps = 64}))
++assert(not T.allowed({mode = "eco", limit = 32}, {codec = "MP3", kbps = 64}))
++assert(not T.allowed({mode = "auto"}, {}))
++assert(T.allowed({mode = "auto", limit = 0}, {}))
++assert(not T.allowed({mode = "ultra", limit = 0}, {codec = "AAC", kbps = 48}))
++assert(not T.url("http://user:pass@localhost/a") and not T.url("file:///etc/passwd"))
++assert(T.url("https://radio.example/live?x=2&y=3"))
++
++for _, sample in ipairs({
++    {"test-lc48.aac", 48, "AAC", 44100, 2}, {"test-he32.aac", 32, "AAC", 22050, 2},
++    {"test-hev224.aac", 24, "AAC", 22050, 1}, {"test-mp364.mp3", 64, "MP3"}
++}) do
++    local file = assert(io.open(dir .. "/" .. sample[1], "rb"))
++    local bytes = file:read(16384)
++    file:close()
++    local codec, cap, rate, _, core, channels = T.sample(bytes, sample[2])
++    assert(codec == sample[3] and cap == sample[2] and math.abs(rate - cap) < 1.2, sample[1])
++    assert(core == sample[4] and channels == sample[5], sample[1] .. " core")
++end
++assert(not T.sample("<html>Not a radio stream</html>", 24))
++local file = assert(io.open(dir .. "/test-lc48.aac", "rb"))
++local bytes = file:read(16384)
++file:close()
++local codec, cap = T.sample(bytes, 24)
++assert(codec == "AAC" and cap > 24)
++print("PASS policy caps, priority, AAC and MP3 frames, misleading bitrate and URL checks")
