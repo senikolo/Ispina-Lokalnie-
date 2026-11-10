@@ -4,6 +4,7 @@ on:
     branches: [codex/kindle-wifi-radio-audio-2-26-20261110]
     paths:
       - build-sources/kindle-radio-2.27.0.patch
+      - build-sources/kindle-radio-2.27.1.patch
       - build-sources/kindle-radio-2.27.2.patch
       - .github/workflows/kindle-wifi-radio-2-27.yml
   workflow_dispatch:
@@ -36,6 +37,8 @@ jobs:
           git apply --binary "$GITHUB_WORKSPACE/build-sources/kindle-radio-2.27.0.patch"
           git apply "$GITHUB_WORKSPACE/build-sources/kindle-radio-2.27.1.patch"
           git apply "$GITHUB_WORKSPACE/build-sources/kindle-radio-2.27.2.patch"
+          sed -i "s/versionCode 38; versionName '2.27.1'/versionCode 39; versionName '2.27.2'/" build.gradle
+          sed -i 's/android:versionCode="38" android:versionName="2.27.1"/android:versionCode="39" android:versionName="2.27.2"/' AndroidManifest.xml
           sdkmanager="$(find "$ANDROID_HOME/cmdline-tools" -name sdkmanager -type f | head -n 1)"
           yes | "$sdkmanager" --licenses >/dev/null || true
           "$sdkmanager" 'platforms;android-35' 'build-tools;35.0.0'
