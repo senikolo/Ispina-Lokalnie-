@@ -81,8 +81,8 @@
      return shell_call("status")
  end
 +function ILRadio:health()
-+    local result = shell_call("health")
-+    return result == "failed" and "failed" or (result == "active" and "active" or self:status())
++    local state = self:status()
++    return state == "stopped" and "failed" or (shell_call("health") == "failed" and "failed" or state)
 +end
  function ILRadio:remember_position()
      local item = self.current
