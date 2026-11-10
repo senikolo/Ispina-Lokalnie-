@@ -1,0 +1,224 @@
+--- a/assets/ilradio_k3.koplugin/main.lua
++++ b/assets/ilradio_k3.koplugin/main.lua
+@@ -20,6 +20,7 @@
+ }
+ local ENGINE_OPTIONS = {"auto", "gst-legacy", "gst-mixer", "mplayer", "mpg123", "gst-modern", "mpv"}
+ local volume_input_open = false
++local RADIO_VERSION = "2.26.6"
+ 
+ local function economy_stream(station)
+     local stream = station.economy
+@@ -104,19 +105,25 @@
+     self.current = nil
+     self.position_tick = function() self:track_position() end
+     self.radio_tick = function()
+-        if self.current and self.current.kind == "radio" then
+-            if self:status() == "stopped" then self:recover_radio()
+-            else UIManager:scheduleIn(20, self.radio_tick) end
++        local item = self.current
++        if not item or item.kind ~= "radio" then return end
++        if self:health() == "failed" then
++            self:recover_radio()
++            return
+         end
++        -- Odzyskaj pełny budżet prób dopiero po minucie stabilnej pracy.
++        item.stable_ticks = (item.stable_ticks or 0) + 1
++        if item.stable_ticks >= 4 then item.retries = 0 end
++        UIManager:scheduleIn(15, self.radio_tick)
+     end
+     self.start_check = function()
+-        if self.current then
+-            if self:status() == "stopped" then
+-                if self.current.kind == "radio" then self:recover_radio()
+-                else self:notice("Nie udało się odtworzyć pliku. Sprawdź format i silnik audio.", 8) end
+-            elseif self.current.kind == "radio" then
+-                UIManager:scheduleIn(20, self.radio_tick)
+-            end
++        local item = self.current
++        if not item then return end
++        if self:health() == "failed" then
++            if item.kind == "radio" then self:recover_radio()
++            else self:notice("Odtwarzanie pliku nie powiodło się. Sprawdź silnik audio.", 8) end
++        elseif item.kind == "radio" then
++            UIManager:scheduleIn(15, self.radio_tick)
+         end
+     end
+     self.playlist = nil
+@@ -137,15 +144,24 @@
+     local item = self.current
+     if not item or item.kind ~= "radio" then return end
+     local tries = item.retries or 0
+-    if tries >= 2 then
+-        self:radio_failure(item.station, "Nie udało się połączyć z radiem po trzech próbach.")
++    if tries >= 3 then
++        self:radio_failure(item.station, "Trzy próby naprawy połączenia nie pomogły. Możesz ponowić ręcznie.")
+         return
+     end
+-    local retry_url = (tries == 0 and item.alternate) or item.uri
+-    local retry_no = tries + 1
+-    if self:play(retry_url, item.name, "radio", nil, nil, item.station) then
+-        self.current.retries = retry_no
+-        self:notice("Ponawiam połączenie z „" .. item.name .. "” (" .. retry_no .. "/2).", 4)
++    local next_no = tries + 1
++    local retry_url = item.uri
++    local retry_engine = item.forced_engine
++    if next_no == 1 and item.alternate then
++        retry_url = item.alternate
++    elseif next_no == 2 and self.engine == "auto" then
++        -- Gdy adres nie działa, spróbuj innego dekodera, bez zmiany ustawień użytkownika.
++        local candidate = item.engine == "mplayer" and "gst-legacy" or "mplayer"
++        if shell_call("probe", candidate) ~= "" then retry_engine = candidate end
++        retry_url = item.station and item.station[3] or item.uri
++    end
++    local station, name, alternate = item.station, item.name, item.alternate
++    if self:play(retry_url, name, "radio", nil, alternate, station, retry_engine, next_no) then
++        self:notice("Ponawiam: „" .. name .. "” (próba " .. next_no .. "/3).", 5)
+     end
+ end
+ 
+@@ -165,6 +181,10 @@
+ function ILRadio:status()
+     return shell_call("status")
+ end
++function ILRadio:health()
++    local result = shell_call("health")
++    return result == "failed" and "failed" or (result == "active" and "active" or self:status())
++end
+ function ILRadio:remember_position()
+     local item = self.current
+     if not item or item.kind ~= "books" or item.engine ~= "mplayer" then return end
+@@ -195,8 +215,9 @@
+     if self.current then self:stop() end
+ end
+ 
+-function ILRadio:play(uri, name, kind, path, alternate, station)
+-    local engine = shell_call("probe", self.engine)
++function ILRadio:play(uri, name, kind, path, alternate, station, forced_engine, retries)
++    local requested = forced_engine or self.engine
++    local engine = shell_call("probe", requested)
+     if engine == "" then
+         if kind == "radio" then self:radio_failure(station, "Brak działającego silnika audio. Sprawdź diagnostykę na telefonie.")
+         else self:notice("Nie znaleziono odtwarzacza. Otwórz Diagnostykę audio.", 8) end
+@@ -204,7 +225,7 @@
+     end
+     if self.current then self:stop() end
+     local offset = kind == "books" and engine == "mplayer" and self.positions[path] or 0
+-    local result = shell_call("start", uri, self.engine, self.volume, path or "", offset)
++    local result = shell_call("start", uri, requested, self.volume, path or "", offset)
+     if not result:match("^starting:") then
+         if kind == "radio" then self:radio_failure(station, "Silnik odtwarzania nie uruchomił się.")
+         else self:notice("Nie udało się uruchomić odtwarzacza. Otwórz Diagnostykę audio.", 8) end
+@@ -212,10 +233,11 @@
+     end
+     self.current = {
+         uri = uri, name = name, kind = kind, path = path, engine = engine,
+-        alternate = alternate, station = station, retries = 0,
++        alternate = alternate, station = station, retries = retries or 0,
++        forced_engine = forced_engine, stable_ticks = 0,
+     }
+-    self:notice("Uruchamiam „" .. name .. "”…", 3)
+-    UIManager:scheduleIn(kind == "radio" and 13 or 4, self.start_check)
++    self:notice("Łączę z „" .. name .. "”… Jeśli nie zagra, wybierz inną stację.", 3)
++    UIManager:scheduleIn(kind == "radio" and 7 or 4, self.start_check)
+     if kind == "books" and engine == "mplayer" then
+         UIManager:scheduleIn(6, self.position_tick)
+     end
+@@ -286,7 +308,9 @@
+         return
+     end
+     local title = shell_call("title")
+-    local text = self.current.name .. "\nStan: " .. (state == "paused" and "pauza" or "odtwarzacz aktywny")
++    local text = self.current.name .. "\nWtyczka IL Radio: " .. RADIO_VERSION
++        .. "\nSilnik: " .. tostring(self.current.engine)
++        .. "\nStan: " .. (state == "paused" and "pauza" or "odtwarzacz uruchomiony (dźwięk wymaga sprawdzenia)")
+     if title ~= "" then text = text .. "\nUtwór: " .. title
+     elseif self.current.kind == "radio" then text = text .. "\nTytuł utworu niedostępny." end
+     self:notice(text, 10)
+@@ -342,11 +366,11 @@
+     elseif shell_call("system-volume", delta > 0 and "up" or "down") == "adjusted" then
+         if not quiet then self:notice("Głośność Kindle’a zmieniona. Ustawienie: " .. self.volume .. "%.") end
+     elseif current and current.kind == "radio" and self:status() == "active" then
+-        if quiet then return end -- Do not restart a stream for every rocker event.
+-        local saved_retries = current.retries or 0
+-        self:play(current.uri, current.name, "radio", nil, current.alternate, current.station)
+-        if self.current then self.current.retries = saved_retries end
+-        self:notice("Głośność " .. self.volume .. "%. Ponownie łączę ze stacją.")
++        if not quiet then
++            self:notice("Ten silnik nie zmienia głośności w trakcie audycji. "
++                .. "Ustawienie " .. self.volume .. "% zastosuje się po ponownym uruchomieniu radia. "
++                .. "Wybierz MPlayer w ustawieniach, aby regulować głośność na żywo.", 9)
++        end
+     elseif not quiet then
+         self:notice("Głośność przy następnym uruchomieniu: " .. self.volume .. "%.", 5)
+     end
+@@ -413,6 +437,13 @@
+ end
+ function ILRadio:radio_menu()
+     local menu = {
++        { text = "Stan Radia · v" .. RADIO_VERSION, callback = function()
++            local selected = (self.current and self.current.engine) or shell_call("probe", self.engine)
++            self:notice("IL Radio v" .. RADIO_VERSION .. "\nSilnik: " .. (selected ~= "" and selected or "brak")
++                .. "\nKlawiatura K3: " .. (volume_input_open and "wejście podłączone" or "brak potwierdzenia")
++                .. "\nOdtwarzanie: " .. self:status()
++                .. "\nUwaga: działanie klawiszy i dźwięku wymaga testu na Kindle.", 18)
++        end },
+         { text = "Co gra?", callback = function() self:playing_info() end },
+         { text = "Wznów / zatrzymaj radio lub pauza pliku", keep_menu_open = true, callback = function() self:toggle_pause() end },
+         { text = "Wznów ostatnią stację", keep_menu_open = true, callback = function()
+@@ -453,7 +484,7 @@
+         { text = "Radia muzyczne", sub_item_table_func = function() return self:station_menu("Muzyczne") end },
+         { text = "Moja muzyka", sub_item_table_func = function() return self:files_menu("music") end },
+         { text = "Moje audiobooki", sub_item_table_func = function() return self:files_menu("books") end },
+-        { text = "Silnik audio", sub_item_table_func = function()
++        { text = "Silnik audio (dla klawiszy wybierz MPlayer)", sub_item_table_func = function()
+             local opts = {}
+             for _, option in ipairs(ENGINE_OPTIONS) do
+                 local engine = option
+@@ -474,9 +505,9 @@
+             self:notice("Diagnostyka Kindle K3\n\n" .. details, 20)
+         end },
+         { text = "Pomoc", callback = function()
+-            self:notice("Do radia potrzebujesz Wi-Fi. Zgodność strumienia zależy od odtwarzacza. "
+-                .. "Do testu lokalnego wybierz MP3. Automatyczny zapis pozycji audiobooka działa z silnikiem MPlayer. "
+-                .. "Z MPlayerem możesz też użyć fizycznych przycisków głośności Kindle Keyboard 3.", 18)
++                self:notice("Aby sprawdzić nowe Radio, otwórz Stan Radia · v" .. RADIO_VERSION .. ". "
++                .. "Zainstaluj wtyczkę ponownie przez nową aplikację na telefonie, a potem uruchom ponownie KOReader. "
++                .. "MPlayer pozwala sterować głośnością bez przerywania radia, jeśli klawisze są wykrywane.", 18)
+         end },
+     }
+     if self.show_volume_buttons then
+@@ -489,7 +520,7 @@
+ 
+ function ILRadio:addToMainMenu(menu_items)
+     menu_items.ilradio_k3 = {
+-        text = "Radio i audiobooki",
++        text = "Radio i audiobooki · v" .. RADIO_VERSION,
+         sorting_hint = "more_tools",
+         sub_item_table_func = function() return self:radio_menu() end,
+     }
+--- a/assets/ilradio_k3.koplugin/player.sh
++++ b/assets/ilradio_k3.koplugin/player.sh
+@@ -180,6 +180,11 @@
+         echo "starting:$engine"
+         ;;
+     run) shift; play_backend "$@";;
++    health)
++        if ! is_ours; then echo failed
++        elif [ -s "$LOG" ] && tail -n 25 "$LOG" | grep -Eiq '(^| )ERROR(:| from)|Could not (open|connect|resolve)|No suitable plugins|Failed to (open|connect)'; then echo failed
++        else echo active
++        fi;;
+     status)
+         if is_ours; then
+             if [ -e "$PAUSED" ]; then echo paused; else echo active; fi
+@@ -217,7 +222,12 @@
+         path=$(mplayer_path)
+         if [ -n "$path" ]; then echo "+ MPlayer ($path)"; fi
+         for device in /dev/dsp /dev/snd; do if [ -e "$device" ]; then echo "+ $device"; fi; done
+-        echo "status=$(sh "$0" status)"
++        echo "status=$(sh "$0" status)" 
++        echo "health=$(sh "$0" health)"
++        if [ -r /proc/bus/input/devices ]; then
++            echo "wejścia:"
++            grep -E '^N: Name=|^H: Handlers=' /proc/bus/input/devices | head -n 14 | cut -c 1-100
++        fi
+         if [ -s "$LOG" ]; then tail -n 5 "$LOG" | cut -c 1-140; fi;;
