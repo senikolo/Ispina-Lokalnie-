@@ -1,4 +1,4 @@
-name: Kindle Wi-Fi 2.26
+name: Kindle Wi-Fi 2.26.1
 on:
   push:
     branches:
@@ -49,7 +49,8 @@ jobs:
           cd "$RUNNER_TEMP/kindle/kindle-wifi-2.26"
           bash tests/run-atomic-tests.sh
           curl --max-time 30 --retry 2 -fsSL https://repo.maven.apache.org/maven2/org/luaj/luaj-jse/3.0.1/luaj-jse-3.0.1.jar -o "$RUNNER_TEMP/luaj.jar"
-          java -cp "$RUNNER_TEMP/luaj.jar" lua -e 'package.preload["lfs"]=function() return {} end' tests/radio-menu-test.lua assets/ilradio_k3.koplugin
+          java -cp "$RUNNER_TEMP/luaj.jar" lua tests/radio-menu-test.lua assets/ilradio_k3.koplugin | grep -F 'Modern filesystem module: PASS IL Radio menu'
+          java -cp "$RUNNER_TEMP/luaj.jar" lua tests/radio-menu-test.lua assets/ilradio_k3.koplugin legacy | grep -F 'Legacy filesystem module: PASS IL Radio menu'
       - name: Build release APK
         shell: bash
         run: |
@@ -59,17 +60,17 @@ jobs:
         shell: bash
         run: |
           mkdir -p build-artifacts
-          cp "$RUNNER_TEMP/kindle/kindle-wifi-2.26/build/outputs/apk/release/"*-unsigned.apk build-artifacts/Kindle-przez-WiFi-2.26-unsigned.apk
+          cp "$RUNNER_TEMP/kindle/kindle-wifi-2.26/build/outputs/apk/release/"*-unsigned.apk build-artifacts/Kindle-przez-WiFi-2.26.1-unsigned.apk
           aapt2="$ANDROID_HOME/build-tools/35.0.0/aapt2"
           "$aapt2" dump badging build-artifacts/*.apk | tee build-artifacts/apk-manifest.txt
-          grep -F "name='pl.ispinalokalnie.kindlewifi.v23' versionCode='30' versionName='2.26'" build-artifacts/apk-manifest.txt
+          grep -F "name='pl.ispinalokalnie.kindlewifi.v23' versionCode='31' versionName='2.26.1'" build-artifacts/apk-manifest.txt
           unzip -Z1 build-artifacts/*.apk > "$RUNNER_TEMP/apk-files.txt"
           grep -Fx assets/ilradio_k3.koplugin/player.sh "$RUNNER_TEMP/apk-files.txt"
           grep -Fx assets/patches/1-warszawski-czas.lua "$RUNNER_TEMP/apk-files.txt"
           grep -F assets/mlkit-google-ocr-models/ "$RUNNER_TEMP/apk-files.txt" >/dev/null
       - uses: actions/upload-artifact@v4
         with:
-          name: Kindle-przez-WiFi-2.26-release-unsigned
+          name: Kindle-przez-WiFi-2.26.1-release-unsigned
           path: build-artifacts/
           if-no-files-found: error
 
@@ -87,7 +88,7 @@ jobs:
     steps:
       - uses: actions/download-artifact@v4
         with:
-          name: Kindle-przez-WiFi-2.26-release-unsigned
+          name: Kindle-przez-WiFi-2.26.1-release-unsigned
           path: build-artifacts
       - name: Sign emulator-only copy
         shell: bash
