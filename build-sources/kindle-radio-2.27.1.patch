@@ -1,0 +1,213 @@
+diff --git a/AndroidManifest.xml b/AndroidManifest.xml
+index 8be3404..ce787c1 100644
+--- a/AndroidManifest.xml
++++ b/AndroidManifest.xml
+@@ -1,5 +1,5 @@
+ <manifest xmlns:android="http://schemas.android.com/apk/res/android"
+-    android:versionCode="37" android:versionName="2.27.0">
++    android:versionCode="38" android:versionName="2.27.1">
+     <uses-sdk android:minSdkVersion="26" android:targetSdkVersion="34"/>
+     <uses-permission android:name="android.permission.INTERNET"/>
+     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
+diff --git a/assets/ilradio_k3.koplugin/main.lua b/assets/ilradio_k3.koplugin/main.lua
+index fb2efa0..ac3ce55 100644
+--- a/assets/ilradio_k3.koplugin/main.lua
++++ b/assets/ilradio_k3.koplugin/main.lua
+@@ -35,7 +35,8 @@ local AUDIO_ROOTS = {
+ }
+ local ENGINE_OPTIONS = {"auto", "gst-legacy", "gst-mixer", "mplayer", "mpg123", "gst-modern", "mpv"}
+ local volume_input_open = false
+-local RADIO_VERSION = "2.27.0"
++local volume_owner
++local RADIO_VERSION = "2.27.1"
+ 
+ local function read_small(path, limit)
+     local file = io.open(path, "rb")
+@@ -112,12 +113,27 @@ end
+ 
+ local ILRadio = WidgetContainer:extend { name = "ilradio_k3", is_doc_only = false }
+ 
++local function register_volume_key(input, code, key, event, direction)
++    if input.event_map[code] then return end
++    if not input.event_map_adapter or not UIManager.event_handlers then
++        input.event_map[code] = key
++        return
++    end
++    -- A normal KeyPress can stop at a modal widget before reaching the plugin.
++    input.event_map[code] = event
++    input.event_map_adapter[event] = function(ev)
++        if volume_owner and (ev.value == 1 or ev.value == 2) then return event end
++    end
++    UIManager.event_handlers[event] = function()
++        if volume_owner then volume_owner:rocker_change(direction) end
++    end
++end
++
+ function ILRadio:init()
+     if Device.model == "Kindle3" and Device.input and not volume_input_open then
+-        -- Kindle Keyboard exposes the volume rocker on a separate evdev node.
+         local input = Device.input
+-        input.event_map[114] = input.event_map[114] or "VMinus"
+-        input.event_map[115] = input.event_map[115] or "VPlus"
++        register_volume_key(input, 114, "VMinus", "ILRadioVolumeDown", -1)
++        register_volume_key(input, 115, "VPlus", "ILRadioVolumeUp", 1)
+         local node = shell_call("volume-node")
+         if not node:match("^/dev/input/event%d+$") then node = "/dev/input/event2" end
+         volume_input_open = pcall(input.open, input, node, "Kindle Keyboard volume keys")
+@@ -224,6 +240,7 @@ function ILRadio:continue_radio(reason)
+     job.reason = reason or job.reason
+     if reason then self:radio_result(reason) end
+     self.current = nil
++    if volume_owner == self then volume_owner = nil end
+     shell_call("stop")
+     UIManager:unschedule(self.radio_tick)
+     UIManager:scheduleIn(reason == "network" and 6 or 2, self.retry_tick)
+@@ -252,6 +269,7 @@ function ILRadio:start_radio_variant(stream)
+     end
+     self.current = {kind = "radio", name = job.station[1], station = job.station, uri = uri,
+         engine = engine, stream = stream, evidence = "pending", checks = 0}
++    volume_owner = self
+     self:radio_result("pending")
+     self:notice("Łączę z „" .. job.station[1] .. "” · " .. label(stream), 3)
+     UIManager:scheduleIn(5, self.radio_tick)
+@@ -481,6 +499,7 @@ function ILRadio:stop()
+     self:remember_position()
+     shell_call("stop")
+     self.current = nil
++    if volume_owner == self then volume_owner = nil end
+ end
+ 
+ function ILRadio:onCloseWidget()
+@@ -501,6 +520,7 @@ function ILRadio:play(uri, name, kind, path)
+         return false
+     end
+     self.current = {uri = uri, name = name, kind = kind, path = path, engine = engine}
++    volume_owner = self
+     self:notice("Otwieram „" .. name .. "”…", 3)
+     UIManager:scheduleIn(4, self.start_check)
+     if kind == "books" and engine == "mplayer" then UIManager:scheduleIn(6, self.position_tick) end
+@@ -680,18 +700,20 @@ end
+ 
+ function ILRadio:onKeyPress(key)
+     if Device.model ~= "Kindle3" or not self.current then return end
+-    -- Avoid a modal notice for the rocker so repeated presses reach the player.
+     if key:match({"VPlus"}) then
+-        self.volume_keys_seen = true
+-        self:volume_change(self.volume_step, true)
++        self:rocker_change(1)
+         return true
+     elseif key:match({"VMinus"}) then
+-        self.volume_keys_seen = true
+-        self:volume_change(-self.volume_step, true)
++        self:rocker_change(-1)
+         return true
+     end
+ end
+ 
++function ILRadio:rocker_change(direction)
++    self.volume_keys_seen = true
++    self:volume_change(direction * self.volume_step, true)
++end
++
+ function ILRadio:volume_change(delta, quiet)
+     local current = self.current
+     local next_volume = math.max(0, math.min(100, self.volume + delta))
+diff --git a/build.gradle b/build.gradle
+index b74b86d..e25cffa 100644
+--- a/build.gradle
++++ b/build.gradle
+@@ -3,7 +3,7 @@ android {
+     namespace 'pl.ispinalokalnie.kindlewifi'
+     compileSdk 35
+     buildToolsVersion "35.0.0"
+-    defaultConfig { applicationId 'pl.ispinalokalnie.kindlewifi.v23'; minSdk 26; targetSdk 34; versionCode 37; versionName '2.27.0' }
++    defaultConfig { applicationId 'pl.ispinalokalnie.kindlewifi.v23'; minSdk 26; targetSdk 34; versionCode 38; versionName '2.27.1' }
+     sourceSets { main { manifest.srcFile 'AndroidManifest.xml'; java.srcDirs = ['src']; res.srcDirs = ['res']; assets.srcDirs = ['assets'] } }
+     // Keep the existing OCR model while excluding desktop-only emulator ABIs from the phone build.
+     if (project.hasProperty('armOnly')) {
+diff --git a/tests/radio-menu-test.lua b/tests/radio-menu-test.lua
+index 57852f0..aa6cd2d 100644
+--- a/tests/radio-menu-test.lua
++++ b/tests/radio-menu-test.lua
+@@ -12,7 +12,8 @@ package.preload["lfs"] = function()
+ end
+ local data, scheduled, calls, messages = { engine = "mplayer" }, {}, {}, {}
+ local volume_opened
+-local input = { event_map = {} }
++local input = { event_map = {}, event_map_adapter = not legacy and {} or nil }
++local input_handlers = {}
+ input.open = function(_, path) volume_opened = path end
+ package.preload["device"] = function() return { model = "Kindle3", input = input } end
+ local state, last_position = "stopped", "56"
+@@ -22,6 +23,7 @@ package.preload["ui/widget/container/widgetcontainer"] = function()
+ end
+ package.preload["ui/uimanager"] = function()
+     return {
++        event_handlers = input_handlers,
+         show = function(_, note) messages[#messages+1] = note.kind == "radio-error" and note or note.text end,
+         scheduleIn = function(_, delay, fn) scheduled[fn] = delay end,
+         unschedule = function(_, fn) scheduled[fn] = nil end,
+@@ -61,11 +63,22 @@ plugin.ui = { menu = { registerToMainMenu = function(_, instance) registered = i
+ plugin:init()
+ assert(registered == plugin)
+ assert(volume_opened == "/dev/input/event2")
+-assert(input.event_map[114] == "VMinus" and input.event_map[115] == "VPlus")
+-local function key(code)
+-    return { match = function(_, keys) return keys[1] == input.event_map[code] end }
++local function rocker(code, value)
++    local key = input.event_map[code]
++    if legacy then
++        if value == 1 then
++            return plugin:onKeyPress({ match = function(_, keys) return keys[1] == key end })
++        end
++    else
++        -- Mirror the adapter branch of KOReader input and UIManager's named event dispatch.
++        local event = assert(input.event_map_adapter[key], "Missing hardware key adapter")({value = value})
++        if event then
++            assert(input_handlers[event], "Missing global hardware key handler")()
++            return true
++        end
++    end
+ end
+-assert(not plugin:onKeyPress(key(115)))
++assert(not rocker(115, 1))
+ local menu = {}
+ plugin:addToMainMenu(menu)
+ assert(menu.ilradio_k3 and menu.ilradio_k3.sorting_hint == "more_tools")
+@@ -84,8 +97,13 @@ first.sub_item_table[1].callback()
+ assert(plugin.current.name == "RMF FM" and plugin.current.stream.kbps == 48)
+ assert(plugin.current.stream.codec:find("AAC"))
+ assert(data.last_station_name == "RMF FM" and not data.radio_last_working)
+-assert(plugin:onKeyPress(key(115)) and data.volume == 75)
+-assert(plugin:onKeyPress(key(114)) and data.volume == 70)
++assert(rocker(115, 1) and data.volume == 75)
++assert(not rocker(115, 0) and data.volume == 75)
++if not legacy then
++    assert(rocker(115, 2) and data.volume == 80)
++    assert(rocker(114, 2) and data.volume == 75)
++end
++assert(rocker(114, 1) and data.volume == 70)
+ assert(calls[#calls]:find("'volume' '70'", 1, true))
+ plugin:playing_info()
+ assert(messages[#messages]:find("dźwięk niepotwierdzony", 1, true))
+@@ -102,7 +120,7 @@ assert(volume.checked_func())
+ volume.callback()
+ assert(not volume.checked_func() and not data.show_volume_buttons)
+ assert(not menu_item(plugin:radio_menu(), "Głośniej +"))
+-assert(plugin:onKeyPress(key(115)) and data.volume == 75)
++assert(rocker(115, 1) and data.volume == 75)
+ 
+ plugin:set_quality("limit", 32)
+ plugin:play_station(catalog[1])
+@@ -114,6 +132,11 @@ permission.ok_callback()
+ assert(plugin.job.approved and plugin.current.stream.kbps == 48)
+ plugin:stop()
+ assert(not scheduled[plugin.retry_tick] and not scheduled[plugin.probe_tick])
++assert(not rocker(115, 1) and data.volume == 75)
++assert(plugin:play("file:///mnt/us/music/test.mp3", "Próba", "music", "/mnt/us/music/test.mp3"))
++assert(rocker(114, 1) and data.volume == 70)
++plugin:onCloseWidget()
++assert(not rocker(114, 1) and data.volume == 70)
+ plugin:set_quality("limit", nil)
+ 
+ -- Fake a candidate rejection until the bounded queue is exhausted.
