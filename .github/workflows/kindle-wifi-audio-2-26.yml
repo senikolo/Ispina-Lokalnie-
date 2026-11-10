@@ -1,0 +1,61 @@
+name: Kindle Wi-Fi 2.26 Radio Audio beta
+on:
+  push:
+    branches:
+      - codex/kindle-wifi-radio-audio-2-26-20261110
+    paths:
+      - build-sources/kindle-wifi-2.26-audio.zip.b64
+      - .github/workflows/kindle-wifi-audio-2-26.yml
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      - name: Gradle 8.7
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.7"
+      - name: Android SDK
+        uses: android-actions/setup-android@v3
+      - name: Android SDK platforms
+        run: sdkmanager 'platforms;android-35' 'build-tools;35.0.0'
+      - name: Decode checked source bundle
+        shell: bash
+        run: |
+          mkdir -p "$RUNNER_TEMP/kindle"
+          base64 -d build-sources/kindle-wifi-2.26-audio.zip.b64 > "$RUNNER_TEMP/kindle/sources.zip"
+          unzip -q "$RUNNER_TEMP/kindle/sources.zip" -d "$RUNNER_TEMP/kindle"
+          test -f "$RUNNER_TEMP/kindle/kindle-wifi-2.26/build.gradle"
+      - name: Unit tests
+        shell: bash
+        env:
+          JAVA_TOOL_OPTIONS: -Dfile.encoding=UTF-8
+          LANG: C.UTF-8
+        run: |
+          cd "$RUNNER_TEMP/kindle/kindle-wifi-2.26"
+          bash tests/run-atomic-tests.sh
+      - name: Build signed beta APK
+        shell: bash
+        run: |
+          cd "$RUNNER_TEMP/kindle/kindle-wifi-2.26"
+          gradle --no-daemon assembleDebug
+      - name: Collect APK
+        shell: bash
+        run: |
+          mkdir -p build-artifacts
+          cp "$RUNNER_TEMP/kindle/kindle-wifi-2.26/build/outputs/apk/debug/"*.apk build-artifacts/Kindle-przez-WiFi-2.26-Radio-Audio-BETA.apk
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Kindle-przez-WiFi-2.26-Radio-Audio-BETA
+          path: build-artifacts/Kindle-przez-WiFi-2.26-Radio-Audio-BETA.apk
+          if-no-files-found: error
