@@ -34,6 +34,7 @@ jobs:
           sed -i "s/versionCode 35; versionName '2.26.5'/versionCode 36; versionName '2.26.6'/" build.gradle
           sed -i 's/android:versionCode="35" android:versionName="2.26.5"/android:versionCode="36" android:versionName="2.26.6"/' AndroidManifest.xml
           git apply --binary "$GITHUB_WORKSPACE/build-sources/kindle-radio-2.27.0.patch"
+          git apply "$GITHUB_WORKSPACE/build-sources/kindle-radio-2.27.1.patch"
           git apply "$GITHUB_WORKSPACE/build-sources/kindle-radio-2.27.2.patch"
           sdkmanager="$(find "$ANDROID_HOME/cmdline-tools" -name sdkmanager -type f | head -n 1)"
           yes | "$sdkmanager" --licenses >/dev/null || true
