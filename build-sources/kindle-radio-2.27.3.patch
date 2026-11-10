@@ -1,0 +1,455 @@
+--- a/assets/ilradio_k3.koplugin/main.lua
++++ b/assets/ilradio_k3.koplugin/main.lua
+@@ -19,7 +19,8 @@
+ local SPEECH = {["TOK FM"] = true, ["RMF 24"] = true, ["Polskie Radio 24"] = true}
+ local ERRORS = {
+     network = "Brak połączenia z serwerem. Sprawdź Wi-Fi i dostęp do internetu.",
+-    tls = "Nie udało się bezpiecznie połączyć przez HTTPS. Sprawdź datę i certyfikaty Kindle’a.",
++    tls = "Nie udało się bezpiecznie połączyć przez HTTPS. Sprawdź datę Kindle’a i certyfikaty serwera.",
++    tool = "Na Kindle’u brakuje programu potrzebnego do pobrania tego strumienia. Sprawdź Diagnostykę audio.",
+     address = "Serwer odrzucił adres lub adres jest nieaktualny.",
+     buffer = "Strumień buforuje się za długo lub transmisja przerwała.",
+     codec = "Silnik nie rozpoznał formatu audio albo brakuje dekodera.",
+@@ -36,7 +37,15 @@
+ local ENGINE_OPTIONS = {"auto", "gst-legacy", "gst-mixer", "mplayer", "mpg123", "gst-modern", "mpv"}
+ local volume_input_open = false
+ local volume_owner
+-local RADIO_VERSION = "2.27.2"
++local function get_owner_pid()
++    local ok, ffi = pcall(require, "ffi")
++    if not ok then return "" end
++    pcall(ffi.cdef, "int getpid(void);")
++    local worked, pid = pcall(function() return ffi.C.getpid() end)
++    return worked and tostring(tonumber(pid) or "") or ""
++end
++local OWNER_PID = get_owner_pid()
++local RADIO_VERSION = "2.27.3"
+ 
+ local function read_small(path, limit)
+     local file = io.open(path, "rb")
+@@ -46,6 +55,116 @@
+     return data
+ end
+ 
++local function utf8_codepoint(cp)
++    if cp < 0x80 then return string.char(cp) end
++    if cp < 0x800 then return string.char(0xC0 + math.floor(cp / 0x40), 0x80 + cp % 0x40) end
++    if cp < 0x10000 then return string.char(0xE0 + math.floor(cp / 0x1000), 0x80 + math.floor(cp / 0x40) % 0x40, 0x80 + cp % 0x40) end
++    return string.char(0xF0 + math.floor(cp / 0x40000), 0x80 + math.floor(cp / 0x1000) % 0x40, 0x80 + math.floor(cp / 0x40) % 0x40, 0x80 + cp % 0x40)
++end
++
++local function latin1_to_utf8(value)
++    return (value:gsub(".", function(c)
++        local n = c:byte()
++        return n < 128 and c or utf8_codepoint(n)
++    end))
++end
++
++local function decode_id3_text(value)
++    if not value or #value == 0 then return "" end
++    local encoding = value:byte(1)
++    local data = value:sub(2):gsub("%z+$", "")
++    if encoding == 3 then return data end
++    if encoding == 0 then return latin1_to_utf8(data) end
++    if encoding ~= 1 and encoding ~= 2 then return "" end
++    local little = encoding == 1 and data:sub(1, 2) == "\255\254"
++    if encoding == 1 and (data:sub(1, 2) == "\255\254" or data:sub(1, 2) == "\254\255") then data = data:sub(3) end
++    local out, i = {}, 1
++    while i + 1 <= #data do
++        local a, b = data:byte(i, i + 1)
++        local cp = little and (b * 256 + a) or (a * 256 + b)
++        i = i + 2
++        if cp == 0 then break end
++        if cp >= 0xD800 and cp <= 0xDBFF and i + 1 <= #data then
++            local c, d = data:byte(i, i + 1)
++            local low = little and (d * 256 + c) or (c * 256 + d)
++            if low >= 0xDC00 and low <= 0xDFFF then
++                cp = 0x10000 + (cp - 0xD800) * 0x400 + low - 0xDC00
++                i = i + 2
++            end
++        end
++        if cp < 0xD800 or cp > 0xDFFF then out[#out + 1] = utf8_codepoint(cp) end
++    end
++    return table.concat(out)
++end
++
++local function id3_tags(path)
++    local file = io.open(path or "", "rb")
++    if not file then return {} end
++    local result = {}
++    local header = file:read(10) or ""
++    if #header == 10 and header:sub(1, 3) == "ID3" then
++        local major = header:byte(4)
++        local flags = header:byte(6)
++        local a, b, c, d = header:byte(7, 10)
++        local tag_size = ((a % 128) * 2097152) + ((b % 128) * 16384) + ((c % 128) * 128) + (d % 128)
++        local pos, stop = 11, 10 + tag_size
++        if major >= 2 and major <= 4 and tag_size <= 16777216 then
++            if major == 4 and flags % 64 >= 8 then pos = pos + 4; file:seek("set", pos - 1) end
++            while pos < stop do
++                file:seek("set", pos - 1)
++                local fh = file:read(major == 2 and 6 or 10) or ""
++                if #fh < (major == 2 and 6 or 10) or fh:byte(1) == 0 then break end
++                local id, size, skip
++                if major == 2 then
++                    id = fh:sub(1, 3)
++                    size = fh:byte(4) * 65536 + fh:byte(5) * 256 + fh:byte(6)
++                    skip = 6
++                else
++                    id = fh:sub(1, 4)
++                    local x, y, z, w = fh:byte(5, 8)
++                    if major == 4 then size = (x % 128) * 2097152 + (y % 128) * 16384 + (z % 128) * 128 + (w % 128)
++                    else size = x * 16777216 + y * 65536 + z * 256 + w end
++                    skip = 10
++                end
++                local wanted = id == "TIT2" or id == "TPE1" or id == "TT2" or id == "TP1"
++                if size <= 65536 and wanted then
++                    local text = decode_id3_text(file:read(size) or ""):gsub("^%s+", ""):gsub("%s+$", "")
++                    if id == "TIT2" or id == "TT2" then result.title = text
++                    else result.artist = text end
++                end
++                pos = pos + skip + size
++            end
++        end
++    end
++    if not result.title or result.title == "" or not result.artist or result.artist == "" then
++        local length = file:seek("end") or 0
++        if length >= 128 then
++            file:seek("set", length - 128)
++            local tag = file:read(128) or ""
++            if tag:sub(1, 3) == "TAG" then
++                local function field(value)
++                    return latin1_to_utf8((value or ""):gsub("%z", ""):gsub("%s+$", ""))
++                end
++                if not result.title or result.title == "" then result.title = field(tag:sub(4, 33)) end
++                if not result.artist or result.artist == "" then result.artist = field(tag:sub(34, 63)) end
++            end
++        end
++    end
++    file:close()
++    return result
++end
++
++local function valid_audio_path(path, group)
++    if type(path) ~= "string" or (group ~= "music" and group ~= "books") then return false end
++    local roots = AUDIO_ROOTS[group]
++    local under_root = false
++    for _, root in ipairs(roots) do
++        if path:sub(1, #root + 1) == root .. "/" then under_root = true; break end
++    end
++    return under_root and not path:find("/../", 1, true) and not path:find("/./", 1, true)
++        and lfs.symlinkattributes(path, "mode") == "file"
++end
++
+ local function family(codec)
+     return codec and codec:find("AAC", 1, true) and "AAC" or codec
+ end
+@@ -163,8 +282,23 @@
+             self:notice("Odtwarzanie pliku nie powiodło się. Sprawdź silnik audio.", 8)
+         end
+     end
+-    self.playlist = nil
+-    self.track_index = nil
++    local saved_playlist = self.settings:readSetting("audio_playlist")
++    local saved_group = self.settings:readSetting("audio_track_group")
++    local saved_index = tonumber(self.settings:readSetting("audio_track_index"))
++    if type(saved_playlist) == "table" and (saved_group == "music" or saved_group == "books") then
++        local restored = {}
++        for _, row in ipairs(saved_playlist) do
++            if #restored >= 250 then break end
++            if type(row) == "table" and type(row.name) == "string" and valid_audio_path(row.path, saved_group) then
++                restored[#restored + 1] = {name = row.name, path = row.path}
++            end
++        end
++        if #restored > 0 then
++            self.playlist = restored
++            self.track_group = saved_group
++            self.track_index = math.max(1, math.min(#restored, saved_index or 1))
++        end
++    end
+     self.ui.menu:registerToMainMenu(self)
+ end
+ function ILRadio:read_phone_config()
+@@ -261,7 +395,7 @@
+     if not engine or job.starts >= 8 then self:continue_radio("engine"); return end
+     job.starts = job.starts + 1
+     local uri = stream.play_url or stream.url
+-    local result = shell_call("start", uri, engine, self.volume, "", 0, self.radio.buffer, codec or "")
++    local result = shell_call("start", uri, engine, self.volume, "", 0, self.radio.buffer, codec or "", OWNER_PID)
+     if not result:match("^starting:") then
+         job.engine_index = job.engine_index + 1
+         self:continue_radio("engine")
+@@ -269,6 +403,7 @@
+     end
+     self.current = {kind = "radio", name = job.station[1], station = job.station, uri = uri,
+         engine = engine, stream = stream, evidence = "pending", checks = 0}
++    shell_call("session-info", "radio", job.station[1], uri, "")
+     volume_owner = self
+     self:radio_result("pending")
+     self:notice("Łączę z „" .. job.station[1] .. "” · " .. label(stream), 3)
+@@ -511,21 +646,28 @@
+ 
+ function ILRadio:play(uri, name, kind, path)
+     local engine = shell_call("probe", self.engine)
++    -- Preserve audiobook seeking where the Kindle has the MPlayer port.
++    if kind == "books" then
++        local seek_engine = shell_call("probe", "mplayer")
++        if seek_engine ~= "" then engine = seek_engine end
++    end
+     if engine == "" then
+         self:notice("Nie znaleziono odtwarzacza. Otwórz Diagnostykę audio.", 8)
+         return false
+     end
+     if self.current or self.job then self:stop() end
+     local offset = kind == "books" and engine == "mplayer" and self.positions[path] or 0
+-    if not shell_call("start", uri, engine, self.volume, path or "", offset):match("^starting:") then
++    if not shell_call("start", uri, engine, self.volume, path or "", offset, 128, "", OWNER_PID):match("^starting:") then
+         self:notice("Nie udało się uruchomić odtwarzacza. Otwórz Diagnostykę audio.", 8)
+         return false
+     end
+     self.current = {uri = uri, name = name, kind = kind, path = path, engine = engine}
++    shell_call("session-info", kind, (name or ""):gsub("[\r\n]", " "), uri, path or "")
+     volume_owner = self
+     self:notice("Otwieram „" .. name .. "”…", 3)
+     UIManager:scheduleIn(4, self.start_check)
+-    if kind == "books" and engine == "mplayer" then UIManager:scheduleIn(6, self.position_tick) end
++    if kind == "books" and engine == "mplayer" then UIManager:scheduleIn(6, self.position_tick)
++    elseif kind == "books" then self:notice("Ten silnik nie zapisuje pozycji audiobooka; wznowienie zacznie od początku.", 8) end
+     return true
+ end
+ 
+@@ -546,6 +688,10 @@
+     self:save("last_station_name", self.last_station_name)
+     self.playlist = nil
+     self.track_index = nil
++    self.track_group = nil
++    self:save("audio_playlist", {})
++    self:save("audio_track_index", 0)
++    self:save("audio_track_group", "")
+     self:notice("Sprawdzam źródła stacji „" .. station[1] .. "”…", 3)
+     self:advance_radio()
+ end
+@@ -570,8 +716,14 @@
+     -- In that case self.current is new/empty, but the player keeps the last
+     -- station and URL in its guarded report file.
+     if not item then
+-        local report = shell_call("report-current")
+-        local name, url = report:match("^([^\n]*)\n([^\n]*)")
++        local report = shell_call("current-info")
++        local kind, name, url, path = report:match("^([^\n]*)\n([^\n]*)\n([^\n]*)\n([^\n]*)")
++        if kind == "books" or kind == "music" then
++            self.current = {kind = kind, name = name, uri = url, path = path, engine = shell_call("current-engine")}
++            self:notice("Odtwarzany jest plik audio „" .. (name or "audio") .. "”, nie stacja radiowa.", 8)
++            return
++        end
++        if kind ~= "radio" then kind, name, url = nil, nil, nil end
+         local station
+         if name and url and T.url(url) then
+             for _, candidate in ipairs(stations) do
+@@ -582,6 +734,7 @@
+             self:notice("Odtwarzanie działa, ale nie mogę ustalić stacji. Uruchom ją ponownie z menu Radia.", 8)
+             return
+         end
++        self.current = {kind = "radio", name = name, uri = url, stream = {url = url}, engine = shell_call("current-engine"), audible = true}
+         self.working[name] = url
+         self:save("radio_last_working", self.working)
+         self.last_station_name = name
+@@ -614,6 +767,14 @@
+         self.playlist = items
+         self.track_index = idx
+         self.track_group = group
++        local saved = {}
++        for i, entry in ipairs(items) do
++            if i > 250 then break end
++            if valid_audio_path(entry.path, group) then saved[#saved + 1] = {name = entry.name, path = entry.path} end
++        end
++        self:save("audio_playlist", saved)
++        self:save("audio_track_index", idx)
++        self:save("audio_track_group", group)
+     end
+ end
+ 
+@@ -638,7 +799,8 @@
+         return
+     end
+     local state = self:status()
+-    local title = shell_call("title")
++    local title = item.kind == "radio" and shell_call("title") or ""
++    local tags = item.kind ~= "radio" and id3_tags(item.path) or nil
+     local stream = item.stream
+     local status = state == "paused" and "Pauza" or state == "stopped" and "Zatrzymane"
+         or item.audible and "Dźwięk potwierdzony przez słuchacza"
+@@ -692,6 +854,10 @@
+         end
+     end
+     if title ~= "" then text = text .. "\nUtwór: " .. title end
++    if tags then
++        if tags.title and tags.title ~= "" then text = text .. "\nTytuł: " .. tags.title end
++        if tags.artist and tags.artist ~= "" then text = text .. "\nWykonawca: " .. tags.artist end
++    end
+     if full then
+         local ok, TextViewer = pcall(require, "ui/widget/textviewer")
+         if ok then
+--- a/assets/ilradio_k3.koplugin/player.sh
++++ b/assets/ilradio_k3.koplugin/player.sh
+@@ -52,35 +52,53 @@
+     esac
+ }
+ 
++session_process() {
++    pid=$1
++    expected=$2
++    case "$pid" in ''|*[!0-9]*) return 1;; esac
++    [ -n "$expected" ] && [ -r "/proc/$pid/environ" ] || return 1
++    tr '\000' '\n' <"/proc/$pid/environ" 2>/dev/null | grep -F -x "ILRADIO_K3_SESSION=$expected" >/dev/null 2>&1
++}
++
+ is_ours() {
+     [ -r "$PID" ] && [ -r "$TOKEN" ] || return 1
+     p=$(cat "$PID" 2>/dev/null)
+     token=$(cat "$TOKEN" 2>/dev/null)
+-    case "$p" in ''|*[!0-9]*) return 1;; esac
+-    [ -n "$token" ] && [ -r "/proc/$p/environ" ] || return 1
+-    tr '\000' '\n' <"/proc/$p/environ" 2>/dev/null | grep -F -x "ILRADIO_K3_SESSION=$token" >/dev/null 2>&1
++    session_process "$p" "$token"
++}
++
++proc_start_time() {
++    [ -r "/proc/$1/stat" ] || return 1
++    sed 's/^.*) //' "/proc/$1/stat" 2>/dev/null | awk '{print $20}'
+ }
+ 
+ stop_audio() {
+-    if is_ours; then
+-        # The audible backend is a separate child. Killing only the logging
+-        # wrapper orphaned MPlayer/GStreamer, leaving sound running after the
+-        # plugin (or KOReader) had closed.
++    p=$(cat "$PID" 2>/dev/null)
++    token=$(cat "$TOKEN" 2>/dev/null)
++    case "$token" in ''|*[!0-9-]*) token="";; esac
++    if [ -n "$token" ]; then
+         worker=$(cat "$R/worker-$token" 2>/dev/null)
+-        case "$worker" in
+-            ''|*[!0-9]*) :;;
+-            *) if [ -r "/proc/$worker/environ" ] &&
+-                  tr '\000' '\n' < "/proc/$worker/environ" 2>/dev/null | grep -F -x "ILRADIO_K3_SESSION=$token" >/dev/null 2>&1; then
+-                   kill -CONT "$worker" 2>/dev/null || :
+-                   kill -TERM "$worker" 2>/dev/null || :
+-               fi;;
+-        esac
+-        # Let run_logged's trap remove its FIFO, logger and worker bookkeeping.
+-        kill -TERM "$p" 2>/dev/null || :
++        watcher=$(cat "$R/watch-$token" 2>/dev/null)
++        if session_process "$worker" "$token"; then
++            kill -CONT "$worker" 2>/dev/null || :
++            kill -TERM "$worker" 2>/dev/null || :
++        fi
++        if session_process "$watcher" "$token"; then kill -TERM "$watcher" 2>/dev/null || :; fi
++        if session_process "$p" "$token"; then kill -TERM "$p" 2>/dev/null || :; fi
++        tries=0
++        while [ "$tries" -lt 3 ] && { session_process "$p" "$token" || session_process "$worker" "$token"; }; do
++            sleep 1
++            tries=$((tries + 1))
++        done
++        # Never wait indefinitely on a broken audio driver or decoder.
++        if session_process "$worker" "$token"; then kill -KILL "$worker" 2>/dev/null || :; fi
++        if session_process "$p" "$token"; then kill -KILL "$p" 2>/dev/null || :; fi
++        rm -f "$R/watch-$token" "$R/current-$token" "$R/engine-$token" "$R/worker-$token"
+     fi
+     rm -f "$PID" "$TOKEN" "$PAUSED"
+ }
+ 
++
+ gst_has() {
+     if has gst-inspect-0.10; then gst-inspect-0.10 "$1" >/dev/null 2>&1
+     elif has gst-inspect; then gst-inspect "$1" >/dev/null 2>&1
+@@ -181,7 +199,7 @@
+ transport() {
+     uri=$1
+     shift
+-    if ! has curl; then echo 'ILRADIO_ERROR tls-tool'; return 2; fi
++    if ! has curl; then echo 'ILRADIO_ERROR missing-curl'; return 2; fi
+     fifo="$R/stream-$ILRADIO_K3_SESSION"
+     mkfifo "$fifo" || return 2
+     curl_stream "$uri" > "$fifo" &
+@@ -228,7 +246,7 @@
+     sh "$0" backend-run "$@" > "$fifo" 2>&1 &
+     worker=$!
+     printf '%s\n' "$worker" > "$R/worker-$ILRADIO_K3_SESSION"
+-    trap 'kill -CONT "$worker" 2>/dev/null; kill -TERM "$worker" 2>/dev/null; kill "$logger" 2>/dev/null; wait "$worker" 2>/dev/null; wait "$logger" 2>/dev/null; rm -f "$fifo" "$R/worker-$ILRADIO_K3_SESSION"; exit 0' TERM INT HUP
++    trap 'kill -CONT "$worker" 2>/dev/null; kill -TERM "$worker" "$logger" 2>/dev/null; sleep 1; kill -KILL "$worker" "$logger" 2>/dev/null; rm -f "$fifo" "$R/worker-$ILRADIO_K3_SESSION"; exit 0' TERM INT HUP
+     wait "$worker"
+     wait "$logger"
+     rm -f "$fifo" "$R/worker-$ILRADIO_K3_SESSION"
+@@ -269,7 +287,8 @@
+ 
+ stream_reason() {
+     pattern="$1"
+-    if printf '%s' "$pattern" | grep -Eiq 'tls-tool|certificate|SSL|TLS|curl: \((35|51|58|59|60|77|83|90|91)\)'; then echo tls
++    if printf '%s' "$pattern" | grep -Eiq 'missing-curl|tls-tool'; then echo tool
++    elif printf '%s' "$pattern" | grep -Eiq 'certificate|SSL|TLS|curl: \((35|51|58|59|60|77|83|90|91)\)'; then echo tls
+     elif printf '%s' "$pattern" | grep -Eiq 'No suitable plugins|No decoder|Cannot find codec|Cannot find audio codec|missing (a )?plug-?in|unrecognized format'; then echo codec
+     elif printf '%s' "$pattern" | grep -Eiq 'HTTP/[0-9.]+ [45][0-9][0-9]|[45][0-9][0-9] (Not Found|Forbidden|Unauthorized)|curl: \(22\)'; then echo address
+     elif printf '%s' "$pattern" | grep -Eiq 'Could not (connect|resolve)|Connection refused|Network is unreachable|curl: \((5|6|7)\)'; then echo network
+@@ -361,7 +380,7 @@
+ case "${1:-}" in
+     probe) backend "${2:-auto}";;
+     start)
+-        uri="${2:-}"; wanted="${3:-auto}"; pct="${4:-70}"; local_path="${5:-}"; offset="${6:-0}"; cache="${7:-128}"; codec="${8:-}"
++        uri="${2:-}"; wanted="${3:-auto}"; pct="${4:-70}"; local_path="${5:-}"; offset="${6:-0}"; cache="${7:-128}"; codec="${8:-}"; owner_pid="${9:-}"
+         case "$uri" in http://*|https://*|file://*) :;; *) echo invalid_target; exit 2;; esac
+         case "$local_path" in
+             "") :;;
+@@ -378,12 +397,19 @@
+         [ -n "$engine" ] || { echo no_engine; exit 3; }
+         stop_audio
+         # Only filenames generated by this script live in this private directory.
+-        rm -f "$R"/control-* "$R"/stream-* "$R"/log-* "$R"/worker-*
++        rm -f "$R"/control-* "$R"/stream-* "$R"/log-* "$R"/worker-* "$R"/current-*.new
+         token="$$-$(date +%s)"
+         printf '%s\n' "$token" > "$R/last"
+         printf '%s\n' "$token" > "$TOKEN"
+         ILRADIO_K3_SESSION="$token" sh "$0" run "$engine" "$uri" "$pct" "$local_path" "$offset" "$cache" "$codec" </dev/null >/dev/null 2>&1 &
+-        echo "$!" > "$PID"
++        wrapper_pid=$!
++        echo "$wrapper_pid" > "$PID"
++        echo "$engine" > "$R/engine-$token"
++        owner_start=$(proc_start_time "$owner_pid" 2>/dev/null)
++        case "$owner_pid:$owner_start" in *[!0-9:]*|:*) :;;
++            *) ILRADIO_K3_SESSION="$token" sh "$0" owner-watch "$owner_pid" "$owner_start" </dev/null >/dev/null 2>&1 &
++               echo "$!" > "$R/watch-$token";;
++        esac
+         echo "starting:$engine"
+         ;;
+     run) shift; run_logged "$@";;
+@@ -428,10 +454,28 @@
+         else echo stopped
+         fi;;
+     stop) probe_stop; stop_audio; echo stopped;;
++    session-info)
++        if is_ours; then
++            printf '%s\n' "${2:-}" "${3:-}" "${4:-}" "${5:-}" > "$R/current-$token.new" && mv "$R/current-$token.new" "$R/current-$token"
++        fi;;
++    current-info)
++        if is_ours && [ -r "$R/current-$token" ]; then cat "$R/current-$token"; fi;;
++    current-engine)
++        if is_ours && [ -r "$R/engine-$token" ]; then cat "$R/engine-$token"; fi;;
++    owner-watch)
++        owner="$2"; expected_start="$3"
++        while [ "$(proc_start_time "$owner" 2>/dev/null)" = "$expected_start" ] && is_ours; do sleep 2; done
++        if [ "$(proc_start_time "$owner" 2>/dev/null)" != "$expected_start" ] && is_ours; then
++            owner_token=$token
++            owner_worker=$(cat "$R/worker-$owner_token" 2>/dev/null)
++            kill -CONT "$owner_worker" 2>/dev/null || :
++            kill -TERM "$owner_worker" "$p" 2>/dev/null || :
++            sleep 1
++            if session_process "$owner_worker" "$owner_token"; then kill -KILL "$owner_worker" 2>/dev/null || :; fi
++            if session_process "$p" "$owner_token"; then kill -KILL "$p" 2>/dev/null || :; fi
++        fi;;
+     report)
+         printf '%s\n' "$2" "$3" "$4" > "$R/report.new" && mv "$R/report.new" "$R/report";;
+-    report-current)
+-        if is_ours && [ -r "$R/report" ]; then cat "$R/report"; fi;;
+     decode-test)
+         name="$3"
+         case "$name" in test-lc48.aac|test-he32.aac|test-hev224.aac|test-lc48.m4a|test-mp364.mp3) :;; *) exit 2;; esac
