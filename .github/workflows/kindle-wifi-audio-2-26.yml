@@ -1,4 +1,4 @@
-name: Kindle Wi-Fi 2.26.4
+name: Kindle Wi-Fi 2.26.5
 on:
   push:
     branches:
@@ -60,17 +60,17 @@ jobs:
         shell: bash
         run: |
           mkdir -p build-artifacts
-          cp "$RUNNER_TEMP/kindle/kindle-wifi-2.26/build/outputs/apk/release/"*-unsigned.apk build-artifacts/Kindle-przez-WiFi-2.26.4-unsigned.apk
+          cp "$RUNNER_TEMP/kindle/kindle-wifi-2.26/build/outputs/apk/release/"*-unsigned.apk build-artifacts/Kindle-przez-WiFi-2.26.5-unsigned.apk
           aapt2="$ANDROID_HOME/build-tools/35.0.0/aapt2"
           "$aapt2" dump badging build-artifacts/*.apk | tee build-artifacts/apk-manifest.txt
-          grep -F "name='pl.ispinalokalnie.kindlewifi.v23' versionCode='34' versionName='2.26.4'" build-artifacts/apk-manifest.txt
+          grep -F "name='pl.ispinalokalnie.kindlewifi.v23' versionCode='35' versionName='2.26.5'" build-artifacts/apk-manifest.txt
           unzip -Z1 build-artifacts/*.apk > "$RUNNER_TEMP/apk-files.txt"
           grep -Fx assets/ilradio_k3.koplugin/player.sh "$RUNNER_TEMP/apk-files.txt"
           grep -Fx assets/patches/1-warszawski-czas.lua "$RUNNER_TEMP/apk-files.txt"
           grep -F assets/mlkit-google-ocr-models/ "$RUNNER_TEMP/apk-files.txt" >/dev/null
       - uses: actions/upload-artifact@v4
         with:
-          name: Kindle-przez-WiFi-2.26.4-release-unsigned
+          name: Kindle-przez-WiFi-2.26.5-release-unsigned
           path: build-artifacts/
           if-no-files-found: error
 
@@ -88,7 +88,7 @@ jobs:
     steps:
       - uses: actions/download-artifact@v4
         with:
-          name: Kindle-przez-WiFi-2.26.4-release-unsigned
+          name: Kindle-przez-WiFi-2.26.5-release-unsigned
           path: build-artifacts
       - name: Sign emulator-only copy
         shell: bash
