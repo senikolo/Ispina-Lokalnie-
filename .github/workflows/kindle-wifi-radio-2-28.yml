@@ -20,6 +20,8 @@ jobs:
         with:
           gradle-version: '8.7'
       - uses: android-actions/setup-android@v3
+        with:
+          packages: platform-tools
       - name: SDK and test dependencies
         run: |
           sdkmanager 'platforms;android-35' 'build-tools;35.0.0'
@@ -61,6 +63,8 @@ jobs:
           name: Kindle-WiFi-2.28
           path: build-artifacts
       - uses: android-actions/setup-android@v3
+        with:
+          packages: platform-tools
       - name: Sign emulator copy and enable KVM
         run: |
           keytool -genkeypair -keystore "$RUNNER_TEMP/emulator.p12" -storepass android -alias emulator -dname CN=Emulator -keyalg RSA -keysize 2048 -validity 2
