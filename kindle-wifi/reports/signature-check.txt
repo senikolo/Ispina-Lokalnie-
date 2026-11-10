@@ -1,0 +1,11 @@
+Verifies
+Verified using v1 scheme (JAR signing): false
+Verified using v2 scheme (APK Signature Scheme v2): true
+Verified using v3 scheme (APK Signature Scheme v3): true
+Verified using v3.1 scheme (APK Signature Scheme v3.1): false
+Verified using v4 scheme (APK Signature Scheme v4): false
+Verified for SourceStamp: false
+Number of signers: 1
+PASS APK signature: latest/Kindle-przez-WiFi-2.27.6-Radio-MP3-Fix.apk
+PASS APK signature: deliverables/Kindle-przez-WiFi-2.28.0.apk
+PASS: same signing certificate, upgrade compatible

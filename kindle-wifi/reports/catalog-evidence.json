@@ -1,0 +1,1032 @@
+[
+  {
+    "station": "RMF FM",
+    "url": "http://31.192.216.8/rmf_fm",
+    "curl_exit": 63,
+    "http": "200",
+    "final": "http://31.192.216.8/rmf_fm",
+    "error": "curl: (63) Exceeded the maximum allowed file size (65536) with 65536 bytes\n",
+    "probe": {
+      "codec_name": "mp3",
+      "sample_rate": "44100",
+      "channels": 2,
+      "bit_rate": "128000"
+    },
+    "headers": "HTTP/1.1 200 OK\nicy-pub: 0\nicy-description: RMF FM\nicy-url: https://www.rmf.fm/\nicy-name: RMF FM\ncontent-type: audio/mpeg\nicy-metaint: 0\nicy-genre: POP\ninstance-id: 253b6682c06b1e1b34c0f9160e98bab9\nicy-br: 128\nexpires: Mon, 26 Jul 1997 05:00:00 GMT\npragma: no-cache\ncache-control: no-cache\nset-cookie: AISSessionId=6abd7beab0ac2a6a_3546353_VfhCZQMa__0000003nX44; Path=/; Domain=31.192.216.8; Max-Age=6000; Expires=Wed, 11 Nov 2026 00:01:15 GMT; SameSite=None; Secure\nx-envoy-upstream-service-time: 593\ndate: Tue, 10 Nov 2026 22:21:15 GMT\nserver: envoy\ntransfer-encoding: chunked\n\n",
+    "verified": true
+  },
+  {
+    "station": "RMF FM",
+    "url": "https://rs101-krk.rmfstream.pl/rmf_fm",
+    "curl_exit": 28,
+    "http": "000",
+    "final": "https://rs101-krk.rmfstream.pl/rmf_fm",
+    "error": "curl: (28) Connection timed out after 4002 milliseconds\n"
+  },
+  {
+    "station": "RMF FM",
+    "url": "http://195.150.20.9/RMFFM48",
+    "curl_exit": 63,
+    "http": "200",
+    "final": "http://195.150.20.9/RMFFM48",
+    "error": "curl: (63) Exceeded the maximum allowed file size (65536) with 65536 bytes\n",
+    "probe": {
+      "codec_name": "aac",
+      "profile": "HE-AACv2",
+      "sample_rate": "44100",
+      "channels": 2,
+      "bit_rate": "47884"
+    },
+    "decoder_facts": "FACTS aot=2 ext=0 core=22050 corech=1 rate=44100 ch=2 flags=32768\nFACTS aot=2 ext=0 core=22050 corech=1 rate=44100 ch=2 flags=32768\nFACTS aot=2 ext=0 core=22050 corech=1 rate=44100 ch=2 flags=163840\nPartial packet\n",
+    "headers": "HTTP/1.1 200 OK\nicy-pub: 0\nicy-description: RMF FM\nicy-url: https://www.rmf.fm/\nicy-name: RMF FM\ncontent-type: audio/aacp\nicy-metaint: 0\nicy-genre: POP\ninstance-id: 01844702f0c2b0381beff842612aa496\nicy-br: 48\nexpires: Mon, 26 Jul 1997 05:00:00 GMT\npragma: no-cache\ncache-control: no-cache\nset-cookie: AISSessionId=6abd7ca4983ee8cc_3546165_gj1ZUZoF__0000002uOR1; Path=/; Domain=195.150.20.9; Max-Age=6000; Expires=Wed, 11 Nov 2026 00:01:14 GMT; SameSite=None; Secure\nx-envoy-upstream-service-time: 591\ndate: Tue, 10 Nov 2026 22:21:14 GMT\nserver: envoy\ntransfer-encoding: chunked\n\n",
+    "verified": true
+  },
+  {
+    "station": "RMF FM",
+    "url": "https://rs101-krk.rmfstream.pl/RMFFM48",
+    "curl_exit": 28,
+    "http": "000",
+    "final": "https://rs101-krk.rmfstream.pl/RMFFM48",
+    "error": "curl: (28) Connection timed out after 4002 milliseconds\n"
+  },
+  {
+    "station": "RMF MAXX",
+    "url": "http://rs202-krk.rmfstream.pl/RMFMAXXX48",
+    "curl_exit": 63,
+    "http": "200",
+    "final": "http://rs202-krk.rmfstream.pl/RMFMAXXX48",
+    "error": "curl: (63) Exceeded the maximum allowed file size (65536) with 65536 bytes\n",
+    "probe": {
+      "codec_name": "aac",
+      "profile": "HE-AACv2",
+      "sample_rate": "44100",
+      "channels": 2,
+      "bit_rate": "47832"
+    },
+    "decoder_facts": "FACTS aot=2 ext=0 core=22050 corech=1 rate=44100 ch=2 flags=32768\nFACTS aot=2 ext=0 core=22050 corech=1 rate=44100 ch=2 flags=32768\nFACTS aot=2 ext=0 core=22050 corech=1 rate=44100 ch=2 flags=163840\nPartial packet\n",
+    "headers": "HTTP/1.1 200 OK\nicy-pub: 0\nicy-description: RMF MAXXX\nicy-url: https://www.rmfmaxxx.pl/\nicy-name: RMF MAXXX\ncontent-type: audio/aacp\nicy-metaint: 0\nicy-genre: POP\ninstance-id: 253b6682c06b1e1b34c0f9160e98bab9\nicy-br: 48\nexpires: Mon, 26 Jul 1997 05:00:00 GMT\npragma: no-cache\ncache-control: no-cache\nset-cookie: AISSessionId=6abd7beab0ac2a6a_3546352_IoQ6xdgJ__0000003nX3Q; Path=/; Domain=rs202-krk.rmfstream.pl; Max-Age=6000; Expires=Wed, 11 Nov 2026 00:01:14 GMT; SameSite=None; Secure\nx-envoy-upstream-service-time: 474\ndate: Tue, 10 Nov 2026 22:21:14 GMT\nserver: envoy\ntransfer-encoding: chunked\n\n",
+    "verified": true
+  },
+  {
+    "station": "RMF MAXX",
+    "url": "https://rs9-krk2-cyfronet.rmfstream.pl/RMFMAXXX48",
+    "curl_exit": 28,
+    "http": "000",
+    "final": "https://rs9-krk2-cyfronet.rmfstream.pl/RMFMAXXX48",
+    "error": "curl: (28) Connection timed out after 4002 milliseconds\n"
+  },
+  {
+    "station": "RMF MAXX",
+    "url": "https://rs202-krk-cyfronet.rmfstream.pl/rmf_maxxx",
+    "curl_exit": 28,
+    "http": "000",
+    "final": "https://rs202-krk-cyfronet.rmfstream.pl/rmf_maxxx",
+    "error": "curl: (28) Connection timed out after 4002 milliseconds\n"
+  },
+  {
+    "station": "Radio ZET",
+    "url": "https://zt.cdn.eurozet.pl/zet-net.mp3",
+    "curl_exit": 28,
+    "http": "000",
+    "final": "https://zt.cdn.eurozet.pl/zet-net.mp3",
+    "error": "curl: (28) Connection timed out after 4002 milliseconds\n"
+  },
+  {
+    "station": "RMF Classic",
+    "url": "http://rmfstream1.interia.pl:8000/rmf_classic",
+    "curl_exit": 63,
+    "http": "200",
+    "final": "http://rmfstream1.interia.pl:8000/rmf_classic",
+    "error": "curl: (63) Exceeded the maximum allowed file size (65536) with 65536 bytes\n",
+    "probe": {
+      "codec_name": "mp3",
+      "sample_rate": "44100",
+      "channels": 2,
+      "bit_rate": "128000"
+    },
+    "headers": "HTTP/1.1 200 OK\nicy-pub: 0\nicy-description: RMF Classic\nicy-url: https://www.rmfclassic.pl/\nicy-name: RMF Classic\ncontent-type: audio/mpeg\nicy-metaint: 0\nicy-genre: Classical\ninstance-id: 6f789e193a39b59697938e9545b72947\nicy-br: 128\nexpires: Mon, 26 Jul 1997 05:00:00 GMT\npragma: no-cache\ncache-control: no-cache\nset-cookie: AISSessionId=6abd78e2068944d2_3547132_vYl40L7p__0000002IgAT; Path=/; Domain=rmfstream1.interia.pl; Max-Age=6000; Expires=Wed, 11 Nov 2026 00:01:18 GMT; SameSite=None; Secure\nx-envoy-upstream-service-time: 635\ndate: Tue, 10 Nov 2026 22:21:18 GMT\nserver: envoy\ntransfer-encoding: chunked\n\n",
+    "verified": true
+  },
+  {
+    "station": "RMF Classic",
+    "url": "https://rs203-krk-cyfronet.rmfstream.pl/rmf_classic",
+    "curl_exit": 28,
+    "http": "000",
+    "final": "https://rs203-krk-cyfronet.rmfstream.pl/rmf_classic",
+    "error": "curl: (28) Connection timed out after 4002 milliseconds\n"
+  },
+  {
+    "station": "RMF Classic",
+    "url": "http://31.192.216.8/RMFCLASSIC48",
+    "curl_exit": 63,
+    "http": "200",
+    "final": "http://31.192.216.8/RMFCLASSIC48",
+    "error": "curl: (63) Exceeded the maximum allowed file size (65536) with 65536 bytes\n",
+    "probe": {
+      "codec_name": "aac",
+      "profile": "HE-AACv2",
+      "sample_rate": "44100",
+      "channels": 2,
+      "bit_rate": "48221"
+    },
+    "decoder_facts": "FACTS aot=2 ext=0 core=22050 corech=1 rate=44100 ch=2 flags=32768\nFACTS aot=2 ext=0 core=22050 corech=1 rate=44100 ch=2 flags=32768\nFACTS aot=2 ext=0 core=22050 corech=1 rate=44100 ch=2 flags=163840\nPartial packet\n",
+    "headers": "HTTP/1.1 200 OK\nicy-pub: 0\nicy-description: RMF Classic\nicy-url: https://www.rmfclassic.pl/\nicy-name: RMF Classic\ncontent-type: audio/aacp\nicy-metaint: 0\nicy-genre: Classical\ninstance-id: 253b6682c06b1e1b34c0f9160e98bab9\nicy-br: 48\nexpires: Mon, 26 Jul 1997 05:00:00 GMT\npragma: no-cache\ncache-control: no-cache\nset-cookie: AISSessionId=6abd7beab0ac2a6a_3546353_vRJtPm3K__0000003nX43; Path=/; Domain=31.192.216.8; Max-Age=6000; Expires=Wed, 11 Nov 2026 00:01:15 GMT; SameSite=None; Secure\nx-envoy-upstream-service-time: 594\ndate: Tue, 10 Nov 2026 22:21:15 GMT\nserver: envoy\ntransfer-encoding: chunked\n\n",
+    "verified": true
+  },
+  {
+    "station": "RMF Classic",
+    "url": "https://rs201-krk.rmfstream.pl/RMFCLASSIC48",
+    "curl_exit": 28,
+    "http": "000",
+    "final": "https://rs201-krk.rmfstream.pl/RMFCLASSIC48",
+    "error": "curl: (28) Connection timed out after 4002 milliseconds\n"
+  },
+  {
+    "station": "Chilli ZET",
+    "url": "https://ch.cdn.eurozet.pl/chi-net.mp3",
+    "curl_exit": 28,
+    "http": "000",
+    "final": "https://ch.cdn.eurozet.pl/chi-net.mp3",
+    "error": "curl: (28) Connection timed out after 4002 milliseconds\n"
+  },
+  {
+    "station": "TOK FM",
+    "url": "http://stream30.radiostream.pl/tuba10-1.mp3",
+    "curl_exit": 63,
+    "http": "200",
+    "final": "http://stream30.radiostream.pl/tuba10-1.mp3",
+    "error": "curl: (63) Exceeded the maximum allowed file size (65536) with 65536 bytes\n",
+    "probe": {
+      "codec_name": "mp3",
+      "sample_rate": "44100",
+      "channels": 2,
+      "bit_rate": "128000"
+    },
+    "headers": "HTTP/1.1 200 OK\nserver: envoy\ndate: Tue, 10 Nov 2026 22:21:21 GMT\ncontent-type: audio/mpeg\ncache-control: no-cache, no-store\nexpires: Mon, 26 Jul 1997 05:00:00 GMT\npragma: no-cache\naccess-control-allow-origin: *\nicy-br: 128\nice-audio-info: ice-samplerate=44100;ice-bitrate=128;ice-channels=2\nicy-br: 128\nicy-description: Pierwsze Radio Informacyjne\nicy-genre: NEWS\nicy-name: TOK.FM\nicy-private: 1\nicy-pub: 0\nx-envoy-upstream-service-time: 696\ntransfer-encoding: chunked\n\n",
+    "verified": true
+  },
+  {
+    "station": "TOK FM",
+    "url": "https://radiostream.pl/tuba10-1.mp3",
+    "curl_exit": 28,
+    "http": "000",
+    "final": "https://radiostream.pl/tuba10-1.mp3",
+    "error": "curl: (28) Connection timed out after 4002 milliseconds\n"
+  },
+  {
+    "station": "TOK FM",
+    "url": "http://stream30.radiostream.pl/tuba10-2.mp3",
+    "curl_exit": 63,
+    "http": "200",
+    "final": "http://stream30.radiostream.pl/tuba10-2.mp3",
+    "error": "curl: (63) Exceeded the maximum allowed file size (65536) with 65536 bytes\n",
+    "probe": {
+      "codec_name": "mp3",
+      "sample_rate": "44100",
+      "channels": 2,
+      "bit_rate": "64000"
+    },
+    "headers": "HTTP/1.1 200 OK\nserver: envoy\ndate: Tue, 10 Nov 2026 22:21:21 GMT\ncontent-type: audio/mpeg\ncache-control: no-cache, no-store\nexpires: Mon, 26 Jul 1997 05:00:00 GMT\npragma: no-cache\naccess-control-allow-origin: *\nicy-br: 64\nice-audio-info: ice-samplerate=44100;ice-bitrate=64;ice-channels=2\nicy-br: 64\nicy-description: Pierwsze Radio Informacyjne\nicy-genre: NEWS\nicy-name: TOK.FM\nicy-private: 1\nicy-pub: 0\nx-envoy-upstream-service-time: 745\ntransfer-encoding: chunked\n\n",
+    "verified": true
+  },
+  {
+    "station": "TOK FM",
+    "url": "https://radiostream.pl/tuba10-2.mp3",
+    "curl_exit": 28,
+    "http": "000",
+    "final": "https://radiostream.pl/tuba10-2.mp3",
+    "error": "curl: (28) Connection timed out after 4002 milliseconds\n"
+  },
+  {
+    "station": "Antyradio",
+    "url": "https://an.cdn.eurozet.pl/ant-web.mp3",
+    "curl_exit": 28,
+    "http": "000",
+    "final": "https://an.cdn.eurozet.pl/ant-web.mp3",
+    "error": "curl: (28) Connection timed out after 4002 milliseconds\n"
+  },
+  {
+    "station": "ESKA ROCK",
+    "url": "https://ic2.smcdn.pl/5380-1.mp3",
+    "curl_exit": 28,
+    "http": "000",
+    "final": "https://ic2.smcdn.pl/5380-1.mp3",
+    "error": "curl: (28) Connection timed out after 4002 milliseconds\n"
+  },
+  {
+    "station": "ESKA ROCK",
+    "url": "https://ic2.smcdn.pl/5380-2.aac",
+    "curl_exit": 28,
+    "http": "000",
+    "final": "https://ic2.smcdn.pl/5380-2.aac",
+    "error": "curl: (28) Connection timed out after 4002 milliseconds\n"
+  },
+  {
+    "station": "ESKA ROCK",
+    "url": "http://ic2.smcdn.pl/5380-2.aac",
+    "curl_exit": 63,
+    "http": "200",
+    "final": "http://ic2.smcdn.pl/5380-2.aac",
+    "error": "curl: (63) Exceeded the maximum allowed file size (65536) with 65536 bytes\n",
+    "probe": {
+      "codec_name": "aac",
+      "profile": "HE-AAC",
+      "sample_rate": "48000",
+      "channels": 2,
+      "bit_rate": "48027"
+    },
+    "decoder_facts": "FACTS aot=2 ext=0 core=24000 corech=2 rate=48000 ch=2 flags=32768\nFACTS aot=2 ext=0 core=24000 corech=2 rate=48000 ch=2 flags=32768\nPartial packet\n",
+    "headers": "HTTP/1.1 200 OK\ncontent-type: audio/aacp\ndate: Tue, 10 Nov 2026 22:21:23 GMT\nicy-br: 48\nicy-channels: 2\nicy-private: 0\nicy-pub: 1\nicy-samplerate: 48000\nserver: envoy\ncache-control: no-cache, no-store\nexpires: Mon, 26 Jul 1997 05:00:00 GMT\naccess-control-allow-origin: *\naccess-control-allow-headers: Origin, Accept, X-Requested-With, Content-Type, Icy-MetaData\naccess-control-allow-methods: GET, OPTIONS, SOURCE, PUT, HEAD, STATS\nx-envoy-upstream-service-time: 291\ntransfer-encoding: chunked\n\n",
+    "verified": true
+  },
+  {
+    "station": "Radio ESKA Kraków",
+    "url": "http://ic1.smcdn.pl/2070-1.mp3",
+    "curl_exit": 63,
+    "http": "200",
+    "final": "http://ic1.smcdn.pl/2070-1.mp3",
+    "error": "curl: (63) Exceeded the maximum allowed file size (65536) with 65536 bytes\n",
+    "probe": {
+      "codec_name": "mp3",
+      "sample_rate": "48000",
+      "channels": 2,
+      "bit_rate": "128000"
+    },
+    "headers": "HTTP/1.1 200 OK\ncontent-type: audio/mpeg\ndate: Tue, 10 Nov 2026 22:21:26 GMT\nicy-br: 128\nicy-channels: 2\nicy-private: 0\nicy-pub: 1\nicy-samplerate: 48000\nserver: envoy\ncache-control: no-cache, no-store\nexpires: Mon, 26 Jul 1997 05:00:00 GMT\naccess-control-allow-origin: *\naccess-control-allow-headers: Origin, Accept, X-Requested-With, Content-Type, Icy-MetaData\naccess-control-allow-methods: GET, OPTIONS, SOURCE, PUT, HEAD, STATS\nx-envoy-upstream-service-time: 284\ntransfer-encoding: chunked\n\n",
+    "verified": true
+  },
+  {
+    "station": "Radio ESKA Kraków",
+    "url": "http://ic1.smcdn.pl/2070-2.aac",
+    "curl_exit": 63,
+    "http": "200",
+    "final": "http://ic1.smcdn.pl/2070-2.aac",
+    "error": "curl: (63) Exceeded the maximum allowed file size (65536) with 65536 bytes\n",
+    "probe": {
+      "codec_name": "aac",
+      "profile": "HE-AAC",
+      "sample_rate": "48000",
+      "channels": 2,
+      "bit_rate": "48336"
+    },
+    "decoder_facts": "FACTS aot=2 ext=0 core=24000 corech=2 rate=48000 ch=2 flags=32768\nFACTS aot=2 ext=0 core=24000 corech=2 rate=48000 ch=2 flags=32768\nPartial packet\n",
+    "headers": "HTTP/1.1 200 OK\ncontent-type: audio/aacp\ndate: Tue, 10 Nov 2026 22:21:26 GMT\nicy-br: 48\nicy-channels: 2\nicy-private: 0\nicy-pub: 1\nicy-samplerate: 48000\nserver: envoy\ncache-control: no-cache, no-store\nexpires: Mon, 26 Jul 1997 05:00:00 GMT\naccess-control-allow-origin: *\naccess-control-allow-headers: Origin, Accept, X-Requested-With, Content-Type, Icy-MetaData\naccess-control-allow-methods: GET, OPTIONS, SOURCE, PUT, HEAD, STATS\nx-envoy-upstream-service-time: 273\ntransfer-encoding: chunked\n\n",
+    "verified": true
+  },
+  {
+    "station": "Radio ESKA Kraków",
+    "url": "https://ic1.smcdn.pl/2070-2.aac",
+    "curl_exit": 28,
+    "http": "000",
+    "final": "https://ic1.smcdn.pl/2070-2.aac",
+    "error": "curl: (28) Connection timed out after 4002 milliseconds\n"
+  },
+  {
+    "station": "VOX FM",
+    "url": "http://ic1.smcdn.pl/3990-1.mp3",
+    "curl_exit": 63,
+    "http": "200",
+    "final": "http://ic1.smcdn.pl/3990-1.mp3",
+    "error": "curl: (63) Exceeded the maximum allowed file size (65536) with 65536 bytes\n",
+    "probe": {
+      "codec_name": "mp3",
+      "sample_rate": "48000",
+      "channels": 2,
+      "bit_rate": "128000"
+    },
+    "headers": "HTTP/1.1 200 OK\ncontent-type: audio/mpeg\ndate: Tue, 10 Nov 2026 22:21:26 GMT\nicy-br: 128\nicy-channels: 2\nicy-private: 0\nicy-pub: 1\nicy-samplerate: 48000\nserver: envoy\ncache-control: no-cache, no-store\nexpires: Mon, 26 Jul 1997 05:00:00 GMT\naccess-control-allow-origin: *\naccess-control-allow-headers: Origin, Accept, X-Requested-With, Content-Type, Icy-MetaData\naccess-control-allow-methods: GET, OPTIONS, SOURCE, PUT, HEAD, STATS\nx-envoy-upstream-service-time: 283\ntransfer-encoding: chunked\n\n",
+    "verified": true
+  },
+  {
+    "station": "VOX FM",
+    "url": "http://ic1.smcdn.pl/3990-2.aac",
+    "curl_exit": 63,
+    "http": "200",
+    "final": "http://ic1.smcdn.pl/3990-2.aac",
+    "error": "curl: (63) Exceeded the maximum allowed file size (65536) with 65536 bytes\n",
+    "probe": {
+      "codec_name": "aac",
+      "profile": "HE-AAC",
+      "sample_rate": "48000",
+      "channels": 2,
+      "bit_rate": "47834"
+    },
+    "decoder_facts": "FACTS aot=2 ext=0 core=24000 corech=2 rate=48000 ch=2 flags=32768\nFACTS aot=2 ext=0 core=24000 corech=2 rate=48000 ch=2 flags=32768\nPartial packet\n",
+    "headers": "HTTP/1.1 200 OK\ncontent-type: audio/aacp\ndate: Tue, 10 Nov 2026 22:21:26 GMT\nicy-br: 48\nicy-channels: 2\nicy-private: 0\nicy-pub: 1\nicy-samplerate: 48000\nserver: envoy\ncache-control: no-cache, no-store\nexpires: Mon, 26 Jul 1997 05:00:00 GMT\naccess-control-allow-origin: *\naccess-control-allow-headers: Origin, Accept, X-Requested-With, Content-Type, Icy-MetaData\naccess-control-allow-methods: GET, OPTIONS, SOURCE, PUT, HEAD, STATS\nx-envoy-upstream-service-time: 281\ntransfer-encoding: chunked\n\n",
+    "verified": true
+  },
+  {
+    "station": "VOX FM",
+    "url": "https://ic1.smcdn.pl/3990-2.aac",
+    "curl_exit": 28,
+    "http": "000",
+    "final": "https://ic1.smcdn.pl/3990-2.aac",
+    "error": "curl: (28) Connection timed out after 4002 milliseconds\n"
+  },
+  {
+    "station": "Złote Przeboje",
+    "url": "http://radiostream.pl/tuba8928-1.mp3",
+    "curl_exit": 63,
+    "http": "200",
+    "final": "http://radiostream.pl/tuba8928-1.mp3",
+    "error": "curl: (63) Exceeded the maximum allowed file size (65536) with 65536 bytes\n",
+    "probe": {
+      "codec_name": "mp3",
+      "sample_rate": "44100",
+      "channels": 2,
+      "bit_rate": "128000"
+    },
+    "headers": "HTTP/1.1 200 OK\nserver: envoy\ndate: Tue, 10 Nov 2026 22:21:27 GMT\ncontent-type: audio/mpeg\ncache-control: no-cache, no-store\nexpires: Mon, 26 Jul 1997 05:00:00 GMT\npragma: no-cache\naccess-control-allow-origin: *\nicy-br: 128\nice-audio-info: ice-samplerate=44100;ice-bitrate=128;ice-channels=2\nicy-br: 128\nicy-description: Muzyka Mojego Zycia\nicy-genre: PoP\nicy-name: Zlote Przeboje Rzeszow 95,7 Fm\nicy-private: 1\nicy-pub: 0\nx-envoy-upstream-service-time: 470\ntransfer-encoding: chunked\n\n",
+    "verified": true
+  },
+  {
+    "station": "Radio Plus",
+    "url": "https://pl02.cdn.eurozet.pl/plu-waw.mp3",
+    "curl_exit": 63,
+    "http": "200",
+    "final": "https://pl02.cdn.eurozet.pl/plu-waw.mp3",
+    "error": "curl: (63) Exceeded the maximum allowed file size (65536) with 65536 bytes\n",
+    "probe": {
+      "codec_name": "mp3",
+      "sample_rate": "44100",
+      "channels": 2,
+      "bit_rate": "128000"
+    },
+    "headers": "HTTP/1.1 200 OK\ndate: Tue, 10 Nov 2026 22:21:27 GMT\n\nHTTP/2 200 \naccept-encoding: identity\nallow: GET, DELETE, OPTIONS\ndate: Tue, 10 Nov 2026 22:21:28 GMT\ncontent-type: audio/mpeg\ncache-control: no-cache, no-store\nexpires: Mon, 26 Jul 1997 05:00:00 GMT\npragma: no-cache\nicy-br: 128\nicy-name: Radio Plus Warszawa\nicy-pub: 0\naccess-control-allow-origin: null\nx-envoy-upstream-service-time: 554\nserver: envoy\n\n",
+    "verified": true
+  },
+  {
+    "station": "Radio 357",
+    "url": "https://stream.radio357.pl/",
+    "curl_exit": 28,
+    "http": "000",
+    "final": "https://stream.radio357.pl/",
+    "error": "curl: (28) Connection timed out after 4002 milliseconds\n"
+  },
+  {
+    "station": "Radio 357",
+    "url": "https://n-11-21.dcs.redcdn.pl/sc/o2/radio357/live/radio357_pr.livx?preroll=0",
+    "curl_exit": 28,
+    "http": "000",
+    "final": "https://n-11-21.dcs.redcdn.pl/sc/o2/radio357/live/radio357_pr.livx?preroll=0",
+    "error": "curl: (28) Connection timed out after 4002 milliseconds\n"
+  },
+  {
+    "station": "Radio Nowy Świat",
+    "url": "http://stream.rcs.revma.com/ypqt40u0x1zuv",
+    "curl_exit": 28,
+    "http": "000",
+    "final": "http://stream.rcs.revma.com/ypqt40u0x1zuv",
+    "error": "curl: (28) Operation timed out after 9002 milliseconds with 0 bytes received\n"
+  },
+  {
+    "station": "Radio Nowy Świat",
+    "url": "https://go-audio.toya.net.pl/63214",
+    "curl_exit": 28,
+    "http": "000",
+    "final": "https://go-audio.toya.net.pl/63214",
+    "error": "curl: (28) Connection timed out after 4002 milliseconds\n"
+  },
+  {
+    "station": "Radio Nowy Świat",
+    "url": "https://stream.rcs.revma.com/ypqt40u0x1zuv",
+    "curl_exit": 28,
+    "http": "000",
+    "final": "https://stream.rcs.revma.com/ypqt40u0x1zuv",
+    "error": "curl: (28) Connection timed out after 4002 milliseconds\n"
+  },
+  {
+    "station": "Radio Wnet",
+    "url": "http://audio.radiownet.pl:8000/stream",
+    "curl_exit": 63,
+    "http": "200",
+    "final": "http://audio.radiownet.pl:8000/stream",
+    "error": "curl: (63) Exceeded the maximum allowed file size (65536) with 65536 bytes\n",
+    "probe": {
+      "codec_name": "mp3",
+      "sample_rate": "48000",
+      "channels": 2,
+      "bit_rate": "160000"
+    },
+    "headers": "HTTP/1.1 200 OK\nserver: envoy\ndate: Tue, 10 Nov 2026 22:21:35 GMT\ncontent-type: audio/mpeg\ncache-control: no-cache, no-store\nexpires: Mon, 26 Jul 1997 05:00:00 GMT\npragma: no-cache\naccess-control-allow-origin: *\nicy-name: Radio Wnet\nicy-pub: 1\nx-envoy-upstream-service-time: 410\ntransfer-encoding: chunked\n\n",
+    "verified": true
+  },
+  {
+    "station": "Rock Radio",
+    "url": "https://radiostream.pl/tuba8-1.mp3",
+    "curl_exit": 28,
+    "http": "000",
+    "final": "https://radiostream.pl/tuba8-1.mp3",
+    "error": "curl: (28) Connection timed out after 4002 milliseconds\n"
+  },
+  {
+    "station": "Radio Pogoda",
+    "url": "https://radiostream.pl/tuba140-1.mp3",
+    "curl_exit": 28,
+    "http": "000",
+    "final": "https://radiostream.pl/tuba140-1.mp3",
+    "error": "curl: (28) Connection timed out after 4002 milliseconds\n"
+  },
+  {
+    "station": "Jedynka PR1",
+    "url": "http://mp3.polskieradio.pl:8900/",
+    "curl_exit": 22,
+    "http": "502",
+    "final": "http://mp3.polskieradio.pl:8900/",
+    "error": "curl: (22) The requested URL returned error: 502\n"
+  },
+  {
+    "station": "Jedynka PR1",
+    "url": "https://stream11.polskieradio.pl/pr1/pr1.sdp/playlist.m3u8",
+    "curl_exit": 28,
+    "http": "000",
+    "final": "https://stream11.polskieradio.pl/pr1/pr1.sdp/playlist.m3u8",
+    "error": "curl: (28) Connection timed out after 4002 milliseconds\n"
+  },
+  {
+    "station": "Dwójka PR2",
+    "url": "http://mp3.polskieradio.pl:8902/",
+    "curl_exit": 22,
+    "http": "502",
+    "final": "http://mp3.polskieradio.pl:8902/",
+    "error": "curl: (22) The requested URL returned error: 502\n"
+  },
+  {
+    "station": "Dwójka PR2",
+    "url": "https://stream12.polskieradio.pl/pr2/pr2.sdp/playlist.m3u8",
+    "curl_exit": 28,
+    "http": "000",
+    "final": "https://stream12.polskieradio.pl/pr2/pr2.sdp/playlist.m3u8",
+    "error": "curl: (28) Connection timed out after 4002 milliseconds\n"
+  },
+  {
+    "station": "Trójka PR3",
+    "url": "http://stream3.polskieradio.pl:8904/",
+    "curl_exit": 22,
+    "http": "502",
+    "final": "http://stream3.polskieradio.pl:8904/",
+    "error": "curl: (22) The requested URL returned error: 502\n"
+  },
+  {
+    "station": "Trójka PR3",
+    "url": "https://stream13.polskieradio.pl/pr3/pr3.sdp/playlist.m3u8",
+    "curl_exit": 28,
+    "http": "000",
+    "final": "https://stream13.polskieradio.pl/pr3/pr3.sdp/playlist.m3u8",
+    "error": "curl: (28) Connection timed out after 4002 milliseconds\n"
+  },
+  {
+    "station": "Czwórka PR4",
+    "url": "http://stream3.polskieradio.pl:8906/",
+    "curl_exit": 22,
+    "http": "502",
+    "final": "http://stream3.polskieradio.pl:8906/",
+    "error": "curl: (22) The requested URL returned error: 502\n"
+  },
+  {
+    "station": "Czwórka PR4",
+    "url": "https://stream14.polskieradio.pl/pr4/pr4.sdp/playlist.m3u8",
+    "curl_exit": 28,
+    "http": "000",
+    "final": "https://stream14.polskieradio.pl/pr4/pr4.sdp/playlist.m3u8",
+    "error": "curl: (28) Connection timed out after 4002 milliseconds\n"
+  },
+  {
+    "station": "Polskie Radio 24",
+    "url": "http://stream3.polskieradio.pl:8080/",
+    "curl_exit": 22,
+    "http": "502",
+    "final": "http://stream3.polskieradio.pl:8080/",
+    "error": "curl: (22) The requested URL returned error: 502\n"
+  },
+  {
+    "station": "Polskie Radio 24",
+    "url": "https://stream15.polskieradio.pl/pr24/pr24.sdp/playlist.m3u8",
+    "curl_exit": 28,
+    "http": "000",
+    "final": "https://stream15.polskieradio.pl/pr24/pr24.sdp/playlist.m3u8",
+    "error": "curl: (28) Connection timed out after 4002 milliseconds\n"
+  },
+  {
+    "station": "Radio Chopin",
+    "url": "http://stream3.polskieradio.pl:8910/",
+    "curl_exit": 22,
+    "http": "502",
+    "final": "http://stream3.polskieradio.pl:8910/",
+    "error": "curl: (22) The requested URL returned error: 502\n"
+  },
+  {
+    "station": "Polskie Radio Kierowców",
+    "url": "http://stream3.polskieradio.pl:8918/",
+    "curl_exit": 22,
+    "http": "502",
+    "final": "http://stream3.polskieradio.pl:8918/",
+    "error": "curl: (22) The requested URL returned error: 502\n"
+  },
+  {
+    "station": "Polskie Radio Kierowców",
+    "url": "https://stream10.polskieradio.pl/prk/rdk.sdp/playlist.m3u8",
+    "curl_exit": 28,
+    "http": "000",
+    "final": "https://stream10.polskieradio.pl/prk/rdk.sdp/playlist.m3u8",
+    "error": "curl: (28) Connection timed out after 4002 milliseconds\n"
+  },
+  {
+    "station": "Radio Kraków",
+    "url": "http://stream3.nadaje.com:9116/radiokrakow",
+    "curl_exit": 63,
+    "http": "200",
+    "final": "http://stream3.nadaje.com:9116/radiokrakow",
+    "error": "curl: (63) Exceeded the maximum allowed file size (65536) with 65536 bytes\n",
+    "probe": {
+      "codec_name": "mp3",
+      "sample_rate": "44100",
+      "channels": 2,
+      "bit_rate": "256000"
+    },
+    "headers": "HTTP/1.1 200 OK\nserver: envoy\ndate: Tue, 10 Nov 2026 22:21:42 GMT\ncontent-type: audio/mpeg\ncache-control: no-cache,no-cache, no-store, must-revalidate\nexpires: Mon, 26 Jul 1997 05:00:00 GMT,0\npragma: no-cache\naccess-control-allow-origin: *\nx-robots-tag: index, noarchive\npragma: no-cache\nicy-name: no name\nicy-pub: 1\nx-envoy-upstream-service-time: 335\ntransfer-encoding: chunked\n\n",
+    "verified": true
+  },
+  {
+    "station": "Radio Kraków",
+    "url": "https://stream3.nadaje.com:9117/radiokrakow",
+    "curl_exit": 28,
+    "http": "000",
+    "final": "https://stream3.nadaje.com:9117/radiokrakow",
+    "error": "curl: (28) Connection timed out after 4002 milliseconds\n"
+  },
+  {
+    "station": "Radio RDC",
+    "url": "http://stream2.nadaje.com:11140/rdc",
+    "curl_exit": 63,
+    "http": "200",
+    "final": "http://stream2.nadaje.com:11140/rdc",
+    "error": "curl: (63) Exceeded the maximum allowed file size (65536) with 65536 bytes\n",
+    "probe": {
+      "codec_name": "mp3",
+      "sample_rate": "44100",
+      "channels": 2,
+      "bit_rate": "256000"
+    },
+    "headers": "HTTP/1.1 200 OK\nserver: envoy\ndate: Tue, 10 Nov 2026 22:21:44 GMT\ncontent-type: audio/mpeg\ncache-control: no-cache\nexpires: Mon, 26 Jul 1997 05:00:00 GMT\npragma: no-cache\nicy-br: 256\nice-audio-info: ice-samplerate=44100;ice-bitrate=256;ice-channels=2\nicy-br: 256\nicy-description: Polskie Radio RDC\nicy-genre: RDC\nicy-name: Polskie Radio RDC\nicy-private: 0\nicy-pub: 1\nicy-url: http://www.rdc.pl\nx-envoy-upstream-service-time: 357\ntransfer-encoding: chunked\n\n",
+    "verified": true
+  },
+  {
+    "station": "Radio Katowice",
+    "url": "http://stream4.nadaje.com:9212/radiokatowice",
+    "curl_exit": 63,
+    "http": "200",
+    "final": "http://stream4.nadaje.com:9212/radiokatowice",
+    "error": "curl: (63) Exceeded the maximum allowed file size (65536) with 65536 bytes\n",
+    "probe": {
+      "codec_name": "mp3",
+      "sample_rate": "48000",
+      "channels": 2,
+      "bit_rate": "128000"
+    },
+    "headers": "HTTP/1.1 200 OK\nserver: envoy\ndate: Tue, 10 Nov 2026 22:21:45 GMT\ncontent-type: audio/mpeg\ncache-control: no-cache\nexpires: Mon, 26 Jul 1997 05:00:00 GMT\npragma: no-cache\naccess-control-allow-origin: *\nx-robots-tag: index, noarchive\nicy-br: 128\nice-audio-info: ice-bitrate=128;ice-channels=2;ice-samplerate=48000\nicy-description: (NULL)\nicy-genre: (NULL)\nicy-name: RADIO KATOWICE\nicy-pub: 0\nicy-url: (NULL)\nx-envoy-upstream-service-time: 404\ntransfer-encoding: chunked\n\n",
+    "verified": true
+  },
+  {
+    "station": "Radio Gdańsk",
+    "url": "http://stream.task.gda.pl:8000/rg1",
+    "curl_exit": 63,
+    "http": "200",
+    "final": "http://stream.task.gda.pl:8000/rg1",
+    "error": "curl: (63) Exceeded the maximum allowed file size (65536) with 65536 bytes\n",
+    "probe": {
+      "codec_name": "mp3",
+      "sample_rate": "48000",
+      "channels": 2,
+      "bit_rate": "128000"
+    },
+    "headers": "HTTP/1.1 200 OK\nserver: envoy\ndate: Tue, 10 Nov 2026 22:21:47 GMT\ncontent-type: audio/mpeg\ncache-control: no-cache, no-store\nexpires: Mon, 26 Jul 1997 05:00:00 GMT\npragma: no-cache\naccess-control-allow-origin: *\nicy-br: 128\nice-audio-info: bitrate=128\nicy-description: Radio Gdansk\nicy-genre: genre\nicy-name: Radio Gdansk\nicy-pub: 1\nx-envoy-upstream-service-time: 618\ntransfer-encoding: chunked\n\n",
+    "verified": true
+  },
+  {
+    "station": "Radio Gdańsk",
+    "url": "https://stream.task.gda.pl:8443/rg1",
+    "curl_exit": 63,
+    "http": "200",
+    "final": "https://stream.task.gda.pl:8443/rg1",
+    "error": "curl: (63) Exceeded the maximum allowed file size (65536) with 65536 bytes\n",
+    "probe": {
+      "codec_name": "mp3",
+      "sample_rate": "48000",
+      "channels": 2,
+      "bit_rate": "128000"
+    },
+    "headers": "HTTP/1.1 200 OK\ndate: Tue, 10 Nov 2026 22:21:46 GMT\n\nHTTP/2 200 \nserver: envoy\ndate: Tue, 10 Nov 2026 22:21:46 GMT\ncontent-type: audio/mpeg\ncache-control: no-cache, no-store\nexpires: Mon, 26 Jul 1997 05:00:00 GMT\npragma: no-cache\naccess-control-allow-origin: *\nicy-br: 128\nice-audio-info: bitrate=128\nicy-description: Radio Gdansk\nicy-genre: genre\nicy-name: Radio Gdansk\nicy-pub: 1\nx-envoy-upstream-service-time: 536\n\n",
+    "verified": true
+  },
+  {
+    "station": "Radio Szczecin",
+    "url": "http://stream4.nadaje.com:11986/prs",
+    "curl_exit": 63,
+    "http": "200",
+    "final": "http://stream4.nadaje.com:11986/prs",
+    "error": "curl: (63) Exceeded the maximum allowed file size (65536) with 65536 bytes\n",
+    "probe": {
+      "codec_name": "mp3",
+      "sample_rate": "44100",
+      "channels": 2,
+      "bit_rate": "128000"
+    },
+    "headers": "HTTP/1.1 200 OK\nserver: envoy\ndate: Tue, 10 Nov 2026 22:21:46 GMT\ncontent-type: audio/mpeg\ncache-control: no-cache\nexpires: Mon, 26 Jul 1997 05:00:00 GMT\npragma: no-cache\naccess-control-allow-origin: *\nx-robots-tag: index, noarchive\nicy-br: 128\nice-audio-info: bitrate=128\nicy-description: Radio Szczecin * Antena 510777666 * Czujny 510777222\nicy-genre: Various\nicy-name: Radio Szczecin * Antena 510777666 * Czujny 510777222\nicy-pub: 1\nicy-url: radioszczecin.pl\nx-envoy-upstream-service-time: 401\ntransfer-encoding: chunked\n\n",
+    "verified": true
+  },
+  {
+    "station": "Radio Wrocław",
+    "url": "http://stream4.nadaje.com:9240/prw",
+    "curl_exit": 63,
+    "http": "200",
+    "final": "http://stream4.nadaje.com:9240/prw",
+    "error": "curl: (63) Exceeded the maximum allowed file size (65536) with 65536 bytes\n",
+    "probe": {
+      "codec_name": "mp3",
+      "sample_rate": "44100",
+      "channels": 2,
+      "bit_rate": "128000"
+    },
+    "headers": "HTTP/1.1 200 OK\nserver: envoy\ndate: Tue, 10 Nov 2026 22:21:48 GMT\ncontent-type: audio/mpeg\ncache-control: no-cache\nexpires: Mon, 26 Jul 1997 05:00:00 GMT\npragma: no-cache\naccess-control-allow-origin: *\nx-robots-tag: index, noarchive\nicy-br: 128\nice-audio-info: ice-samplerate=44100;ice-bitrate=128;ice-channels=2\nicy-br: 128\nicy-genre: Rock\nicy-name: Radio Wroclaw\nicy-pub: 1\nicy-url: http://www.radiowroclaw.pl/\nx-envoy-upstream-service-time: 368\ntransfer-encoding: chunked\n\n",
+    "verified": true
+  },
+  {
+    "station": "Radio Poznań",
+    "url": "http://stream4.nadaje.com:8578/poznan",
+    "curl_exit": 63,
+    "http": "200",
+    "final": "http://stream4.nadaje.com:8578/poznan",
+    "error": "curl: (63) Exceeded the maximum allowed file size (65536) with 65536 bytes\n",
+    "probe": {
+      "codec_name": "mp3",
+      "sample_rate": "32000",
+      "channels": 2,
+      "bit_rate": "96000"
+    },
+    "headers": "HTTP/1.1 200 OK\nserver: envoy\ndate: Tue, 10 Nov 2026 22:21:47 GMT\ncontent-type: audio/mpeg\ncache-control: no-cache\nexpires: Mon, 26 Jul 1997 05:00:00 GMT\npragma: no-cache\naccess-control-allow-origin: *\nx-robots-tag: index, noarchive\nicy-br: 96\nicy-genre: Rock'n'Roll\nicy-name: Radio Pozna�\nicy-pub: 1\nicy-url: https://radiopoznan.fm\nx-envoy-upstream-service-time: 415\ntransfer-encoding: chunked\n\n",
+    "verified": true
+  },
+  {
+    "station": "Radio Rzeszów",
+    "url": "https://streaming.g-news.pl:8040/rzeszow",
+    "curl_exit": 28,
+    "http": "000",
+    "final": "https://streaming.g-news.pl:8040/rzeszow",
+    "error": "curl: (28) Connection timed out after 4002 milliseconds\n"
+  },
+  {
+    "station": "Radio Warszawa",
+    "url": "http://streaming01.technologicznie.net:8765/radio_warszawa.mp3",
+    "curl_exit": 63,
+    "http": "200",
+    "final": "http://streaming01.technologicznie.net:8765/radio_warszawa.mp3",
+    "error": "curl: (63) Exceeded the maximum allowed file size (65536) with 65536 bytes\n",
+    "probe": {
+      "codec_name": "mp3",
+      "sample_rate": "44100",
+      "channels": 2,
+      "bit_rate": "256000"
+    },
+    "headers": "HTTP/1.1 200 OK\nserver: envoy\ndate: Tue, 10 Nov 2026 22:21:48 GMT\ncontent-type: audio/mpeg\ncache-control: no-cache, no-store\nexpires: Mon, 26 Jul 1997 05:00:00 GMT\npragma: no-cache\naccess-control-allow-origin: *\nicy-br: 256\nicy-description: Dobrze sluchac!\nicy-name: Radio Warszawa\nicy-pub: 0\nicy-url: https://radiowarszawa.com.pl\nx-envoy-upstream-service-time: 402\ntransfer-encoding: chunked\n\n",
+    "verified": true
+  },
+  {
+    "station": "RMF Chillout",
+    "url": "http://31.192.216.8/CHILLOUT",
+    "curl_exit": 63,
+    "http": "200",
+    "final": "http://31.192.216.8/CHILLOUT",
+    "error": "curl: (63) Exceeded the maximum allowed file size (65536) with 65536 bytes\n",
+    "probe": {
+      "codec_name": "aac",
+      "profile": "HE-AAC",
+      "sample_rate": "44100",
+      "channels": 2,
+      "bit_rate": "63800"
+    },
+    "decoder_facts": "FACTS aot=2 ext=0 core=22050 corech=2 rate=44100 ch=2 flags=32768\nFACTS aot=2 ext=0 core=22050 corech=2 rate=44100 ch=2 flags=32768\nPartial packet\n",
+    "headers": "HTTP/1.1 200 OK\nicy-pub: 0\nicy-description: Unspecified description\nicy-url: http://rmfon.pl/\nicy-name: RMF CHILLOUT\ncontent-type: audio/aacp\nicy-metaint: 0\nicy-genre: RMF CHILLOUT\ninstance-id: 253b6682c06b1e1b34c0f9160e98bab9\nicy-br: 64\nexpires: Mon, 26 Jul 1997 05:00:00 GMT\npragma: no-cache\ncache-control: no-cache\nset-cookie: AISSessionId=6abd7beab0ac2a6a_3546388_9MUk7x5P__0000003nX9U; Path=/; Domain=31.192.216.8; Max-Age=6000; Expires=Wed, 11 Nov 2026 00:01:50 GMT; SameSite=None; Secure\nx-envoy-upstream-service-time: 589\ndate: Tue, 10 Nov 2026 22:21:50 GMT\nserver: envoy\ntransfer-encoding: chunked\n\n",
+    "verified": true
+  },
+  {
+    "station": "RMF Chillout",
+    "url": "https://rs101-krk.rmfstream.pl/CHILLOUT",
+    "curl_exit": 63,
+    "http": "200",
+    "final": "https://rs101-krk.rmfstream.pl/CHILLOUT",
+    "error": "curl: (63) Exceeded the maximum allowed file size (65536) with 65536 bytes\n",
+    "probe": {
+      "codec_name": "aac",
+      "profile": "HE-AAC",
+      "sample_rate": "44100",
+      "channels": 2,
+      "bit_rate": "64057"
+    },
+    "decoder_facts": "FACTS aot=2 ext=0 core=22050 corech=2 rate=44100 ch=2 flags=32768\nFACTS aot=2 ext=0 core=22050 corech=2 rate=44100 ch=2 flags=32768\nPartial packet\n",
+    "headers": "HTTP/1.1 200 OK\ndate: Tue, 10 Nov 2026 22:21:51 GMT\n\nHTTP/2 200 \nicy-pub: 0\nicy-description: Unspecified description\nicy-url: http://rmfon.pl/\nicy-name: RMF CHILLOUT\ncontent-type: audio/aacp\nicy-metaint: 0\nicy-genre: RMF CHILLOUT\ninstance-id: 6f789e193a39b59697938e9545b72947\nicy-br: 64\nexpires: Mon, 26 Jul 1997 05:00:00 GMT\npragma: no-cache\ncache-control: no-cache\nset-cookie: AISSessionId=6abd78e2068944d2_3547166_vBo2JnYU__0000002IgGf; Path=/; Domain=rs101-krk.rmfstream.pl; Max-Age=6000; Expires=Wed, 11 Nov 2026 00:01:52 GMT; SameSite=None; Secure\nx-envoy-upstream-service-time: 913\ndate: Tue, 10 Nov 2026 22:21:52 GMT\nserver: envoy\n\n",
+    "verified": true
+  },
+  {
+    "station": "RMF 90s",
+    "url": "http://31.192.216.7/90S",
+    "curl_exit": 63,
+    "http": "200",
+    "final": "http://31.192.216.7/90S",
+    "error": "curl: (63) Exceeded the maximum allowed file size (65536) with 65536 bytes\n",
+    "probe": {
+      "codec_name": "aac",
+      "profile": "HE-AAC",
+      "sample_rate": "44100",
+      "channels": 2,
+      "bit_rate": "64313"
+    },
+    "decoder_facts": "FACTS aot=2 ext=0 core=22050 corech=2 rate=44100 ch=2 flags=32768\nFACTS aot=2 ext=0 core=22050 corech=2 rate=44100 ch=2 flags=32768\nPartial packet\n",
+    "headers": "HTTP/1.1 200 OK\nicy-pub: 0\nicy-description: Unspecified description\nicy-url: http://rmfon.pl/\nicy-name: RMF 90S\ncontent-type: audio/aacp\nicy-metaint: 0\nicy-genre: RMF 90S\ninstance-id: af71255ba813e05e81e755a464a29ab4\nicy-br: 64\nexpires: Mon, 26 Jul 1997 05:00:00 GMT\npragma: no-cache\ncache-control: no-cache\nset-cookie: AISSessionId=6abd7b3d6e2ec0b6_3546562_qc7lh1qr__0000003eUQS; Path=/; Domain=31.192.216.7; Max-Age=6000; Expires=Wed, 11 Nov 2026 00:01:51 GMT; SameSite=None; Secure\nx-envoy-upstream-service-time: 490\ndate: Tue, 10 Nov 2026 22:21:51 GMT\nserver: envoy\ntransfer-encoding: chunked\n\n",
+    "verified": true
+  },
+  {
+    "station": "RMF Dance",
+    "url": "http://rmfstream1.interia.pl:8000/rmf_dance",
+    "curl_exit": 63,
+    "http": "200",
+    "final": "http://rmfstream1.interia.pl:8000/rmf_dance",
+    "error": "curl: (63) Exceeded the maximum allowed file size (65536) with 65536 bytes\n",
+    "probe": {
+      "codec_name": "mp3",
+      "sample_rate": "44100",
+      "channels": 2,
+      "bit_rate": "128000"
+    },
+    "headers": "HTTP/1.1 200 OK\nicy-pub: 0\nicy-description: Unspecified description\nicy-url: http://rmfon.pl/\nicy-name: RMF DANCE\ncontent-type: audio/mpeg\nicy-metaint: 0\nicy-genre: RMF DANCE\ninstance-id: 6f789e193a39b59697938e9545b72947\nicy-br: 128\nexpires: Mon, 26 Jul 1997 05:00:00 GMT\npragma: no-cache\ncache-control: no-cache\nset-cookie: AISSessionId=6abd78e2068944d2_3547166_iaTWT075__0000002IgGk; Path=/; Domain=rmfstream1.interia.pl; Max-Age=6000; Expires=Wed, 11 Nov 2026 00:01:52 GMT; SameSite=None; Secure\nx-envoy-upstream-service-time: 622\ndate: Tue, 10 Nov 2026 22:21:52 GMT\nserver: envoy\ntransfer-encoding: chunked\n\n",
+    "verified": true
+  },
+  {
+    "station": "RMF Dance",
+    "url": "http://31.192.216.10/DANCE",
+    "curl_exit": 63,
+    "http": "200",
+    "final": "http://31.192.216.10/DANCE",
+    "error": "curl: (63) Exceeded the maximum allowed file size (65536) with 65536 bytes\n",
+    "probe": {
+      "codec_name": "aac",
+      "profile": "HE-AAC",
+      "sample_rate": "44100",
+      "channels": 2,
+      "bit_rate": "64263"
+    },
+    "decoder_facts": "FACTS aot=2 ext=0 core=22050 corech=2 rate=44100 ch=2 flags=32768\nFACTS aot=2 ext=0 core=22050 corech=2 rate=44100 ch=2 flags=32768\nPartial packet\n",
+    "headers": "HTTP/1.1 200 OK\nicy-pub: 0\nicy-description: Unspecified description\nicy-url: http://rmfon.pl/\nicy-name: RMF DANCE\ncontent-type: audio/aacp\nicy-metaint: 0\nicy-genre: RMF DANCE\ninstance-id: 01844702f0c2b0381beff842612aa496\nicy-br: 64\nexpires: Mon, 26 Jul 1997 05:00:00 GMT\npragma: no-cache\ncache-control: no-cache\nset-cookie: AISSessionId=6abd7ca4983ee8cc_3546205_OIRil2WP__0000002uOWX; Path=/; Domain=31.192.216.10; Max-Age=6000; Expires=Wed, 11 Nov 2026 00:01:53 GMT; SameSite=None; Secure\nx-envoy-upstream-service-time: 575\ndate: Tue, 10 Nov 2026 22:21:53 GMT\nserver: envoy\ntransfer-encoding: chunked\n\n",
+    "verified": true
+  },
+  {
+    "station": "RMF Polski Rock",
+    "url": "http://195.150.20.9/rmf_polski_rock",
+    "curl_exit": 63,
+    "http": "200",
+    "final": "http://195.150.20.9/rmf_polski_rock",
+    "error": "curl: (63) Exceeded the maximum allowed file size (65536) with 65536 bytes\n",
+    "probe": {
+      "codec_name": "mp3",
+      "sample_rate": "44100",
+      "channels": 2,
+      "bit_rate": "128000"
+    },
+    "headers": "HTTP/1.1 200 OK\nicy-pub: 0\nicy-description: Unspecified description\nicy-url: http://rmfon.pl/\nicy-name: RMF POLSKI ROCK\ncontent-type: audio/mpeg\nicy-metaint: 0\nicy-genre: RMF POLSKI ROCK\ninstance-id: 01844702f0c2b0381beff842612aa496\nicy-br: 128\nexpires: Mon, 26 Jul 1997 05:00:00 GMT\npragma: no-cache\ncache-control: no-cache\nset-cookie: AISSessionId=6abd7ca4983ee8cc_3546203_FSw0ghsB__0000002uOWA; Path=/; Domain=195.150.20.9; Max-Age=6000; Expires=Wed, 11 Nov 2026 00:01:51 GMT; SameSite=None; Secure\nx-envoy-upstream-service-time: 497\ndate: Tue, 10 Nov 2026 22:21:51 GMT\nserver: envoy\ntransfer-encoding: chunked\n\n",
+    "verified": true
+  },
+  {
+    "station": "RMF 80s",
+    "url": "http://195.150.20.9/80S",
+    "curl_exit": 63,
+    "http": "200",
+    "final": "http://195.150.20.9/80S",
+    "error": "curl: (63) Exceeded the maximum allowed file size (65536) with 65536 bytes\n",
+    "probe": {
+      "codec_name": "aac",
+      "profile": "HE-AAC",
+      "sample_rate": "44100",
+      "channels": 2,
+      "bit_rate": "64434"
+    },
+    "decoder_facts": "FACTS aot=2 ext=0 core=22050 corech=2 rate=44100 ch=2 flags=32768\nFACTS aot=2 ext=0 core=22050 corech=2 rate=44100 ch=2 flags=32768\nPartial packet\n",
+    "headers": "HTTP/1.1 200 OK\nicy-pub: 0\nicy-description: Unspecified description\nicy-url: http://rmfon.pl/\nicy-name: RMF 80S\ncontent-type: audio/aacp\nicy-metaint: 0\nicy-genre: RMF 80S\ninstance-id: 01844702f0c2b0381beff842612aa496\nicy-br: 64\nexpires: Mon, 26 Jul 1997 05:00:00 GMT\npragma: no-cache\ncache-control: no-cache\nset-cookie: AISSessionId=6abd7ca4983ee8cc_3546203_Yuqvc8VG__0000002uOWB; Path=/; Domain=195.150.20.9; Max-Age=6000; Expires=Wed, 11 Nov 2026 00:01:51 GMT; SameSite=None; Secure\nx-envoy-upstream-service-time: 497\ndate: Tue, 10 Nov 2026 22:21:51 GMT\nserver: envoy\ntransfer-encoding: chunked\n\n",
+    "verified": true
+  },
+  {
+    "station": "RMF 24",
+    "url": "http://rmfstream1.interia.pl/rmf_24",
+    "curl_exit": 63,
+    "http": "200",
+    "final": "http://rmfstream1.interia.pl/rmf_24",
+    "error": "curl: (63) Exceeded the maximum allowed file size (65536) with 65536 bytes\n",
+    "probe": {
+      "codec_name": "mp3",
+      "sample_rate": "44100",
+      "channels": 2,
+      "bit_rate": "128000"
+    },
+    "headers": "HTTP/1.1 200 OK\nicy-pub: 0\nicy-description: RMF24\nicy-url: https://www.rmf24.pl/\nicy-name: RMF24\ncontent-type: audio/mpeg\nicy-metaint: 0\nicy-genre: NEWS\ninstance-id: 6f789e193a39b59697938e9545b72947\nicy-br: 128\nexpires: Mon, 26 Jul 1997 05:00:00 GMT\npragma: no-cache\ncache-control: no-cache\nset-cookie: AISSessionId=6abd78e2068944d2_3547167_EBx79Vll__0000002IgGr; Path=/; Domain=rmfstream1.interia.pl; Max-Age=6000; Expires=Wed, 11 Nov 2026 00:01:53 GMT; SameSite=None; Secure\nx-envoy-upstream-service-time: 767\ndate: Tue, 10 Nov 2026 22:21:53 GMT\nserver: envoy\ntransfer-encoding: chunked\n\n",
+    "verified": true
+  },
+  {
+    "station": "RMF 24",
+    "url": "http://rs201-krk.rmfstream.pl/RMF24",
+    "curl_exit": 63,
+    "http": "200",
+    "final": "http://rs201-krk.rmfstream.pl/RMF24",
+    "error": "curl: (63) Exceeded the maximum allowed file size (65536) with 65536 bytes\n",
+    "probe": {
+      "codec_name": "aac",
+      "profile": "HE-AAC",
+      "sample_rate": "44100",
+      "channels": 2,
+      "bit_rate": "64481"
+    },
+    "decoder_facts": "FACTS aot=2 ext=0 core=22050 corech=2 rate=44100 ch=2 flags=32768\nFACTS aot=2 ext=0 core=22050 corech=2 rate=44100 ch=2 flags=32768\nPartial packet\n",
+    "headers": "HTTP/1.1 200 OK\nicy-pub: 0\nicy-description: RMF24\nicy-url: https://www.rmf24.pl/\nicy-name: RMF24\ncontent-type: audio/aacp\nicy-metaint: 0\nicy-genre: NEWS\ninstance-id: af71255ba813e05e81e755a464a29ab4\nicy-br: 64\nexpires: Mon, 26 Jul 1997 05:00:00 GMT\npragma: no-cache\ncache-control: no-cache\nset-cookie: AISSessionId=6abd7b3d6e2ec0b6_3546568_BQLixNTR__0000003eURQ; Path=/; Domain=rs201-krk.rmfstream.pl; Max-Age=6000; Expires=Wed, 11 Nov 2026 00:01:57 GMT; SameSite=None; Secure\nx-envoy-upstream-service-time: 589\ndate: Tue, 10 Nov 2026 22:21:56 GMT\nserver: envoy\ntransfer-encoding: chunked\n\n",
+    "verified": true
+  },
+  {
+    "station": "Radio Kampus",
+    "url": "http://193.0.98.66:8005/",
+    "curl_exit": 63,
+    "http": "200",
+    "final": "http://193.0.98.66:8005/",
+    "error": "curl: (63) Exceeded the maximum allowed file size (65536) with 65536 bytes\n",
+    "probe": {
+      "codec_name": "mp3",
+      "sample_rate": "44100",
+      "channels": 2,
+      "bit_rate": "128000"
+    },
+    "headers": "HTTP/1.1 200 OK\nicy-notice1: <BR>This stream requires <a href=\"http://www.winamp.com\">Winamp</a><BR>\nicy-notice2: SHOUTcast DNAS/win64 v2.5.5.733<BR>\naccept-ranges: none\naccess-control-allow-origin: *\ncache-control: no-cache,no-store,must-revalidate,max-age=0\nicy-name: Radio Kampus 97,1 FM\nicy-genre: kampus sztosy warszawa miasto muzyka, Electronic, Drum and Bass, Indie Rock, Experimental\nicy-br: 128\nicy-sr: 44100\nicy-url: http://radiokampus.fm\nicy-pub: 1\ncontent-type: audio/mpeg\nx-clacks-overhead: GNU Terry Pratchett\nx-envoy-upstream-service-time: 482\ndate: Tue, 10 Nov 2026 22:21:56 GMT\nserver: envoy\ntransfer-encoding: chunked\n\n",
+    "verified": true
+  },
+  {
+    "station": "Radio Kampus",
+    "url": "https://stream.radiokampus.fm/kampus",
+    "curl_exit": 63,
+    "http": "200",
+    "final": "https://stream.radiokampus.fm/kampus",
+    "error": "curl: (63) Exceeded the maximum allowed file size (65536) with 65536 bytes\n",
+    "probe": {
+      "codec_name": "mp3",
+      "sample_rate": "44100",
+      "channels": 2,
+      "bit_rate": "128000"
+    },
+    "headers": "HTTP/1.1 200 OK\ndate: Tue, 10 Nov 2026 22:21:56 GMT\n\nHTTP/2 200 \ndate: Tue, 10 Nov 2026 22:21:56 GMT\nserver: envoy\ncontent-type: audio/mpeg\ncache-control: no-cache, no-store\nexpires: Sat, 26 Jul 1997 05:00:00 GMT\npragma: no-cache\naccess-control-allow-origin: *\nicy-br: 128\nicy-description: Radio Kampus - same sztosy!\nicy-genre: Alternative\nicy-name: Radio Kampus 97,1 FM\nicy-pub: 1\nicy-url: https://radiokampus.fm\nx-envoy-upstream-service-time: 488\n\n",
+    "verified": true
+  },
+  {
+    "station": "Radio Kampus",
+    "url": "http://193.0.98.66:8002/;",
+    "curl_exit": 63,
+    "http": "200",
+    "final": "http://193.0.98.66:8002/;",
+    "error": "curl: (63) Exceeded the maximum allowed file size (65536) with 65536 bytes\n",
+    "probe": {
+      "codec_name": "mp3",
+      "sample_rate": "44100",
+      "channels": 1,
+      "bit_rate": "64000"
+    },
+    "headers": "HTTP/1.1 200 OK\nicy-notice1: <BR>This stream requires <a href=\"http://www.winamp.com\">Winamp</a><BR>\nicy-notice2: SHOUTcast DNAS/win64 v2.5.5.733<BR>\naccept-ranges: none\naccess-control-allow-origin: *\ncache-control: no-cache,no-store,must-revalidate,max-age=0\nicy-name: Radio Kampus 97,1 FM\nicy-genre: Alternative\nicy-br: 64\nicy-sr: 44100\nicy-url: https://radiokampus.fm\nicy-pub: 1\ncontent-type: audio/mpeg\nx-clacks-overhead: GNU Terry Pratchett\nx-envoy-upstream-service-time: 404\ndate: Tue, 10 Nov 2026 22:21:58 GMT\nserver: envoy\ntransfer-encoding: chunked\n\n",
+    "verified": true
+  },
+  {
+    "station": "Radio RAM",
+    "url": "http://stream4.nadaje.com:9220/ram",
+    "curl_exit": 63,
+    "http": "200",
+    "final": "http://stream4.nadaje.com:9220/ram",
+    "error": "curl: (63) Exceeded the maximum allowed file size (65536) with 65536 bytes\n",
+    "probe": {
+      "codec_name": "mp3",
+      "sample_rate": "44100",
+      "channels": 2,
+      "bit_rate": "128000"
+    },
+    "headers": "HTTP/1.1 200 OK\nserver: envoy\ndate: Tue, 10 Nov 2026 22:21:58 GMT\ncontent-type: audio/mpeg\ncache-control: no-cache\nexpires: Mon, 26 Jul 1997 05:00:00 GMT\npragma: no-cache\naccess-control-allow-origin: *\nx-robots-tag: index, noarchive\nicy-br: 128\nice-audio-info: ice-samplerate=44100;ice-bitrate=128;ice-channels=2\nicy-br: 128\nicy-genre: Various\nicy-name: Radio RAM\nicy-pub: 1\nicy-url: http://www.radioram.pl/\nx-envoy-upstream-service-time: 472\ntransfer-encoding: chunked\n\n",
+    "verified": true
+  },
+  {
+    "station": "Radio RAM",
+    "url": "http://stream2.nadaje.com:9228/ram.aac",
+    "curl_exit": 63,
+    "http": "200",
+    "final": "http://stream2.nadaje.com:9228/ram.aac",
+    "error": "curl: (63) Exceeded the maximum allowed file size (65536) with 65536 bytes\n",
+    "probe": {
+      "codec_name": "aac",
+      "profile": "LC",
+      "sample_rate": "44100",
+      "channels": 2,
+      "bit_rate": "64991"
+    },
+    "decoder_facts": "Not an ADTS packet\n",
+    "headers": "HTTP/1.1 200 OK\nserver: envoy\ndate: Tue, 10 Nov 2026 22:21:57 GMT\ncontent-type: audio/aacp\ncache-control: no-cache\nexpires: Mon, 26 Jul 1997 05:00:00 GMT\npragma: no-cache\nicy-br: 64\nice-audio-info: ice-samplerate=44100;ice-bitrate=64;ice-channels=2\nicy-br: 64\nicy-genre: Various\nicy-name: Radio RAM\nicy-pub: 1\nicy-url: http://www.radioram.pl/\nx-envoy-upstream-service-time: 461\ntransfer-encoding: chunked\n\n",
+    "verified": true
+  },
+  {
+    "station": "ESKA Warszawa",
+    "url": "http://waw.ic.smcdn.pl/2380-1.mp3",
+    "curl_exit": 28,
+    "http": "302",
+    "final": "http://ic2.smcdn.pl/2380-1.mp3",
+    "error": "curl: (28) Operation timed out after 9193 milliseconds with 0 bytes received\n"
+  },
+  {
+    "station": "ESKA Warszawa",
+    "url": "https://waw.ic.smcdn.pl/2380-2.aac",
+    "curl_exit": 63,
+    "http": "200",
+    "final": "https://ic1.smcdn.pl/2380-2.aac",
+    "error": "curl: (63) Exceeded the maximum allowed file size (65536) with 65536 bytes\n",
+    "probe": {
+      "codec_name": "aac",
+      "profile": "HE-AAC",
+      "sample_rate": "48000",
+      "channels": 2,
+      "bit_rate": "48401"
+    },
+    "decoder_facts": "FACTS aot=2 ext=0 core=24000 corech=2 rate=48000 ch=2 flags=32768\nFACTS aot=2 ext=0 core=24000 corech=2 rate=48000 ch=2 flags=32768\nPartial packet\n",
+    "headers": "HTTP/1.1 200 OK\ndate: Tue, 10 Nov 2026 22:21:58 GMT\n\nHTTP/2 302 \nserver: envoy\ndate: Tue, 10 Nov 2026 22:21:58 GMT\ncontent-type: text/html; charset=utf-8\naccess-control-allow-origin: *\ncache-control: no-cache\nlocation: https://ic1.smcdn.pl/2380-2.aac\nx-ray-id: 5A60B0E5BB30D4B4EE3A01BB6AF39906292251B7B6F\nx-app-server: s02-cdn\nx-envoy-upstream-service-time: 496\n\nHTTP/1.1 200 OK\ndate: Tue, 10 Nov 2026 22:22:00 GMT\n\nHTTP/2 200 \ncontent-type: audio/aacp\ndate: Tue, 10 Nov 2026 22:22:01 GMT\nicy-br: 48\nicy-channels: 2\nicy-private: 0\nicy-pub: 1\nicy-samplerate: 48000\nserver: envoy\ncache-control: no-cache, no-store\nexpires: Mon, 26 Jul 1997 05:00:00 GMT\naccess-control-allow-origin: *\naccess-control-allow-headers: Origin, Accept, X-Requested-With, Content-Type, Icy-MetaData\naccess-control-allow-methods: GET, OPTIONS, SOURCE, PUT, HEAD, STATS\nx-envoy-upstream-service-time: 501\n\n",
+    "verified": true
+  },
+  {
+    "station": "ESKA Warszawa",
+    "url": "https://ic1.smcdn.pl/2380-2.aac",
+    "curl_exit": 63,
+    "http": "200",
+    "final": "https://ic1.smcdn.pl/2380-2.aac",
+    "error": "curl: (63) Exceeded the maximum allowed file size (65536) with 65536 bytes\n",
+    "probe": {
+      "codec_name": "aac",
+      "profile": "HE-AAC",
+      "sample_rate": "48000",
+      "channels": 2,
+      "bit_rate": "48435"
+    },
+    "decoder_facts": "FACTS aot=2 ext=0 core=24000 corech=2 rate=48000 ch=2 flags=32768\nFACTS aot=2 ext=0 core=24000 corech=2 rate=48000 ch=2 flags=32768\nPartial packet\n",
+    "headers": "HTTP/1.1 200 OK\ndate: Tue, 10 Nov 2026 22:22:00 GMT\n\nHTTP/2 200 \ncontent-type: audio/aacp\ndate: Tue, 10 Nov 2026 22:22:01 GMT\nicy-br: 48\nicy-channels: 2\nicy-private: 0\nicy-pub: 1\nicy-samplerate: 48000\nserver: envoy\ncache-control: no-cache, no-store\nexpires: Mon, 26 Jul 1997 05:00:00 GMT\naccess-control-allow-origin: *\naccess-control-allow-headers: Origin, Accept, X-Requested-With, Content-Type, Icy-MetaData\naccess-control-allow-methods: GET, OPTIONS, SOURCE, PUT, HEAD, STATS\nx-envoy-upstream-service-time: 501\n\n",
+    "verified": true
+  },
+  {
+    "station": "Radio ZET",
+    "url": "https://playerservices.streamtheworld.com/api/livestream-redirect/RADIO_ZETAAC.aac",
+    "curl_exit": 28,
+    "http": "302",
+    "final": "https://28983.live.streamtheworld.com:443/RADIO_ZETAAC.aac",
+    "error": "curl: (28) Connection timed out after 4002 milliseconds\n"
+  },
+  {
+    "station": "RMF FM",
+    "url": "https://rs203-krk.rmfstream.pl/RMFFM48",
+    "curl_exit": 28,
+    "http": "000",
+    "final": "https://rs203-krk.rmfstream.pl/RMFFM48",
+    "error": "curl: (28) Connection timed out after 4002 milliseconds\n"
+  },
+  {
+    "station": "RMF FM",
+    "url": "https://rs202-krk-cyfronet.rmfstream.pl/RMFFM48",
+    "curl_exit": 28,
+    "http": "000",
+    "final": "https://rs202-krk-cyfronet.rmfstream.pl/RMFFM48",
+    "error": "curl: (28) Connection timed out after 4002 milliseconds\n"
+  },
+  {
+    "station": "RMF MAXX",
+    "url": "https://rs103-krk-cyfronet.rmfstream.pl/RMFMAXXX48",
+    "curl_exit": 28,
+    "http": "000",
+    "final": "https://rs103-krk-cyfronet.rmfstream.pl/RMFMAXXX48",
+    "error": "curl: (28) Connection timed out after 4002 milliseconds\n"
+  },
+  {
+    "station": "RMF MAXX",
+    "url": "https://rs203-krk.rmfstream.pl/RMFMAXXX48",
+    "curl_exit": 28,
+    "http": "000",
+    "final": "https://rs203-krk.rmfstream.pl/RMFMAXXX48",
+    "error": "curl: (28) Connection timed out after 4002 milliseconds\n"
+  },
+  {
+    "station": "RMF Classic",
+    "url": "https://rs101-krk.rmfstream.pl/RMFCLASSIC48",
+    "curl_exit": 28,
+    "http": "000",
+    "final": "https://rs101-krk.rmfstream.pl/RMFCLASSIC48",
+    "error": "curl: (28) Connection timed out after 4002 milliseconds\n"
+  },
+  {
+    "station": "RMF Classic",
+    "url": "https://rs202-krk-cyfronet.rmfstream.pl/RMFCLASSIC48",
+    "curl_exit": 28,
+    "http": "000",
+    "final": "https://rs202-krk-cyfronet.rmfstream.pl/RMFCLASSIC48",
+    "error": "curl: (28) Connection timed out after 4002 milliseconds\n"
+  }
+]

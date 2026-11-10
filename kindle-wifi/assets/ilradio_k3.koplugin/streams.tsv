@@ -1,0 +1,86 @@
+# Stacja	URL	Kodek próbki	Nominalny kb/s	Dostawca	Data weryfikacji	Adres końcowy (próbka)	Format	Zmierzony kb/s
+RMF FM	http://31.192.216.8/rmf_fm	MP3	128	Adres IP katalogu RMF · typ serwera nieustalony	2026-11-10T22:21:16+00:00	http://31.192.216.8/rmf_fm	MPEG Audio	128.00
+RMF FM	https://rs101-krk.rmfstream.pl/rmf_fm			Infrastruktura RMF	-			
+RMF FM	http://195.150.20.9/RMFFM48	HE-AAC v2	48	Adres IP katalogu RMF · typ serwera nieustalony	2026-11-10T22:21:16+00:00	http://195.150.20.9/RMFFM48	ADTS	47.88
+RMF FM	https://rs101-krk.rmfstream.pl/RMFFM48			Infrastruktura RMF	-			
+RMF MAXX	http://rs202-krk.rmfstream.pl/RMFMAXXX48	HE-AAC v2	48	Infrastruktura RMF	2026-11-10T22:21:16+00:00	http://rs202-krk.rmfstream.pl/RMFMAXXX48	ADTS	47.83
+RMF MAXX	https://rs9-krk2-cyfronet.rmfstream.pl/RMFMAXXX48			Infrastruktura RMF	-			
+RMF MAXX	https://rs202-krk-cyfronet.rmfstream.pl/rmf_maxxx			Infrastruktura RMF	-			
+Radio ZET	https://zt.cdn.eurozet.pl/zet-net.mp3			Infrastruktura Eurozet	-			
+RMF Classic	http://rmfstream1.interia.pl:8000/rmf_classic	MP3	128	Infrastruktura RMF	2026-11-10T22:21:19+00:00	http://rmfstream1.interia.pl:8000/rmf_classic	MPEG Audio	128.00
+RMF Classic	https://rs203-krk-cyfronet.rmfstream.pl/rmf_classic			Infrastruktura RMF	-			
+RMF Classic	http://31.192.216.8/RMFCLASSIC48	HE-AAC v2	48	Adres IP katalogu RMF · typ serwera nieustalony	2026-11-10T22:21:17+00:00	http://31.192.216.8/RMFCLASSIC48	ADTS	48.22
+RMF Classic	https://rs201-krk.rmfstream.pl/RMFCLASSIC48			Infrastruktura RMF	-			
+Chilli ZET	https://ch.cdn.eurozet.pl/chi-net.mp3			Infrastruktura Eurozet	-			
+TOK FM	http://stream30.radiostream.pl/tuba10-1.mp3	MP3	128	Operator RadioStream	2026-11-10T22:21:22+00:00	http://stream30.radiostream.pl/tuba10-1.mp3	MPEG Audio	128.00
+TOK FM	https://radiostream.pl/tuba10-1.mp3			Operator RadioStream	-			
+TOK FM	http://stream30.radiostream.pl/tuba10-2.mp3	MP3	64	Operator RadioStream	2026-11-10T22:21:22+00:00	http://stream30.radiostream.pl/tuba10-2.mp3	MPEG Audio	64.00
+TOK FM	https://radiostream.pl/tuba10-2.mp3			Operator RadioStream	-			
+Antyradio	https://an.cdn.eurozet.pl/ant-web.mp3			Infrastruktura Eurozet	-			
+ESKA ROCK	https://ic2.smcdn.pl/5380-1.mp3			CDN grupy ZPR Media	-			
+ESKA ROCK	https://ic2.smcdn.pl/5380-2.aac			CDN grupy ZPR Media	-			
+ESKA ROCK	http://ic2.smcdn.pl/5380-2.aac	HE-AAC	48	CDN grupy ZPR Media	2026-11-10T22:21:23+00:00	http://ic2.smcdn.pl/5380-2.aac	ADTS	48.03
+Radio ESKA Kraków	http://ic1.smcdn.pl/2070-1.mp3	MP3	128	CDN grupy ZPR Media	2026-11-10T22:21:27+00:00	http://ic1.smcdn.pl/2070-1.mp3	MPEG Audio	128.00
+Radio ESKA Kraków	http://ic1.smcdn.pl/2070-2.aac	HE-AAC	48	CDN grupy ZPR Media	2026-11-10T22:21:27+00:00	http://ic1.smcdn.pl/2070-2.aac	ADTS	48.34
+Radio ESKA Kraków	https://ic1.smcdn.pl/2070-2.aac			CDN grupy ZPR Media	-			
+VOX FM	http://ic1.smcdn.pl/3990-1.mp3	MP3	128	CDN grupy ZPR Media	2026-11-10T22:21:27+00:00	http://ic1.smcdn.pl/3990-1.mp3	MPEG Audio	128.00
+VOX FM	http://ic1.smcdn.pl/3990-2.aac	HE-AAC	48	CDN grupy ZPR Media	2026-11-10T22:21:27+00:00	http://ic1.smcdn.pl/3990-2.aac	ADTS	47.83
+VOX FM	https://ic1.smcdn.pl/3990-2.aac			CDN grupy ZPR Media	-			
+Złote Przeboje	http://radiostream.pl/tuba8928-1.mp3	MP3	128	Operator RadioStream	2026-11-10T22:21:28+00:00	http://radiostream.pl/tuba8928-1.mp3	MPEG Audio	128.00
+Radio Plus	https://pl02.cdn.eurozet.pl/plu-waw.mp3	MP3	128	Infrastruktura Eurozet	2026-11-10T22:21:28+00:00	https://pl02.cdn.eurozet.pl/plu-waw.mp3	MPEG Audio	128.00
+Radio 357	https://stream.radio357.pl/			Oficjalny adres Radia 357	-			
+Radio 357	https://n-11-21.dcs.redcdn.pl/sc/o2/radio357/live/radio357_pr.livx?preroll=0			Zewnętrzny operator CDN	-			
+Radio Nowy Świat	http://stream.rcs.revma.com/ypqt40u0x1zuv			Zewnętrzny operator CDN	-			
+Radio Nowy Świat	https://go-audio.toya.net.pl/63214			Zewnętrzny operator CDN	-			
+Radio Nowy Świat	https://stream.rcs.revma.com/ypqt40u0x1zuv			Zewnętrzny operator CDN	-			
+Radio Wnet	http://audio.radiownet.pl:8000/stream	MP3	160	Dotychczasowy katalog · dostawca nieustalony	2026-11-10T22:21:36+00:00	http://audio.radiownet.pl:8000/stream	MPEG Audio	160.00
+Rock Radio	https://radiostream.pl/tuba8-1.mp3			Operator RadioStream	-			
+Radio Pogoda	https://radiostream.pl/tuba140-1.mp3			Operator RadioStream	-			
+Jedynka PR1	http://mp3.polskieradio.pl:8900/			Serwer Polskiego Radia	-			
+Jedynka PR1	https://stream11.polskieradio.pl/pr1/pr1.sdp/playlist.m3u8			Serwer Polskiego Radia	-			
+Dwójka PR2	http://mp3.polskieradio.pl:8902/			Serwer Polskiego Radia	-			
+Dwójka PR2	https://stream12.polskieradio.pl/pr2/pr2.sdp/playlist.m3u8			Serwer Polskiego Radia	-			
+Trójka PR3	http://stream3.polskieradio.pl:8904/			Serwer Polskiego Radia	-			
+Trójka PR3	https://stream13.polskieradio.pl/pr3/pr3.sdp/playlist.m3u8			Serwer Polskiego Radia	-			
+Czwórka PR4	http://stream3.polskieradio.pl:8906/			Serwer Polskiego Radia	-			
+Czwórka PR4	https://stream14.polskieradio.pl/pr4/pr4.sdp/playlist.m3u8			Serwer Polskiego Radia	-			
+Polskie Radio 24	http://stream3.polskieradio.pl:8080/			Serwer Polskiego Radia	-			
+Polskie Radio 24	https://stream15.polskieradio.pl/pr24/pr24.sdp/playlist.m3u8			Serwer Polskiego Radia	-			
+Radio Chopin	http://stream3.polskieradio.pl:8910/			Serwer Polskiego Radia	-			
+Polskie Radio Kierowców	http://stream3.polskieradio.pl:8918/			Serwer Polskiego Radia	-			
+Polskie Radio Kierowców	https://stream10.polskieradio.pl/prk/rdk.sdp/playlist.m3u8			Serwer Polskiego Radia	-			
+Radio Kraków	http://stream3.nadaje.com:9116/radiokrakow	MP3	256	Zewnętrzny operator nadaje.com	2026-11-10T22:21:43+00:00	http://stream3.nadaje.com:9116/radiokrakow	MPEG Audio	256.00
+Radio Kraków	https://stream3.nadaje.com:9117/radiokrakow			Zewnętrzny operator nadaje.com	-			
+Radio RDC	http://stream2.nadaje.com:11140/rdc	MP3	256	Zewnętrzny operator nadaje.com	2026-11-10T22:21:44+00:00	http://stream2.nadaje.com:11140/rdc	MPEG Audio	256.00
+Radio Katowice	http://stream4.nadaje.com:9212/radiokatowice	MP3	128	Zewnętrzny operator nadaje.com	2026-11-10T22:21:46+00:00	http://stream4.nadaje.com:9212/radiokatowice	MPEG Audio	128.00
+Radio Gdańsk	http://stream.task.gda.pl:8000/rg1	MP3	128	Dotychczasowy katalog · dostawca nieustalony	2026-11-10T22:21:47+00:00	http://stream.task.gda.pl:8000/rg1	MPEG Audio	128.00
+Radio Gdańsk	https://stream.task.gda.pl:8443/rg1	MP3	128	Dotychczasowy katalog · dostawca nieustalony	2026-11-10T22:21:47+00:00	https://stream.task.gda.pl:8443/rg1	MPEG Audio	128.00
+Radio Szczecin	http://stream4.nadaje.com:11986/prs	MP3	128	Zewnętrzny operator nadaje.com	2026-11-10T22:21:47+00:00	http://stream4.nadaje.com:11986/prs	MPEG Audio	128.00
+Radio Wrocław	http://stream4.nadaje.com:9240/prw	MP3	128	Zewnętrzny operator nadaje.com	2026-11-10T22:21:49+00:00	http://stream4.nadaje.com:9240/prw	MPEG Audio	128.00
+Radio Poznań	http://stream4.nadaje.com:8578/poznan	MP3	96	Zewnętrzny operator nadaje.com	2026-11-10T22:21:47+00:00	http://stream4.nadaje.com:8578/poznan	MPEG Audio	96.00
+Radio Rzeszów	https://streaming.g-news.pl:8040/rzeszow			Dotychczasowy katalog · dostawca nieustalony	-			
+Radio Warszawa	http://streaming01.technologicznie.net:8765/radio_warszawa.mp3	MP3	256	Dotychczasowy katalog · dostawca nieustalony	2026-11-10T22:21:48+00:00	http://streaming01.technologicznie.net:8765/radio_warszawa.mp3	MPEG Audio	256.00
+RMF Chillout	http://31.192.216.8/CHILLOUT	HE-AAC	64	Adres IP katalogu RMF · typ serwera nieustalony	2026-11-10T22:21:51+00:00	http://31.192.216.8/CHILLOUT	ADTS	63.80
+RMF Chillout	https://rs101-krk.rmfstream.pl/CHILLOUT	HE-AAC	64	Infrastruktura RMF	2026-11-10T22:21:53+00:00	https://rs101-krk.rmfstream.pl/CHILLOUT	ADTS	64.06
+RMF 90s	http://31.192.216.7/90S	HE-AAC	64	Adres IP katalogu RMF · typ serwera nieustalony	2026-11-10T22:21:52+00:00	http://31.192.216.7/90S	ADTS	64.31
+RMF Dance	http://rmfstream1.interia.pl:8000/rmf_dance	MP3	128	Infrastruktura RMF	2026-11-10T22:21:53+00:00	http://rmfstream1.interia.pl:8000/rmf_dance	MPEG Audio	128.00
+RMF Dance	http://31.192.216.10/DANCE	HE-AAC	64	Adres IP katalogu RMF · typ serwera nieustalony	2026-11-10T22:21:54+00:00	http://31.192.216.10/DANCE	ADTS	64.26
+RMF Polski Rock	http://195.150.20.9/rmf_polski_rock	MP3	128	Adres IP katalogu RMF · typ serwera nieustalony	2026-11-10T22:21:52+00:00	http://195.150.20.9/rmf_polski_rock	MPEG Audio	128.00
+RMF 80s	http://195.150.20.9/80S	HE-AAC	64	Adres IP katalogu RMF · typ serwera nieustalony	2026-11-10T22:21:52+00:00	http://195.150.20.9/80S	ADTS	64.43
+RMF 24	http://rmfstream1.interia.pl/rmf_24	MP3	128	Infrastruktura RMF	2026-11-10T22:21:54+00:00	http://rmfstream1.interia.pl/rmf_24	MPEG Audio	128.00
+RMF 24	http://rs201-krk.rmfstream.pl/RMF24	HE-AAC	64	Infrastruktura RMF	2026-11-10T22:21:58+00:00	http://rs201-krk.rmfstream.pl/RMF24	ADTS	64.48
+Radio Kampus	http://193.0.98.66:8005/	MP3	128	Dotychczasowy katalog · dostawca nieustalony	2026-11-10T22:21:56+00:00	http://193.0.98.66:8005/	MPEG Audio	128.00
+Radio Kampus	https://stream.radiokampus.fm/kampus	MP3	128	Dotychczasowy katalog · dostawca nieustalony	2026-11-10T22:21:56+00:00	https://stream.radiokampus.fm/kampus	MPEG Audio	128.00
+Radio Kampus	http://193.0.98.66:8002/;	MP3	64	Dotychczasowy katalog · dostawca nieustalony	2026-11-10T22:21:58+00:00	http://193.0.98.66:8002/;	MPEG Audio	64.00
+Radio RAM	http://stream4.nadaje.com:9220/ram	MP3	128	Zewnętrzny operator nadaje.com	2026-11-10T22:21:58+00:00	http://stream4.nadaje.com:9220/ram	MPEG Audio	128.00
+Radio RAM	http://stream2.nadaje.com:9228/ram.aac	AAC-LC	64	Zewnętrzny operator nadaje.com	2026-11-10T22:21:57+00:00	http://stream2.nadaje.com:9228/ram.aac	ADTS	64.99
+ESKA Warszawa	http://waw.ic.smcdn.pl/2380-1.mp3			CDN grupy ZPR Media	-			
+ESKA Warszawa	https://waw.ic.smcdn.pl/2380-2.aac	HE-AAC	48	CDN grupy ZPR Media	2026-11-10T22:22:02+00:00	https://ic1.smcdn.pl/2380-2.aac	ADTS	48.40
+ESKA Warszawa	https://ic1.smcdn.pl/2380-2.aac	HE-AAC	48	CDN grupy ZPR Media	2026-11-10T22:22:02+00:00	https://ic1.smcdn.pl/2380-2.aac	ADTS	48.44
+Radio ZET	https://playerservices.streamtheworld.com/api/livestream-redirect/RADIO_ZETAAC.aac			Zewnętrzny operator StreamTheWorld · powiązanie niepotwierdzone	-			
+RMF FM	https://rs203-krk.rmfstream.pl/RMFFM48			Oficjalny katalog RMF · serwer nadawcy	-			
+RMF FM	https://rs202-krk-cyfronet.rmfstream.pl/RMFFM48			Oficjalny katalog RMF · serwer nadawcy	-			
+RMF MAXX	https://rs103-krk-cyfronet.rmfstream.pl/RMFMAXXX48			Oficjalny katalog RMF · serwer nadawcy	-			
+RMF MAXX	https://rs203-krk.rmfstream.pl/RMFMAXXX48			Oficjalny katalog RMF · serwer nadawcy	-			
+RMF Classic	https://rs101-krk.rmfstream.pl/RMFCLASSIC48			Oficjalny katalog RMF · serwer nadawcy	-			
+RMF Classic	https://rs202-krk-cyfronet.rmfstream.pl/RMFCLASSIC48			Oficjalny katalog RMF · serwer nadawcy	-			

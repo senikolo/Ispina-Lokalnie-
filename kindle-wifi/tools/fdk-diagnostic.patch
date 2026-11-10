@@ -1,0 +1,25 @@
+diff --git a/aac-dec.c b/aac-dec.c
+index e35f969..5514c69 100644
+--- a/aac-dec.c
++++ b/aac-dec.c
+@@ -101,16 +101,19 @@ int main(int argc, char *argv[]) {
+ 				fprintf(stderr, "Decode failed: %x\n", err);
+ 				break;
+ 			}
++			{ static unsigned old=0; CStreamInfo *info=aacDecoder_GetStreamInfo(handle); if (info->flags != old) { fprintf(stderr, "FACTS aot=%d ext=%d core=%d corech=%d rate=%d ch=%d flags=%u\n", info->aot, info->extAot, info->aacSampleRate, info->aacNumChannels, info->sampleRate, info->numChannels, info->flags); old=info->flags; } }
+ 			if (!wav) {
+ 				CStreamInfo *info = aacDecoder_GetStreamInfo(handle);
+ 				if (!info || info->sampleRate <= 0) {
+ 					fprintf(stderr, "No stream info\n");
+ 					return 1;
+ 				}
++
+ 				frame_size = info->frameSize * info->numChannels;
+ 				// Note, this probably doesn't return channels > 2 in the right order for wav
+ 				wav = wav_write_open(outfile, info->sampleRate, 16, info->numChannels);
+-				if (!wav) {
++				{ static unsigned old=0; CStreamInfo *info=aacDecoder_GetStreamInfo(handle); if (info->flags != old) { fprintf(stderr, "FACTS aot=%d ext=%d core=%d corech=%d rate=%d ch=%d flags=%u\n", info->aot, info->extAot, info->aacSampleRate, info->aacNumChannels, info->sampleRate, info->numChannels, info->flags); old=info->flags; } }
++			if (!wav) {
+ 					perror(outfile);
+ 					return 1;
+ 				}

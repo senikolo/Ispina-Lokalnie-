@@ -1,0 +1,28 @@
+plugins { id 'com.android.application' version '8.6.1' }
+android {
+    namespace 'pl.ispinalokalnie.kindlewifi'
+    compileSdk 35
+    buildToolsVersion "35.0.0"
+    defaultConfig { applicationId 'pl.ispinalokalnie.kindlewifi.v23'; minSdk 26; targetSdk 34; versionCode 45; versionName '2.28.0' }
+    sourceSets { main { manifest.srcFile 'AndroidManifest.xml'; java.srcDirs = ['src']; res.srcDirs = ['res']; assets.srcDirs = ['assets'] } }
+    // Keep the existing OCR model while excluding desktop-only emulator ABIs from the phone build.
+    if (project.hasProperty('armOnly')) {
+        defaultConfig { ndk { abiFilters 'armeabi-v7a', 'arm64-v8a' } }
+    }
+    buildTypes {
+        debug { debuggable false }
+        release { minifyEnabled false }
+    }
+    packaging {
+        jniLibs { useLegacyPackaging = true }
+        resources { excludes += ['/META-INF/{AL2.0,LGPL2.1}', '/META-INF/LICENSE.md', '/META-INF/NOTICE.md'] }
+    }
+    compileOptions { sourceCompatibility JavaVersion.VERSION_1_8; targetCompatibility JavaVersion.VERSION_1_8 }
+}
+dependencies {
+    implementation 'com.github.mwiede:jsch:0.2.21'
+    implementation 'com.tom-roush:pdfbox-android:2.0.27.0'
+    implementation 'org.bouncycastle:bcprov-jdk15to18:1.72'
+    implementation 'org.bouncycastle:bcpkix-jdk15to18:1.72'
+    implementation 'com.google.mlkit:text-recognition:16.0.1'
+}

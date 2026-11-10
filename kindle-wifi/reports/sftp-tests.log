@@ -1,0 +1,19 @@
+Przesyłam książkę do documents…
+Sprawdzam zawartość książki zapisanej na Kindle…
+PASS: monotonic progress 0–100 including verification
+PASS: 2 MB upload, Unicode, spaces, read-back SHA-256
+PASS: duplicate preserved without overwriting
+PASS: server file listing confirms name and size
+PASS: equal-size corruption rejected
+PASS: truncated file rejected
+PASS: empty source rejected
+PASS: missing destination rejected, no fallback
+ALL TRANSFER TESTS PASSED
+PASS: list filters book files; folder creation; Unicode rename preserves bytes
+PASS: duplicate, format change, traversal, non-book deletion and folder deletion rejected
+PASS: move across roots and nested folder; delete checked on disk; missing file fails
+PASS: reading metadata moved and restored, metadata conflict refused
+PASS: links and paths outside book roots rejected; unrelated files preserved
+ALL FILE MANAGER TESTS PASSED
+PASS real SSH/SFTP: upload, confirmation after retry, Unicode move and rename, checked delete
+PASS real SSH/SFTP: install, update, restore, remove, preserve an unrelated plugin

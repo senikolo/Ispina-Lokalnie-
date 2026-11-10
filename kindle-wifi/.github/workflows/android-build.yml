@@ -1,0 +1,38 @@
+name: Kindle Wi-Fi Android build
+on:
+  push:
+    paths:
+      - 'src/**'
+      - 'res/**'
+      - 'assets/**'
+      - 'tests/**'
+      - '*.gradle'
+      - 'gradle.properties'
+      - 'AndroidManifest.xml'
+      - '.github/workflows/android-build.yml'
+  workflow_dispatch:
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.7'
+      - uses: android-actions/setup-android@v3
+      - name: Install Android SDK
+        run: sdkmanager 'platforms;android-35' 'build-tools;35.0.0'
+      - name: Test queue and verified transfer
+        run: bash tests/run-atomic-tests.sh
+      - name: Build unsigned release APK
+        run: bash build.sh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Kindle-WiFi-unsigned
+          path: build/outputs/apk/release/*-unsigned.apk

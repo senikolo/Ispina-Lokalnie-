@@ -1,0 +1,143 @@
+{
+  "RMF FM": {
+    "url": "https://api.rmfon.pl/stations/5/streams",
+    "payload": {
+      "playlist": {
+        "@attributes": {
+          "id": "5",
+          "mountpoint": "RMFFM48"
+        },
+        "item": [
+          "https://rs203-krk.rmfstream.pl/RMFFM48",
+          "https://rs202-krk-cyfronet.rmfstream.pl/RMFFM48",
+          "https://rs102-krk.rmfstream.pl/RMFFM48",
+          "https://rs103-krk.rmfstream.pl/RMFFM48",
+          "https://rs201-krk.rmfstream.pl/RMFFM48",
+          "https://rs102-krk-cyfronet.rmfstream.pl/RMFFM48",
+          "https://rs203-krk.rmfstream.pl/RMFFM48",
+          "https://rs202-krk.rmfstream.pl/RMFFM48",
+          "https://rs203-krk.rmfstream.pl/RMFFM48",
+          "https://rs102-krk-cyfronet.rmfstream.pl/RMFFM48"
+        ]
+      },
+      "playlistMp3": {
+        "item_mp3": [
+          "https://rs202-krk.rmfstream.pl/rmf_fm",
+          "https://rs201-krk.rmfstream.pl/rmf_fm",
+          "https://rs101-krk.rmfstream.pl/rmf_fm",
+          "https://rs103-krk.rmfstream.pl/rmf_fm",
+          "https://rs102-krk.rmfstream.pl/rmf_fm",
+          "https://rs102-krk-cyfronet.rmfstream.pl/rmf_fm",
+          "https://rs101-krk.rmfstream.pl/rmf_fm",
+          "https://rs103-krk.rmfstream.pl/rmf_fm",
+          "https://rs103-krk.rmfstream.pl/rmf_fm",
+          "https://rs203-krk-cyfronet.rmfstream.pl/rmf_fm"
+        ]
+      },
+      "premium": {
+        "aac": [
+          "https://rs105-krk.rmfstream.pl/PRMFFM48",
+          "https://rs104-krk.rmfstream.pl/PRMFFM48"
+        ],
+        "mp3": [
+          "https://rs105-krk.rmfstream.pl/p_rmf_fm",
+          "https://rs104-krk.rmfstream.pl/p_rmf_fm"
+        ]
+      }
+    }
+  },
+  "RMF MAXX": {
+    "url": "https://api.rmfon.pl/stations/6/streams",
+    "payload": {
+      "playlist": {
+        "@attributes": {
+          "id": "6",
+          "mountpoint": "RMFMAXXX48"
+        },
+        "item": [
+          "https://rs103-krk-cyfronet.rmfstream.pl/RMFMAXXX48",
+          "https://rs203-krk.rmfstream.pl/RMFMAXXX48",
+          "https://rs202-krk.rmfstream.pl/RMFMAXXX48",
+          "https://rs102-krk.rmfstream.pl/RMFMAXXX48",
+          "https://rs101-krk.rmfstream.pl/RMFMAXXX48",
+          "https://rs201-krk-cyfronet.rmfstream.pl/RMFMAXXX48",
+          "https://rs101-krk-cyfronet.rmfstream.pl/RMFMAXXX48",
+          "https://rs202-krk-cyfronet.rmfstream.pl/RMFMAXXX48",
+          "https://rs103-krk.rmfstream.pl/RMFMAXXX48",
+          "https://rs201-krk.rmfstream.pl/RMFMAXXX48"
+        ]
+      },
+      "playlistMp3": {
+        "item_mp3": [
+          "https://rs201-krk-cyfronet.rmfstream.pl/rmf_maxxx",
+          "https://rs201-krk.rmfstream.pl/rmf_maxxx",
+          "https://rs103-krk-cyfronet.rmfstream.pl/rmf_maxxx",
+          "https://rs103-krk-cyfronet.rmfstream.pl/rmf_maxxx",
+          "https://rs202-krk-cyfronet.rmfstream.pl/rmf_maxxx",
+          "https://rs102-krk-cyfronet.rmfstream.pl/rmf_maxxx",
+          "https://rs102-krk-cyfronet.rmfstream.pl/rmf_maxxx",
+          "https://rs203-krk-cyfronet.rmfstream.pl/rmf_maxxx",
+          "https://rs102-krk.rmfstream.pl/rmf_maxxx",
+          "https://rs202-krk.rmfstream.pl/rmf_maxxx"
+        ]
+      },
+      "premium": {
+        "aac": [
+          "https://rs105-krk.rmfstream.pl/PRMFMAXXX48",
+          "https://rs104-krk.rmfstream.pl/PRMFMAXXX48"
+        ],
+        "mp3": [
+          "https://rs105-krk.rmfstream.pl/p_rmf_maxxx",
+          "https://rs104-krk.rmfstream.pl/p_rmf_maxxx"
+        ]
+      }
+    }
+  },
+  "RMF Classic": {
+    "url": "https://api.rmfon.pl/stations/7/streams",
+    "payload": {
+      "playlist": {
+        "@attributes": {
+          "id": "7",
+          "mountpoint": "RMFCLASSIC48"
+        },
+        "item": [
+          "https://rs101-krk.rmfstream.pl/RMFCLASSIC48",
+          "https://rs202-krk-cyfronet.rmfstream.pl/RMFCLASSIC48",
+          "https://rs102-krk-cyfronet.rmfstream.pl/RMFCLASSIC48",
+          "https://rs102-krk-cyfronet.rmfstream.pl/RMFCLASSIC48",
+          "https://rs203-krk-cyfronet.rmfstream.pl/RMFCLASSIC48",
+          "https://rs203-krk-cyfronet.rmfstream.pl/RMFCLASSIC48",
+          "https://rs101-krk.rmfstream.pl/RMFCLASSIC48",
+          "https://rs103-krk.rmfstream.pl/RMFCLASSIC48",
+          "https://rs203-krk.rmfstream.pl/RMFCLASSIC48",
+          "https://rs201-krk-cyfronet.rmfstream.pl/RMFCLASSIC48"
+        ]
+      },
+      "playlistMp3": {
+        "item_mp3": [
+          "https://rs203-krk.rmfstream.pl/rmf_classic",
+          "https://rs202-krk.rmfstream.pl/rmf_classic",
+          "https://rs203-krk.rmfstream.pl/rmf_classic",
+          "https://rs103-krk.rmfstream.pl/rmf_classic",
+          "https://rs201-krk.rmfstream.pl/rmf_classic",
+          "https://rs103-krk.rmfstream.pl/rmf_classic",
+          "https://rs201-krk-cyfronet.rmfstream.pl/rmf_classic",
+          "https://rs102-krk.rmfstream.pl/rmf_classic",
+          "https://rs102-krk.rmfstream.pl/rmf_classic",
+          "https://rs202-krk-cyfronet.rmfstream.pl/rmf_classic"
+        ]
+      },
+      "premium": {
+        "aac": [
+          "https://rs105-krk.rmfstream.pl/PRMFCLASSIC48",
+          "https://rs104-krk.rmfstream.pl/PRMFCLASSIC48"
+        ],
+        "mp3": [
+          "https://rs105-krk.rmfstream.pl/p_rmf_classic",
+          "https://rs104-krk.rmfstream.pl/p_rmf_classic"
+        ]
+      }
+    }
+  }
+}

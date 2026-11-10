@@ -1,0 +1,37 @@
+[
+  {
+    "file": "test-he32.aac",
+    "sha256": "240b581735037a51910053879921bcb5fab548689978698389f335249ff09592",
+    "decoder_facts": "FACTS aot=2 ext=0 core=22050 corech=2 rate=44100 ch=2 flags=32768\nFACTS aot=2 ext=0 core=22050 corech=2 rate=44100 ch=2 flags=32768\n"
+  },
+  {
+    "file": "test-hev224.aac",
+    "sha256": "ec5455ad550e0305ec3f123648fe90d5f26be0ba38faf13487c35f782f25f225",
+    "decoder_facts": "FACTS aot=2 ext=0 core=22050 corech=1 rate=44100 ch=2 flags=32768\nFACTS aot=2 ext=0 core=22050 corech=1 rate=44100 ch=2 flags=32768\nFACTS aot=2 ext=0 core=22050 corech=1 rate=44100 ch=2 flags=163840\n"
+  },
+  {
+    "file": "test-lc48.aac",
+    "sha256": "c685baa345edc9b808d7f420af02de46cdab2195cc9fcf3cf770efdab748d8bf",
+    "decoder_facts": ""
+  },
+  {
+    "file": "test-lc48.m4a",
+    "sha256": "b42a92eb5fcdb5263a046a7b310dbfa5a2331eb4d90285bcaf0849c6a17c27a1",
+    "decoder_facts": "AAC-LC M4A / MP3: container probe"
+  },
+  {
+    "file": "test-mp364.mp3",
+    "sha256": "e0cefc5fe5da855ff5ce3f18627070be1d7e7cb6f94a5cc526ceadd90765cf6c",
+    "decoder_facts": "AAC-LC M4A / MP3: container probe"
+  },
+  {
+    "file": "test-real-he32.aac",
+    "sha256": "9eb97846aa37b4e933284425fec47918d92457cb5ad26bd18a585d08fb9c15e9",
+    "decoder_facts": "FACTS aot=2 ext=0 core=22050 corech=2 rate=44100 ch=2 flags=32768\nFACTS aot=2 ext=0 core=22050 corech=2 rate=44100 ch=2 flags=32768\n"
+  },
+  {
+    "file": "test-real-hev224.aac",
+    "sha256": "2f0fa4faeed1882be47f3f84733e6c78d74fee7b8b15515e53a491a5e796f9c4",
+    "decoder_facts": "FACTS aot=2 ext=0 core=22050 corech=1 rate=44100 ch=2 flags=32768\nFACTS aot=2 ext=0 core=22050 corech=1 rate=44100 ch=2 flags=32768\nFACTS aot=2 ext=0 core=22050 corech=1 rate=44100 ch=2 flags=163840\n"
+  }
+]

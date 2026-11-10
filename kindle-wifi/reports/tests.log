@@ -1,0 +1,17 @@
+PASS: corrupted transfer rejected
+PASS: no corrupt final or temporary file
+PASS: retry retains original filename and exact contents
+PASS: existing book never overwritten
+PASS: interruption aborts transfer
+ALL ATOMIC TRANSFER TESTS PASSED
+AudioFilesTest OK
+PASS: blocked source does not lock the queue and cancellation prevents publication.
+PASS: queue survived restart, partial PDF result preserved, invalid imports and completed items excluded.
+127.0.0.1 - - [10/Nov/2026 23:19:39] "GET /sample.mp3 HTTP/1.1" 200 -
+PASS: local HTTP MP3 through the legacy player pipeline, decoded PCM verified via FFmpeg
+pcm=22050 2
+PASS: playback evidence is visible while the decoder is running
+Modern filesystem module: PASS IL Radio menu
+http://127.0.0.1:45831/radio.aac
+200
+PASS real HTTP redirect, HTTPS certificate, timeout, dead server and capped sample
