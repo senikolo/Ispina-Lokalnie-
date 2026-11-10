@@ -52,6 +52,11 @@ jobs:
           t = p.read_text()
           t = t.replace('assert(#calls == commands + 1 and calls[#calls]:find("\'status\'", 1, true))',
                         'assert(#calls >= commands + 1 and calls[#calls]:find("\'status\'", 1, true))')
+          t = t.replace('and not plugin.current.alternate)', 'and plugin.current.alternate)')
+          t = t.replace('assert(plugin.current == nil and state == "stopped")',
+                        'assert(plugin.current and plugin.current.retries == 3)\\nstate = "stopped"\\nplugin.start_check()\\nassert(plugin.current == nil and state == "stopped")')
+          t = t.replace('assert(menu.ilradio_k3 and menu.ilradio_k3.sorting_hint == "more_tools")',
+                        'assert(menu.ilradio_k3 and menu.ilradio_k3.sorting_hint == "more_tools")\\nassert(menu.ilradio_k3.text:find("2.26.6", 1, true))')
           p.write_text(t)
           PY
       - name: Unit and integration tests
