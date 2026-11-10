@@ -46,9 +46,9 @@ jobs:
           JAVA_TOOL_OPTIONS: -Dfile.encoding=UTF-8
           LANG: C.UTF-8
         run: |
-          if ! command -v ffmpeg >/dev/null; then
+          if ! command -v ffmpeg >/dev/null || ! command -v lua5.3 >/dev/null; then
             sudo apt-get update -qq
-            sudo apt-get install -y -qq ffmpeg
+            sudo apt-get install -y -qq ffmpeg lua5.3 lua-filesystem
           fi
           cd "$RUNNER_TEMP/kindle/kindle-wifi-2.26"
           bash tests/run-atomic-tests.sh
