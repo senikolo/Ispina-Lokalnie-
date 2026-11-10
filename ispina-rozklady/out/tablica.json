@@ -1,324 +1,8 @@
 {
   "schema": 1,
-  "generated_at": "2026-11-09T14:54:32.781464+01:00",
+  "generated_at": "2026-11-10T01:42:04.182361+01:00",
   "timezone": "Europe/Warsaw",
   "days": [
-    {
-      "date": "2026-11-09",
-      "departures": [
-        {
-          "line": "GMINNA",
-          "time": "04:10",
-          "scheduled": 1794193800,
-          "direction": "north",
-          "stop": "dom-ludowy",
-          "stop_name": "Ispina Dom Ludowy",
-          "destination": "Kraków Czyżyny Dworzec",
-          "source": "PDF Gminy Drwinia",
-          "pdf": "https://www.drwinia.pl/pro_drwinia/zasoby/files/krakow-mikluszowice-robocze-scalone.pdf"
-        },
-        {
-          "line": "GMINNA",
-          "time": "05:10",
-          "scheduled": 1794197400,
-          "direction": "north",
-          "stop": "dom-ludowy",
-          "stop_name": "Ispina Dom Ludowy",
-          "destination": "Kraków Czyżyny Dworzec",
-          "source": "PDF Gminy Drwinia",
-          "pdf": "https://www.drwinia.pl/pro_drwinia/zasoby/files/krakow-mikluszowice-robocze-scalone.pdf"
-        },
-        {
-          "line": "GMINNA",
-          "time": "05:33",
-          "scheduled": 1794198780,
-          "direction": "south",
-          "stop": "dom-ludowy",
-          "stop_name": "Ispina Dom Ludowy",
-          "destination": "Mikluszowice Park & Ride",
-          "source": "PDF Gminy Drwinia",
-          "pdf": "https://www.drwinia.pl/pro_drwinia/zasoby/files/krakow-mikluszowice-robocze-scalone.pdf"
-        },
-        {
-          "line": "GMINNA",
-          "time": "06:20",
-          "scheduled": 1794201600,
-          "direction": "north",
-          "stop": "dom-ludowy",
-          "stop_name": "Ispina Dom Ludowy",
-          "destination": "Kraków Czyżyny Dworzec",
-          "source": "PDF Gminy Drwinia",
-          "pdf": "https://www.drwinia.pl/pro_drwinia/zasoby/files/krakow-mikluszowice-robocze-scalone.pdf"
-        },
-        {
-          "line": "GMINNA",
-          "time": "06:33",
-          "scheduled": 1794202380,
-          "direction": "south",
-          "stop": "dom-ludowy",
-          "stop_name": "Ispina Dom Ludowy",
-          "destination": "Mikluszowice Park & Ride",
-          "source": "PDF Gminy Drwinia",
-          "pdf": "https://www.drwinia.pl/pro_drwinia/zasoby/files/krakow-mikluszowice-robocze-scalone.pdf"
-        },
-        {
-          "line": "GMINNA",
-          "time": "07:20",
-          "scheduled": 1794205200,
-          "direction": "north",
-          "stop": "dom-ludowy",
-          "stop_name": "Ispina Dom Ludowy",
-          "destination": "Kraków Czyżyny Dworzec",
-          "source": "PDF Gminy Drwinia",
-          "pdf": "https://www.drwinia.pl/pro_drwinia/zasoby/files/krakow-mikluszowice-robocze-scalone.pdf"
-        },
-        {
-          "line": "GMINNA",
-          "time": "07:43",
-          "scheduled": 1794206580,
-          "direction": "south",
-          "stop": "dom-ludowy",
-          "stop_name": "Ispina Dom Ludowy",
-          "destination": "Mikluszowice Park & Ride",
-          "source": "PDF Gminy Drwinia",
-          "pdf": "https://www.drwinia.pl/pro_drwinia/zasoby/files/krakow-mikluszowice-robocze-scalone.pdf"
-        },
-        {
-          "line": "GMINNA",
-          "time": "08:43",
-          "scheduled": 1794210180,
-          "direction": "south",
-          "stop": "dom-ludowy",
-          "stop_name": "Ispina Dom Ludowy",
-          "destination": "Mikluszowice Park & Ride",
-          "source": "PDF Gminy Drwinia",
-          "pdf": "https://www.drwinia.pl/pro_drwinia/zasoby/files/krakow-mikluszowice-robocze-scalone.pdf"
-        },
-        {
-          "line": "GMINNA",
-          "time": "08:50",
-          "scheduled": 1794210600,
-          "direction": "north",
-          "stop": "dom-ludowy",
-          "stop_name": "Ispina Dom Ludowy",
-          "destination": "Kraków Czyżyny Dworzec",
-          "source": "PDF Gminy Drwinia",
-          "pdf": "https://www.drwinia.pl/pro_drwinia/zasoby/files/krakow-mikluszowice-robocze-scalone.pdf"
-        },
-        {
-          "line": "GMINNA",
-          "time": "09:50",
-          "scheduled": 1794214200,
-          "direction": "north",
-          "stop": "dom-ludowy",
-          "stop_name": "Ispina Dom Ludowy",
-          "destination": "Kraków Czyżyny Dworzec",
-          "source": "PDF Gminy Drwinia",
-          "pdf": "https://www.drwinia.pl/pro_drwinia/zasoby/files/krakow-mikluszowice-robocze-scalone.pdf"
-        },
-        {
-          "line": "GMINNA",
-          "time": "10:23",
-          "scheduled": 1794216180,
-          "direction": "south",
-          "stop": "dom-ludowy",
-          "stop_name": "Ispina Dom Ludowy",
-          "destination": "Mikluszowice Park & Ride",
-          "source": "PDF Gminy Drwinia",
-          "pdf": "https://www.drwinia.pl/pro_drwinia/zasoby/files/krakow-mikluszowice-robocze-scalone.pdf"
-        },
-        {
-          "line": "GMINNA",
-          "time": "11:23",
-          "scheduled": 1794219780,
-          "direction": "south",
-          "stop": "dom-ludowy",
-          "stop_name": "Ispina Dom Ludowy",
-          "destination": "Mikluszowice Park & Ride",
-          "source": "PDF Gminy Drwinia",
-          "pdf": "https://www.drwinia.pl/pro_drwinia/zasoby/files/krakow-mikluszowice-robocze-scalone.pdf"
-        },
-        {
-          "line": "GMINNA",
-          "time": "12:10",
-          "scheduled": 1794222600,
-          "direction": "north",
-          "stop": "dom-ludowy",
-          "stop_name": "Ispina Dom Ludowy",
-          "destination": "Kraków Czyżyny Dworzec",
-          "source": "PDF Gminy Drwinia",
-          "pdf": "https://www.drwinia.pl/pro_drwinia/zasoby/files/krakow-mikluszowice-robocze-scalone.pdf"
-        },
-        {
-          "line": "GMINNA",
-          "time": "13:10",
-          "scheduled": 1794226200,
-          "direction": "north",
-          "stop": "dom-ludowy",
-          "stop_name": "Ispina Dom Ludowy",
-          "destination": "Kraków Czyżyny Dworzec",
-          "source": "PDF Gminy Drwinia",
-          "pdf": "https://www.drwinia.pl/pro_drwinia/zasoby/files/krakow-mikluszowice-robocze-scalone.pdf"
-        },
-        {
-          "line": "GMINNA",
-          "time": "13:33",
-          "scheduled": 1794227580,
-          "direction": "south",
-          "stop": "dom-ludowy",
-          "stop_name": "Ispina Dom Ludowy",
-          "destination": "Mikluszowice Park & Ride",
-          "source": "PDF Gminy Drwinia",
-          "pdf": "https://www.drwinia.pl/pro_drwinia/zasoby/files/krakow-mikluszowice-robocze-scalone.pdf"
-        },
-        {
-          "line": "GMINNA",
-          "time": "14:53",
-          "scheduled": 1794232380,
-          "direction": "south",
-          "stop": "dom-ludowy",
-          "stop_name": "Ispina Dom Ludowy",
-          "destination": "Mikluszowice Park & Ride",
-          "source": "PDF Gminy Drwinia",
-          "pdf": "https://www.drwinia.pl/pro_drwinia/zasoby/files/krakow-mikluszowice-robocze-scalone.pdf"
-        },
-        {
-          "line": "GMINNA",
-          "time": "15:10",
-          "scheduled": 1794233400,
-          "direction": "north",
-          "stop": "dom-ludowy",
-          "stop_name": "Ispina Dom Ludowy",
-          "destination": "Kraków Czyżyny Dworzec",
-          "source": "PDF Gminy Drwinia",
-          "pdf": "https://www.drwinia.pl/pro_drwinia/zasoby/files/krakow-mikluszowice-robocze-scalone.pdf"
-        },
-        {
-          "line": "GMINNA",
-          "time": "16:10",
-          "scheduled": 1794237000,
-          "direction": "north",
-          "stop": "dom-ludowy",
-          "stop_name": "Ispina Dom Ludowy",
-          "destination": "Kraków Czyżyny Dworzec",
-          "source": "PDF Gminy Drwinia",
-          "pdf": "https://www.drwinia.pl/pro_drwinia/zasoby/files/krakow-mikluszowice-robocze-scalone.pdf"
-        },
-        {
-          "line": "GMINNA",
-          "time": "16:48",
-          "scheduled": 1794239280,
-          "direction": "south",
-          "stop": "dom-ludowy",
-          "stop_name": "Ispina Dom Ludowy",
-          "destination": "Mikluszowice Park & Ride",
-          "source": "PDF Gminy Drwinia",
-          "pdf": "https://www.drwinia.pl/pro_drwinia/zasoby/files/krakow-mikluszowice-robocze-scalone.pdf"
-        },
-        {
-          "line": "GMINNA",
-          "time": "17:48",
-          "scheduled": 1794242880,
-          "direction": "south",
-          "stop": "dom-ludowy",
-          "stop_name": "Ispina Dom Ludowy",
-          "destination": "Mikluszowice Park & Ride",
-          "source": "PDF Gminy Drwinia",
-          "pdf": "https://www.drwinia.pl/pro_drwinia/zasoby/files/krakow-mikluszowice-robocze-scalone.pdf"
-        },
-        {
-          "line": "GMINNA",
-          "time": "17:50",
-          "scheduled": 1794243000,
-          "direction": "north",
-          "stop": "dom-ludowy",
-          "stop_name": "Ispina Dom Ludowy",
-          "destination": "Kraków Czyżyny Dworzec",
-          "source": "PDF Gminy Drwinia",
-          "pdf": "https://www.drwinia.pl/pro_drwinia/zasoby/files/krakow-mikluszowice-robocze-scalone.pdf"
-        },
-        {
-          "line": "GMINNA",
-          "time": "18:50",
-          "scheduled": 1794246600,
-          "direction": "north",
-          "stop": "dom-ludowy",
-          "stop_name": "Ispina Dom Ludowy",
-          "destination": "Kraków Czyżyny Dworzec",
-          "source": "PDF Gminy Drwinia",
-          "pdf": "https://www.drwinia.pl/pro_drwinia/zasoby/files/krakow-mikluszowice-robocze-scalone.pdf"
-        },
-        {
-          "line": "GMINNA",
-          "time": "19:23",
-          "scheduled": 1794248580,
-          "direction": "south",
-          "stop": "dom-ludowy",
-          "stop_name": "Ispina Dom Ludowy",
-          "destination": "Mikluszowice Park & Ride",
-          "source": "PDF Gminy Drwinia",
-          "pdf": "https://www.drwinia.pl/pro_drwinia/zasoby/files/krakow-mikluszowice-robocze-scalone.pdf"
-        },
-        {
-          "line": "GMINNA",
-          "time": "20:23",
-          "scheduled": 1794252180,
-          "direction": "south",
-          "stop": "dom-ludowy",
-          "stop_name": "Ispina Dom Ludowy",
-          "destination": "Mikluszowice Park & Ride",
-          "source": "PDF Gminy Drwinia",
-          "pdf": "https://www.drwinia.pl/pro_drwinia/zasoby/files/krakow-mikluszowice-robocze-scalone.pdf"
-        },
-        {
-          "line": "GMINNA",
-          "time": "20:25",
-          "scheduled": 1794252300,
-          "direction": "north",
-          "stop": "dom-ludowy",
-          "stop_name": "Ispina Dom Ludowy",
-          "destination": "Kraków Czyżyny Dworzec",
-          "source": "PDF Gminy Drwinia",
-          "pdf": "https://www.drwinia.pl/pro_drwinia/zasoby/files/krakow-mikluszowice-robocze-scalone.pdf"
-        },
-        {
-          "line": "GMINNA",
-          "time": "21:20",
-          "scheduled": 1794255600,
-          "direction": "north",
-          "stop": "dom-ludowy",
-          "stop_name": "Ispina Dom Ludowy",
-          "destination": "Kraków Czyżyny Dworzec",
-          "source": "PDF Gminy Drwinia",
-          "pdf": "https://www.drwinia.pl/pro_drwinia/zasoby/files/krakow-mikluszowice-robocze-scalone.pdf"
-        },
-        {
-          "line": "GMINNA",
-          "time": "21:48",
-          "scheduled": 1794257280,
-          "direction": "south",
-          "stop": "dom-ludowy",
-          "stop_name": "Ispina Dom Ludowy",
-          "destination": "Mikluszowice Park & Ride",
-          "source": "PDF Gminy Drwinia",
-          "pdf": "https://www.drwinia.pl/pro_drwinia/zasoby/files/krakow-mikluszowice-robocze-scalone.pdf"
-        },
-        {
-          "line": "GMINNA",
-          "time": "23:08",
-          "scheduled": 1794262080,
-          "direction": "south",
-          "stop": "dom-ludowy",
-          "stop_name": "Ispina Dom Ludowy",
-          "destination": "Mikluszowice Park & Ride",
-          "source": "PDF Gminy Drwinia",
-          "pdf": "https://www.drwinia.pl/pro_drwinia/zasoby/files/krakow-mikluszowice-robocze-scalone.pdf"
-        }
-      ],
-      "warnings": [
-        "MLD: Zmieniony lub nieznany PDF A7"
-      ]
-    },
     {
       "date": "2026-11-10",
       "departures": [
@@ -1395,6 +1079,322 @@
     {
       "date": "2026-11-15",
       "departures": [],
+      "warnings": [
+        "MLD: Zmieniony lub nieznany PDF A7"
+      ]
+    },
+    {
+      "date": "2026-11-16",
+      "departures": [
+        {
+          "line": "GMINNA",
+          "time": "04:10",
+          "scheduled": 1794798600,
+          "direction": "north",
+          "stop": "dom-ludowy",
+          "stop_name": "Ispina Dom Ludowy",
+          "destination": "Kraków Czyżyny Dworzec",
+          "source": "PDF Gminy Drwinia",
+          "pdf": "https://www.drwinia.pl/pro_drwinia/zasoby/files/krakow-mikluszowice-robocze-scalone.pdf"
+        },
+        {
+          "line": "GMINNA",
+          "time": "05:10",
+          "scheduled": 1794802200,
+          "direction": "north",
+          "stop": "dom-ludowy",
+          "stop_name": "Ispina Dom Ludowy",
+          "destination": "Kraków Czyżyny Dworzec",
+          "source": "PDF Gminy Drwinia",
+          "pdf": "https://www.drwinia.pl/pro_drwinia/zasoby/files/krakow-mikluszowice-robocze-scalone.pdf"
+        },
+        {
+          "line": "GMINNA",
+          "time": "05:33",
+          "scheduled": 1794803580,
+          "direction": "south",
+          "stop": "dom-ludowy",
+          "stop_name": "Ispina Dom Ludowy",
+          "destination": "Mikluszowice Park & Ride",
+          "source": "PDF Gminy Drwinia",
+          "pdf": "https://www.drwinia.pl/pro_drwinia/zasoby/files/krakow-mikluszowice-robocze-scalone.pdf"
+        },
+        {
+          "line": "GMINNA",
+          "time": "06:20",
+          "scheduled": 1794806400,
+          "direction": "north",
+          "stop": "dom-ludowy",
+          "stop_name": "Ispina Dom Ludowy",
+          "destination": "Kraków Czyżyny Dworzec",
+          "source": "PDF Gminy Drwinia",
+          "pdf": "https://www.drwinia.pl/pro_drwinia/zasoby/files/krakow-mikluszowice-robocze-scalone.pdf"
+        },
+        {
+          "line": "GMINNA",
+          "time": "06:33",
+          "scheduled": 1794807180,
+          "direction": "south",
+          "stop": "dom-ludowy",
+          "stop_name": "Ispina Dom Ludowy",
+          "destination": "Mikluszowice Park & Ride",
+          "source": "PDF Gminy Drwinia",
+          "pdf": "https://www.drwinia.pl/pro_drwinia/zasoby/files/krakow-mikluszowice-robocze-scalone.pdf"
+        },
+        {
+          "line": "GMINNA",
+          "time": "07:20",
+          "scheduled": 1794810000,
+          "direction": "north",
+          "stop": "dom-ludowy",
+          "stop_name": "Ispina Dom Ludowy",
+          "destination": "Kraków Czyżyny Dworzec",
+          "source": "PDF Gminy Drwinia",
+          "pdf": "https://www.drwinia.pl/pro_drwinia/zasoby/files/krakow-mikluszowice-robocze-scalone.pdf"
+        },
+        {
+          "line": "GMINNA",
+          "time": "07:43",
+          "scheduled": 1794811380,
+          "direction": "south",
+          "stop": "dom-ludowy",
+          "stop_name": "Ispina Dom Ludowy",
+          "destination": "Mikluszowice Park & Ride",
+          "source": "PDF Gminy Drwinia",
+          "pdf": "https://www.drwinia.pl/pro_drwinia/zasoby/files/krakow-mikluszowice-robocze-scalone.pdf"
+        },
+        {
+          "line": "GMINNA",
+          "time": "08:43",
+          "scheduled": 1794814980,
+          "direction": "south",
+          "stop": "dom-ludowy",
+          "stop_name": "Ispina Dom Ludowy",
+          "destination": "Mikluszowice Park & Ride",
+          "source": "PDF Gminy Drwinia",
+          "pdf": "https://www.drwinia.pl/pro_drwinia/zasoby/files/krakow-mikluszowice-robocze-scalone.pdf"
+        },
+        {
+          "line": "GMINNA",
+          "time": "08:50",
+          "scheduled": 1794815400,
+          "direction": "north",
+          "stop": "dom-ludowy",
+          "stop_name": "Ispina Dom Ludowy",
+          "destination": "Kraków Czyżyny Dworzec",
+          "source": "PDF Gminy Drwinia",
+          "pdf": "https://www.drwinia.pl/pro_drwinia/zasoby/files/krakow-mikluszowice-robocze-scalone.pdf"
+        },
+        {
+          "line": "GMINNA",
+          "time": "09:50",
+          "scheduled": 1794819000,
+          "direction": "north",
+          "stop": "dom-ludowy",
+          "stop_name": "Ispina Dom Ludowy",
+          "destination": "Kraków Czyżyny Dworzec",
+          "source": "PDF Gminy Drwinia",
+          "pdf": "https://www.drwinia.pl/pro_drwinia/zasoby/files/krakow-mikluszowice-robocze-scalone.pdf"
+        },
+        {
+          "line": "GMINNA",
+          "time": "10:23",
+          "scheduled": 1794820980,
+          "direction": "south",
+          "stop": "dom-ludowy",
+          "stop_name": "Ispina Dom Ludowy",
+          "destination": "Mikluszowice Park & Ride",
+          "source": "PDF Gminy Drwinia",
+          "pdf": "https://www.drwinia.pl/pro_drwinia/zasoby/files/krakow-mikluszowice-robocze-scalone.pdf"
+        },
+        {
+          "line": "GMINNA",
+          "time": "11:23",
+          "scheduled": 1794824580,
+          "direction": "south",
+          "stop": "dom-ludowy",
+          "stop_name": "Ispina Dom Ludowy",
+          "destination": "Mikluszowice Park & Ride",
+          "source": "PDF Gminy Drwinia",
+          "pdf": "https://www.drwinia.pl/pro_drwinia/zasoby/files/krakow-mikluszowice-robocze-scalone.pdf"
+        },
+        {
+          "line": "GMINNA",
+          "time": "12:10",
+          "scheduled": 1794827400,
+          "direction": "north",
+          "stop": "dom-ludowy",
+          "stop_name": "Ispina Dom Ludowy",
+          "destination": "Kraków Czyżyny Dworzec",
+          "source": "PDF Gminy Drwinia",
+          "pdf": "https://www.drwinia.pl/pro_drwinia/zasoby/files/krakow-mikluszowice-robocze-scalone.pdf"
+        },
+        {
+          "line": "GMINNA",
+          "time": "13:10",
+          "scheduled": 1794831000,
+          "direction": "north",
+          "stop": "dom-ludowy",
+          "stop_name": "Ispina Dom Ludowy",
+          "destination": "Kraków Czyżyny Dworzec",
+          "source": "PDF Gminy Drwinia",
+          "pdf": "https://www.drwinia.pl/pro_drwinia/zasoby/files/krakow-mikluszowice-robocze-scalone.pdf"
+        },
+        {
+          "line": "GMINNA",
+          "time": "13:33",
+          "scheduled": 1794832380,
+          "direction": "south",
+          "stop": "dom-ludowy",
+          "stop_name": "Ispina Dom Ludowy",
+          "destination": "Mikluszowice Park & Ride",
+          "source": "PDF Gminy Drwinia",
+          "pdf": "https://www.drwinia.pl/pro_drwinia/zasoby/files/krakow-mikluszowice-robocze-scalone.pdf"
+        },
+        {
+          "line": "GMINNA",
+          "time": "14:53",
+          "scheduled": 1794837180,
+          "direction": "south",
+          "stop": "dom-ludowy",
+          "stop_name": "Ispina Dom Ludowy",
+          "destination": "Mikluszowice Park & Ride",
+          "source": "PDF Gminy Drwinia",
+          "pdf": "https://www.drwinia.pl/pro_drwinia/zasoby/files/krakow-mikluszowice-robocze-scalone.pdf"
+        },
+        {
+          "line": "GMINNA",
+          "time": "15:10",
+          "scheduled": 1794838200,
+          "direction": "north",
+          "stop": "dom-ludowy",
+          "stop_name": "Ispina Dom Ludowy",
+          "destination": "Kraków Czyżyny Dworzec",
+          "source": "PDF Gminy Drwinia",
+          "pdf": "https://www.drwinia.pl/pro_drwinia/zasoby/files/krakow-mikluszowice-robocze-scalone.pdf"
+        },
+        {
+          "line": "GMINNA",
+          "time": "16:10",
+          "scheduled": 1794841800,
+          "direction": "north",
+          "stop": "dom-ludowy",
+          "stop_name": "Ispina Dom Ludowy",
+          "destination": "Kraków Czyżyny Dworzec",
+          "source": "PDF Gminy Drwinia",
+          "pdf": "https://www.drwinia.pl/pro_drwinia/zasoby/files/krakow-mikluszowice-robocze-scalone.pdf"
+        },
+        {
+          "line": "GMINNA",
+          "time": "16:48",
+          "scheduled": 1794844080,
+          "direction": "south",
+          "stop": "dom-ludowy",
+          "stop_name": "Ispina Dom Ludowy",
+          "destination": "Mikluszowice Park & Ride",
+          "source": "PDF Gminy Drwinia",
+          "pdf": "https://www.drwinia.pl/pro_drwinia/zasoby/files/krakow-mikluszowice-robocze-scalone.pdf"
+        },
+        {
+          "line": "GMINNA",
+          "time": "17:48",
+          "scheduled": 1794847680,
+          "direction": "south",
+          "stop": "dom-ludowy",
+          "stop_name": "Ispina Dom Ludowy",
+          "destination": "Mikluszowice Park & Ride",
+          "source": "PDF Gminy Drwinia",
+          "pdf": "https://www.drwinia.pl/pro_drwinia/zasoby/files/krakow-mikluszowice-robocze-scalone.pdf"
+        },
+        {
+          "line": "GMINNA",
+          "time": "17:50",
+          "scheduled": 1794847800,
+          "direction": "north",
+          "stop": "dom-ludowy",
+          "stop_name": "Ispina Dom Ludowy",
+          "destination": "Kraków Czyżyny Dworzec",
+          "source": "PDF Gminy Drwinia",
+          "pdf": "https://www.drwinia.pl/pro_drwinia/zasoby/files/krakow-mikluszowice-robocze-scalone.pdf"
+        },
+        {
+          "line": "GMINNA",
+          "time": "18:50",
+          "scheduled": 1794851400,
+          "direction": "north",
+          "stop": "dom-ludowy",
+          "stop_name": "Ispina Dom Ludowy",
+          "destination": "Kraków Czyżyny Dworzec",
+          "source": "PDF Gminy Drwinia",
+          "pdf": "https://www.drwinia.pl/pro_drwinia/zasoby/files/krakow-mikluszowice-robocze-scalone.pdf"
+        },
+        {
+          "line": "GMINNA",
+          "time": "19:23",
+          "scheduled": 1794853380,
+          "direction": "south",
+          "stop": "dom-ludowy",
+          "stop_name": "Ispina Dom Ludowy",
+          "destination": "Mikluszowice Park & Ride",
+          "source": "PDF Gminy Drwinia",
+          "pdf": "https://www.drwinia.pl/pro_drwinia/zasoby/files/krakow-mikluszowice-robocze-scalone.pdf"
+        },
+        {
+          "line": "GMINNA",
+          "time": "20:23",
+          "scheduled": 1794856980,
+          "direction": "south",
+          "stop": "dom-ludowy",
+          "stop_name": "Ispina Dom Ludowy",
+          "destination": "Mikluszowice Park & Ride",
+          "source": "PDF Gminy Drwinia",
+          "pdf": "https://www.drwinia.pl/pro_drwinia/zasoby/files/krakow-mikluszowice-robocze-scalone.pdf"
+        },
+        {
+          "line": "GMINNA",
+          "time": "20:25",
+          "scheduled": 1794857100,
+          "direction": "north",
+          "stop": "dom-ludowy",
+          "stop_name": "Ispina Dom Ludowy",
+          "destination": "Kraków Czyżyny Dworzec",
+          "source": "PDF Gminy Drwinia",
+          "pdf": "https://www.drwinia.pl/pro_drwinia/zasoby/files/krakow-mikluszowice-robocze-scalone.pdf"
+        },
+        {
+          "line": "GMINNA",
+          "time": "21:20",
+          "scheduled": 1794860400,
+          "direction": "north",
+          "stop": "dom-ludowy",
+          "stop_name": "Ispina Dom Ludowy",
+          "destination": "Kraków Czyżyny Dworzec",
+          "source": "PDF Gminy Drwinia",
+          "pdf": "https://www.drwinia.pl/pro_drwinia/zasoby/files/krakow-mikluszowice-robocze-scalone.pdf"
+        },
+        {
+          "line": "GMINNA",
+          "time": "21:48",
+          "scheduled": 1794862080,
+          "direction": "south",
+          "stop": "dom-ludowy",
+          "stop_name": "Ispina Dom Ludowy",
+          "destination": "Mikluszowice Park & Ride",
+          "source": "PDF Gminy Drwinia",
+          "pdf": "https://www.drwinia.pl/pro_drwinia/zasoby/files/krakow-mikluszowice-robocze-scalone.pdf"
+        },
+        {
+          "line": "GMINNA",
+          "time": "23:08",
+          "scheduled": 1794866880,
+          "direction": "south",
+          "stop": "dom-ludowy",
+          "stop_name": "Ispina Dom Ludowy",
+          "destination": "Mikluszowice Park & Ride",
+          "source": "PDF Gminy Drwinia",
+          "pdf": "https://www.drwinia.pl/pro_drwinia/zasoby/files/krakow-mikluszowice-robocze-scalone.pdf"
+        }
+      ],
       "warnings": [
         "MLD: Zmieniony lub nieznany PDF A7"
       ]
