@@ -1,0 +1,96 @@
+--- a/assets/ilradio_k3.koplugin/main.lua
++++ b/assets/ilradio_k3.koplugin/main.lua
+@@ -45,7 +45,7 @@
+     return worked and tostring(tonumber(pid) or "") or ""
+ end
+ local OWNER_PID = get_owner_pid()
+-local RADIO_VERSION = "2.27.3"
++local RADIO_VERSION = "2.27.4"
+ 
+ local function read_small(path, limit)
+     local file = io.open(path, "rb")
+--- a/assets/ilradio_k3.koplugin/player.sh
++++ b/assets/ilradio_k3.koplugin/player.sh
+@@ -299,7 +299,7 @@
+     elif printf '%s' "$pattern" | grep -Eiq 'HTTP/[0-9.]+ [45][0-9][0-9]|[45][0-9][0-9] (Not Found|Forbidden|Unauthorized)|curl: \(22\)'; then echo address
+     elif printf '%s' "$pattern" | grep -Eiq 'Could not (connect|resolve)|Connection refused|Network is unreachable|curl: \((5|6|7)\)'; then echo network
+     elif printf '%s' "$pattern" | grep -Eiq 'timeout|timed out|too slow|curl: \(28\)'; then echo buffer
+-    elif printf '%s' "$pattern" | grep -Eiq 'audio device|audio driver|alsa.*(error|fail)|Failed to initialize audio'; then echo output
++    elif printf '%s' "$pattern" | grep -Eiq 'Device or resource busy|device busy|PCM.*busy|audio device|audio driver|alsa.*(error|fail)|Failed to initialize audio'; then echo output
+     else echo unconfirmed; fi
+ }
+ 
+@@ -510,7 +510,56 @@
+         fi;;
+     diagnose)
+         engine=$(backend auto)
+-        echo "engine=${engine:-none}"
++        state=$(sh "$0" status)
++        health=$(sh "$0" health)
++        evidence=$(play_evidence)
++        if [ -n "$engine" ]; then
++            case "$engine" in
++                mplayer) player_name=MPlayer;;
++                mpg123) player_name=mpg123;;
++                mpv) player_name=mpv;;
++                gst-legacy|gst-mixer) player_name=GStreamer;;
++                gst-modern) player_name=GStreamer;;
++                *) player_name="$engine";;
++            esac
++            echo "Odtwarzacz: znaleziony — $player_name"
++        else
++            echo "Odtwarzacz: nie znaleziono"
++        fi
++        case "$state" in
++            active|paused)
++                current=$(sh "$0" current-info)
++                kind=$(printf '%s\n' "$current" | sed -n '1p')
++                name=$(printf '%s\n' "$current" | sed -n '2p')
++                [ -n "$name" ] || name="bieżący plik lub stacja"
++                title=$(sh "$0" title 2>/dev/null | tail -n 1)
++                if [ -n "$title" ] && [ "$kind" = radio ]; then name="$title — $name"; fi
++                if [ "$state" = paused ]; then
++                    echo "Pauza: $name"
++                elif [ "$health" = failed ]; then
++                    echo "Odtwarzanie: błąd — $name"
++                elif [ "$evidence" = decoded ]; then
++                    echo "Teraz gra: $name"
++                else
++                    echo "Uruchamianie: $name (dźwięk niepotwierdzony)"
++                fi;;
++            *) echo "Teraz gra: nic (odtwarzanie zatrzymane)";;
++        esac
++        reason=$(stream_reason "$(tail -n 36 "$LOG" 2>/dev/null)")
++        case "$reason" in
++            output)
++                if tail -n 36 "$LOG" 2>/dev/null | grep -Eiq 'Device or resource busy|device busy|PCM.*busy'; then
++                    echo "Przyczyna: wyjście audio ALSA jest zajęte przez inny proces. Zamknij inne odtwarzanie w KOReaderze i spróbuj ponownie."
++                else
++                    echo "Przyczyna: odtwarzacz nie może otworzyć wyjścia audio Kindle’a."
++                fi;;
++            network) echo "Przyczyna: brak połączenia z serwerem audio.";;
++            tls) echo "Przyczyna: problem z bezpiecznym połączeniem HTTPS.";;
++            address) echo "Przyczyna: serwer odrzucił adres strumienia.";;
++            codec) echo "Przyczyna: brak dekodera dla formatu strumienia.";;
++            buffer) echo "Przyczyna: strumień nie dociera na czas.";;
++        esac
++        echo "engine=${engine:-none} status=$state health=$health evidence=$evidence"
+         echo "model=$(uname -m) kernel=$(uname -r)"
+         for program in gst-launch-0.10 gst-launch gst-launch-1.0 mpg123 mpv amixer curl wget; do
+             if has "$program"; then echo "+ $program"; fi
+@@ -527,14 +576,11 @@
+                 done
+             fi
+         done
+-        echo "evidence=$(play_evidence)"
+-        if [ -r "$R/report" ]; then echo "Ostatnia stacja / adres / wynik:"; head -n 3 "$R/report" | cut -c 1-180; fi
++        if [ -r "$R/report" ]; then echo "Ostatnia próba / adres / wynik:"; head -n 3 "$R/report" | cut -c 1-180; fi
+         for file in "$R"/test-*.aac "$R"/test-*.m4a "$R"/test-*.mp3; do
+             if [ -f "$file" ]; then head -n 1 "$file"; fi
+         done
+         for device in /dev/dsp /dev/snd; do if [ -e "$device" ]; then echo "+ $device"; fi; done
+-        echo "status=$(sh "$0" status)" 
+-        echo "health=$(sh "$0" health)"
+         if [ -r /proc/bus/input/devices ]; then
+             echo "wejścia:"
+             grep -E '^N: Name=|^H: Handlers=' /proc/bus/input/devices | head -n 14 | cut -c 1-100

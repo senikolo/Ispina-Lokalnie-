@@ -1,4 +1,4 @@
-name: Kindle przez Wi-Fi 2.27.3
+name: Kindle przez Wi-Fi 2.27.4
 on:
   push:
     branches: [codex/kindle-wifi-radio-audio-2-26-20261110]
@@ -7,6 +7,7 @@ on:
       - build-sources/kindle-radio-2.27.1.patch
       - build-sources/kindle-radio-2.27.2.patch
       - build-sources/kindle-radio-2.27.3.patch
+      - build-sources/kindle-radio-2.27.4.patch
       - .github/workflows/kindle-wifi-radio-2-27.yml
   workflow_dispatch:
 
@@ -39,8 +40,9 @@ jobs:
           git apply "$GITHUB_WORKSPACE/build-sources/kindle-radio-2.27.1.patch"
           git apply "$GITHUB_WORKSPACE/build-sources/kindle-radio-2.27.2.patch"
           git apply "$GITHUB_WORKSPACE/build-sources/kindle-radio-2.27.3.patch"
-          sed -i "s/versionCode 38; versionName '2.27.1'/versionCode 40; versionName '2.27.3'/" build.gradle
-          sed -i 's/android:versionCode="38" android:versionName="2.27.1"/android:versionCode="40" android:versionName="2.27.3"/' AndroidManifest.xml
+          git apply "$GITHUB_WORKSPACE/build-sources/kindle-radio-2.27.4.patch"
+          sed -i "s/versionCode 38; versionName '2.27.1'/versionCode 41; versionName '2.27.4'/" build.gradle
+          sed -i 's/android:versionCode="38" android:versionName="2.27.1"/android:versionCode="41" android:versionName="2.27.4"/' AndroidManifest.xml
           sdkmanager="$(find "$ANDROID_HOME/cmdline-tools" -name sdkmanager -type f | head -n 1)"
           yes | "$sdkmanager" --licenses >/dev/null || true
           "$sdkmanager" 'platforms;android-35' 'build-tools;35.0.0'
@@ -63,13 +65,13 @@ jobs:
           cd "$RUNNER_TEMP/kindle/kindle-wifi-2.26"
           mkdir -p "$GITHUB_WORKSPACE/build-artifacts"
           gradle --no-daemon -ParmOnly assembleRelease
-          cp build/outputs/apk/release/*-unsigned.apk "$GITHUB_WORKSPACE/build-artifacts/Kindle-przez-WiFi-2.27.3-arm-unsigned.apk"
-          test "$(stat -c %s "$GITHUB_WORKSPACE/build-artifacts/Kindle-przez-WiFi-2.27.3-arm-unsigned.apk")" -lt 30000000
+          cp build/outputs/apk/release/*-unsigned.apk "$GITHUB_WORKSPACE/build-artifacts/Kindle-przez-WiFi-2.27.4-arm-unsigned.apk"
+          test "$(stat -c %s "$GITHUB_WORKSPACE/build-artifacts/Kindle-przez-WiFi-2.27.4-arm-unsigned.apk")" -lt 30000000
           gradle --no-daemon assembleRelease
-          cp build/outputs/apk/release/*-unsigned.apk "$GITHUB_WORKSPACE/build-artifacts/Kindle-przez-WiFi-2.27.3-emulator-unsigned.apk"
+          cp build/outputs/apk/release/*-unsigned.apk "$GITHUB_WORKSPACE/build-artifacts/Kindle-przez-WiFi-2.27.4-emulator-unsigned.apk"
       - uses: actions/upload-artifact@v4
         with:
-          name: Kindle-przez-WiFi-2.27.3
+          name: Kindle-przez-WiFi-2.27.4
           path: build-artifacts/
           if-no-files-found: error
 
@@ -85,7 +87,7 @@ jobs:
     steps:
       - uses: actions/download-artifact@v4
         with:
-          name: Kindle-przez-WiFi-2.27.3
+          name: Kindle-przez-WiFi-2.27.4
           path: build-artifacts
       - name: Sign and enable emulator
         run: |
