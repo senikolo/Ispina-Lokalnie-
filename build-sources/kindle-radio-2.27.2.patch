@@ -1,0 +1,102 @@
+diff --git a/assets/ilradio_k3.koplugin/main.lua b/assets/ilradio_k3.koplugin/main.lua
+--- a/assets/ilradio_k3.koplugin/main.lua
++++ b/assets/ilradio_k3.koplugin/main.lua
+@@ -36,7 +36,7 @@
+ local ENGINE_OPTIONS = {"auto", "gst-legacy", "gst-mixer", "mplayer", "mpg123", "gst-modern", "mpv"}
+ local volume_input_open = false
+ local volume_owner
+-local RADIO_VERSION = "2.27.1"
++local RADIO_VERSION = "2.27.2"
+ 
+ local function read_small(path, limit)
+     local file = io.open(path, "rb")
+@@ -504,7 +504,9 @@
+ 
+ function ILRadio:onCloseWidget()
+     UIManager:unschedule(self.decode_tick)
+-    if self.current or self.job then self:stop() end
++    -- The player is a child process and can outlive the KOReader widget.
++    -- Always ask the shell controller to stop it, even after UI state loss.
++    self:stop()
+ end
+ 
+ function ILRadio:play(uri, name, kind, path)
+@@ -560,8 +562,36 @@
+ 
+ function ILRadio:confirm_sound()
+     local item = self.current
+-    if not item or item.kind ~= "radio" or self:status() ~= "active" then
++    if self:status() ~= "active" then
+         self:notice("Najpierw uruchom stację.")
++        return
++    end
++    -- KOReader can be reopened while the external player is still running.
++    -- In that case self.current is new/empty, but the player keeps the last
++    -- station and URL in its guarded report file.
++    if not item then
++        local report = shell_call("report-current")
++        local name, url = report:match("^([^\n]*)\n([^\n]*)")
++        local station
++        if name and url and T.url(url) then
++            for _, candidate in ipairs(stations) do
++                if candidate[1] == name then station = candidate; break end
++            end
++        end
++        if not station then
++            self:notice("Odtwarzanie działa, ale nie mogę ustalić stacji. Uruchom ją ponownie z menu Radia.", 8)
++            return
++        end
++        self.working[name] = url
++        self:save("radio_last_working", self.working)
++        self.last_station_name = name
++        self:save("last_station_name", name)
++        shell_call("report", name, url, "audible")
++        self:notice("Zapisano, że słychać „" .. name .. "”.")
++        return
++    end
++    if item.kind ~= "radio" then
++        self:notice("Teraz odtwarzany jest plik audio, a nie stacja radiowa.")
+         return
+     end
+     item.audible = true
+diff --git a/assets/ilradio_k3.koplugin/player.sh b/assets/ilradio_k3.koplugin/player.sh
+--- a/assets/ilradio_k3.koplugin/player.sh
++++ b/assets/ilradio_k3.koplugin/player.sh
+@@ -63,6 +63,19 @@
+ 
+ stop_audio() {
+     if is_ours; then
++        # The audible backend is a separate child. Killing only the logging
++        # wrapper orphaned MPlayer/GStreamer, leaving sound running after the
++        # plugin (or KOReader) had closed.
++        worker=$(cat "$R/worker-$token" 2>/dev/null)
++        case "$worker" in
++            ''|*[!0-9]*) :;;
++            *) if [ -r "/proc/$worker/environ" ] &&
++                  tr '\000' '\n' < "/proc/$worker/environ" 2>/dev/null | grep -F -x "ILRADIO_K3_SESSION=$token" >/dev/null 2>&1; then
++                   kill -CONT "$worker" 2>/dev/null || :
++                   kill -TERM "$worker" 2>/dev/null || :
++               fi;;
++        esac
++        # Let run_logged's trap remove its FIFO, logger and worker bookkeeping.
+         kill -TERM "$p" 2>/dev/null || :
+     fi
+     rm -f "$PID" "$TOKEN" "$PAUSED"
+@@ -215,7 +228,7 @@
+     sh "$0" backend-run "$@" > "$fifo" 2>&1 &
+     worker=$!
+     printf '%s\n' "$worker" > "$R/worker-$ILRADIO_K3_SESSION"
+-    trap 'kill -CONT "$worker" 2>/dev/null; kill "$worker" 2>/dev/null; wait "$worker" 2>/dev/null; rm -f "$fifo" "$R/worker-$ILRADIO_K3_SESSION"; exit 0' TERM INT HUP
++    trap 'kill -CONT "$worker" 2>/dev/null; kill -TERM "$worker" 2>/dev/null; kill "$logger" 2>/dev/null; wait "$worker" 2>/dev/null; wait "$logger" 2>/dev/null; rm -f "$fifo" "$R/worker-$ILRADIO_K3_SESSION"; exit 0' TERM INT HUP
+     wait "$worker"
+     wait "$logger"
+     rm -f "$fifo" "$R/worker-$ILRADIO_K3_SESSION"
+@@ -417,6 +430,8 @@
+     stop) probe_stop; stop_audio; echo stopped;;
+     report)
+         printf '%s\n' "$2" "$3" "$4" > "$R/report.new" && mv "$R/report.new" "$R/report";;
++    report-current)
++        if is_ours && [ -r "$R/report" ]; then cat "$R/report"; fi;;
+     decode-test)
+         name="$3"
+         case "$name" in test-lc48.aac|test-he32.aac|test-hev224.aac|test-lc48.m4a|test-mp364.mp3) :;; *) exit 2;; esac
