@@ -58,6 +58,8 @@ jobs:
                         'assert(plugin.current and plugin.current.retries == 3)\nstate = "stopped"\nplugin.start_check()\nassert(plugin.current == nil and state == "stopped")')
           t = t.replace('assert(menu.ilradio_k3 and menu.ilradio_k3.sorting_hint == "more_tools")',
                         'assert(menu.ilradio_k3 and menu.ilradio_k3.sorting_hint == "more_tools")\nassert(menu.ilradio_k3.text:find("2.26.6", 1, true))')
+          t = t.replace('assert(plugin.current.uri == catalog[1].economy.url and not plugin.current.alternate)',
+                        'assert(plugin.current.uri == catalog[1].economy.url and not plugin.current.alternate, "economy: " .. tostring(plugin.current.uri) .. " expected " .. tostring(catalog[1].economy.url) .. " alternate " .. tostring(plugin.current.alternate))')
           p.write_text(t)
           PY
       - name: Unit and integration tests
