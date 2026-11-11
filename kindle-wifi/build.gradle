@@ -12,6 +12,14 @@ android {
     buildTypes {
         debug { debuggable false }
         release { minifyEnabled false }
+        // Installable side-by-side verification build. The permanent app keeps its original ID.
+        mailTest {
+            initWith release
+            applicationIdSuffix ".mailtest"
+            versionNameSuffix "-TEST"
+            signingConfig signingConfigs.debug
+            debuggable false
+        }
     }
     packaging {
         jniLibs { useLegacyPackaging = true }
