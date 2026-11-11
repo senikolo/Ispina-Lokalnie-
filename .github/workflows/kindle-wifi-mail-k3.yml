@@ -4,6 +4,9 @@ on:
     branches: [codex/kindle-wifi-mail-k3-20261111]
     paths: ['kindle-wifi/**', '.github/workflows/kindle-wifi-mail-k3.yml']
   workflow_dispatch:
+concurrency:
+  group: kindle-wifi-mail-k3-test
+  cancel-in-progress: true
 permissions:
   contents: read
 jobs:
