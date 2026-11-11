@@ -818,6 +818,17 @@ case "${1:-}" in
             done
             echo "Zużycie baterii wymaga porównania na Kindle; bitrate określa transfer."
         fi
+        # Observe the K3 WM8960 hardware mixer without changing any level.
+        # Software volume 100% is not proof of full hardware output.
+        if has amixer; then
+            echo "Mikser ALSA (odczyt):"
+            for control_name in Master PCM Speaker Headphone; do
+                mix_line=$(amixer sget "$control_name" 2>/dev/null | grep -m 1 -E '\\[[0-9]+%\\]')
+                if [ -n "$mix_line" ]; then
+                    printf '%s: %s\n' "$control_name" "$(printf '%s' "$mix_line" | cut -c 1-120)"
+                fi
+            done
+        fi
         for program in gst-launch-0.10 gst-launch gst-launch-1.0 mpg123 mpv amixer curl wget; do
             if has "$program"; then echo "+ $program"; fi
         done
