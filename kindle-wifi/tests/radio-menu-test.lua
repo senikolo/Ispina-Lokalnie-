@@ -169,6 +169,12 @@ plugin:confirm_sound()
 assert(data.radio_last_working["RMF FM"] == plugin.current.stream.url)
 
 local options = menu_item(plugin:radio_menu(), "Ustawienia radia").sub_item_table
+local gain = assert(menu_item(options, "Wzmocnienie dźwięku (MPlayer)"))
+assert(#gain.sub_item_table == 3 and plugin.boost == 110)
+gain.sub_item_table[2].callback()
+assert(plugin.boost == 140 and data.audio_softvol_max == 140)
+gain.sub_item_table[1].callback()
+assert(plugin.boost == 110 and data.audio_softvol_max == 110)
 local volume = menu_item(options, "Ekranowe przyciski głośności +/−")
 assert(volume.checked_func())
 volume.callback()
@@ -390,7 +396,12 @@ plugin:stop()
 play_fixture()
 local_result = "pending"
 for _ = 1, 5 do plugin.start_check() end
-assert(not plugin.current and state == "stopped", "Silent decoder must release playback")
+assert(plugin.current and state == "active", "Running audio must not stop because evidence is late")
+assert(scheduled[plugin.start_check] == 8)
+-- A confirmed decoder failure must still release playback.
+local_result = "failed"
+plugin.start_check()
+assert(not plugin.current and state == "stopped", "Failed decoder must release playback")
 io.popen = previous
 local radio_session = true
 io.popen = function(command)
