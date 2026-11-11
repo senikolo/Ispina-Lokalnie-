@@ -122,7 +122,7 @@ local timer_menu = timer.sub_item_table_func()
 assert(menu_item(timer_menu, "Wyłącz za 30 min") and menu_item(timer_menu, "Wyłącz za 120 min"))
 local first = plugin:station_menu("Popularne")[1]
 assert(first.text_func() == "RMF FM")
-first.sub_item_table[2].callback()
+first.sub_item_table[3].callback()
 assert(data.favorites["RMF FM"] and #plugin:station_menu("Ulubione") == 1)
 first.sub_item_table[1].callback()
 local function settle()
@@ -295,6 +295,45 @@ assert(plugin.current and plugin.current.engine == "mplayer")
 assert(plugin.current.stream.native_direct_tried and plugin.current.stream.kbps == 64)
 plugin:stop()
 io.popen = before_native_fallback
+
+-- Regression: a native MPlayer probe timeout must not prevent direct MP3
+-- when a known, within-limit catalogue stream is available.
+io.popen = function(command)
+    local result = before_native_fallback(command)
+    if command:find("'probe-start'", 1, true) and command:find("timeout-mp3.mp3", 1, true) then
+        local prefix = "/tmp/probe-228-1"
+        local f = assert(io.open(prefix .. ".meta", "wb"))
+        f:write("000\nhttp://fixture.invalid/timeout-mp3.mp3\nmplayer\n")
+        f:close()
+        f = assert(io.open(prefix .. ".done", "wb"))
+        f:write("28"); f:close()
+        f = assert(io.open(prefix .. ".sample", "wb"))
+        f:close()
+    end
+    return result
+end
+plugin.job = {station = catalog[1], index = 0, starts = 0, engines = {}, variants = {
+    {url = "http://fixture.invalid/timeout-mp3.mp3", codec = "MP3", kbps = 64},
+}}
+plugin:advance_radio()
+settle()
+assert(plugin.current and plugin.current.stream.native_direct_tried)
+assert(plugin.current.engine == "mplayer")
+plugin:stop()
+io.popen = before_native_fallback
+
+-- A 128 kb/s MP3 compatibility choice requires explicit consent when the
+-- user's configured limit is lower. No silent data-limit changes.
+local rmf_menu = plugin:station_menu("Popularne")[1].sub_item_table
+assert(rmf_menu[2].text == "Spróbuj MP3 (tryb zgodności)")
+rmf_menu[2].callback()
+local mp3_permission = messages[#messages]
+assert(mp3_permission.kind == "radio-error")
+assert(mp3_permission.ok_text == "Uruchom MP3")
+assert(not plugin.current)
+mp3_permission.ok_callback()
+assert(plugin.current and plugin.current.stream.codec == "MP3")
+plugin:stop()
 
 io.popen = function(command)
     if command:find("'radio-transport'", 1, true) then
