@@ -2,7 +2,7 @@
 
 **Sprawdź datę podróży. Starszy dokument nie potwierdza dzisiejszych odjazdów.**
 
-Kontrola danych: 2026-11-10T23:22:37.239922+01:00
+Kontrola danych: 2026-11-11T03:47:48.143334+01:00
 
 [Oficjalne rozkłady i komunikaty KMŁ](https://kolejemalopolskie.com.pl/pl/rozklad-jazdy/rozklady-autobusowe)
 
@@ -10,7 +10,76 @@ Kontrola danych: 2026-11-10T23:22:37.239922+01:00
 
 Czasy są planowe, bez opóźnień na żywo. Linia gminna pozostaje na stronie Ispina Lokalnie.
 
-## 2026-11-10
+## 2026-11-11
+
+**A4: potwierdzona zgodność GTFS z PDF.** [PDF przewoźnika](https://kolejemalopolskie.com.pl/brepo/panel_repo/2026/10/19/rccwk3/a4-od-25-x-2026.pdf)
+
+**A7: godziny ukryte — sprawdź oficjalny rozkład.** [PDF przewoźnika](https://kolejemalopolskie.com.pl/brepo/panel_repo/2026/11/06/ajsts6/a7-9-xi-2026.pdf)
+
+**A65: potwierdzona zgodność GTFS z PDF.** [PDF przewoźnika](https://kolejemalopolskie.com.pl/brepo/panel_repo/2026/10/19/qcfw1q/a65-od-25-x-2026.pdf)
+
+### Ispina Wiślisko
+
+| Godzina | Linia | Kierunek / przystanek końcowy |
+| --- | --- | --- |
+| 06:08 | A4 | Nowe Brzesko Rynek |
+| 06:31 | A4 | Bochnia Dworzec PKP |
+| 09:21 | A65 | Nowe Brzesko Rynek |
+| 10:31 | A4 | Bochnia Dworzec PKP |
+| 10:36 | A65 | Bochnia Dworzec PKP |
+| 12:26 | A65 | Nowe Brzesko Rynek |
+| 13:28 | A4 | Nowe Brzesko Rynek |
+| 14:31 | A65 | Bochnia Dworzec PKP |
+| 15:26 | A4 | Bochnia Dworzec PKP |
+| 16:23 | A4 | Nowe Brzesko Rynek |
+| 17:31 | A65 | Bochnia Dworzec PKP |
+| 21:36 | A65 | Nowe Brzesko Rynek |
+
+### Ispina Dom Ludowy
+
+| Godzina | Linia | Kierunek / przystanek końcowy |
+| --- | --- | --- |
+| 06:09 | A4 | Nowe Brzesko Rynek |
+| 06:30 | A4 | Bochnia Dworzec PKP |
+| 09:22 | A65 | Nowe Brzesko Rynek |
+| 10:30 | A4 | Bochnia Dworzec PKP |
+| 10:35 | A65 | Bochnia Dworzec PKP |
+| 12:27 | A65 | Nowe Brzesko Rynek |
+| 13:29 | A4 | Nowe Brzesko Rynek |
+| 14:30 | A65 | Bochnia Dworzec PKP |
+| 15:25 | A4 | Bochnia Dworzec PKP |
+| 16:24 | A4 | Nowe Brzesko Rynek |
+| 17:30 | A65 | Bochnia Dworzec PKP |
+| 21:37 | A65 | Nowe Brzesko Rynek |
+
+### Ispina Most
+
+| Godzina | Linia | Kierunek / przystanek końcowy |
+| --- | --- | --- |
+| 06:10 | A4 | Nowe Brzesko Rynek |
+| 06:29 | A4 | Bochnia Dworzec PKP |
+| 09:23 | A65 | Nowe Brzesko Rynek |
+| 10:29 | A4 | Bochnia Dworzec PKP |
+| 10:34 | A65 | Bochnia Dworzec PKP |
+| 12:28 | A65 | Nowe Brzesko Rynek |
+| 13:30 | A4 | Nowe Brzesko Rynek |
+| 14:29 | A65 | Bochnia Dworzec PKP |
+| 15:24 | A4 | Bochnia Dworzec PKP |
+| 16:25 | A4 | Nowe Brzesko Rynek |
+| 17:29 | A65 | Bochnia Dworzec PKP |
+| 21:38 | A65 | Nowe Brzesko Rynek |
+
+### Ispina Przedszkole
+
+| Godzina | Linia | Kierunek / przystanek końcowy |
+| --- | --- | --- |
+
+### Ispina Leśniczówka
+
+| Godzina | Linia | Kierunek / przystanek końcowy |
+| --- | --- | --- |
+
+## 2026-11-12
 
 **A4: potwierdzona zgodność GTFS z PDF.** [PDF przewoźnika](https://kolejemalopolskie.com.pl/brepo/panel_repo/2026/10/19/rccwk3/a4-od-25-x-2026.pdf)
 
@@ -170,75 +239,6 @@ Czasy są planowe, bez opóźnień na żywo. Linia gminna pozostaje na stronie I
 | 20:28 | A65 | Nowe Brzesko Rynek |
 | 21:44 | A65 | Bochnia Dworzec PKP |
 | 22:03 | A65 | Nowe Brzesko Rynek |
-
-### Ispina Przedszkole
-
-| Godzina | Linia | Kierunek / przystanek końcowy |
-| --- | --- | --- |
-
-### Ispina Leśniczówka
-
-| Godzina | Linia | Kierunek / przystanek końcowy |
-| --- | --- | --- |
-
-## 2026-11-11
-
-**A4: potwierdzona zgodność GTFS z PDF.** [PDF przewoźnika](https://kolejemalopolskie.com.pl/brepo/panel_repo/2026/10/19/rccwk3/a4-od-25-x-2026.pdf)
-
-**A7: godziny ukryte — sprawdź oficjalny rozkład.** [PDF przewoźnika](https://kolejemalopolskie.com.pl/brepo/panel_repo/2026/11/06/ajsts6/a7-9-xi-2026.pdf)
-
-**A65: potwierdzona zgodność GTFS z PDF.** [PDF przewoźnika](https://kolejemalopolskie.com.pl/brepo/panel_repo/2026/10/19/qcfw1q/a65-od-25-x-2026.pdf)
-
-### Ispina Wiślisko
-
-| Godzina | Linia | Kierunek / przystanek końcowy |
-| --- | --- | --- |
-| 06:08 | A4 | Nowe Brzesko Rynek |
-| 06:31 | A4 | Bochnia Dworzec PKP |
-| 09:21 | A65 | Nowe Brzesko Rynek |
-| 10:31 | A4 | Bochnia Dworzec PKP |
-| 10:36 | A65 | Bochnia Dworzec PKP |
-| 12:26 | A65 | Nowe Brzesko Rynek |
-| 13:28 | A4 | Nowe Brzesko Rynek |
-| 14:31 | A65 | Bochnia Dworzec PKP |
-| 15:26 | A4 | Bochnia Dworzec PKP |
-| 16:23 | A4 | Nowe Brzesko Rynek |
-| 17:31 | A65 | Bochnia Dworzec PKP |
-| 21:36 | A65 | Nowe Brzesko Rynek |
-
-### Ispina Dom Ludowy
-
-| Godzina | Linia | Kierunek / przystanek końcowy |
-| --- | --- | --- |
-| 06:09 | A4 | Nowe Brzesko Rynek |
-| 06:30 | A4 | Bochnia Dworzec PKP |
-| 09:22 | A65 | Nowe Brzesko Rynek |
-| 10:30 | A4 | Bochnia Dworzec PKP |
-| 10:35 | A65 | Bochnia Dworzec PKP |
-| 12:27 | A65 | Nowe Brzesko Rynek |
-| 13:29 | A4 | Nowe Brzesko Rynek |
-| 14:30 | A65 | Bochnia Dworzec PKP |
-| 15:25 | A4 | Bochnia Dworzec PKP |
-| 16:24 | A4 | Nowe Brzesko Rynek |
-| 17:30 | A65 | Bochnia Dworzec PKP |
-| 21:37 | A65 | Nowe Brzesko Rynek |
-
-### Ispina Most
-
-| Godzina | Linia | Kierunek / przystanek końcowy |
-| --- | --- | --- |
-| 06:10 | A4 | Nowe Brzesko Rynek |
-| 06:29 | A4 | Bochnia Dworzec PKP |
-| 09:23 | A65 | Nowe Brzesko Rynek |
-| 10:29 | A4 | Bochnia Dworzec PKP |
-| 10:34 | A65 | Bochnia Dworzec PKP |
-| 12:28 | A65 | Nowe Brzesko Rynek |
-| 13:30 | A4 | Nowe Brzesko Rynek |
-| 14:29 | A65 | Bochnia Dworzec PKP |
-| 15:24 | A4 | Bochnia Dworzec PKP |
-| 16:25 | A4 | Nowe Brzesko Rynek |
-| 17:29 | A65 | Bochnia Dworzec PKP |
-| 21:38 | A65 | Nowe Brzesko Rynek |
 
 ### Ispina Przedszkole
 
