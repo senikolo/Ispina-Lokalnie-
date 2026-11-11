@@ -95,6 +95,15 @@ local menu = {}
 plugin:addToMainMenu(menu)
 assert(menu.ilradio_k3 and menu.ilradio_k3.sorting_hint == "more_tools")
 local catalog = dofile(source .. "/stations.lua")
+local T = dofile(source .. "/tuning.lua")
+assert(T.probeFailure("200", 1) == "unconfirmed", "HTTP 200 + generic probe error is not a rejected address")
+assert(T.probeFailure("000", 1) == "unconfirmed")
+assert(T.probeFailure("404", 22) == "address")
+assert(T.probeFailure("403", 22) == "address")
+assert(T.probeFailure("503", 22) == "server")
+assert(T.probeFailure("429", 22) == "server")
+assert(T.probeFailure("302", 1) == "transport")
+assert(T.probeFailure("200", 28) == "buffer")
 assert(#catalog == 27)
 local function menu_item(items, title)
     for _, item in ipairs(items) do
@@ -259,6 +268,33 @@ probe_native()
 assert(not plugin.current and messages[#messages].kind == "radio-error")
 plugin:set_quality("limit", nil)
 io.popen = previous
+
+-- Old native HTTP engines may play streams they cannot dump as a probe sample.
+-- Allow a single bounded direct attempt for a known, within-limit MP3 URL.
+local before_native_fallback = io.popen
+io.popen = function(command)
+    local result = before_native_fallback(command)
+    if command:find("'probe-start'", 1, true) and command:find("native-without-sample.mp3", 1, true) then
+        local prefix = "/tmp/probe-228-1"
+        local f = assert(io.open(prefix .. ".meta", "wb"))
+        f:write("000\nhttp://fixture.invalid/native-without-sample.mp3\nmplayer\n")
+        f:close()
+        f = assert(io.open(prefix .. ".done", "wb"))
+        f:write("1"); f:close()
+        f = assert(io.open(prefix .. ".sample", "wb"))
+        f:close()
+    end
+    return result
+end
+plugin.job = {station = catalog[1], index = 0, starts = 0, engines = {}, variants = {
+    {url = "http://fixture.invalid/native-without-sample.mp3", codec = "MP3", kbps = 64},
+}}
+plugin:advance_radio()
+settle()
+assert(plugin.current and plugin.current.engine == "mplayer")
+assert(plugin.current.stream.native_direct_tried and plugin.current.stream.kbps == 64)
+plugin:stop()
+io.popen = before_native_fallback
 
 io.popen = function(command)
     if command:find("'radio-transport'", 1, true) then

@@ -20,11 +20,12 @@ local SPEECH = {["TOK FM"] = true, ["RMF 24"] = true, ["Polskie Radio 24"] = tru
 local ERRORS = {
     network = "Brak połączenia z serwerem. Sprawdź Wi-Fi i dostęp do internetu.",
     tls = "Nie udało się bezpiecznie połączyć przez HTTPS. Sprawdź datę i certyfikaty Kindle’a.",
-    address = "Serwer odrzucił adres lub adres jest nieaktualny.",
+    address = "Serwer odmówił dostępu do tego adresu (HTTP 4xx). Spróbuj innego źródła.",
+    server = "Serwer stacji jest chwilowo niedostępny (HTTP 5xx). Spróbuj ponownie.",
     buffer = "Strumień buforuje się za długo lub transmisja przerwała.",
     codec = "Silnik nie rozpoznał formatu audio albo brakuje dekodera.",
     output = "Silnik nie uzyskał dostępu do wyjścia audio.",
-    unconfirmed = "Nie udało się potwierdzić działania strumienia. Sprawdź diagnostykę audio.",
+    unconfirmed = "Nie udało się sprawdzić źródła na tym Kindle. To nie potwierdza, że adres jest błędny.",
     ended = "Transmisja urwała się po rozpoczęciu odtwarzania. Próbuję ponownie lub zmieniam źródło.",
     playback = "Odtwarzacz zakończył pracę po uruchomieniu dźwięku. Sprawdź ostatni kod w diagnostyce.",
     engine = "Brak silnika dla tego formatu. Sprawdź „Diagnostykę audio”.",
@@ -40,7 +41,7 @@ local volume_input_open = false
 local volume_input_node
 local volume_owner
 local volume_listener
-local RADIO_VERSION = "2.30.1"
+local RADIO_VERSION = "2.30.2"
 local VOLUME_KEYS = {VMinus = -1, VolumeDown = -1, VolumeMinus = -1,
     VPlus = 1, VolumeUp = 1, VolumePlus = 1}
 
@@ -377,12 +378,22 @@ function ILRadio:check_probe()
         else
             self:continue_radio(exit == 28 and "buffer" or "codec")
         end
-    elseif exit == 35 or exit == 51 or exit == 58 or exit == 59 or exit == 60 or exit == 77 or exit == 90 then
-        self:continue_radio("tls")
-    elseif exit == 127 then self:continue_radio("transport")
-    elseif exit == 5 or exit == 6 or exit == 7 then self:continue_radio("network")
-    elseif exit == 28 or not exit then self:continue_radio("buffer")
-    else self:continue_radio("address") end
+    else
+        local failure = T.probeFailure(code, exit)
+        -- A few old MPlayer builds cannot dump a short Icecast sample even
+        -- though normal native HTTP MP3 playback works. Try direct playback
+        -- only for catalogued MP3 with an explicit bitrate within the limit.
+        -- This is never used after a definitive HTTP/network/TLS failure.
+        if failure == "unconfirmed" and stream.url:match("^http://")
+            and stream.codec == "MP3" and stream.kbps and T.allowed(self.radio, stream)
+            and not stream.native_direct_tried and shell_call("probe", "mplayer") == "mplayer" then
+            stream.native_direct_tried = true
+            stream.play_url = stream.url
+            self:accept_probe(stream)
+            return
+        end
+        self:continue_radio(failure)
+    end
 end
 
 function ILRadio:advance_radio()
@@ -420,7 +431,7 @@ function ILRadio:advance_radio()
             self:continue_radio("transport")
         end
     else
-        self:continue_radio("address")
+        self:continue_radio(probe == "address" or probe == "invalid_target" and "address" or "transport")
     end
 end
 

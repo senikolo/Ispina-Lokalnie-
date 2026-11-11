@@ -421,7 +421,7 @@ probe_run_wget() {
         printf '%s\n%s\nwget\n' "${code:-000}" "$1" > "$prefix.meta"
         reason=$(stream_reason "$(tail -n 20 "$prefix.error")")
         case "$reason" in
-            tls) echo 60;; transport) echo 127;; address) echo 22;;
+            tls) echo 60;; transport) echo 127;; address) echo 22;; server) echo 69;;
             network) echo 7;; buffer) echo 28;; *) echo 1;;
         esac > "$prefix.done"
     fi
@@ -459,6 +459,7 @@ probe_run_mplayer() {
         case "$(stream_reason "$(tail -n 20 "$prefix.error")")" in
             network) result=7;;
             address) result=22;;
+            server) result=69;;
             transport) result=127;;
             *) if [ "$result" = 137 ]; then result=28; else result=1; fi;;
         esac
@@ -472,7 +473,8 @@ stream_reason() {
     if printf '%s' "$pattern" | grep -Eiq 'missing-transport|unrecognized option|invalid option|illegal option|not an http or ftp url|https.*not supported'; then echo transport
     elif printf '%s' "$pattern" | grep -Eiq 'certificate|SSL|TLS|curl: \((35|51|58|59|60|77|83|90|91)\)'; then echo tls
     elif printf '%s' "$pattern" | grep -Eiq 'No suitable plugins|No decoder|Cannot find codec|Cannot find audio codec|missing (a )?plug-?in|unrecognized format'; then echo codec
-    elif printf '%s' "$pattern" | grep -Eiq 'HTTP/[0-9.]+ [45][0-9][0-9]|[45][0-9][0-9] (Not Found|Forbidden|Unauthorized)|curl: \(22\)'; then echo address
+    elif printf '%s' "$pattern" | grep -Eiq 'HTTP/[0-9.]+ (5[0-9][0-9]|429)|5[0-9][0-9] (Internal Server Error|Bad Gateway|Service Unavailable)|429 Too Many Requests'; then echo server
+    elif printf '%s' "$pattern" | grep -Eiq 'HTTP/[0-9.]+ 4[0-9][0-9]|4[0-9][0-9] (Not Found|Forbidden|Unauthorized)|curl: \(22\)'; then echo address
     elif printf '%s' "$pattern" | grep -Eiq 'Could not (connect|resolve)|Connection refused|Network is unreachable|curl: \((5|6|7)\)'; then echo network
     elif printf '%s' "$pattern" | grep -Eiq 'timeout|timed out|too slow|curl: \(28\)'; then echo buffer
     elif printf '%s' "$pattern" | grep -Eiq 'audio device|audio driver|alsa.*(error|fail)|Failed to initialize audio'; then echo output

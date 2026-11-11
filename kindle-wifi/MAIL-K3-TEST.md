@@ -41,3 +41,10 @@ Nie scalaj zmian do gałęzi stabilnej przed testami na fizycznym urządzeniu.
 Po uruchomieniu MPlayera Kindle wykazał rozpoznanie MP3 (64 kb/s), inicjalizację ALSA (44,1 kHz stereo) i komunikat Starting playback. Nie dowodzi to odsłuchu w głośniku; połączenie później przestało być aktywne. Wersja 2.30.1 zapisuje kod wyjścia dekodera także dla radia, odróżnia zakończenie transmisji od braku silnika, nie odłącza aktywnego radia na podstawie niewiarygodnego licznika czasu MPlayera, poprawia token PID timera i dodaje alternatywny CDN VOX FM (ic2.smcdn.pl).
 
 Weryfikacja na fizycznym Kindle K3 nadal wymagana: czas działania radia, automatyczny powrót po chwilowej utracie Wi‑Fi, brak gry po wyjściu z KOReadera, klawisze głośności i timer.
+
+## Naprawa błędnego „Serwer odrzucił adres” — 2.30.2
+
+- Diagnostyka rozróżnia rzeczywiste HTTP 4xx, błędy serwera 5xx/429, przekierowania, timeout i niejednoznaczny błąd próbkowania. Nie wolno nazywać każdego nieznanego kodu „odrzuceniem adresu”.
+- Jeśli starszy MPlayer nie potrafi pobrać próbki znanego strumienia HTTP MP3, ale znane są jego kodek i bitrate mieszczący się w ustawionym limicie, system może wykonać pojedynczą bezpośrednią próbę odtwarzania. Nie dotyczy to nieznanych adresów, przekroczeń bitrate ani rzeczywistych błędów HTTP, DNS i TLS.
+- VOX FM: na serwerze Icecast potwierdzono adres 3990-1.mp3 przy 128 kb/s oraz 3990-2.aac przy 48 kb/s. Przy limicie 64 kb/s nie wolno automatycznie przełączać na MP3 128 kb/s. Użytkownik musi zezwolić na wyższy transfer lub uruchomić działający wariant AAC.
+- Testy obejmują przypadki HTTP 200 + błąd próbkowania, HTTP 403/404/429/503 oraz próbę odtworzenia znanego MP3 bez próbki.

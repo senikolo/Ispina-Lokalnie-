@@ -67,6 +67,25 @@ function T.allowed(settings, stream)
         or (not stream.kbps and cap == math.huge)
 end
 
+-- Return an address error only for an explicit rejected HTTP response.
+-- Legacy Kindle decoders can fail the sample probe while still being able to play.
+function T.probeFailure(code, exit_code)
+    local http = tonumber(code)
+    if http and http >= 500 and http <= 599 then return "server" end
+    if http == 408 then return "buffer" end
+    if http == 429 then return "server" end
+    if http and http >= 400 and http <= 499 then return "address" end
+    if http and http >= 300 and http <= 399 then return "transport" end
+    if exit_code == 35 or exit_code == 51 or exit_code == 58 or exit_code == 59
+        or exit_code == 60 or exit_code == 77 or exit_code == 90 then return "tls" end
+    if exit_code == 127 then return "transport" end
+    if exit_code == 5 or exit_code == 6 or exit_code == 7 then return "network" end
+    if exit_code == 69 then return "server" end
+    if exit_code == 22 then return "address" end
+    if exit_code == 28 or not exit_code then return "buffer" end
+    return "unconfirmed"
+end
+
 function T.rank(settings, list, last, speech)
     local minimum = settings.minimum and settings.mode ~= "high"
     local function score(v)
