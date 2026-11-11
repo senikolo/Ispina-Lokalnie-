@@ -40,7 +40,7 @@ jobs:
           test -s assets/ilmail_k3.koplugin/mail.lua
           test -s assets/ilmail_k3.koplugin/main.lua
           for file in assets/ilmail_k3.koplugin/{_meta,main,backend,vault,imap,mail}.lua assets/ilradio_k3.koplugin/main.lua; do
-            lua5.3 -e 'assert(loadfile(arg[1]))' "$file"
+            luac5.3 -p "$file"
           done
           sh -n assets/ilradio_k3.koplugin/player.sh
       - name: KOReader Lua and existing tests
