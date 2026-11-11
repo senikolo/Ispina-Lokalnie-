@@ -9,7 +9,6 @@ local DataStorage = require("datastorage")
 local ok_lfs, lfs = pcall(require, "libs/libkoreader-lfs")
 if not ok_lfs then lfs = require("lfs") end
 local plugin_dir = debug.getinfo(1, "S").source:sub(2):match("^(.*)/") or "."
-local binary = plugin_dir .. "/mailk3"
 local b64alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"
 local Mail = WidgetContainer:extend{ name="ilmail_k3", is_doc_only=false }
 
@@ -57,18 +56,25 @@ local function notice(message)
     UIManager:show(InfoMessage:new{ text=message, timeout=7 })
 end
 local function ask(title, initial, on_save, secret)
-    local dlg=InputDialog:new{
-        title=title, input=initial or "", fullscreen=false,
-        input_type=secret and "password" or nil,
-        save_callback=function(value)
-            if type(value)~="string" then return false, "Nie podano wartości." end
-            local result=on_save(value)
-            if result==false then return false, "Sprawdź wprowadzone dane." end
-            return true, "Zapisano."
-        end,
+    local dialog
+    dialog=InputDialog:new{
+        title=title, input=initial or "", input_type="text",
+        text_type=secret and "password" or nil,
+        buttons={{{text="Anuluj",id="close",callback=function()
+            UIManager:close(dialog)
+        end},{
+            text="Zapisz",is_enter_default=true,callback=function()
+                local value=dialog:getInputText()
+                if type(value)~="string" or on_save(value)==false then
+                    notice("Sprawdź wprowadzone dane.")
+                    return
+                end
+                UIManager:close(dialog)
+            end,
+        }}},
     }
-    UIManager:show(dlg)
-    if dlg.onShowKeyboard then dlg:onShowKeyboard() end
+    UIManager:show(dialog)
+    dialog:onShowKeyboard()
 end
 function Mail:init()
     self.config=G_reader_settings:readSetting("ilmail-k3-account", {
@@ -112,45 +118,33 @@ function Mail:ready()
         notice("Podaj e-mail oraz adresy IMAP i SMTP w ustawieniach.")
         return false
     end
-    if lfs.attributes(binary,"mode")~="file" then
-        notice("Brakuje silnika mailk3. Zaktualizuj wtyczkę w aplikacji Kindle przez Wi-Fi.")
+    if lfs.attributes(plugin_dir.."/backend.lua","mode")~="file" then
+        notice("Brakuje silnika LuaSec. Zaktualizuj wtyczkę w aplikacji Kindle przez Wi-Fi.")
         return false
     end
     return true
 end
 function Mail:run(command, args, recipient, subject, body)
     if not self:ready() then return nil end
-    local settings_dir=DataStorage:getSettingsDir()
-    math.randomseed(os.time())
-    local cfg=settings_dir .. "/.ilmail-once-" .. os.time() .. "-" .. math.random(100000,999999)
-    -- Private file is created with restrictive permissions before writing secrets.
-    local touched=os.execute("umask 077; touch " .. quote(cfg) .. " && chmod 600 " .. quote(cfg))
-    if touched~=0 and touched~=true then notice("Nie można zabezpieczyć konfiguracji sesji."); return nil end
-    local file=io.open(cfg,"wb")
-    if not file then os.remove(cfg);notice("Brak dostępu do tymczasowego pliku ustawień.");return nil end
-    local line={
-        self.config.email, self.password, self.config.imap, self.config.smtp,
-        recipient or "", enc(subject or ""), enc(body or "")
-    }
-    for _,field in ipairs(line) do
-        if field:find("[%c]") then file:close();os.remove(cfg);notice("Dane zawierają niedozwolone znaki.");return nil end
+    local success,backend=pcall(dofile,plugin_dir.."/backend.lua")
+    if not success then notice("Brakuje obsługi IMAP/SMTP. Zaktualizuj wtyczkę.");return nil end
+    local method=backend[command]
+    if type(method)~="function" then notice("Nieznane polecenie poczty.");return nil end
+    local ok,result
+    if command=="read" then
+        ok,result=pcall(method,self.config,self.password,args[1])
+    elseif command=="save" then
+        ok,result=pcall(method,self.config,self.password,args[1],args[2])
+    elseif command=="send" then
+        ok,result=pcall(method,self.config,self.password,recipient,subject,body)
+    else
+        ok,result=pcall(method,self.config,self.password)
     end
-    file:write(table.concat(line,"\n") .. "\n")
-    file:close()
-    local cmd=quote(binary).." --config "..quote(cfg).." "..command
-    for _,arg in ipairs(args or {}) do
-        if not tostring(arg):match("^[0-9]+$") then os.remove(cfg);return nil end
-        cmd=cmd.." "..quote(arg)
+    if not ok then
+        notice((tostring(result):gsub("^.-:%d+: ","")):sub(1,400))
+        return nil
     end
-    local pipe=io.popen(cmd.." 2>/dev/null","r")
-    if not pipe then os.remove(cfg); notice("Nie można uruchomić silnika poczty.");return nil end
-    local data=pipe:read(1000000) or ""
-    pipe:close()
-    os.remove(cfg)
-    if data=="" then notice("Silnik nie zwrócił odpowiedzi. Sprawdź zgodność ARMv6 i połączenie Wi-Fi.");return nil end
-    local errorLine=data:match("^ERROR\t([^\r\n]+)")
-    if errorLine then notice(dec(errorLine) or "Błąd połączenia pocztowego.");return nil end
-    return data
+    return result
 end
 function Mail:list()
     local data=self:run("list")
