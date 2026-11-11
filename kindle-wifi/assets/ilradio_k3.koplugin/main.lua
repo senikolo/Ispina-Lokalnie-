@@ -37,7 +37,7 @@ local ENGINE_OPTIONS = {"auto", "gst-legacy", "gst-mixer", "mplayer", "mpg123", 
 local volume_input_open = false
 local volume_input_node
 local volume_owner
-local RADIO_VERSION = "2.28.0"
+local RADIO_VERSION = "2.28.1"
 local VOLUME_KEYS = {VMinus = -1, VolumeDown = -1, VolumeMinus = -1,
     VPlus = 1, VolumeUp = 1, VolumePlus = 1}
 
@@ -261,7 +261,8 @@ end
 function ILRadio:start_radio_variant(stream)
     local job = self.job
     local codec = family(stream.codec)
-    local hls = stream.live_container == "HLS" or (stream.container or ""):match("^HLS")
+    local container = stream.live_container or stream.container or ""
+    local hls = container:match("^HLS")
     local key = hls and "HLS" or codec or "?"
     stream.engine_key = key
     local options = job.engines[key]
@@ -329,6 +330,7 @@ function ILRadio:check_probe()
         or tonumber((final_header or ""):match("\nice%-bitrate:%s*(%d+)"))
     if (code == "200" or code == "206") and T.url(final) and (not method or not method:match("^wget") or exit == 0) then
         local sample = read_small(prefix .. ".sample", 16384)
+        local hls = sample:match("^#EXTM3U") and sample:find("\n#EXT%-X%-")
         local codec, kbps, measured, container, core_rate, core_channels = T.sample(sample, nominal)
         if codec then
             stream.live_codec = codec
@@ -349,11 +351,11 @@ function ILRadio:check_probe()
             stream.live_final = method ~= "wget" and final or nil
             stream.wget_probe = method == "wget"
             stream.play_url = final:find("rj%-tok=") and stream.url or final
-            if sample:match("^#EXTM3U") then stream.live_container = "HLS" end
+            stream.live_container = hls and "HLS" or nil
             self:accept_probe(stream)
             return
         end
-        if sample:match("^#EXTM3U") then
+        if hls then
             offer_higher(job, stream)
             self:continue_radio("limit")
         else
@@ -385,15 +387,6 @@ function ILRadio:advance_radio()
     if not stream then self:finish_radio(); return end
     job.active = stream
     job.engine_index = 1
-    if not job.approved and stream.kbps and not T.allowed(self.radio, stream) then
-        offer_higher(job, stream)
-        if job.checked_over_limit then
-            job.reason = "limit"
-            self:finish_radio()
-            return
-        end
-        job.checked_over_limit = true
-    end
     local probe = shell_call("probe-start", stream.url)
     if probe:match("^/[^\r\n]+/probe%-%d+%-%d+$") then
         job.probe = probe
@@ -438,7 +431,7 @@ function ILRadio:monitor_radio()
                     job.variants[#job.variants + 1] = variant
                 end
             end
-            job.index, job.ready, job.checked_over_limit = 0, nil, false
+            job.index, job.ready = 0, nil
         else
             job.engine_index = job.engine_index + 1
             -- Network/TLS errors usually need another URL, rather than another decoder.
@@ -501,7 +494,7 @@ end
 
 function ILRadio:track_position()
     local state = self:status()
-    if state == "stopped" then return end
+    if state ~= "active" then return end
     self:remember_position()
     UIManager:scheduleIn(12, self.position_tick)
 end
@@ -539,7 +532,7 @@ function ILRadio:start_local(item)
         local result = shell_call("start", item.uri, engine, self.volume, item.path, offset)
         if result:match("^starting:") then
             item.engine = engine
-            item.checks = 0
+            item.checks, item.evidence = 0, "pending"
             self.current = item
             volume_owner = self
             local note = item.kind == "books" and engine ~= "mplayer"
@@ -580,10 +573,14 @@ function ILRadio:monitor_local()
     local item = self.current
     if not item or item.kind == "radio" then return end
     local result = shell_call("local-result")
-    if result == "active" then
+    if result == "paused" then return end
+    if result == "decoded" or result == "pending" then
         item.checks = item.checks + 1
-        UIManager:scheduleIn(3, self.start_check)
-        return
+        if result == "decoded" then item.evidence = "decoded" end
+        if item.evidence == "decoded" or item.checks < 5 then
+            UIManager:scheduleIn(item.evidence == "decoded" and 8 or 3, self.start_check)
+            return
+        end
     end
     UIManager:unschedule(self.position_tick)
     self.current = nil
@@ -596,8 +593,8 @@ function ILRadio:monitor_local()
         if self.playlist and self.track_index and self.playlist[self.track_index + 1] then
             self:next_track(1)
         end
-    elseif item.checks < 3 then
-        self:start_local(item)
+    elseif item.evidence ~= "decoded" then
+        if not self:start_local(item) then shell_call("stop") end
     else
         self:notice("Odtwarzanie pliku zostało przerwane. Sprawdź Diagnostykę audio.", 7)
     end
@@ -730,7 +727,6 @@ function ILRadio:playing_info(full)
     local status = state == "paused" and "Pauza" or state == "stopped" and "Zatrzymane"
         or item.audible and "Dźwięk potwierdzony przez słuchacza"
         or item.evidence == "decoded" and "Silnik zgłosił dekodowanie i wyjście audio"
-        or item.kind ~= "radio" and (item.checks or 0) > 0 and "Odtwarzanie pliku"
         or "Odtwarzacz uruchomiony, dźwięk niepotwierdzony"
     local text = item.name .. "\nStan: " .. status
         .. "\nSilnik: " .. item.engine .. "\nGłośność: " .. self.volume .. "%"
@@ -798,18 +794,32 @@ function ILRadio:toggle_pause()
     if state == "stopped" and not self.job and self.settings:readSetting("last_audio_kind") ~= "radio" then
         self:restore_queue()
     end
-    if state == "active" and self.current then
-        if self.current.kind == "radio" then
+    if state == "active" then
+        if not self.current or self.current.kind == "radio" then
             if self:stop() then
                 self:notice("Radio wstrzymane. Wybierz „Wznów ostatnią stację”, aby słuchać ponownie.")
             end
         else
             self:remember_position()
             local paused = shell_call("pause")
+            if paused == "paused" then
+                UIManager:unschedule(self.start_check)
+                UIManager:unschedule(self.position_tick)
+            end
             self:notice(paused == "paused" and "Pauza." or "Odtwarzanie zostało zakończone.")
         end
     elseif state == "paused" then
         local resumed = shell_call("resume")
+        local item = self.current
+        if resumed == "active" and item and item.kind ~= "radio" then
+            if item.engine == "mplayer" and item.volume_pending then
+                item.volume_pending = shell_call("volume", self.volume) ~= "adjusted"
+            end
+            UIManager:scheduleIn(2, self.start_check)
+            if item.kind == "books" and item.engine == "mplayer" then
+                UIManager:scheduleIn(6, self.position_tick)
+            end
+        end
         self:notice(resumed == "active" and "Wznowiono odtwarzanie." or "Odtwarzanie zostało zakończone.")
     elseif self.job then
         if self:stop() then self:notice("Łączenie wstrzymane.") end
@@ -844,6 +854,11 @@ function ILRadio:volume_change(delta, quiet)
     self.volume = next_volume
     self:save("volume", self.volume)
     if current and current.engine == "mplayer" then
+        if self:status() == "paused" then
+            current.volume_pending = true
+            if not quiet then self:notice("Głośność po wznowieniu: " .. self.volume .. "%.") end
+            return
+        end
         local adjusted = shell_call("volume", self.volume) == "adjusted"
         if not quiet or (not adjusted and not current.volume_warning) then
             self:notice(adjusted and ("Głośność " .. self.volume .. "%.")
@@ -1063,6 +1078,11 @@ function ILRadio:radio_menu()
         { text = "Próby kodeków bez internetu", sub_item_table_func = function() return self:decode_menu() end },
         { text = "Diagnostyka audio", callback = function()
             local details = shell_call("diagnose")
+            local ok, TextViewer = pcall(require, "ui/widget/textviewer")
+            if ok then
+                UIManager:show(TextViewer:new {title = "Diagnostyka audio Kindle K3", text = details})
+                return
+            end
             if #details > 1100 then details = details:sub(1, 1100) end
             self:notice("Diagnostyka Kindle K3\n\n" .. details, 20)
         end },

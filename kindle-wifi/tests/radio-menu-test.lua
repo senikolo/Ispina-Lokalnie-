@@ -179,5 +179,59 @@ plugin:play_station(catalog[1])
 settle()
 assert(not plugin.current, "Finite bitrate must not trust catalog without a fresh sample")
 plugin:stop()
+no_transport = false
+-- Stale catalogue entries must not terminate the queue before a usable URL.
+local previous = io.popen
+io.popen = function(command)
+    local result = previous(command)
+    if command:find("'probe-start'", 1, true) and command:find("/unavailable", 1, true) then
+        local f = assert(io.open("/tmp/probe-228-1.meta", "wb"))
+        f:write("404\nhttp://fixture.invalid/unavailable\ncurl\n")
+        f:close()
+    end
+    return result
+end
+plugin.job = {station = catalog[1], index = 0, starts = 0, engines = {}, variants = {
+    {url = "http://fixture.invalid/unavailable1", kbps = 96},
+    {url = "http://fixture.invalid/unavailable2", kbps = 128},
+    {url = "http://fixture.invalid/available", kbps = 128},
+}}
+plugin:advance_radio()
+settle()
+assert(plugin.current and plugin.current.uri == "http://fixture.invalid/available")
+assert(plugin.current.stream.live_kbps == 48 and not plugin.job.approved)
+plugin:stop()
+io.popen = previous
+
+local local_result = "pending"
+io.popen = function(command)
+    if command:find("'local-result'", 1, true) then
+        return {read = function() return local_result end, close = function() end}
+    end
+    return previous(command)
+end
+local function play_fixture()
+    assert(plugin:play("file:///mnt/us/music/test.mp3", "Próba", "music", "/mnt/us/music/test.mp3"))
+end
+play_fixture()
+plugin.start_check()
+plugin:playing_info()
+assert(messages[#messages]:find("dźwięk niepotwierdzony", 1, true))
+plugin:toggle_pause()
+assert(not scheduled[plugin.start_check])
+local before = #calls
+plugin:volume_change(5)
+for i = before + 1, #calls do assert(not calls[i]:find("'volume'", 1, true)) end
+plugin:toggle_pause()
+assert(calls[#calls]:find("'volume' '75'", 1, true) and scheduled[plugin.start_check])
+local_result = "decoded"
+plugin.start_check()
+assert(plugin.current.evidence == "decoded" and scheduled[plugin.start_check] == 8)
+plugin:stop()
+play_fixture()
+local_result = "pending"
+for _ = 1, 5 do plugin.start_check() end
+assert(not plugin.current and state == "stopped", "Silent decoder must release playback")
+io.popen = previous
 for _, suffix in ipairs({".done", ".meta", ".headers", ".sample"}) do os.remove("/tmp/probe-228-1" .. suffix) end
 print((legacy and "Legacy" or "Modern") .. " filesystem module: PASS IL Radio menu")

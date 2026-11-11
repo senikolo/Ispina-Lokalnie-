@@ -67,3 +67,16 @@ probe "http://127.0.0.1:1/radio.aac"
 probe "http://127.0.0.1:$port/stall"
 [ "$(cat "$prefix.done")" = 28 ]
 echo 'PASS real HTTP redirect, HTTPS certificate, timeout, dead server and capped sample'
+if command -v wget >/dev/null; then
+    mkdir "$fixture/bin"
+    cat > "$fixture/bin/curl" <<'CURL'
+#!/bin/sh
+exit 2
+CURL
+    chmod +x "$fixture/bin/curl"
+    export PATH="$fixture/bin:$PATH"
+    probe "http://127.0.0.1:$port/radio.aac"
+    grep -Fx wget-direct "$prefix.meta"
+    [ "$(wc -c < "$prefix.sample")" = 16384 ]
+    echo 'PASS: old curl without protocol flags falls back to wget'
+fi

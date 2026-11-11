@@ -18,6 +18,10 @@ HERE=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd) || exit 1
 
 has() { command -v "$1" >/dev/null 2>&1; }
 
+usable_curl() {
+    has curl && curl --proto '=http,https' --proto-redir '=http,https' --version >/dev/null 2>&1
+}
+
 gst_legacy() {
     if has gst-launch-0.10; then echo gst-launch-0.10
     elif has gst-launch; then echo gst-launch
@@ -165,7 +169,7 @@ stream_legacy() {
         fi
         exec "$gst" -m playbin "uri=$uri" "volume=$volume"
     fi
-    if has curl; then
+    if usable_curl; then
         set -- curl -fLsS --max-redirs 5 --connect-timeout 8 --speed-time 10 --speed-limit 128 --proto '=http,https' --proto-redir '=http,https' "$uri"
     elif has wget; then
         set -- wget -T 12 -O - "$uri"
@@ -229,7 +233,7 @@ play_backend() {
             if [ "$codec" = AAC ]; then set -- "$@" -demuxer aac; fi
             case "$uri" in
                 https://*)
-                    if has curl; then transport "$uri" "$mplayer" "$@" -
+                    if usable_curl; then transport "$uri" "$mplayer" "$@" -
                     elif has wget; then transport_wget "$uri" "$mplayer" "$@" -
                     else echo 'ILRADIO_ERROR missing-transport'; return 2; fi;;
                 *) exec "$mplayer" "$@" "$uri";;
@@ -495,8 +499,17 @@ control() {
     is_ours || return 1
     fifo="$R/control-$token"
     [ -p "$fifo" ] || return 1
-    # Opening for read/write avoids waiting on a vanished player.
-    ( exec 3<>"$fifo"; printf '%s\n' "$1" >&3 )
+    [ ! -e "$PAUSED" ] || return 1
+    # Opening read/write cannot block, but a full FIFO can block the write.
+    (exec 3<>"$fifo" && printf '%s\n' "$1" >&3) &
+    writer=$!
+    (sleep 1; kill -KILL "$writer" 2>/dev/null || :) </dev/null >/dev/null 2>&1 &
+    watchdog=$!
+    wait "$writer"
+    written=$?
+    kill "$watchdog" 2>/dev/null || :
+    wait "$watchdog" 2>/dev/null || :
+    return "$written"
 }
 
 case "${1:-}" in
@@ -545,7 +558,7 @@ case "${1:-}" in
         rm -f "$R"/probe-*.sample "$R"/probe-*.meta "$R"/probe-*.headers "$R"/probe-*.done "$R"/probe-*.error
         token="$$-$(date +%s)"
         printf '%s\n' "$token" > "$R/probe.token"
-        if has curl; then
+        if usable_curl; then
             ILRADIO_K3_PROBE="$token" launch probe-run "$2" </dev/null >/dev/null 2>&1 &
         elif has wget; then
             ILRADIO_K3_PROBE="$token" launch probe-run-wget "$2" </dev/null >/dev/null 2>&1 &
@@ -571,11 +584,16 @@ case "${1:-}" in
         fi;;
     local-result)
         case "$last_token" in ''|*[!0-9-]*) echo failed; exit;; esac
-        result=$(cat "$R/end-$last_token" 2>/dev/null)
-        if [ "$result" = 0 ]; then echo ended
-        elif [ -n "$result" ]; then echo failed
-        elif is_ours; then
-            case "$(play_evidence)" in failed:*) echo failed;; *) echo active;; esac
+        if is_ours; then
+            case "$(play_evidence)" in
+                paused) echo paused; exit;;
+                decoded) echo decoded; exit;;
+                pending) echo pending; exit;;
+            esac
+        fi
+        # Read completion after checking the process. The wrapper writes the
+        # exit code before it exits, including for very short files.
+        if [ "$(cat "$R/end-$last_token" 2>/dev/null)" = 0 ]; then echo ended
         else echo failed; fi;;
     status)
         if is_ours; then
@@ -626,7 +644,7 @@ case "${1:-}" in
             test-hev224.aac) label="AAC 24 kb/s · próbka starsza";;
             *) label=$3;;
         esac
-        printf '%s\n' "$label · $2 · ${result:-unconfirmed}" > "$R/test-$3"
+        printf '%s\n' "$label · $2 · ${result:-unconfirmed}" > "$R/test-$2-$3"
         printf '%s\n' "${result:-unconfirmed}" > "$R/test-done"
         rmdir "$R/test-running";;
     decode-result)

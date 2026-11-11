@@ -63,5 +63,26 @@ done
 [ "$(sh "$player" status)" = active ]
 [ "$(sh "$player" evidence)" = decoded ]
 sh "$player" facts | grep -Fx 'pcm=22050 2'
+python3 - "$player" <<'PY'
+import os
+import pathlib
+import subprocess
+import sys
+
+root = pathlib.Path(os.environ["TMPDIR"]) / "ilradio-k3"
+fifo = next(root.glob("control-*"))
+fd = os.open(fifo, os.O_RDWR | os.O_NONBLOCK)
+try:
+    while True:
+        os.write(fd, b"x" * 512)
+except BlockingIOError:
+    pass
+try:
+    result = subprocess.run(["sh", sys.argv[1], "volume", "70"], capture_output=True, timeout=4)
+    assert result.stdout.strip() != b"adjusted"
+finally:
+    os.close(fd)
+print("PASS: full MPlayer control FIFO cannot block the user interface")
+PY
 [ "$(sh "$player" stop)" = stopped ]
 echo 'PASS: playback evidence is visible while the decoder is running'
