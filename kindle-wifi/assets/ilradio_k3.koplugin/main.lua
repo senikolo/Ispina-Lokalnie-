@@ -291,7 +291,7 @@ function ILRadio:start_radio_variant(stream)
     if not engine or job.starts >= 8 then self:continue_radio(job.reason or "engine"); return end
     job.starts = job.starts + 1
     local uri = stream.play_url or stream.url
-    local result = shell_call("start", uri, engine, self.volume, "", 0, self.radio.buffer, codec or "", job.station[1], "", self.boost)
+    local result = shell_call("start", uri, engine, self.volume, "", 0, tonumber(self.radio.buffer) or 128, codec or "", job.station[1], "", self.boost)
     if not result:match("^starting:") then
         job.engine_index = job.engine_index + 1
         self:continue_radio("engine")
@@ -489,6 +489,13 @@ function ILRadio:monitor_radio()
                 end
             end
             job.index, job.ready = 0, nil
+        elseif item.evidence == "decoded" and not job.short_retry and job.starts < 8
+            and (reason == "playback" or reason == "ended" or reason == "buffer") then
+            -- A station heard briefly should get one retry of its proven
+            -- stream before we abandon it for a different codec or CDN.
+            job.short_retry = true
+            job.engine_index = 1
+            job.ready = item.stream
         else
             job.engine_index = job.engine_index + 1
             -- Network/TLS errors usually need another URL, rather than another decoder.
