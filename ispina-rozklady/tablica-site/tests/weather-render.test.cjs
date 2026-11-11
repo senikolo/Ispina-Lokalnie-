@@ -35,3 +35,28 @@ test('actual PNG renderer serves both responsive cards, full widget, and outage 
     assert.equal(Buffer.from(await response.arrayBuffer()).subarray(1,4).toString(),'PNG');
   } finally {global.fetch = originalFetch; await fs.rm(temporary, {force:true});}
 });
+
+test('PNG renderer switches to MET Norway for every card during a primary 503', async () => {
+  const route = path.join(__dirname, '../app/api/pogoda.png/route.ts');
+  const temporary = path.join(path.dirname(route), `.backup-render-test-${process.pid}.mjs`);
+  let source = ts.transpileModule(await fs.readFile(route, 'utf8'), {compilerOptions:{module:ts.ModuleKind.ESNext, target:ts.ScriptTarget.ES2022}}).outputText;
+  source = source.replace('"next/og"', JSON.stringify(pathToFileURL(require.resolve('next/og')).href));
+  const originalFetch = global.fetch;
+  try {
+    await fs.writeFile(temporary,source);
+    const {metnoFixture} = await import('./fixtures/metno.mjs');
+    global.fetch = async url => String(url).includes('api.met.no')
+      ? {ok:true,status:200,headers:new Headers(),json:async()=>metnoFixture(Date.now())}
+      : {ok:false,status:503};
+    const {GET}=await import(pathToFileURL(temporary).href);
+    for(const part of ['brief','daily','now','trend','']){
+      const response=await GET(new Request('https://weather.example/api/pogoda'+(part?'?part='+part:'')));
+      assert.equal(response.headers.get('x-weather-status'),'ok');
+      assert.equal(response.headers.get('x-weather-source'),'metno');
+      assert.equal(response.headers.get('x-weather-error'),null);
+      assert.ok(response.headers.get('x-weather-data-time'));
+      const bytes=Buffer.from(await response.arrayBuffer());
+      assert.equal(bytes.subarray(1,4).toString(),'PNG');assert.ok(bytes.length>5000);
+    }
+  } finally {global.fetch=originalFetch;await fs.rm(temporary,{force:true});}
+});

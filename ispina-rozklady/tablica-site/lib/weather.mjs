@@ -1,6 +1,16 @@
+import {createMetnoLoader, validateMetnoForecast} from './weather-metno.mjs';
 export const LOCATION = Object.freeze({ latitude: 50.11336, longitude: 20.37746, timezone: 'Europe/Warsaw' });
 export const REFRESH_MS = 30 * 60 * 1000;
 const MAX_CURRENT_AGE = 45 * 60;
+const transientHttp = new Set([502, 503, 504]);
+export function weatherErrorCode(error) {
+  if (error?.code === 'all-sources') return 'all-sources';
+  if (/^http-\d{3}$/.test(error?.code)) return error.code;
+  if (['TimeoutError', 'AbortError'].includes(error?.name)) return 'timeout';
+  if (error instanceof SyntaxError) return 'invalid-json';
+  if (/^(Wrong|Invalid|Incomplete) /.test(error?.message || '')) return 'invalid-data';
+  return 'network';
+}
 const codes = new Set([0,1,2,3,45,48,51,53,55,56,57,61,63,65,66,67,71,73,75,77,80,81,82,85,86,95,96,99]);
 const number = (v, min, max) => typeof v === 'number' && Number.isFinite(v) && v >= min && v <= max;
 export const localDate = (seconds) => new Intl.DateTimeFormat('en-CA', { timeZone: LOCATION.timezone, year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date(seconds * 1000));
@@ -64,20 +74,32 @@ export function validateWeather(data, now = Date.now()) {
   return data;
 }
 
-export function createWeatherLoader(fetcher = fetch, clock = Date.now) {
-  let cached, expires = 0, pending, retryAfter = 0;
+export function createWeatherLoader(fetcher = fetch, clock = Date.now, fallback = createMetnoLoader(fetcher, clock)) {
+  let cached, expires = 0, pending, retryAfter = 0, lastError;
   return async function load() {
     const now = clock();
     if (cached && now < expires) {
-      try { validateWeather(cached.data, now); return cached; } catch { cached = undefined; }
+      try { cached.data.source === 'metno' ? validateMetnoForecast(cached.data, now) : validateWeather(cached.data, now); return cached; } catch { cached = undefined; }
     }
-    if (now < retryAfter) throw new Error('Weather temporarily unavailable');
     if (pending) return pending;
+    if (now < retryAfter) throw lastError;
     // No Next.js stale-on-error cache: expired data is never a fallback.
     pending = (async () => {
       try {
-        const response = await fetcher(weatherUrl(clock()), { cache: 'no-store', signal: AbortSignal.timeout(8000) });
-        if (!response.ok) throw new Error('Weather source unavailable');
+        let response;
+        // Retry a transient upstream failure once. Never retry rate limits or
+        // validation errors, and keep expired forecasts out of the response.
+        for (let attempt = 0; attempt < 2; attempt++) {
+          try {
+            response = await fetcher(weatherUrl(clock()), { cache: 'no-store', signal: AbortSignal.timeout(8000) });
+            if (!transientHttp.has(response.status) || attempt === 1) break;
+            await response.body?.cancel();
+          } catch (error) {
+            if (attempt === 1 || !['network', 'timeout'].includes(weatherErrorCode(error))) throw error;
+          }
+          await new Promise(resolve => setTimeout(resolve, 500));
+        }
+        if (!response.ok) throw Object.assign(new Error(`Weather source HTTP ${response.status}`), {code: `http-${response.status}`});
         const data = validateWeather(await response.json(), clock());
         const fetchedAt = clock();
         expires = Math.min(fetchedAt + REFRESH_MS, (data.current.time + MAX_CURRENT_AGE) * 1000);
@@ -90,7 +112,21 @@ export function createWeatherLoader(fetcher = fetch, clock = Date.now) {
         return cached;
       } catch (error) {
         cached = undefined;
+        lastError = error;
         retryAfter = clock() + 60000;
+        if (fallback) {
+          try {
+            const data = await fallback(), fetchedAt = clock();
+            // Recheck the preferred source in five minutes. The backup loader
+            // separately respects its HTTP expiry and caches forecast data.
+            expires = Math.min(fetchedAt + 5 * 60000, (data.current.time + 3600) * 1000);
+            cached = {data, fetchedAt, expires};
+            return cached;
+          } catch (backupError) {
+            lastError = Object.assign(new Error(`Both weather sources unavailable: ${weatherErrorCode(error)} / ${weatherErrorCode(backupError)}`), {code:'all-sources'});
+            throw lastError;
+          }
+        }
         throw error;
       } finally { pending = undefined; }
     })();
