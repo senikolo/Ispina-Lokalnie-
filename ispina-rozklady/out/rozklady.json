@@ -1,148 +1,607 @@
 {
-  "generated_at": "2026-11-11T13:43:23.179885+01:00",
+  "generated_at": "2026-11-12T00:28:06.869373+01:00",
   "timezone": "Europe/Warsaw",
   "data_type": "scheduled_not_realtime",
-  "date": "2026-11-11",
+  "date": "2026-11-12",
   "valid": false,
   "status": "partial",
   "days": [
     {
-      "date": "2026-11-11",
+      "date": "2026-11-12",
       "departures": [
+        {
+          "stop": "most",
+          "stop_id": "67",
+          "line": "A65",
+          "direction": "south",
+          "time": "04:09",
+          "destination": "Bochnia Dworzec PKP",
+          "trip_id": "1385_1997"
+        },
+        {
+          "stop": "dom-ludowy",
+          "stop_id": "4352",
+          "line": "A65",
+          "direction": "south",
+          "time": "04:10",
+          "destination": "Bochnia Dworzec PKP",
+          "trip_id": "1385_1997"
+        },
+        {
+          "stop": "wislisko",
+          "stop_id": "4076",
+          "line": "A65",
+          "direction": "south",
+          "time": "04:11",
+          "destination": "Bochnia Dworzec PKP",
+          "trip_id": "1385_1997"
+        },
         {
           "stop": "wislisko",
           "stop_id": "4222",
-          "line": "A4",
+          "line": "A65",
           "direction": "north",
-          "time": "06:08",
+          "time": "04:26",
           "destination": "Nowe Brzesko Rynek",
-          "trip_id": "1385_1963"
+          "trip_id": "1385_1983"
         },
         {
           "stop": "dom-ludowy",
           "stop_id": "4533",
-          "line": "A4",
+          "line": "A65",
           "direction": "north",
-          "time": "06:09",
+          "time": "04:27",
           "destination": "Nowe Brzesko Rynek",
-          "trip_id": "1385_1963"
+          "trip_id": "1385_1983"
         },
         {
           "stop": "most",
           "stop_id": "119",
-          "line": "A4",
+          "line": "A65",
           "direction": "north",
-          "time": "06:10",
+          "time": "04:28",
           "destination": "Nowe Brzesko Rynek",
-          "trip_id": "1385_1963"
+          "trip_id": "1385_1983"
         },
         {
           "stop": "most",
           "stop_id": "67",
           "line": "A4",
+          "direction": "south",
+          "time": "04:29",
+          "destination": "Bochnia Dworzec PKP",
+          "trip_id": "1385_1943"
+        },
+        {
+          "stop": "dom-ludowy",
+          "stop_id": "4352",
+          "line": "A4",
+          "direction": "south",
+          "time": "04:30",
+          "destination": "Bochnia Dworzec PKP",
+          "trip_id": "1385_1943"
+        },
+        {
+          "stop": "wislisko",
+          "stop_id": "4076",
+          "line": "A4",
+          "direction": "south",
+          "time": "04:31",
+          "destination": "Bochnia Dworzec PKP",
+          "trip_id": "1385_1943"
+        },
+        {
+          "stop": "most",
+          "stop_id": "67",
+          "line": "A65",
+          "direction": "south",
+          "time": "04:59",
+          "destination": "Bochnia Dworzec PKP",
+          "trip_id": "1385_1984"
+        },
+        {
+          "stop": "dom-ludowy",
+          "stop_id": "4352",
+          "line": "A65",
+          "direction": "south",
+          "time": "05:00",
+          "destination": "Bochnia Dworzec PKP",
+          "trip_id": "1385_1984"
+        },
+        {
+          "stop": "wislisko",
+          "stop_id": "4076",
+          "line": "A65",
+          "direction": "south",
+          "time": "05:01",
+          "destination": "Bochnia Dworzec PKP",
+          "trip_id": "1385_1984"
+        },
+        {
+          "stop": "most",
+          "stop_id": "67",
+          "line": "A4",
+          "direction": "south",
+          "time": "05:34",
+          "destination": "Bochnia Dworzec PKP",
+          "trip_id": "1385_1951"
+        },
+        {
+          "stop": "dom-ludowy",
+          "stop_id": "4352",
+          "line": "A4",
+          "direction": "south",
+          "time": "05:35",
+          "destination": "Bochnia Dworzec PKP",
+          "trip_id": "1385_1951"
+        },
+        {
+          "stop": "wislisko",
+          "stop_id": "4076",
+          "line": "A4",
+          "direction": "south",
+          "time": "05:36",
+          "destination": "Bochnia Dworzec PKP",
+          "trip_id": "1385_1951"
+        },
+        {
+          "stop": "wislisko",
+          "stop_id": "4222",
+          "line": "A65",
+          "direction": "north",
+          "time": "05:56",
+          "destination": "Nowe Brzesko Rynek",
+          "trip_id": "1385_1998"
+        },
+        {
+          "stop": "dom-ludowy",
+          "stop_id": "4533",
+          "line": "A65",
+          "direction": "north",
+          "time": "05:57",
+          "destination": "Nowe Brzesko Rynek",
+          "trip_id": "1385_1998"
+        },
+        {
+          "stop": "most",
+          "stop_id": "119",
+          "line": "A65",
+          "direction": "north",
+          "time": "05:58",
+          "destination": "Nowe Brzesko Rynek",
+          "trip_id": "1385_1998"
+        },
+        {
+          "stop": "most",
+          "stop_id": "67",
+          "line": "A65",
           "direction": "south",
           "time": "06:29",
           "destination": "Bochnia Dworzec PKP",
-          "trip_id": "1385_1964"
+          "trip_id": "1385_1999"
         },
         {
           "stop": "dom-ludowy",
           "stop_id": "4352",
-          "line": "A4",
+          "line": "A65",
           "direction": "south",
           "time": "06:30",
           "destination": "Bochnia Dworzec PKP",
-          "trip_id": "1385_1964"
+          "trip_id": "1385_1999"
         },
         {
           "stop": "wislisko",
           "stop_id": "4076",
-          "line": "A4",
+          "line": "A65",
           "direction": "south",
           "time": "06:31",
           "destination": "Bochnia Dworzec PKP",
-          "trip_id": "1385_1964"
+          "trip_id": "1385_1999"
+        },
+        {
+          "stop": "wislisko",
+          "stop_id": "4222",
+          "line": "A4",
+          "direction": "north",
+          "time": "06:43",
+          "destination": "Nowe Brzesko Rynek",
+          "trip_id": "1385_1944"
+        },
+        {
+          "stop": "dom-ludowy",
+          "stop_id": "4533",
+          "line": "A4",
+          "direction": "north",
+          "time": "06:44",
+          "destination": "Nowe Brzesko Rynek",
+          "trip_id": "1385_1944"
+        },
+        {
+          "stop": "most",
+          "stop_id": "119",
+          "line": "A4",
+          "direction": "north",
+          "time": "06:45",
+          "destination": "Nowe Brzesko Rynek",
+          "trip_id": "1385_1944"
         },
         {
           "stop": "wislisko",
           "stop_id": "4222",
           "line": "A65",
           "direction": "north",
-          "time": "09:21",
+          "time": "06:51",
           "destination": "Nowe Brzesko Rynek",
-          "trip_id": "1385_1965"
+          "trip_id": "1385_1985"
         },
         {
           "stop": "dom-ludowy",
           "stop_id": "4533",
           "line": "A65",
           "direction": "north",
-          "time": "09:22",
+          "time": "06:52",
           "destination": "Nowe Brzesko Rynek",
-          "trip_id": "1385_1965"
+          "trip_id": "1385_1985"
         },
         {
           "stop": "most",
           "stop_id": "119",
           "line": "A65",
           "direction": "north",
+          "time": "06:53",
+          "destination": "Nowe Brzesko Rynek",
+          "trip_id": "1385_1985"
+        },
+        {
+          "stop": "most",
+          "stop_id": "67",
+          "line": "A4",
+          "direction": "south",
+          "time": "07:04",
+          "destination": "Bochnia Dworzec PKP",
+          "trip_id": "1385_1945"
+        },
+        {
+          "stop": "dom-ludowy",
+          "stop_id": "4352",
+          "line": "A4",
+          "direction": "south",
+          "time": "07:05",
+          "destination": "Bochnia Dworzec PKP",
+          "trip_id": "1385_1945"
+        },
+        {
+          "stop": "wislisko",
+          "stop_id": "4076",
+          "line": "A4",
+          "direction": "south",
+          "time": "07:06",
+          "destination": "Bochnia Dworzec PKP",
+          "trip_id": "1385_1945"
+        },
+        {
+          "stop": "most",
+          "stop_id": "67",
+          "line": "A65",
+          "direction": "south",
+          "time": "07:34",
+          "destination": "Bochnia Dworzec PKP",
+          "trip_id": "1385_1986"
+        },
+        {
+          "stop": "dom-ludowy",
+          "stop_id": "4352",
+          "line": "A65",
+          "direction": "south",
+          "time": "07:35",
+          "destination": "Bochnia Dworzec PKP",
+          "trip_id": "1385_1986"
+        },
+        {
+          "stop": "wislisko",
+          "stop_id": "4076",
+          "line": "A65",
+          "direction": "south",
+          "time": "07:36",
+          "destination": "Bochnia Dworzec PKP",
+          "trip_id": "1385_1986"
+        },
+        {
+          "stop": "wislisko",
+          "stop_id": "4222",
+          "line": "A4",
+          "direction": "north",
+          "time": "07:43",
+          "destination": "Nowe Brzesko Rynek",
+          "trip_id": "1385_1952"
+        },
+        {
+          "stop": "dom-ludowy",
+          "stop_id": "4533",
+          "line": "A4",
+          "direction": "north",
+          "time": "07:44",
+          "destination": "Nowe Brzesko Rynek",
+          "trip_id": "1385_1952"
+        },
+        {
+          "stop": "most",
+          "stop_id": "119",
+          "line": "A4",
+          "direction": "north",
+          "time": "07:45",
+          "destination": "Nowe Brzesko Rynek",
+          "trip_id": "1385_1952"
+        },
+        {
+          "stop": "most",
+          "stop_id": "67",
+          "line": "A4",
+          "direction": "south",
+          "time": "08:19",
+          "destination": "Bochnia Dworzec PKP",
+          "trip_id": "1385_1953"
+        },
+        {
+          "stop": "dom-ludowy",
+          "stop_id": "4352",
+          "line": "A4",
+          "direction": "south",
+          "time": "08:20",
+          "destination": "Bochnia Dworzec PKP",
+          "trip_id": "1385_1953"
+        },
+        {
+          "stop": "wislisko",
+          "stop_id": "4076",
+          "line": "A4",
+          "direction": "south",
+          "time": "08:21",
+          "destination": "Bochnia Dworzec PKP",
+          "trip_id": "1385_1953"
+        },
+        {
+          "stop": "wislisko",
+          "stop_id": "4222",
+          "line": "A65",
+          "direction": "north",
+          "time": "08:26",
+          "destination": "Nowe Brzesko Rynek",
+          "trip_id": "1385_2000"
+        },
+        {
+          "stop": "dom-ludowy",
+          "stop_id": "4533",
+          "line": "A65",
+          "direction": "north",
+          "time": "08:27",
+          "destination": "Nowe Brzesko Rynek",
+          "trip_id": "1385_2000"
+        },
+        {
+          "stop": "most",
+          "stop_id": "119",
+          "line": "A65",
+          "direction": "north",
+          "time": "08:28",
+          "destination": "Nowe Brzesko Rynek",
+          "trip_id": "1385_2000"
+        },
+        {
+          "stop": "wislisko",
+          "stop_id": "4222",
+          "line": "A4",
+          "direction": "north",
           "time": "09:23",
           "destination": "Nowe Brzesko Rynek",
-          "trip_id": "1385_1965"
-        },
-        {
-          "stop": "most",
-          "stop_id": "67",
-          "line": "A4",
-          "direction": "south",
-          "time": "10:29",
-          "destination": "Bochnia Dworzec PKP",
-          "trip_id": "1385_1969"
+          "trip_id": "1385_1946"
         },
         {
           "stop": "dom-ludowy",
-          "stop_id": "4352",
+          "stop_id": "4533",
           "line": "A4",
-          "direction": "south",
-          "time": "10:30",
-          "destination": "Bochnia Dworzec PKP",
-          "trip_id": "1385_1969"
+          "direction": "north",
+          "time": "09:24",
+          "destination": "Nowe Brzesko Rynek",
+          "trip_id": "1385_1946"
         },
         {
-          "stop": "wislisko",
-          "stop_id": "4076",
+          "stop": "most",
+          "stop_id": "119",
           "line": "A4",
-          "direction": "south",
-          "time": "10:31",
-          "destination": "Bochnia Dworzec PKP",
-          "trip_id": "1385_1969"
+          "direction": "north",
+          "time": "09:25",
+          "destination": "Nowe Brzesko Rynek",
+          "trip_id": "1385_1946"
         },
         {
           "stop": "most",
           "stop_id": "67",
           "line": "A65",
           "direction": "south",
-          "time": "10:34",
+          "time": "09:29",
           "destination": "Bochnia Dworzec PKP",
-          "trip_id": "1385_1966"
+          "trip_id": "1385_2001"
         },
         {
           "stop": "dom-ludowy",
           "stop_id": "4352",
           "line": "A65",
           "direction": "south",
-          "time": "10:35",
+          "time": "09:30",
           "destination": "Bochnia Dworzec PKP",
-          "trip_id": "1385_1966"
+          "trip_id": "1385_2001"
         },
         {
           "stop": "wislisko",
           "stop_id": "4076",
           "line": "A65",
           "direction": "south",
-          "time": "10:36",
+          "time": "09:31",
           "destination": "Bochnia Dworzec PKP",
-          "trip_id": "1385_1966"
+          "trip_id": "1385_2001"
+        },
+        {
+          "stop": "wislisko",
+          "stop_id": "4222",
+          "line": "A65",
+          "direction": "north",
+          "time": "10:01",
+          "destination": "Nowe Brzesko Rynek",
+          "trip_id": "1385_1987"
+        },
+        {
+          "stop": "dom-ludowy",
+          "stop_id": "4533",
+          "line": "A65",
+          "direction": "north",
+          "time": "10:02",
+          "destination": "Nowe Brzesko Rynek",
+          "trip_id": "1385_1987"
+        },
+        {
+          "stop": "most",
+          "stop_id": "119",
+          "line": "A65",
+          "direction": "north",
+          "time": "10:03",
+          "destination": "Nowe Brzesko Rynek",
+          "trip_id": "1385_1987"
+        },
+        {
+          "stop": "most",
+          "stop_id": "67",
+          "line": "A65",
+          "direction": "south",
+          "time": "10:24",
+          "destination": "Bochnia Dworzec PKP",
+          "trip_id": "1385_1988"
+        },
+        {
+          "stop": "dom-ludowy",
+          "stop_id": "4352",
+          "line": "A65",
+          "direction": "south",
+          "time": "10:25",
+          "destination": "Bochnia Dworzec PKP",
+          "trip_id": "1385_1988"
+        },
+        {
+          "stop": "wislisko",
+          "stop_id": "4076",
+          "line": "A65",
+          "direction": "south",
+          "time": "10:26",
+          "destination": "Bochnia Dworzec PKP",
+          "trip_id": "1385_1988"
+        },
+        {
+          "stop": "most",
+          "stop_id": "67",
+          "line": "A4",
+          "direction": "south",
+          "time": "11:09",
+          "destination": "Bochnia Dworzec PKP",
+          "trip_id": "1385_1947"
+        },
+        {
+          "stop": "dom-ludowy",
+          "stop_id": "4352",
+          "line": "A4",
+          "direction": "south",
+          "time": "11:10",
+          "destination": "Bochnia Dworzec PKP",
+          "trip_id": "1385_1947"
+        },
+        {
+          "stop": "wislisko",
+          "stop_id": "4076",
+          "line": "A4",
+          "direction": "south",
+          "time": "11:11",
+          "destination": "Bochnia Dworzec PKP",
+          "trip_id": "1385_1947"
+        },
+        {
+          "stop": "wislisko",
+          "stop_id": "4222",
+          "line": "A65",
+          "direction": "north",
+          "time": "11:26",
+          "destination": "Nowe Brzesko Rynek",
+          "trip_id": "1385_1954"
+        },
+        {
+          "stop": "dom-ludowy",
+          "stop_id": "4533",
+          "line": "A65",
+          "direction": "north",
+          "time": "11:27",
+          "destination": "Nowe Brzesko Rynek",
+          "trip_id": "1385_1954"
+        },
+        {
+          "stop": "most",
+          "stop_id": "119",
+          "line": "A65",
+          "direction": "north",
+          "time": "11:28",
+          "destination": "Nowe Brzesko Rynek",
+          "trip_id": "1385_1954"
+        },
+        {
+          "stop": "most",
+          "stop_id": "67",
+          "line": "A65",
+          "direction": "south",
+          "time": "11:44",
+          "destination": "Bochnia Dworzec PKP",
+          "trip_id": "1385_1955"
+        },
+        {
+          "stop": "dom-ludowy",
+          "stop_id": "4352",
+          "line": "A65",
+          "direction": "south",
+          "time": "11:45",
+          "destination": "Bochnia Dworzec PKP",
+          "trip_id": "1385_1955"
+        },
+        {
+          "stop": "wislisko",
+          "stop_id": "4076",
+          "line": "A65",
+          "direction": "south",
+          "time": "11:46",
+          "destination": "Bochnia Dworzec PKP",
+          "trip_id": "1385_1955"
+        },
+        {
+          "stop": "wislisko",
+          "stop_id": "4222",
+          "line": "A4",
+          "direction": "north",
+          "time": "12:08",
+          "destination": "Nowe Brzesko Rynek",
+          "trip_id": "1385_2002"
+        },
+        {
+          "stop": "dom-ludowy",
+          "stop_id": "4533",
+          "line": "A4",
+          "direction": "north",
+          "time": "12:09",
+          "destination": "Nowe Brzesko Rynek",
+          "trip_id": "1385_2002"
+        },
+        {
+          "stop": "most",
+          "stop_id": "119",
+          "line": "A4",
+          "direction": "north",
+          "time": "12:10",
+          "destination": "Nowe Brzesko Rynek",
+          "trip_id": "1385_2002"
         },
         {
           "stop": "wislisko",
@@ -151,7 +610,7 @@
           "direction": "north",
           "time": "12:26",
           "destination": "Nowe Brzesko Rynek",
-          "trip_id": "1385_1970"
+          "trip_id": "1385_1989"
         },
         {
           "stop": "dom-ludowy",
@@ -160,7 +619,7 @@
           "direction": "north",
           "time": "12:27",
           "destination": "Nowe Brzesko Rynek",
-          "trip_id": "1385_1970"
+          "trip_id": "1385_1989"
         },
         {
           "stop": "most",
@@ -169,169 +628,628 @@
           "direction": "north",
           "time": "12:28",
           "destination": "Nowe Brzesko Rynek",
-          "trip_id": "1385_1970"
-        },
-        {
-          "stop": "wislisko",
-          "stop_id": "4222",
-          "line": "A4",
-          "direction": "north",
-          "time": "13:28",
-          "destination": "Nowe Brzesko Rynek",
-          "trip_id": "1385_1967"
-        },
-        {
-          "stop": "dom-ludowy",
-          "stop_id": "4533",
-          "line": "A4",
-          "direction": "north",
-          "time": "13:29",
-          "destination": "Nowe Brzesko Rynek",
-          "trip_id": "1385_1967"
+          "trip_id": "1385_1989"
         },
         {
           "stop": "most",
-          "stop_id": "119",
+          "stop_id": "67",
           "line": "A4",
-          "direction": "north",
-          "time": "13:30",
-          "destination": "Nowe Brzesko Rynek",
-          "trip_id": "1385_1967"
+          "direction": "south",
+          "time": "12:29",
+          "destination": "Bochnia Dworzec PKP",
+          "trip_id": "1385_2003"
+        },
+        {
+          "stop": "dom-ludowy",
+          "stop_id": "4352",
+          "line": "A4",
+          "direction": "south",
+          "time": "12:30",
+          "destination": "Bochnia Dworzec PKP",
+          "trip_id": "1385_2003"
+        },
+        {
+          "stop": "wislisko",
+          "stop_id": "4076",
+          "line": "A4",
+          "direction": "south",
+          "time": "12:31",
+          "destination": "Bochnia Dworzec PKP",
+          "trip_id": "1385_2003"
         },
         {
           "stop": "most",
           "stop_id": "67",
           "line": "A65",
           "direction": "south",
-          "time": "14:29",
+          "time": "13:09",
           "destination": "Bochnia Dworzec PKP",
-          "trip_id": "1385_1971"
+          "trip_id": "1385_1990"
         },
         {
           "stop": "dom-ludowy",
           "stop_id": "4352",
           "line": "A65",
           "direction": "south",
-          "time": "14:30",
+          "time": "13:10",
           "destination": "Bochnia Dworzec PKP",
-          "trip_id": "1385_1971"
+          "trip_id": "1385_1990"
         },
         {
           "stop": "wislisko",
           "stop_id": "4076",
           "line": "A65",
           "direction": "south",
+          "time": "13:11",
+          "destination": "Bochnia Dworzec PKP",
+          "trip_id": "1385_1990"
+        },
+        {
+          "stop": "wislisko",
+          "stop_id": "4222",
+          "line": "A4",
+          "direction": "north",
+          "time": "13:33",
+          "destination": "Nowe Brzesko Rynek",
+          "trip_id": "1385_1956"
+        },
+        {
+          "stop": "dom-ludowy",
+          "stop_id": "4533",
+          "line": "A4",
+          "direction": "north",
+          "time": "13:34",
+          "destination": "Nowe Brzesko Rynek",
+          "trip_id": "1385_1956"
+        },
+        {
+          "stop": "most",
+          "stop_id": "119",
+          "line": "A4",
+          "direction": "north",
+          "time": "13:35",
+          "destination": "Nowe Brzesko Rynek",
+          "trip_id": "1385_1956"
+        },
+        {
+          "stop": "most",
+          "stop_id": "67",
+          "line": "A4",
+          "direction": "south",
+          "time": "13:49",
+          "destination": "Bochnia Dworzec PKP",
+          "trip_id": "1385_1957"
+        },
+        {
+          "stop": "dom-ludowy",
+          "stop_id": "4352",
+          "line": "A4",
+          "direction": "south",
+          "time": "13:50",
+          "destination": "Bochnia Dworzec PKP",
+          "trip_id": "1385_1957"
+        },
+        {
+          "stop": "wislisko",
+          "stop_id": "4076",
+          "line": "A4",
+          "direction": "south",
+          "time": "13:51",
+          "destination": "Bochnia Dworzec PKP",
+          "trip_id": "1385_1957"
+        },
+        {
+          "stop": "wislisko",
+          "stop_id": "4222",
+          "line": "A65",
+          "direction": "north",
           "time": "14:31",
-          "destination": "Bochnia Dworzec PKP",
-          "trip_id": "1385_1971"
-        },
-        {
-          "stop": "most",
-          "stop_id": "67",
-          "line": "A4",
-          "direction": "south",
-          "time": "15:24",
-          "destination": "Bochnia Dworzec PKP",
-          "trip_id": "1385_1968"
-        },
-        {
-          "stop": "dom-ludowy",
-          "stop_id": "4352",
-          "line": "A4",
-          "direction": "south",
-          "time": "15:25",
-          "destination": "Bochnia Dworzec PKP",
-          "trip_id": "1385_1968"
-        },
-        {
-          "stop": "wislisko",
-          "stop_id": "4076",
-          "line": "A4",
-          "direction": "south",
-          "time": "15:26",
-          "destination": "Bochnia Dworzec PKP",
-          "trip_id": "1385_1968"
-        },
-        {
-          "stop": "wislisko",
-          "stop_id": "4222",
-          "line": "A4",
-          "direction": "north",
-          "time": "16:23",
           "destination": "Nowe Brzesko Rynek",
-          "trip_id": "1385_1972"
-        },
-        {
-          "stop": "dom-ludowy",
-          "stop_id": "4533",
-          "line": "A4",
-          "direction": "north",
-          "time": "16:24",
-          "destination": "Nowe Brzesko Rynek",
-          "trip_id": "1385_1972"
-        },
-        {
-          "stop": "most",
-          "stop_id": "119",
-          "line": "A4",
-          "direction": "north",
-          "time": "16:25",
-          "destination": "Nowe Brzesko Rynek",
-          "trip_id": "1385_1972"
-        },
-        {
-          "stop": "most",
-          "stop_id": "67",
-          "line": "A65",
-          "direction": "south",
-          "time": "17:29",
-          "destination": "Bochnia Dworzec PKP",
-          "trip_id": "1385_1973"
-        },
-        {
-          "stop": "dom-ludowy",
-          "stop_id": "4352",
-          "line": "A65",
-          "direction": "south",
-          "time": "17:30",
-          "destination": "Bochnia Dworzec PKP",
-          "trip_id": "1385_1973"
-        },
-        {
-          "stop": "wislisko",
-          "stop_id": "4076",
-          "line": "A65",
-          "direction": "south",
-          "time": "17:31",
-          "destination": "Bochnia Dworzec PKP",
-          "trip_id": "1385_1973"
-        },
-        {
-          "stop": "wislisko",
-          "stop_id": "4222",
-          "line": "A65",
-          "direction": "north",
-          "time": "21:36",
-          "destination": "Nowe Brzesko Rynek",
-          "trip_id": "1385_1974"
+          "trip_id": "1385_2004"
         },
         {
           "stop": "dom-ludowy",
           "stop_id": "4533",
           "line": "A65",
           "direction": "north",
-          "time": "21:37",
+          "time": "14:32",
           "destination": "Nowe Brzesko Rynek",
-          "trip_id": "1385_1974"
+          "trip_id": "1385_2004"
         },
         {
           "stop": "most",
           "stop_id": "119",
           "line": "A65",
           "direction": "north",
-          "time": "21:38",
+          "time": "14:33",
           "destination": "Nowe Brzesko Rynek",
-          "trip_id": "1385_1974"
+          "trip_id": "1385_2004"
+        },
+        {
+          "stop": "most",
+          "stop_id": "67",
+          "line": "A65",
+          "direction": "south",
+          "time": "14:54",
+          "destination": "Bochnia Dworzec PKP",
+          "trip_id": "1385_2005"
+        },
+        {
+          "stop": "dom-ludowy",
+          "stop_id": "4352",
+          "line": "A65",
+          "direction": "south",
+          "time": "14:55",
+          "destination": "Bochnia Dworzec PKP",
+          "trip_id": "1385_2005"
+        },
+        {
+          "stop": "wislisko",
+          "stop_id": "4076",
+          "line": "A65",
+          "direction": "south",
+          "time": "14:56",
+          "destination": "Bochnia Dworzec PKP",
+          "trip_id": "1385_2005"
+        },
+        {
+          "stop": "wislisko",
+          "stop_id": "4222",
+          "line": "A4",
+          "direction": "north",
+          "time": "15:28",
+          "destination": "Nowe Brzesko Rynek",
+          "trip_id": "1385_1948"
+        },
+        {
+          "stop": "dom-ludowy",
+          "stop_id": "4533",
+          "line": "A4",
+          "direction": "north",
+          "time": "15:29",
+          "destination": "Nowe Brzesko Rynek",
+          "trip_id": "1385_1948"
+        },
+        {
+          "stop": "most",
+          "stop_id": "119",
+          "line": "A4",
+          "direction": "north",
+          "time": "15:30",
+          "destination": "Nowe Brzesko Rynek",
+          "trip_id": "1385_1948"
+        },
+        {
+          "stop": "wislisko",
+          "stop_id": "4222",
+          "line": "A65",
+          "direction": "north",
+          "time": "15:36",
+          "destination": "Nowe Brzesko Rynek",
+          "trip_id": "1385_1991"
+        },
+        {
+          "stop": "dom-ludowy",
+          "stop_id": "4533",
+          "line": "A65",
+          "direction": "north",
+          "time": "15:37",
+          "destination": "Nowe Brzesko Rynek",
+          "trip_id": "1385_1991"
+        },
+        {
+          "stop": "most",
+          "stop_id": "119",
+          "line": "A65",
+          "direction": "north",
+          "time": "15:38",
+          "destination": "Nowe Brzesko Rynek",
+          "trip_id": "1385_1991"
+        },
+        {
+          "stop": "most",
+          "stop_id": "67",
+          "line": "A65",
+          "direction": "south",
+          "time": "15:49",
+          "destination": "Bochnia Dworzec PKP",
+          "trip_id": "1385_1992"
+        },
+        {
+          "stop": "dom-ludowy",
+          "stop_id": "4352",
+          "line": "A65",
+          "direction": "south",
+          "time": "15:50",
+          "destination": "Bochnia Dworzec PKP",
+          "trip_id": "1385_1992"
+        },
+        {
+          "stop": "wislisko",
+          "stop_id": "4076",
+          "line": "A65",
+          "direction": "south",
+          "time": "15:51",
+          "destination": "Bochnia Dworzec PKP",
+          "trip_id": "1385_1992"
+        },
+        {
+          "stop": "most",
+          "stop_id": "67",
+          "line": "A4",
+          "direction": "south",
+          "time": "16:14",
+          "destination": "Bochnia Dworzec PKP",
+          "trip_id": "1385_1949"
+        },
+        {
+          "stop": "dom-ludowy",
+          "stop_id": "4352",
+          "line": "A4",
+          "direction": "south",
+          "time": "16:15",
+          "destination": "Bochnia Dworzec PKP",
+          "trip_id": "1385_1949"
+        },
+        {
+          "stop": "wislisko",
+          "stop_id": "4076",
+          "line": "A4",
+          "direction": "south",
+          "time": "16:16",
+          "destination": "Bochnia Dworzec PKP",
+          "trip_id": "1385_1949"
+        },
+        {
+          "stop": "wislisko",
+          "stop_id": "4222",
+          "line": "A4",
+          "direction": "north",
+          "time": "16:33",
+          "destination": "Nowe Brzesko Rynek",
+          "trip_id": "1385_1958"
+        },
+        {
+          "stop": "dom-ludowy",
+          "stop_id": "4533",
+          "line": "A4",
+          "direction": "north",
+          "time": "16:34",
+          "destination": "Nowe Brzesko Rynek",
+          "trip_id": "1385_1958"
+        },
+        {
+          "stop": "most",
+          "stop_id": "119",
+          "line": "A4",
+          "direction": "north",
+          "time": "16:35",
+          "destination": "Nowe Brzesko Rynek",
+          "trip_id": "1385_1958"
+        },
+        {
+          "stop": "wislisko",
+          "stop_id": "4222",
+          "line": "A65",
+          "direction": "north",
+          "time": "17:06",
+          "destination": "Nowe Brzesko Rynek",
+          "trip_id": "1385_2006"
+        },
+        {
+          "stop": "dom-ludowy",
+          "stop_id": "4533",
+          "line": "A65",
+          "direction": "north",
+          "time": "17:07",
+          "destination": "Nowe Brzesko Rynek",
+          "trip_id": "1385_2006"
+        },
+        {
+          "stop": "most",
+          "stop_id": "119",
+          "line": "A65",
+          "direction": "north",
+          "time": "17:08",
+          "destination": "Nowe Brzesko Rynek",
+          "trip_id": "1385_2006"
+        },
+        {
+          "stop": "most",
+          "stop_id": "67",
+          "line": "A65",
+          "direction": "south",
+          "time": "17:09",
+          "destination": "Bochnia Dworzec PKP",
+          "trip_id": "1385_1959"
+        },
+        {
+          "stop": "dom-ludowy",
+          "stop_id": "4352",
+          "line": "A65",
+          "direction": "south",
+          "time": "17:10",
+          "destination": "Bochnia Dworzec PKP",
+          "trip_id": "1385_1959"
+        },
+        {
+          "stop": "wislisko",
+          "stop_id": "4076",
+          "line": "A65",
+          "direction": "south",
+          "time": "17:11",
+          "destination": "Bochnia Dworzec PKP",
+          "trip_id": "1385_1959"
+        },
+        {
+          "stop": "wislisko",
+          "stop_id": "4222",
+          "line": "A65",
+          "direction": "north",
+          "time": "17:36",
+          "destination": "Nowe Brzesko Rynek",
+          "trip_id": "1385_1993"
+        },
+        {
+          "stop": "dom-ludowy",
+          "stop_id": "4533",
+          "line": "A65",
+          "direction": "north",
+          "time": "17:37",
+          "destination": "Nowe Brzesko Rynek",
+          "trip_id": "1385_1993"
+        },
+        {
+          "stop": "most",
+          "stop_id": "119",
+          "line": "A65",
+          "direction": "north",
+          "time": "17:38",
+          "destination": "Nowe Brzesko Rynek",
+          "trip_id": "1385_1993"
+        },
+        {
+          "stop": "most",
+          "stop_id": "67",
+          "line": "A4",
+          "direction": "south",
+          "time": "17:49",
+          "destination": "Bochnia Dworzec PKP",
+          "trip_id": "1385_2007"
+        },
+        {
+          "stop": "dom-ludowy",
+          "stop_id": "4352",
+          "line": "A4",
+          "direction": "south",
+          "time": "17:50",
+          "destination": "Bochnia Dworzec PKP",
+          "trip_id": "1385_2007"
+        },
+        {
+          "stop": "wislisko",
+          "stop_id": "4076",
+          "line": "A4",
+          "direction": "south",
+          "time": "17:51",
+          "destination": "Bochnia Dworzec PKP",
+          "trip_id": "1385_2007"
+        },
+        {
+          "stop": "wislisko",
+          "stop_id": "4222",
+          "line": "A4",
+          "direction": "north",
+          "time": "18:38",
+          "destination": "Nowe Brzesko Rynek",
+          "trip_id": "1385_1950"
+        },
+        {
+          "stop": "dom-ludowy",
+          "stop_id": "4533",
+          "line": "A4",
+          "direction": "north",
+          "time": "18:39",
+          "destination": "Nowe Brzesko Rynek",
+          "trip_id": "1385_1950"
+        },
+        {
+          "stop": "most",
+          "stop_id": "119",
+          "line": "A4",
+          "direction": "north",
+          "time": "18:40",
+          "destination": "Nowe Brzesko Rynek",
+          "trip_id": "1385_1950"
+        },
+        {
+          "stop": "most",
+          "stop_id": "67",
+          "line": "A65",
+          "direction": "south",
+          "time": "18:49",
+          "destination": "Bochnia Dworzec PKP",
+          "trip_id": "1385_1994"
+        },
+        {
+          "stop": "dom-ludowy",
+          "stop_id": "4352",
+          "line": "A65",
+          "direction": "south",
+          "time": "18:50",
+          "destination": "Bochnia Dworzec PKP",
+          "trip_id": "1385_1994"
+        },
+        {
+          "stop": "wislisko",
+          "stop_id": "4076",
+          "line": "A65",
+          "direction": "south",
+          "time": "18:51",
+          "destination": "Bochnia Dworzec PKP",
+          "trip_id": "1385_1994"
+        },
+        {
+          "stop": "wislisko",
+          "stop_id": "4222",
+          "line": "A65",
+          "direction": "north",
+          "time": "19:11",
+          "destination": "Nowe Brzesko Rynek",
+          "trip_id": "1385_1960"
+        },
+        {
+          "stop": "dom-ludowy",
+          "stop_id": "4533",
+          "line": "A65",
+          "direction": "north",
+          "time": "19:12",
+          "destination": "Nowe Brzesko Rynek",
+          "trip_id": "1385_1960"
+        },
+        {
+          "stop": "most",
+          "stop_id": "119",
+          "line": "A65",
+          "direction": "north",
+          "time": "19:13",
+          "destination": "Nowe Brzesko Rynek",
+          "trip_id": "1385_1960"
+        },
+        {
+          "stop": "wislisko",
+          "stop_id": "4222",
+          "line": "A4",
+          "direction": "north",
+          "time": "19:48",
+          "destination": "Nowe Brzesko Rynek",
+          "trip_id": "1385_2008"
+        },
+        {
+          "stop": "dom-ludowy",
+          "stop_id": "4533",
+          "line": "A4",
+          "direction": "north",
+          "time": "19:49",
+          "destination": "Nowe Brzesko Rynek",
+          "trip_id": "1385_2008"
+        },
+        {
+          "stop": "most",
+          "stop_id": "119",
+          "line": "A4",
+          "direction": "north",
+          "time": "19:50",
+          "destination": "Nowe Brzesko Rynek",
+          "trip_id": "1385_2008"
+        },
+        {
+          "stop": "most",
+          "stop_id": "67",
+          "line": "A65",
+          "direction": "south",
+          "time": "20:14",
+          "destination": "Bochnia Dworzec PKP",
+          "trip_id": "1385_1961"
+        },
+        {
+          "stop": "dom-ludowy",
+          "stop_id": "4352",
+          "line": "A65",
+          "direction": "south",
+          "time": "20:15",
+          "destination": "Bochnia Dworzec PKP",
+          "trip_id": "1385_1961"
+        },
+        {
+          "stop": "wislisko",
+          "stop_id": "4076",
+          "line": "A65",
+          "direction": "south",
+          "time": "20:16",
+          "destination": "Bochnia Dworzec PKP",
+          "trip_id": "1385_1961"
+        },
+        {
+          "stop": "wislisko",
+          "stop_id": "4222",
+          "line": "A65",
+          "direction": "north",
+          "time": "20:26",
+          "destination": "Nowe Brzesko Rynek",
+          "trip_id": "1385_1995"
+        },
+        {
+          "stop": "dom-ludowy",
+          "stop_id": "4533",
+          "line": "A65",
+          "direction": "north",
+          "time": "20:27",
+          "destination": "Nowe Brzesko Rynek",
+          "trip_id": "1385_1995"
+        },
+        {
+          "stop": "most",
+          "stop_id": "119",
+          "line": "A65",
+          "direction": "north",
+          "time": "20:28",
+          "destination": "Nowe Brzesko Rynek",
+          "trip_id": "1385_1995"
+        },
+        {
+          "stop": "most",
+          "stop_id": "67",
+          "line": "A65",
+          "direction": "south",
+          "time": "21:44",
+          "destination": "Bochnia Dworzec PKP",
+          "trip_id": "1385_1996"
+        },
+        {
+          "stop": "dom-ludowy",
+          "stop_id": "4352",
+          "line": "A65",
+          "direction": "south",
+          "time": "21:45",
+          "destination": "Bochnia Dworzec PKP",
+          "trip_id": "1385_1996"
+        },
+        {
+          "stop": "wislisko",
+          "stop_id": "4076",
+          "line": "A65",
+          "direction": "south",
+          "time": "21:46",
+          "destination": "Bochnia Dworzec PKP",
+          "trip_id": "1385_1996"
+        },
+        {
+          "stop": "wislisko",
+          "stop_id": "4222",
+          "line": "A65",
+          "direction": "north",
+          "time": "22:01",
+          "destination": "Nowe Brzesko Rynek",
+          "trip_id": "1385_1962"
+        },
+        {
+          "stop": "dom-ludowy",
+          "stop_id": "4533",
+          "line": "A65",
+          "direction": "north",
+          "time": "22:02",
+          "destination": "Nowe Brzesko Rynek",
+          "trip_id": "1385_1962"
+        },
+        {
+          "stop": "most",
+          "stop_id": "119",
+          "line": "A65",
+          "direction": "north",
+          "time": "22:03",
+          "destination": "Nowe Brzesko Rynek",
+          "trip_id": "1385_1962"
         }
       ],
       "validation": {
@@ -357,7 +1275,7 @@
       }
     },
     {
-      "date": "2026-11-12",
+      "date": "2026-11-13",
       "departures": [
         {
           "stop": "most",
