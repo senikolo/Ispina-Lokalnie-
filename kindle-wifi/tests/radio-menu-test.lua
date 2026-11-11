@@ -229,6 +229,33 @@ assert(not plugin.current and messages[#messages].kind == "radio-error")
 plugin:set_quality("limit", nil)
 io.popen = previous
 
+io.popen = function(command)
+    if command:find("'radio-transport'", 1, true) then
+        return {read = function() return "http-only" end, close = function() end}
+    end
+    local result = previous(command)
+    if command:find("'probe-start'", 1, true) then
+        assert(not command:find("https://", 1, true), "HTTPS must not be offered without transport")
+        local f = assert(io.open("/tmp/probe-228-1.meta", "wb"))
+        f:write("000\n")
+        f:close()
+        f = assert(io.open("/tmp/probe-228-1.done", "wb"))
+        f:write("28")
+        f:close()
+    end
+    return result
+end
+plugin:play_station(catalog[1])
+settle()
+local http_permission = messages[#messages]
+assert(not plugin.current and http_permission.kind == "radio-error")
+assert(http_permission.text:find("bez potwierdzonego bitrate’u", 1, true))
+http_permission.ok_callback()
+assert(plugin.current and plugin.current.uri:match("^http://") and plugin.job.direct)
+assert(not plugin.current.stream.live_kbps)
+plugin:stop()
+io.popen = previous
+
 local local_result = "pending"
 io.popen = function(command)
     if command:find("'local-result'", 1, true) then

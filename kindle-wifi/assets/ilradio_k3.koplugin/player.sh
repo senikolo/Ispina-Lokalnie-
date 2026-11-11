@@ -412,24 +412,27 @@ probe_run_mplayer() {
     prefix="$R/probe-$ILRADIO_K3_PROBE"
     mplayer=$(mplayer_path)
     if [ -z "$mplayer" ]; then echo 127 > "$prefix.done"; return; fi
-    # MPlayer's HTTP reader can dump the compressed stream without opening ALSA.
-    # Bound both the dump size and the time spent on a silent connection.
+    # Cap the sample at the reader, without waiting for a file-size signal
+    # from the old firmware or for a live stream to end.
+    mkfifo "$prefix.pipe" || { echo 127 > "$prefix.done"; return; }
+    head -c 16384 < "$prefix.pipe" > "$prefix.sample" &
+    reader=$!
     (
-        ulimit -f 32 || exit 2
         export MPLAYER_HOME="$R"
-        exec "$mplayer" -noconfig all -novideo -nocache -dumpstream -dumpfile "$prefix.raw" "$1"
+        exec "$mplayer" -noconfig all -novideo -nocache -dumpstream -dumpfile "$prefix.pipe" "$1"
     ) > "$prefix.error" 2>&1 &
     downloader=$!
-    (sleep 9; kill -KILL "$downloader" 2>/dev/null || :) </dev/null >/dev/null 2>&1 &
+    (sleep 12; kill -KILL "$downloader" "$reader" 2>/dev/null || :) </dev/null >/dev/null 2>&1 &
     watchdog=$!
-    mark_children "$downloader" "$watchdog"
-    trap 'kill "$downloader" "$watchdog" 2>/dev/null; rm -f "$prefix".*; exit 0' TERM INT HUP
-    wait "$downloader" 2>/dev/null
+    mark_children "$downloader" "$reader" "$watchdog"
+    trap 'kill "$downloader" "$reader" "$watchdog" 2>/dev/null; rm -f "$prefix".*; exit 0' TERM INT HUP
+    wait "$reader" 2>/dev/null
     result=$?
+    kill -KILL "$downloader" 2>/dev/null || :
+    wait "$downloader" 2>/dev/null || :
     kill "$watchdog" 2>/dev/null || :
     wait "$watchdog" 2>/dev/null || :
-    if [ -s "$prefix.raw" ]; then
-        head -c 16384 "$prefix.raw" > "$prefix.sample"
+    if [ -s "$prefix.sample" ]; then
         # The native reader does not expose the final HTTP status or address.
         printf '000\n%s\nmplayer\n' "$1" > "$prefix.meta"
         result=0
@@ -441,7 +444,7 @@ probe_run_mplayer() {
             *) if [ "$result" = 137 ]; then result=28; else result=1; fi;;
         esac
     fi
-    rm -f "$prefix.raw"
+    rm -f "$prefix.pipe"
     printf '%s\n' "$result" > "$prefix.done"
 }
 
@@ -551,6 +554,10 @@ control() {
 
 case "${1:-}" in
     probe) backend "${2:-auto}";;
+    radio-transport)
+        if usable_curl || has wget; then echo external
+        elif [ -n "$(mplayer_path)" ]; then echo http-only
+        fi;;
     start)
         uri="${2:-}"; wanted="${3:-auto}"; pct="${4:-70}"; local_path="${5:-}"; offset="${6:-0}"; cache="${7:-128}"; codec="${8:-}"
         case "$uri" in http://*|https://*|file://*) :;; *) echo invalid_target; exit 2;; esac

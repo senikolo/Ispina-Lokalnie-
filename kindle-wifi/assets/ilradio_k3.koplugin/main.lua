@@ -37,7 +37,7 @@ local ENGINE_OPTIONS = {"auto", "gst-legacy", "gst-mixer", "mplayer", "mpg123", 
 local volume_input_open = false
 local volume_input_node
 local volume_owner
-local RADIO_VERSION = "2.28.2"
+local RADIO_VERSION = "2.28.3"
 local VOLUME_KEYS = {VMinus = -1, VolumeDown = -1, VolumeMinus = -1,
     VPlus = 1, VolumeUp = 1, VolumePlus = 1}
 
@@ -227,16 +227,17 @@ end
 function ILRadio:finish_radio()
     local job = self.job
     if not job then return end
-    local higher = job.higher
+    local higher = job.higher or job.http_fallback
     local message = ERRORS[job.reason] or ERRORS.unconfirmed
     self:radio_result(job.reason or "unconfirmed")
     if not self:stop() then return end
     if higher and not job.approved then
         UIManager:show(ConfirmBox:new {
-            text = message .. "\n\n„" .. job.station[1] .. "” ma inny wariant (" .. label(higher)
-                .. "). Czy uruchomić go jednorazowo poza limitem?",
+            text = message .. "\n\n„" .. job.station[1] .. "” · " .. label(higher)
+                .. (higher.direct and " według katalogu. Czy spróbować jednorazowo przez HTTP bez potwierdzonego bitrate’u?"
+                    or ". Czy uruchomić go jednorazowo poza limitem?"),
             ok_text = "Uruchom ten wariant", cancel_text = "Zostań przy limicie",
-            ok_callback = function() self:play_station(job.station, higher.url) end,
+            ok_callback = function() self:play_station(job.station, higher.url, higher.direct) end,
         })
     else
         self:notice(message, 9)
@@ -247,6 +248,12 @@ function ILRadio:continue_radio(reason)
     local job = self.job
     if not job then return end
     job.reason = reason or job.reason
+    local stream = job.active
+    if reason == "buffer" and job.http_only and not job.http_fallback and stream
+        and stream.url:match("^http://") and stream.codec and stream.kbps and not stream.live_codec then
+        stream.direct = true
+        job.http_fallback = stream
+    end
     if reason then self:radio_result(reason) end
     if shell_call("stop") ~= "stopped" then
         self:stop()
@@ -271,7 +278,7 @@ function ILRadio:start_radio_variant(stream)
         job.engines[key] = options
     end
     local engine = options[job.engine_index]
-    if not engine or job.starts >= 8 then self:continue_radio("engine"); return end
+    if not engine or job.starts >= 8 then self:continue_radio(job.reason or "engine"); return end
     job.starts = job.starts + 1
     local uri = stream.play_url or stream.url
     local result = shell_call("start", uri, engine, self.volume, "", 0, self.radio.buffer, codec or "")
@@ -310,7 +317,7 @@ function ILRadio:check_probe()
     if not job or not job.probe then return end
     local prefix = job.probe
     local done = read_small(prefix .. ".done", 16)
-    if done == "" and job.probe_checks < 5 then
+    if done == "" and job.probe_checks < 7 then
         job.probe_checks = job.probe_checks + 1
         UIManager:scheduleIn(2, self.probe_tick)
         return
@@ -390,13 +397,17 @@ function ILRadio:advance_radio()
     if not stream then self:finish_radio(); return end
     job.active = stream
     job.engine_index = 1
+    if job.direct and stream.url:match("^http://") then
+        self:accept_probe(stream)
+        return
+    end
     local probe = shell_call("probe-start", stream.url)
     if probe:match("^/[^\r\n]+/probe%-%d+%-%d+$") then
         job.probe = probe
         job.probe_checks = 0
         UIManager:scheduleIn(2, self.probe_tick)
     elseif probe == "unavailable" then
-        if not stream.kbps and not job.higher then job.higher = stream end
+        if stream.url:match("^http://") and not stream.kbps and not job.higher then job.higher = stream end
         if job.approved or T.cap(self.radio, stream.codec) == math.huge then
             self:accept_probe(stream)
         else
@@ -415,7 +426,7 @@ function ILRadio:monitor_radio()
     if item.engine == "mplayer" and evidence == "decoded" then
         local pos = tonumber(shell_call("position"))
         if pos then
-            if item.last_pos and pos <= item.last_pos then item.stalls = (item.stalls or 0) + 1
+            if item.last_pos and pos == item.last_pos and pos > 0 then item.stalls = (item.stalls or 0) + 1
             else item.stalls = 0 end
             item.last_pos = pos
             if item.stalls >= 2 then reason = "buffer" end
@@ -438,7 +449,7 @@ function ILRadio:monitor_radio()
         else
             job.engine_index = job.engine_index + 1
             -- Network/TLS errors usually need another URL, rather than another decoder.
-            if reason == "tls" or reason == "address" or reason == "network" then job.ready = nil end
+            if reason == "tls" or reason == "address" or reason == "network" or reason == "transport" then job.ready = nil end
         end
         if reason == "network" and not job.network_retry then
             job.network_retry = true
@@ -603,9 +614,15 @@ function ILRadio:monitor_local()
     end
 end
 
-function ILRadio:play_station(station, approved_url)
+function ILRadio:play_station(station, approved_url, direct)
     self:read_phone_config()
     local variants = T.variants(station, catalog, self.custom)
+    local http_only = shell_call("radio-transport") == "http-only"
+    if http_only then
+        for i = #variants, 1, -1 do
+            if not variants[i].url:match("^http://") then table.remove(variants, i) end
+        end
+    end
     if approved_url then
         local filtered = {}
         for _, stream in ipairs(variants) do
@@ -615,14 +632,18 @@ function ILRadio:play_station(station, approved_url)
     end
     if not self:stop() then return end
     self.job = {station = station, variants = T.rank(self.radio, variants, self.working[station[1]] or self.decoded[station[1]], SPEECH[station[1]]),
-        index = 0, starts = 0, engines = {}, approved = approved_url ~= nil}
+        index = 0, starts = 0, engines = {}, approved = approved_url ~= nil, http_only = http_only, direct = direct}
     self.last_station_name = station[1]
     self.settings:saveSetting("last_station_name", self.last_station_name)
     self:save("last_audio_kind", "radio")
     self.playlist = nil
     self.track_index = nil
     self:notice("Sprawdzam źródła stacji „" .. station[1] .. "”…", 3)
-    self:advance_radio()
+    if #variants == 0 and http_only then
+        self:continue_radio("transport")
+    else
+        self:advance_radio()
+    end
 end
 
 function ILRadio:next_station(delta)
