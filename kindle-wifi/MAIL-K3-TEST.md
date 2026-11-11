@@ -1,26 +1,27 @@
-# Poczta na Kindle Keyboard 3 — wersja TEST 2.29.0
+# Poczta i książki na Kindle Keyboard 3 — TEST 2.29.1
 
-Ta gałąź rozwija istniejącą aplikację **Kindle przez Wi-Fi**, bez zastępowania działających modułów radia i plików. Telefon służy do zainstalowania wtyczki; późniejsze połączenia pocztowe wychodzą bezpośrednio z Kindle'a przez Wi-Fi.
+Rozszerzenie istniejącej aplikacji **Kindle przez Wi-Fi**. Telefon służy tylko do instalacji wtyczki przez SFTP. Po instalacji poczta łączy się z serwerem bezpośrednio przez Wi-Fi Kindle'a.
 
-## Funkcje
-- IMAP z TLS na porcie 993: odczyt nagłówków ostatnich 12 e-maili, podgląd zwykłego tekstu (także tekstowych części MIME, bez HTML).
-- Wysyłanie krótkiej wiadomości do 5000 znaków przez SMTPS 465 z AUTH LOGIN.
-- Zapis załączników EPUB/PDF do `/mnt/us/documents`, ograniczenie do 10 MB, brak nadpisania, walidacja rozszerzeń i sygnatur.
-- Konfiguracja e-mail, IMAP i SMTP w KOReaderze. Hasło aplikacji przechowywane **tylko w RAM** na czas sesji.
-- TLS 1.2+ z weryfikacją łańcucha CA, SNI i nazwy hosta; brak przejścia na nieszyfrowany transport i brak proxy przez telefon.
-- Bazuje na LuaSocket/LuaSec KOReadera, bez osobnej binarki Go. Jądro Kindle 3 to Linux 2.6.26, więc typowy nowy Go ARM byłby niezgodny.
+## Nowości 2.29.1
 
-## Instalacja
-1. W telefonie potrzebna jest **podpisana dotychczasowym kluczem** aktualizacja aplikacji Kindle przez Wi-Fi 2.29.0. Artefakt CI `*-unsigned.apk` nie nadaje się do instalacji wprost.
-2. Połącz telefon i Kindle z tą samą siecią Wi-Fi; w aplikacji wybierz **Poczta i książki → Zainstaluj lub zaktualizuj pocztę**.
-3. Uruchom ponownie KOReadera. W menu **Narzędzia → Więcej narzędzi → Poczta i książki · TEST** ustaw e-mail, serwer IMAP, SMTP i hasło aplikacji.
-4. Po instalacji telefon nie musi być włączony. Kindle musi mieć aktywne Wi-Fi i prawidłową datę.
+- **Zapamiętaj hasło** — po wpisaniu hasła aplikacji do poczty w KOReaderze wybierz **Konto i połączenie → Zapamiętaj hasło (utwórz PIN)**. Ustal własny PIN 4–8 cyfr i powtórz go. Hasło aplikacji zostaje zaszyfrowane przez PBKDF2-HMAC-SHA256 (180 tys. iteracji) i AES-256-GCM z solą i nonce z `/dev/urandom`. W ustawieniach zapisany jest wyłącznie zaszyfrowany rekord.
+- **Odblokuj pocztę (PIN)** — po ponownym uruchomieniu KOReadera nie trzeba wpisywać 16 znaków hasła aplikacji, wystarczy wybrany PIN. Po trzech błędnych próbach minutowa blokada w bieżącej sesji.
+- **Zablokuj pocztę** usuwa hasło z aktywnej sesji. **Usuń zapamiętane hasło i PIN** kasuje zapis.
+- **Odpowiedz na wiadomość** — otwórz wiadomość w Odebranych, następnie wybierz odpowiadanie w menu. Wtyczka wykorzystuje `Reply-To` lub `From`, ustawia temat `Re:`, dodaje nagłówki `In-Reply-To` i `References`, jeżeli identyfikator wiadomości jest poprawny.
+- **10 polskich krótkich odpowiedzi**; każdą można edytować przed wysłaniem. **Napisz własną odpowiedź** oraz możliwość zapisania maksymalnie 10 własnych szablonów. Przed wysłaniem pojawia się potwierdzenie.
 
-Alternatywnie ZIP z Actions należy rozpakować w katalogu `/mnt/us/koreader/plugins/`.
+## Bezpieczeństwo i ważne ograniczenia
 
-## Ograniczenia i weryfikacja
-**Wersja eksperymentalna, nie wydanie stabilne.** Test jednostkowy i statyczny oraz build CI są wymagane przed użyciem. Nie wykonano autoryzowanego logowania do prawdziwej skrzynki, próby fizycznej na Kindle Keyboard 3 ani instalacji na telefonie użytkownika. Szczególnie sprawdzić obecność i działanie `ssl`, `socket` oraz obsługę certyfikatu w konkretnym buildzie KOReadera.
+**PIN czterocyfrowy to wygodna ochrona przed przypadkowym dostępem, nie silna ochrona przed kimś, kto ma fizyczny dostęp do plików Kindle'a.** Przeciwnik dysponujący kopią zaszyfrowanego hasła może próbować odgadywać czterocyfrowy PIN poza urządzeniem. Wybierz PIN dłuższy niż cztery cyfry i nie korzystaj z przykładowego `2282`. Do poufnej poczty nie zaleca się tego rozwiązania.
 
-Zależności Lua `imap.lua` i `mail.lua` zaadaptowano z projektu `finlater/sendtokoreader.koplugin` na licencji MIT; pełne przypisanie praw i tekst licencji znajdują się w `LICENSE-THIRD-PARTY.txt`.
+Szyfrowanie działa **wyłącznie, jeśli w KOReaderze dostępne są natywne biblioteki OpenSSL z AES-GCM i PBKDF2**. Wtyczka nie stosuje zapisu otwartym tekstem w razie braku tych bibliotek. Nie można odzyskać zapisanego hasła bez właściwego PIN-u — w razie zgubienia PIN-u usuń zapis i ponownie wpisz hasło aplikacji Google.
 
-Nie scalać do gałęzi bazowej ani nie nazywać instalowalną aktualizacją, dopóki nie istnieje **podpisany tym samym kluczem** APK i nie zostaną przeprowadzone testy na K3.
+Wersja eksperymentalna. Brak testów na fizycznym Kindle Keyboard 3. Użytkownik musi sprawdzić dostępność LuaSec/SSL i działanie IMAP/SMTP u swojego dostawcy. Serwery: IMAP TLS 993, SMTP TLS 465; treść e-mail do 5000 znaków; ostatnie 12 wiadomości; załączniki EPUB/PDF do 10 MB w `/mnt/us/documents`.
+
+## Instalacja testowa
+
+W aplikacji Android **Kindle przez Wi-Fi – Poczta 2.29.1 TEST** (oddzielna, podpisana kluczem testowym, nie zastępuje instalacji głównej), po sparowaniu przez Wi-Fi wybierz **Poczta i książki → Zainstaluj lub zaktualizuj pocztę**. Po komunikacie o powodzeniu uruchom ponownie KOReadera. Menu: **Narzędzia → Więcej narzędzi → Poczta i książki · TEST**.
+
+Ważne: dostawcy usług mogą blokować IMAP/SMTP, a Gmail wymaga włączenia weryfikacji dwuetapowej i utworzenia hasła aplikacji. Wtyczka nie obsługuje OAuth.
+
+Nie scalaj zmian do gałęzi stabilnej przed testami na fizycznym urządzeniu.
