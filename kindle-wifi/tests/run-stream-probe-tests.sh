@@ -83,7 +83,7 @@ fi
 
 # Reproduce a Kindle with MPlayer and no standalone downloader.
 mkdir "$fixture/native"
-for command in sh dirname mkdir cat date head rm tail tr grep sleep setsid wc mkfifo; do
+for command in sh dirname mkdir cat date head rm tail tr grep sleep setsid wc mkfifo awk; do
     ln -s "$(command -v "$command")" "$fixture/native/$command"
 done
 cat > "$fixture/native/mplayer" <<'MPLAYER'

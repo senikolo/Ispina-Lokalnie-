@@ -95,12 +95,17 @@ local menu = {}
 plugin:addToMainMenu(menu)
 assert(menu.ilradio_k3 and menu.ilradio_k3.sorting_hint == "more_tools")
 local catalog = dofile(source .. "/stations.lua")
-assert(#catalog == 42)
+assert(#catalog == 27)
 local function menu_item(items, title)
     for _, item in ipairs(items) do
         if item.text == title then return item end
     end
 end
+local radio_menu = plugin:radio_menu()
+local groups = assert(menu_item(radio_menu, "Stacje radiowe")).sub_item_table
+assert(#groups == 4 and not menu_item(groups, "Polskie Radio"))
+local player_menu = assert(menu_item(radio_menu, "Odtwarzacz MP3 i audiobooki")).sub_item_table
+assert(menu_item(player_menu, "Moja muzyka") and menu_item(player_menu, "Odtwarzaj / pauza"))
 local first = plugin:station_menu("Popularne")[1]
 assert(first.text_func() == "RMF FM")
 first.sub_item_table[2].callback()
@@ -170,7 +175,7 @@ while plugin.job and steps < 20 do
     if plugin.current then plugin.radio_tick() elseif plugin.job.probe then plugin.probe_tick() else plugin.retry_tick() end
 end
 assert(not plugin.job and steps < 20)
-assert(#plugin:station_menu("Polskie Radio") >= 6)
+assert(#plugin:station_menu("Popularne") >= 6)
 plugin:next_station(1)
 assert(plugin.last_station_name == catalog[2][1])
 plugin:stop()
@@ -285,6 +290,36 @@ play_fixture()
 local_result = "pending"
 for _ = 1, 5 do plugin.start_check() end
 assert(not plugin.current and state == "stopped", "Silent decoder must release playback")
+io.popen = previous
+local radio_session = true
+io.popen = function(command)
+    local response
+    if command:find("'report-current'", 1, true) and radio_session then
+        response = "RMF FM\nhttp://fixture.invalid/rmf\ndecoded"
+    elseif command:find("'local-current'", 1, true) and not radio_session then
+        response = "music\n/mnt/us/music/Próba MP3.mp3"
+    elseif command:find("'engine-current'", 1, true) then
+        response = "mplayer"
+    end
+    if response then return {read = function() return response end, close = function() end} end
+    return previous(command)
+end
+state = "active"
+local level = data.volume
+assert(rocker(114, 1) and data.volume == level - plugin.volume_step)
+assert(calls[#calls]:find("'volume' '" .. data.volume .. "'", 1, true))
+plugin:playing_info()
+assert(messages[#messages]:find("RMF FM", 1, true))
+plugin:stop()
+radio_session = false
+state = "active"
+plugin:toggle_pause()
+assert(state == "paused")
+plugin:playing_info()
+assert(messages[#messages]:find("Próba MP3.mp3", 1, true))
+plugin:toggle_pause()
+assert(state == "active" and scheduled[plugin.start_check])
+plugin:stop()
 io.popen = previous
 for _, suffix in ipairs({".done", ".meta", ".headers", ".sample"}) do os.remove("/tmp/probe-228-1" .. suffix) end
 print((legacy and "Legacy" or "Modern") .. " filesystem module: PASS IL Radio menu")

@@ -37,7 +37,8 @@ local ENGINE_OPTIONS = {"auto", "gst-legacy", "gst-mixer", "mplayer", "mpg123", 
 local volume_input_open = false
 local volume_input_node
 local volume_owner
-local RADIO_VERSION = "2.28.3"
+local volume_listener
+local RADIO_VERSION = "2.28.4"
 local VOLUME_KEYS = {VMinus = -1, VolumeDown = -1, VolumeMinus = -1,
     VPlus = 1, VolumeUp = 1, VolumePlus = 1}
 
@@ -126,7 +127,8 @@ local function register_volume_key(input, code, key, event, direction)
     -- A normal KeyPress can stop at a modal widget before reaching the plugin.
     input.event_map[code] = event
     input.event_map_adapter[event] = function(ev)
-        if volume_owner and (ev.value == 1 or ev.value == 2) then return event end
+        if (ev.value == 1 or ev.value == 2) and (volume_owner
+            or (volume_listener and volume_listener:active_playback())) then return event end
         if not volume_owner and mapped and type(input.handleKeyBoardEv) == "function" then
             input.event_map[code] = mapped
             local ok, result = pcall(input.handleKeyBoardEv, input, ev)
@@ -135,11 +137,13 @@ local function register_volume_key(input, code, key, event, direction)
         end
     end
     UIManager.event_handlers[event] = function()
-        if volume_owner then volume_owner:rocker_change(direction) end
+        local listener = volume_owner or volume_listener
+        if listener then listener:rocker_change(direction) end
     end
 end
 
 function ILRadio:init()
+    volume_listener = self
     if Device.model == "Kindle3" and Device.input and Device.input.event_map and not volume_input_open then
         local input = Device.input
         register_volume_key(input, 114, "VMinus", "ILRadioVolumeDown", -1)
@@ -281,7 +285,7 @@ function ILRadio:start_radio_variant(stream)
     if not engine or job.starts >= 8 then self:continue_radio(job.reason or "engine"); return end
     job.starts = job.starts + 1
     local uri = stream.play_url or stream.url
-    local result = shell_call("start", uri, engine, self.volume, "", 0, self.radio.buffer, codec or "")
+    local result = shell_call("start", uri, engine, self.volume, "", 0, self.radio.buffer, codec or "", job.station[1])
     if not result:match("^starting:") then
         job.engine_index = job.engine_index + 1
         self:continue_radio("engine")
@@ -543,7 +547,7 @@ function ILRadio:start_local(item)
         item.engine_index = item.engine_index + 1
         local engine = item.engines[item.engine_index]
         local offset = item.kind == "books" and engine == "mplayer" and self.positions[item.path] or 0
-        local result = shell_call("start", item.uri, engine, self.volume, item.path, offset)
+        local result = shell_call("start", item.uri, engine, self.volume, item.path, offset or 0, 128, "", item.name, item.kind)
         if result:match("^starting:") then
             item.engine = engine
             item.checks, item.evidence = 0, "pending"
@@ -585,7 +589,7 @@ end
 
 function ILRadio:monitor_local()
     local item = self.current
-    if not item or item.kind == "radio" then return end
+    if not item or (item.kind ~= "music" and item.kind ~= "books") then return end
     local result = shell_call("local-result")
     if result == "paused" then return end
     if result == "decoded" or result == "pending" then
@@ -671,12 +675,42 @@ function ILRadio:recovered_radio()
     end
 end
 
+function ILRadio:active_playback()
+    if self.current then return self.current end
+    local state = self:status()
+    if state ~= "active" and state ~= "paused" then return end
+    local kind, path = shell_call("local-current"):match("^([^\n]+)\n(.+)$")
+    local item
+    if kind == "music" or kind == "books" then
+        item = {kind = kind, path = path, name = path:match("([^/]+)$"), uri = file_uri(path),
+            engine = shell_call("engine-current"), evidence = shell_call("evidence"),
+            checks = 0, engines = {}, engine_index = 0}
+        if self.queue and self.queue.path == path and self.queue.group == kind then self:restore_queue() end
+        if state == "active" then
+            UIManager:unschedule(self.start_check)
+            UIManager:scheduleIn(2, self.start_check)
+            if kind == "books" and item.engine == "mplayer" then
+                UIManager:unschedule(self.position_tick)
+                UIManager:scheduleIn(6, self.position_tick)
+            end
+        end
+    else
+        item = self:recovered_radio()
+    end
+    if not item then
+        item = {name = "Aktywne odtwarzanie", engine = shell_call("engine-current")}
+    end
+    self.current = item
+    volume_owner = self
+    return item
+end
+
 function ILRadio:confirm_sound()
     if self:status() ~= "active" then
         self:notice("Najpierw uruchom stację.")
         return
     end
-    local item = self.current or self:recovered_radio()
+    local item = self:active_playback()
     if not item then
         self:notice("Odtwarzanie działa, ale nie mogę ustalić stacji. Uruchom ją ponownie z menu Radia.", 8)
         return
@@ -737,7 +771,7 @@ function ILRadio:next_track(delta)
 end
 
 function ILRadio:playing_info(full)
-    local item = self.current or self:recovered_radio()
+    local item = self:active_playback()
     if not item then
         self:notice(self.job and ("Sprawdzam źródła stacji „" .. self.job.station[1] .. "”…")
             or "Brak aktywnego odtwarzania. Wybierz stację lub otwórz Diagnostykę audio.", 8)
@@ -746,7 +780,7 @@ function ILRadio:playing_info(full)
     local state = self:status()
     local title, artist
     if item.kind == "radio" then title = shell_call("title")
-    elseif item.path:lower():match("%.mp3$") then title, artist = T.id3(item.path) end
+    elseif item.path and item.path:lower():match("%.mp3$") then title, artist = T.id3(item.path) end
     local stream = item.stream
     local status = state == "paused" and "Pauza" or state == "stopped" and "Zatrzymane"
         or item.audible and "Dźwięk potwierdzony przez słuchacza"
@@ -815,11 +849,12 @@ end
 
 function ILRadio:toggle_pause()
     local state = self:status()
+    local item = self:active_playback()
     if state == "stopped" and not self.job and self.settings:readSetting("last_audio_kind") ~= "radio" then
         self:restore_queue()
     end
     if state == "active" then
-        if not self.current or self.current.kind == "radio" then
+        if not item or not item.path then
             if self:stop() then
                 self:notice("Radio wstrzymane. Wybierz „Wznów ostatnią stację”, aby słuchać ponownie.")
             end
@@ -834,10 +869,9 @@ function ILRadio:toggle_pause()
         end
     elseif state == "paused" then
         local resumed = shell_call("resume")
-        local item = self.current
-        if resumed == "active" and item and item.kind ~= "radio" then
-            if item.engine == "mplayer" and item.volume_pending then
-                item.volume_pending = shell_call("volume", self.volume) ~= "adjusted"
+        if resumed == "active" and item and item.path then
+            if item.engine == "mplayer" then
+                shell_call("volume", self.volume)
             end
             UIManager:scheduleIn(2, self.start_check)
             if item.kind == "books" and item.engine == "mplayer" then
@@ -857,9 +891,9 @@ function ILRadio:toggle_pause()
 end
 
 function ILRadio:onKeyPress(key)
-    if Device.model ~= "Kindle3" or not self.current then return end
+    if Device.model ~= "Kindle3" then return end
     for name, direction in pairs(VOLUME_KEYS) do
-        if key:match({name}) then
+        if key:match({name}) and self:active_playback() then
             self:rocker_change(direction)
             return true
         end
@@ -872,14 +906,13 @@ function ILRadio:rocker_change(direction)
 end
 
 function ILRadio:volume_change(delta, quiet)
-    local current = self.current
+    local current = self:active_playback()
     local next_volume = math.max(0, math.min(100, self.volume + delta))
     if next_volume == self.volume then return end
     self.volume = next_volume
     self:save("volume", self.volume)
     if current and current.engine == "mplayer" then
         if self:status() == "paused" then
-            current.volume_pending = true
             if not quiet then self:notice("Głośność po wznowieniu: " .. self.volume .. "%.") end
             return
         end
@@ -1020,6 +1053,23 @@ end
 
 function ILRadio:radio_menu()
     local menu = {
+        { text = "Stacje radiowe", sub_item_table = {
+            { text = "Ulubione", sub_item_table_func = function() return self:station_menu("Ulubione") end },
+            { text = "Popularne", sub_item_table_func = function() return self:station_menu("Popularne") end },
+            { text = "Regionalne", sub_item_table_func = function() return self:station_menu("Regionalne") end },
+            { text = "Muzyczne", sub_item_table_func = function() return self:station_menu("Muzyczne") end },
+        } },
+        { text = "Odtwarzacz MP3 i audiobooki", sub_item_table = {
+            { text = "Moja muzyka", sub_item_table_func = function() return self:files_menu("music") end },
+            { text = "Moje audiobooki", sub_item_table_func = function() return self:files_menu("books") end },
+            { text = "Co gra?", keep_menu_open = true, callback = function() self:playing_info() end },
+            { text = "Odtwarzaj / pauza", keep_menu_open = true, callback = function() self:toggle_pause() end },
+            { text = "Zatrzymaj", keep_menu_open = true, callback = function()
+                if self:stop() then self:notice("Odtwarzanie zatrzymane.") end
+            end },
+            { text = "Następny utwór", callback = function() self:next_track(1) end },
+            { text = "Poprzedni utwór", callback = function() self:next_track(-1) end },
+        } },
         { text = "Stan Radia · v" .. RADIO_VERSION, callback = function()
             local selected = (self.current and self.current.engine) or shell_call("probe", self.engine)
             self:notice("IL Radio v" .. RADIO_VERSION .. "\nSilnik: " .. (selected ~= "" and selected or "brak")
@@ -1043,8 +1093,6 @@ function ILRadio:radio_menu()
             if self:stop() then self:notice("Odtwarzanie zatrzymane.") end
         end },
         { text_func = function() return "Głośność · " .. self.volume .. "%" end, enabled = false },
-        { text = "Następny utwór", callback = function() self:next_track(1) end },
-        { text = "Poprzedni utwór", callback = function() self:next_track(-1) end },
         { text = "Ustawienia radia", sub_item_table = {
             { text = "Tryb jakości", sub_item_table_func = function() return self:quality_options("mode", T.modes) end },
             { text = "Maksymalny bitrate", sub_item_table_func = function()
@@ -1077,13 +1125,6 @@ function ILRadio:radio_menu()
                 },
             },
         } },
-        { text = "Ulubione stacje", sub_item_table_func = function() return self:station_menu("Ulubione") end },
-        { text = "Popularne stacje", sub_item_table_func = function() return self:station_menu("Popularne") end },
-        { text = "Polskie Radio", sub_item_table_func = function() return self:station_menu("Polskie Radio") end },
-        { text = "Radia regionalne", sub_item_table_func = function() return self:station_menu("Regionalne") end },
-        { text = "Radia muzyczne", sub_item_table_func = function() return self:station_menu("Muzyczne") end },
-        { text = "Moja muzyka", sub_item_table_func = function() return self:files_menu("music") end },
-        { text = "Moje audiobooki", sub_item_table_func = function() return self:files_menu("books") end },
         { text = "Silnik audio (dla klawiszy wybierz MPlayer)", sub_item_table_func = function()
             local opts = {}
             for _, option in ipairs(ENGINE_OPTIONS) do
@@ -1117,8 +1158,8 @@ function ILRadio:radio_menu()
         end },
     }
     if self.show_volume_buttons then
-        table.insert(menu, 7, { text = "Głośniej +", keep_menu_open = true, callback = function() self:volume_change(self.volume_step) end })
-        table.insert(menu, 8, { text = "Ciszej -", keep_menu_open = true, callback = function() self:volume_change(-self.volume_step) end })
+        table.insert(menu, 9, { text = "Głośniej +", keep_menu_open = true, callback = function() self:volume_change(self.volume_step) end })
+        table.insert(menu, 10, { text = "Ciszej -", keep_menu_open = true, callback = function() self:volume_change(-self.volume_step) end })
     end
     for _, item in ipairs(menu) do if item.callback then item.keep_menu_open = true end end
     return menu

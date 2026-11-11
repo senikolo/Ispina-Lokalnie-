@@ -54,7 +54,7 @@ for i in $(seq 1 80); do printf "StreamTitle='Fixture %s'\n" "$i"; done
 exec sleep 20
 PLAYER
 chmod +x "$fixture/bin/mplayer"
-[ "$(sh "$player" start "http://127.0.0.1:$port/sample.mp3" mplayer 65)" = 'starting:mplayer' ]
+[ "$(sh "$player" start "http://127.0.0.1:$port/sample.mp3" mplayer 65 "" 0 128 "" "Fixture Radio")" = 'starting:mplayer' ]
 for delay in {1..30}; do
     if [ "$(sh "$player" title)" = "Fixture 80" ]; then break; fi
     sleep .1
@@ -62,6 +62,13 @@ done
 [ "$(sh "$player" title)" = "Fixture 80" ]
 [ "$(sh "$player" status)" = active ]
 [ "$(sh "$player" evidence)" = decoded ]
+pid_file="$TMPDIR/ilradio-k3/pid"
+original_pid=$(cat "$pid_file")
+rm "$pid_file"
+[ "$(sh "$player" status)" = active ]
+[ "$(sh "$player" report-current | head -n 1)" = 'Fixture Radio' ]
+printf '%s\n' "$original_pid" > "$pid_file"
+echo 'PASS: active session and station recover from the tracked decoder if the launcher PID is lost'
 sh "$player" facts | grep -Fx 'pcm=22050 2'
 python3 - "$player" <<'PY'
 import os
