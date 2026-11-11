@@ -7,6 +7,7 @@ import (
  "bufio"
  "bytes"
  "crypto/tls"
+ "crypto/x509"
  "encoding/base64"
  "errors"
  "fmt"
@@ -63,10 +64,18 @@ func config(path string) (account,error) {
 func quote(s string) string {
  return "\""+strings.ReplaceAll(strings.ReplaceAll(s,"\\","\\\\"),"\"","\\\"")+"\""
 }
+func secureConfig(host string)(*tls.Config,error){
+ data,e:=os.ReadFile(filepath.Join(filepath.Dir(os.Args[0]),"ca-bundle.crt"))
+ if e!=nil{return nil,errors.New("Brakuje dołączonych certyfikatów CA; zaktualizuj wtyczkę.")}
+ roots:=x509.NewCertPool()
+ if !roots.AppendCertsFromPEM(data){return nil,errors.New("Nieprawidłowy zestaw certyfikatów CA.")}
+ return &tls.Config{ServerName:host,RootCAs:roots,MinVersion:tls.VersionTLS12},nil
+}
 func connectTLS(host string, port string) (*tls.Conn,error) {
  dialer:=&net.Dialer{Timeout:12*time.Second}
- // Standard Go TLS validates both the certificate chain and the DNS name.
- conn,e:=tls.DialWithDialer(dialer,"tcp",net.JoinHostPort(host,port),&tls.Config{ServerName:host,MinVersion:tls.VersionTLS12})
+ cfg,e:=secureConfig(host);if e!=nil{return nil,e}
+ // Go verifies both the certificate chain and the requested DNS hostname.
+ conn,e:=tls.DialWithDialer(dialer,"tcp",net.JoinHostPort(host,port),cfg)
  if e!=nil { return nil,fmt.Errorf("Bezpieczne połączenie z %s nie powiodło się: %w",host,e) }
  _=conn.SetDeadline(time.Now().Add(45*time.Second))
  return conn,nil
@@ -256,8 +265,23 @@ func read(c account,uid string,saveIndex int)error{
 func send(c account)error{
  if _,e:=mail.ParseAddress(c.recipient);e!=nil{return errors.New("Podaj prawidłowy adres odbiorcy.")}
  if strings.TrimSpace(c.body)=="" || len(c.body)>5000 || len(c.subject)>200{return errors.New("Wiadomość jest pusta albo zbyt długa.")}
- conn,e:=connectTLS(c.smtp,"465");if e!=nil{return e};defer conn.Close()
- client,e:=smtp.NewClient(conn,c.smtp);if e!=nil{return e};defer client.Close()
+ conn,e:=connectTLS(c.smtp,"465")
+ var client *smtp.Client
+ if e==nil {
+  client,e=smtp.NewClient(conn,c.smtp)
+  if e!=nil {_=conn.Close();return e}
+ } else {
+  // Some providers use only submission on port 587. STARTTLS is mandatory.
+  d:=net.Dialer{Timeout:12*time.Second}
+  plain,err:=d.Dial("tcp",net.JoinHostPort(c.smtp,"587"))
+  if err!=nil{return errors.New("Połączenie SMTPS 465 i STARTTLS 587 nie powiodło się.")}
+  _=plain.SetDeadline(time.Now().Add(45*time.Second))
+  client,err=smtp.NewClient(plain,c.smtp);if err!=nil {_=plain.Close();return err}
+  if ok,_:=client.Extension("STARTTLS");!ok {client.Close();return errors.New("Serwer SMTP nie obsługuje wymaganego STARTTLS.")}
+  cfg,err:=secureConfig(c.smtp);if err!=nil{client.Close();return err}
+  if err=client.StartTLS(cfg);err!=nil{client.Close();return errors.New("Nie powiodła się weryfikacja TLS serwera SMTP.")}
+ }
+ defer client.Close()
  if ok,_:=client.Extension("AUTH");!ok{return errors.New("Serwer SMTP nie udostępnia uwierzytelnienia.")}
  if e=client.Auth(smtp.PlainAuth("",c.email,c.password,c.smtp));e!=nil{return errors.New("SMTP odrzucił logowanie. Sprawdź hasło aplikacji.")}
  if e=client.Mail(c.email);e!=nil{return errors.New("SMTP nie przyjął adresu nadawcy.")}
