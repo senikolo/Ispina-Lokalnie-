@@ -223,6 +223,8 @@ play_backend() {
     offset=$5
     cache=$6
     codec=$7
+    boost=${8:-110}
+    case "$boost" in 110|140|170) :;; *) boost=110;; esac
     volume=$(awk -v percent="$pct" 'BEGIN {printf "%.2f", percent / 100}')
     case "$engine" in
         gst-legacy|gst-mixer)
@@ -241,12 +243,18 @@ play_backend() {
             export MPLAYER_HOME="$R"
             fifo="$R/control-$ILRADIO_K3_SESSION"
             mkfifo "$fifo" || exit 2
-            set -- -noconfig all -ao alsa -novideo -quiet -softvol -slave -input "file=$fifo" -volume "$pct"
+            set -- -noconfig all -ao alsa -novideo -quiet -softvol -softvol-max "$boost" -slave -input "file=$fifo" -volume "$pct"
             if [ -n "$local_path" ]; then
                 exec "$mplayer" "$@" -ss "$offset" "$local_path"
             fi
-            # The old ARM port can hang while probing unseekable AAC or filling its forked cache.
-            set -- "$@" -nocache
+            # Honour the configured buffer for HTTP MP3 to reduce underruns.
+            # The older K3 ARM port may hang when caching unseekable AAC,
+            # so AAC retains uncached playback for compatibility.
+            if [ "$codec" = MP3 ]; then
+                set -- "$@" -cache "$cache"
+            else
+                set -- "$@" -nocache
+            fi
             if [ "$codec" = AAC ]; then set -- "$@" -demuxer aac; fi
             case "$uri" in
                 https://*)
@@ -606,6 +614,8 @@ case "${1:-}" in
         case "$offset" in ''|*[!0-9]*|????????*) offset=0;; esac
         [ "$pct" -le 100 ] || pct=100
         case "$cache" in 64|128|256) :;; *) cache=128;; esac
+        boost=${11:-110}
+        case "$boost" in 110|140|170) :;; *) boost=110;; esac
         engine=$(backend "$wanted")
         [ -n "$engine" ] || { echo no_engine; exit 3; }
         stop_audio || { echo stop_failed; exit 4; }
@@ -626,7 +636,7 @@ case "${1:-}" in
         fi
         (
             export ILRADIO_K3_SESSION="$token"
-            launch run "$engine" "$uri" "$pct" "$local_path" "$offset" "$cache" "$codec"
+            launch run "$engine" "$uri" "$pct" "$local_path" "$offset" "$cache" "$codec" "$boost"
         ) </dev/null >/dev/null 2>&1 &
         echo "$!" > "$PID"
         for attempt in 1 2 3 4 5 6 7 8 9 10; do
