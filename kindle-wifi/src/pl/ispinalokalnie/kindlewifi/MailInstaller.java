@@ -13,7 +13,7 @@ import java.util.UUID;
 /** Atomic SFTP deployment; the phone is not part of mail traffic afterwards. */
 final class MailInstaller {
     private static final String NAME = "ilmail_k3.koplugin";
-    private static final String[] FILES = {"_meta.lua", "main.lua", "mailk3"};
+    private static final String[] FILES = {"_meta.lua", "main.lua", "mailk3", "ca-bundle.crt"};
     private static final String ROOT = CompanionFiles.PLUGINS;
     private static final int MAX_BINARY_BYTES = 14 * 1024 * 1024;
 
@@ -113,7 +113,7 @@ final class MailInstaller {
         Map<String, byte[]> result = new LinkedHashMap<>();
         for (String name : FILES) {
             try (InputStream input = context.getAssets().open(NAME + "/" + name)) {
-                int max = name.equals("mailk3") ? MAX_BINARY_BYTES : 65536;
+                int max = name.equals("mailk3") ? MAX_BINARY_BYTES : name.equals("ca-bundle.crt") ? 1024 * 1024 : 65536;
                 byte[] bytes = BialolekaForecast.readBounded(input, max);
                 if (bytes.length == 0)
                     throw new IOException("Brakuje pliku " + name + " w pakiecie aplikacji.");
