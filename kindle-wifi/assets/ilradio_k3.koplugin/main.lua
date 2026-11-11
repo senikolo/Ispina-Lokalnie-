@@ -41,7 +41,7 @@ local volume_input_open = false
 local volume_input_node
 local volume_owner
 local volume_listener
-local RADIO_VERSION = "2.30.3"
+local RADIO_VERSION = "2.30.4"
 local VOLUME_KEYS = {VMinus = -1, VolumeDown = -1, VolumeMinus = -1,
     VPlus = 1, VolumeUp = 1, VolumePlus = 1}
 
@@ -161,6 +161,9 @@ function ILRadio:init()
     self.engine = self.settings:readSetting("engine") or "auto"
     self.volume = tonumber(self.settings:readSetting("volume")) or 70
     self.volume = math.max(0, math.min(100, self.volume))
+    -- Software gain is opt-in; normal mode preserves MPlayer's prior level.
+    self.boost = tonumber(self.settings:readSetting("audio_softvol_max")) or 110
+    if self.boost ~= 110 and self.boost ~= 140 and self.boost ~= 170 then self.boost = 110 end
     self.radio = self.settings:readSetting("radio_quality") or {mode = "eco", codec = "auto", buffer = 128}
     self.working = self.settings:readSetting("radio_last_working") or {}
     self.decoded = self.settings:readSetting("radio_last_decoded") or {}
@@ -288,7 +291,7 @@ function ILRadio:start_radio_variant(stream)
     if not engine or job.starts >= 8 then self:continue_radio(job.reason or "engine"); return end
     job.starts = job.starts + 1
     local uri = stream.play_url or stream.url
-    local result = shell_call("start", uri, engine, self.volume, "", 0, self.radio.buffer, codec or "", job.station[1])
+    local result = shell_call("start", uri, engine, self.volume, "", 0, self.radio.buffer, codec or "", job.station[1], "", self.boost)
     if not result:match("^starting:") then
         job.engine_index = job.engine_index + 1
         self:continue_radio("engine")
@@ -468,7 +471,11 @@ function ILRadio:monitor_radio()
     -- Do not use MPlayer's timeline to infer a live-stream stall.
     -- Older ARM builds can keep reporting the same position while audio plays.
     -- Actual process termination or a decoder/transport error still triggers recovery.
-    if not reason and evidence == "pending" and item.checks >= 4 then reason = "buffer" end
+    -- Do not mistake delayed logs for stopped radio while MPlayer is alive.
+    if not reason and evidence == "pending" and item.checks >= 4
+        and (shell_call("status") ~= "active" or shell_call("health") == "failed") then
+        reason = "buffer"
+    end
     if reason then
         if item.established and (item.stable or 0) >= 3 and not job.reconnecting then
             -- New bounded budget after an established session, with one retry of the last source.
@@ -580,7 +587,7 @@ function ILRadio:start_local(item)
         item.engine_index = item.engine_index + 1
         local engine = item.engines[item.engine_index]
         local offset = item.kind == "books" and engine == "mplayer" and self.positions[item.path] or 0
-        local result = shell_call("start", item.uri, engine, self.volume, item.path, offset or 0, 128, "", item.name, item.kind)
+        local result = shell_call("start", item.uri, engine, self.volume, item.path, offset or 0, 128, "", item.name, item.kind, self.boost)
         if result:match("^starting:") then
             item.engine = engine
             item.checks, item.evidence = 0, "pending"
@@ -628,8 +635,14 @@ function ILRadio:monitor_local()
     if result == "decoded" or result == "pending" then
         item.checks = item.checks + 1
         if result == "decoded" then item.evidence = "decoded" end
-        if item.evidence == "decoded" or item.checks < 5 then
-            UIManager:scheduleIn(item.evidence == "decoded" and 8 or 3, self.start_check)
+        -- Older MPlayer may play audibly without emitting startup log lines.
+        -- Avoid terminating a healthy decoder after ~14 seconds.
+        local active_without_error = result == "pending"
+            and shell_call("status") == "active"
+            and shell_call("health") ~= "failed"
+        if item.evidence == "decoded" or item.checks < 5 or active_without_error then
+            UIManager:scheduleIn(item.evidence == "decoded" and 8
+                or (item.checks < 5 and 3 or 8), self.start_check)
             return
         end
     end
@@ -1231,6 +1244,20 @@ function ILRadio:radio_menu()
         end },
         { text_func = function() return "Głośność · " .. self.volume .. "%" end, enabled = false },
         { text = "Ustawienia radia", sub_item_table = {
+            { text = "Wzmocnienie dźwięku (MPlayer)", sub_item_table = {
+                { text = "Normalne · 110%", checked_func = function() return self.boost == 110 end,
+                    keep_menu_open = true, callback = function() self.boost = 110
+                        self:save("audio_softvol_max", self.boost)
+                        self:notice("Normalne wzmocnienie. Zadziała od następnego uruchomienia utworu lub radia.") end },
+                { text = "Głośniejsze · 140%", checked_func = function() return self.boost == 140 end,
+                    keep_menu_open = true, callback = function() self.boost = 140
+                        self:save("audio_softvol_max", self.boost)
+                        self:notice("Wzmocnienie 140%. Uruchom ponownie odtwarzanie. Przy zniekształceniach wybierz 110%.") end },
+                { text = "Mocniejsze · 170%", checked_func = function() return self.boost == 170 end,
+                    keep_menu_open = true, callback = function() self.boost = 170
+                        self:save("audio_softvol_max", self.boost)
+                        self:notice("Wzmocnienie 170% może przesterować dźwięk. Zacznij od niskiej głośności i uruchom ponownie odtwarzanie.") end },
+            } },
             { text = "Tryb jakości", sub_item_table_func = function() return self:quality_options("mode", T.modes) end },
             { text = "Maksymalny bitrate", sub_item_table_func = function()
                 local options = {{false, "Według trybu"}}
