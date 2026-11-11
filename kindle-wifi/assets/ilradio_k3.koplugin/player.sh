@@ -692,7 +692,7 @@ case "${1:-}" in
         case "${2:-}" in 30|60|90|120) :;; *) echo invalid_timer; exit 2;; esac
         timer_cancel
         timer_token="$-$(date +%s)"
-        timer_seconds=$(("$2" * 60))
+        timer_seconds=$(($2 * 60))
         timer_deadline=$(($(date +%s) + timer_seconds))
         printf '%s\n' "$timer_token" > "$TIMER_TOKEN"
         printf '%s\n' "$timer_deadline" > "$TIMER_DEADLINE"
