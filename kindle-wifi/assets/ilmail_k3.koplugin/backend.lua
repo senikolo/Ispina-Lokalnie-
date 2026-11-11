@@ -83,21 +83,6 @@ local function textPart(part,section)
         return {section=section=="" and "TEXT" or section,encoding=tostring(part[6] or "7bit"):lower(),size=tonumber(part[7]) or 0}
     end
 end
-local function loadText(im,part)
-    if not part then return "[Wiadomość bez obsługiwanej treści tekstowej.]" end
-    if part.size>MAX_TEXT*2 then return "[Treść jest zbyt długa, aby wyświetlić ją na Kindle.]" end
-    local section=part.section
-    assert(section:match("^[%d%.]+$") or section=="TEXT","Nieprawidłowa sekcja wiadomości.")
-    local fragments,bytes={},0
-    local decode=MIME.decoder(part.encoding,function(chunk)
-        if not chunk then return end
-        bytes=bytes+#chunk
-        assert(bytes<=MAX_TEXT,"Treść wiadomości jest zbyt długa.")
-        fragments[#fragments+1]=chunk
-    end)
-    im:command("UID FETCH "..section:gsub("^TEXT$","") .. "",nil)
-    return table.concat(fragments)
-end
 local function getText(im,part)
     if not part then return "[Brak czytelnej części tekstowej.]" end
     local section=part.section
@@ -206,6 +191,8 @@ function E.save(c,p,uid,index)
         index=tonumber(index)
         assert(index and index>=1 and index<=#files and index%1==0,"Nie znaleziono załącznika.")
         local chosen=files[index]
+        chosen.uid=tonumber(uid)
+        chosen.validity=im.validity
         assert(chosen.wire_size<=MAX_ATTACHMENT*2,"Załącznik jest za duży.")
         local full,name=chooseName(chosen.name)
         local tmp=full..".ilmail-download-"..os.time()
