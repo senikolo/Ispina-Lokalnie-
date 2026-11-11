@@ -41,7 +41,7 @@ local volume_input_open = false
 local volume_input_node
 local volume_owner
 local volume_listener
-local RADIO_VERSION = "2.30.2"
+local RADIO_VERSION = "2.30.3"
 local VOLUME_KEYS = {VMinus = -1, VolumeDown = -1, VolumeMinus = -1,
     VPlus = 1, VolumeUp = 1, VolumePlus = 1}
 
@@ -302,6 +302,11 @@ function ILRadio:start_radio_variant(stream)
     UIManager:scheduleIn(5, self.radio_tick)
 end
 
+local function known_http_mp3(stream)
+    return stream and stream.codec == "MP3" and tonumber(stream.kbps)
+        and stream.kbps > 0 and stream.url and stream.url:match("^http://")
+end
+
 local function offer_higher(job, stream)
     if not job.higher or (stream.kbps and (not job.higher.kbps or stream.kbps < job.higher.kbps)) then
         job.higher = stream
@@ -380,16 +385,23 @@ function ILRadio:check_probe()
         end
     else
         local failure = T.probeFailure(code, exit)
-        -- A few old MPlayer builds cannot dump a short Icecast sample even
-        -- though normal native HTTP MP3 playback works. Try direct playback
-        -- only for catalogued MP3 with an explicit bitrate within the limit.
-        -- This is never used after a definitive HTTP/network/TLS failure.
-        if failure == "unconfirmed" and stream.url:match("^http://")
-            and stream.codec == "MP3" and stream.kbps and T.allowed(self.radio, stream)
-            and not stream.native_direct_tried and shell_call("probe", "mplayer") == "mplayer" then
+        -- An old MPlayer may play HTTP MP3 correctly but fail to dump a
+        -- probe sample (often with a timeout). Do not mislabel that as 4xx.
+        -- Never bypass a confirmed HTTP error, DNS error, or TLS error.
+        local ambiguous = failure == "unconfirmed"
+            or (failure == "buffer" and (method == "mplayer" or code == "200" or code == "206"))
+        if ambiguous and known_http_mp3(stream) and not stream.native_direct_tried
+            and shell_call("probe", "mplayer") == "mplayer" then
             stream.native_direct_tried = true
             stream.play_url = stream.url
-            self:accept_probe(stream)
+            if T.allowed(self.radio, stream) or job.approved then
+                self:accept_probe(stream)
+            else
+                -- Exceeding the chosen data limit still needs explicit consent.
+                stream.direct = true
+                offer_higher(job, stream)
+                self:continue_radio("limit")
+            end
             return
         end
         self:continue_radio(failure)
@@ -424,8 +436,21 @@ function ILRadio:advance_radio()
         job.probe_checks = 0
         UIManager:scheduleIn(2, self.probe_tick)
     elseif probe == "unavailable" then
-        if stream.url:match("^http://") and not stream.kbps and not job.higher then job.higher = stream end
-        if job.approved or T.cap(self.radio, stream.codec) == math.huge then
+        -- The network-probe tool may be absent on Kindle 3 even when native
+        -- HTTP MP3 playback is functional. Permit exactly one constrained
+        -- attempt for a catalogued MP3 stream with a known bitrate.
+        if known_http_mp3(stream) and not stream.native_direct_tried
+            and shell_call("probe", "mplayer") == "mplayer" then
+            stream.native_direct_tried = true
+            stream.play_url = stream.url
+            if T.allowed(self.radio, stream) or job.approved then
+                self:accept_probe(stream)
+            else
+                stream.direct = true
+                offer_higher(job, stream)
+                self:continue_radio("limit")
+            end
+        elseif job.approved or T.cap(self.radio, stream.codec) == math.huge then
             self:accept_probe(stream)
         else
             self:continue_radio("transport")
@@ -1019,6 +1044,35 @@ function ILRadio:timer_menu()
     return items
 end
 
+function ILRadio:play_compatible_mp3(station)
+    local available = {}
+    for _, stream in ipairs(T.variants(station, catalog, self.custom)) do
+        if known_http_mp3(stream) then available[#available + 1] = stream end
+    end
+    table.sort(available, function(a, b) return a.kbps < b.kbps end)
+    local stream = available[1]
+    if not stream then
+        self:notice("Ta stacja nie ma znanego strumienia MP3 przez HTTP.", 7)
+        return
+    end
+    if shell_call("probe", "mplayer") ~= "mplayer" then
+        self:notice("Na Kindle nie wykryto MPlayera. Zainstaluj silnik audio z aplikacji telefonu.", 9)
+        return
+    end
+    local start = function() self:play_station(station, stream.url, true) end
+    if T.allowed(self.radio, stream) then
+        start()
+    else
+        UIManager:show(ConfirmBox:new {
+            text = "Zgodny wariant MP3 dla „" .. station[1] .. "” ma " .. stream.kbps
+                .. " kb/s i przekracza ustawiony limit. Uruchomić jednorazowo?",
+            ok_text = "Uruchom MP3",
+            cancel_text = "Anuluj",
+            ok_callback = start,
+        })
+    end
+end
+
 function ILRadio:station_menu(category)
     local menu = {}
     for _, station in ipairs(stations) do
@@ -1030,6 +1084,8 @@ function ILRadio:station_menu(category)
                 text_func = function() return (self.favorites[name] and "★ " or "") .. name end,
                 sub_item_table = {
                     { text = "Słuchaj", keep_menu_open = true, callback = function() self:play_station(entry) end },
+                    { text = "Spróbuj MP3 (tryb zgodności)", keep_menu_open = true,
+                        callback = function() self:play_compatible_mp3(entry) end },
                     {
                         keep_menu_open = true,
                         text_func = function()
