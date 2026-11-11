@@ -1,0 +1,438 @@
+#!/usr/bin/env python3
+"""Build UltraSmart 79 with a Wideo list loaded from the IL site."""
+
+from __future__ import annotations
+
+import hashlib
+import json
+import struct
+import sys
+import zipfile
+import zlib
+from pathlib import Path
+
+
+OLD_NAME = "2.0.0-smart.77"
+NEW_NAME = "2.0.0-smart.79"
+OLD_CODE = 20348
+NEW_CODE = 20350
+PACKAGE = "com.ispina.mldcheck.smartai44demo"
+MARKER = "__IL_ULTRASMART_WIDEO_SYNC_79__"
+SOURCE_SHA256 = "7c49ebf0c20563335148952f6c6e6da27028bd974a700216cb2d711028184a23"
+VIDEO_FRAME_POLICY = "frame-src https://www.youtube-nocookie.com; object-src 'none'"
+
+
+def native_shell(data: bytes) -> tuple[int, int, bytes]:
+    """Read the real HTML shell constant from HomeActivity's DEX string table."""
+    if not data.startswith(b"dex\n"):
+        raise ValueError("Nieprawidłowy plik DEX ekranu aplikacji")
+    count, table = struct.unpack_from("<II", data, 56)
+    found = []
+    for i in range(count):
+        offset, = struct.unpack_from("<I", data, table + 4 * i)
+        _, start = uleb(data, offset)
+        end = data.index(b"\0", start)
+        value = data[start:end]
+        if value.startswith(b"<!doctype html>") and b"Content-Security-Policy" in value:
+            found.append((start, end, value))
+    if len(found) != 1:
+        raise ValueError("Nie znaleziono jednoznacznego lokalnego ekranu aplikacji")
+    return found[0]
+
+
+def patch_shell_csp(data: bytes) -> bytes:
+    start, end, shell = native_shell(data)
+    if shell.count(b"frame-src 'none'; object-src 'none'") != 1:
+        raise ValueError("Nieoczekiwana polityka CSP w UltraSmart 77")
+    # Retain the string's byte/UTF-16 length and every DEX offset. The web page
+    # title is restored by main_ui.js; its unused markup provides space for the
+    # exact YouTube allowlist, without allowing arbitrary HTTPS frames.
+    changed = shell.replace(b"frame-src 'none'; object-src 'none'", VIDEO_FRAME_POLICY.encode())
+    title = b"<title>Ispina Lokalnie</title>"
+    if changed.count(title) != 1:
+        raise ValueError("Nieoczekiwany nagłówek lokalnego ekranu aplikacji")
+    changed = changed.replace(title, b"")
+    padding = len(shell) - len(changed)
+    if padding < 0:
+        raise ValueError("Brak miejsca na dokładną listę odtwarzaczy CSP")
+    changed = changed.replace(b"</head>", b" " * padding + b"</head>")
+    if len(changed) != end - start:
+        raise ValueError("Zmiana CSP naruszyłaby układ pliku DEX")
+    result = bytearray(data)
+    result[start:end] = changed
+    result[12:32] = hashlib.sha1(result[32:]).digest()
+    struct.pack_into("<I", result, 8, zlib.adler32(result[12:]) & 0xffffffff)
+    return bytes(result)
+
+JS_PATCH = r"""
+;(function(){
+ 'use strict';
+ try{
+  var d=document,nav=d.getElementById('nav'),panel=d.getElementById('iaP');
+  if(!nav||!panel||d.getElementById('ilWideoViewSmart78'))return;
+  var style=d.createElement('style');style.id='ilWideoStyleSmart78';style.textContent='\
+#ilWideoViewSmart78{box-sizing:border-box;padding:14px 14px 30px;color:#173b32}\
+#ilWideoViewSmart78 .ilv-head{margin:2px 0 15px;padding:16px;background:#edf6f2;border:1px solid #d7e9e1;border-radius:16px}\
+#ilWideoViewSmart78 .ilv-head h2{margin:2px 0 7px;color:#174875;font-size:25px;line-height:1.25}\
+#ilWideoViewSmart78 .ilv-head p{margin:0;color:#526477;font-size:14px;line-height:1.55}\
+#ilWideoViewSmart78 .ilv-card{box-sizing:border-box;margin:12px 0;padding:14px;background:#fff;border:1px solid #dbe5ef;border-radius:16px;box-shadow:0 3px 12px rgba(23,72,117,.06)}\
+#ilWideoViewSmart78 .ilv-card h3{margin:0 0 11px;color:#174875;font-size:17px;line-height:1.38}\
+#ilWideoViewSmart78 .ilv-frame{position:relative;width:100%;min-height:200px;padding-top:56.25%;overflow:hidden;border-radius:12px;background:#102c3c}\
+#ilWideoViewSmart78 .ilv-frame iframe{position:absolute;top:0;left:0;width:100%;height:100%;border:0}\
+#ilWideoViewSmart78 .ilv-link{display:inline-block;margin-top:9px;color:#176f77;font-size:14px;font-weight:750;text-decoration:none}\
+@media(min-width:760px){#ilWideoViewSmart78{max-width:900px;margin:0 auto}#ilWideoViewSmart78 .ilv-card{padding:18px}}';
+  d.head.appendChild(style);
+
+  var view=d.createElement('div');view.className='view';view.id='ilWideoViewSmart78';
+  view.setAttribute('role','main');view.setAttribute('aria-label','Wideo z Ispiny');
+  view.innerHTML='<div class="ilv-head"><h2>Wideo</h2><p>Lista jest pobierana z sekcji Wideo na portalu IL. Dodaj film do tej sekcji, a pojawi się tu przy następnym otwarciu.</p></div><p id="ilWideoStatusSmart78" class="ilv-status" role="status">Pobieram aktualne nagrania…</p><div id="ilWideoCardsSmart78"></div><p><a class="ilv-link" href="https://ispinalokalnie.wordpress.com/galeria/#wideo">Otwórz sekcję Wideo na stronie IL</a></p>';
+  panel.appendChild(view);
+  var videoStatus=view.querySelector('#ilWideoStatusSmart78');
+  var videoCards=view.querySelector('#ilWideoCardsSmart78');
+  var videoRequest=0;
+  var videoFallback=[
+   {id:'ZG7I26z3nZs',title:'Archiwalny materiał TVP Kraków o pacyfikacji Ispiny'},
+   {id:'uH6bZTGhFdE',title:'Ispina w programie „Jedź Bezpiecznie”'},
+   {id:'uY9qCLdLzuY',title:'Ispina w TVN Turbo. Stare nagranie, ale problem aktualny'}
+  ];
+  var videoEndpoint='https://ispinalokalnie.wordpress.com/wp-json/wp/v2/pages?slug=galeria&_fields=content';
+
+  function youtubeIdFrom(value){
+   var raw=String(value||'').replace(/&amp;/g,'&');
+   var urls=raw.match(/https?:\/\/[^\s"'<>]+/g)||[];
+   if(/^https?:\/\//i.test(raw))urls.unshift(raw);
+   for(var i=0;i<urls.length;i++){
+    try{
+     var u=new URL(urls[i].replace(/[),.;]+$/g,''));
+     var host=u.hostname.toLowerCase().replace(/^www\./,'');
+     var id='';
+     if(host==='youtu.be')id=u.pathname.split('/').filter(Boolean)[0]||'';
+     else if(host==='youtube.com'||host==='m.youtube.com'||host==='youtube-nocookie.com'){
+      id=u.searchParams?u.searchParams.get('v')||'':'';
+      if(!id){var m=u.pathname.match(/^\/(?:embed|shorts|live)\/([^/?]+)/);if(m)id=m[1]}
+     }
+     if(/^[A-Za-z0-9_-]{11}$/.test(id))return id;
+    }catch(e){}
+   }
+   return '';
+  }
+
+  function videosFromPage(html){
+   var parsed=new DOMParser().parseFromString(String(html||''),'text/html');
+   var headings=Array.prototype.slice.call(parsed.body.querySelectorAll('h1,h2,h3,h4,h5,h6'));
+   var section=null;
+   for(var i=0;i<headings.length;i++){
+    var headingText=(headings[i].textContent||'').replace(/\s+/g,' ').trim().toLowerCase();
+    if(headingText==='wideo'||headings[i].id==='wideo'){section=headings[i];break}
+   }
+   if(!section)return null;
+   var nodes=Array.prototype.slice.call(parsed.body.querySelectorAll('h1,h2,h3,h4,h5,h6,a,iframe,figure,div,p,blockquote'));
+   var start=nodes.indexOf(section),title='Nagranie z Ispiny',videos=[],seen={};
+   for(var j=start+1;j<nodes.length;j++){
+    var el=nodes[j],tag=el.tagName;
+    if((tag==='H1'||tag==='H2')&&el!==section)break;
+    if(/^H[3-6]$/.test(tag)){
+     title=(el.textContent||'').replace(/\s+/g,' ').trim()||title;
+     continue;
+    }
+    var id=youtubeIdFrom((el.getAttribute('href')||'')+' '+(el.getAttribute('src')||'')+' '+(el.textContent||'')+' '+(el.outerHTML||''));
+    if(!id||seen[id])continue;
+    seen[id]=true;
+    videos.push({id:id,title:title});
+   }
+   return videos.slice(0,30);
+  }
+
+  function renderVideos(items,message){
+   stopPlayers();
+   videoCards.textContent='';
+   var count=0;
+   items.forEach(function(item){
+    if(!/^[A-Za-z0-9_-]{11}$/.test(item.id))return;
+    var card=d.createElement('article');card.className='ilv-card';
+    var heading=d.createElement('h3');heading.textContent=item.title||'Nagranie z Ispiny';
+    var frame=d.createElement('div');frame.className='ilv-frame';
+    var player=d.createElement('iframe');
+    player.setAttribute('title',heading.textContent);
+    player.setAttribute('src','about:blank');
+    player.setAttribute('data-src','https://www.youtube-nocookie.com/embed/'+item.id+'?playsinline=1&rel=0');
+    player.setAttribute('loading','lazy');
+    player.setAttribute('allow','accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture; web-share');
+    player.setAttribute('allowfullscreen','allowfullscreen');
+    player.setAttribute('referrerpolicy','strict-origin-when-cross-origin');
+    if(location.protocol==='https:')player.setAttribute('data-src',player.getAttribute('data-src')+'&origin='+encodeURIComponent(location.origin));
+    frame.appendChild(player);
+    var link=d.createElement('a');link.className='ilv-link';link.href='https://www.youtube.com/watch?v='+item.id;link.textContent='Otwórz na YouTube';
+    card.appendChild(heading);card.appendChild(frame);card.appendChild(link);videoCards.appendChild(card);
+    count++;
+   });
+   videoStatus.textContent=message||(!count?'Na stronie nie znaleziono jeszcze filmów w sekcji Wideo.':'');
+   videoStatus.style.display=videoStatus.textContent?'block':'none';
+   if(visible())startPlayers();
+  }
+
+  function loadVideosFromSite(){
+   var request=++videoRequest;
+   videoStatus.textContent='Odświeżam listę filmów z IL…';
+   videoStatus.style.display='block';
+   fetch(videoEndpoint+'&_il='+Date.now(),{cache:'no-store'}).then(function(response){
+    if(!response.ok)throw new Error('Nie udało się pobrać listy filmów');
+    return response.json();
+   }).then(function(pages){
+    if(request!==videoRequest)return;
+    if(!Array.isArray(pages)||!pages.length||!pages[0].content||typeof pages[0].content.rendered!=='string')throw new Error('Nieprawidłowa odpowiedź portalu');
+    var videos=videosFromPage(pages[0].content.rendered);
+    if(videos===null||!videos.length)renderVideos(videoFallback,'Nie udało się odczytać filmów z sekcji Wideo. Pokazuję zapisane nagrania.');
+    else renderVideos(videos,'');
+   }).catch(function(){
+    if(request!==videoRequest)return;
+    renderVideos(videoFallback,'Nie udało się odświeżyć listy. Pokazuję zapisane nagrania.');
+   });
+  }
+  // Keep the enclosing HTTPS page's origin as the YouTube client identity.
+  view.querySelectorAll('iframe[data-src]').forEach(function(f){
+   f.setAttribute('referrerpolicy','strict-origin-when-cross-origin');
+   if(location.protocol==='https:')f.setAttribute('data-src',f.getAttribute('data-src')+'&origin='+encodeURIComponent(location.origin));
+  });
+
+  var button=d.createElement('button');button.type='button';button.className='nb place';
+  button.id='ilWideoTabSmart78';button.setAttribute('aria-label','Wideo z Ispiny');
+  button.setAttribute('data-u',':video');
+  button.setAttribute('aria-controls',view.id);button.innerHTML='<span class="ni" aria-hidden="true"><svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="5" width="18" height="14" rx="3"/><path d="m10 9 5 3-5 3Z"/></svg></span>Wideo';
+  var camera=nav.querySelector('.nb[data-u=":camera"]');
+  if(camera&&camera.parentNode)camera.parentNode.insertBefore(button,camera.nextSibling);
+  else{
+   var group=Array.prototype.find.call(nav.querySelectorAll('.ng'),function(n){return n.textContent.trim()==='O ISPINIE'});
+   var next=group&&group.nextElementSibling;
+   while(next&&!next.classList.contains('ng'))next=next.nextElementSibling;
+   if(group)nav.insertBefore(button,next);else nav.appendChild(button);
+  }
+
+  function visible(){return view.classList.contains('on')&&panel.classList.contains('on')&&!d.hidden}
+  function startPlayers(){if(!visible())return;view.querySelectorAll('iframe[data-src]').forEach(function(f){var u=f.getAttribute('data-src');if(f.getAttribute('src')!==u)f.setAttribute('src',u)})}
+  function stopPlayers(){view.querySelectorAll('iframe[data-src]').forEach(function(f){if(f.getAttribute('src')!=='about:blank')f.setAttribute('src','about:blank')})}
+  function open(){
+   try{if(!(history.state&&history.state.ia))history.pushState({ia:1,video:1},'',location.href)}catch(e){}
+   var drawer=d.getElementById('iaD'),shade=d.getElementById('sh');
+   if(drawer)drawer.classList.remove('on');if(shade)shade.classList.remove('on');
+   panel.querySelectorAll('.view').forEach(function(x){x.classList.remove('on')});
+   view.classList.add('on');panel.classList.add('on');
+   var sec=d.getElementById('sec');if(sec)sec.textContent='Wideo';
+   panel.scrollTop=0;loadVideosFromSite();
+  }
+  button.addEventListener('click',function(e){e.preventDefault();e.stopPropagation();open()},true);
+  var observer=new MutationObserver(function(){if(visible())startPlayers();else stopPlayers()});
+  observer.observe(view,{attributes:true,attributeFilter:['class']});
+  observer.observe(panel,{attributes:true,attributeFilter:['class']});
+  d.addEventListener('visibilitychange',function(){if(visible())startPlayers();else stopPlayers()});
+
+  // The app has a dedicated Wideo view. Keep the gallery focused on photos,
+  // including content restored from its existing offline cache.
+  var gallery=d.getElementById('vilPage1851'),galleryBody=d.getElementById('ilpBody1851');
+  function cleanGallery(){
+   if(!gallery||!galleryBody||gallery.getAttribute('data-il-page-slug')!=='galeria')return;
+   galleryBody.querySelectorAll('a[href]').forEach(function(a){
+    var text=(a.textContent||'').replace(/\s+/g,' ').trim().toLowerCase();
+    if(!/^(poznaj historię ispiny|przekaż fotografię lub wspomnienie|wideo)$/.test(text))return;
+    var p=a.closest('p');a.remove();
+    if(p&&!p.querySelector('img,figure,a')&&!p.textContent.replace(/[\s·•|]/g,''))p.remove();
+   });
+   galleryBody.querySelectorAll('h2').forEach(function(h){
+    if((h.textContent||'').trim().toLowerCase()!=='wideo')return;
+    var next=h.nextSibling;
+    while(next){
+     if(next.nodeType===1&&/^H[12]$/.test(next.tagName))break;
+     var old=next;next=next.nextSibling;old.remove();
+    }
+    h.remove();
+   });
+  }
+  if(gallery&&galleryBody){
+   var galleryObserver=new MutationObserver(cleanGallery);
+   galleryObserver.observe(gallery,{attributes:true,attributeFilter:['data-il-page-slug']});
+   galleryObserver.observe(galleryBody,{childList:true,subtree:true});
+   cleanGallery();
+  }
+ }catch(e){try{console.error('IL UltraSmart 79 Wideo:',e)}catch(_){}}
+})();
+"""
+
+
+def uleb(data: bytes, pos: int) -> tuple[int, int]:
+    value = 0
+    shift = 0
+    while True:
+        byte = data[pos]
+        pos += 1
+        value |= (byte & 0x7F) << shift
+        if not byte & 0x80:
+            return value, pos
+        shift += 7
+
+
+def utf16_len(data: bytes, pos: int) -> tuple[int, int]:
+    value = struct.unpack_from("<H", data, pos)[0]
+    pos += 2
+    if value & 0x8000:
+        value = ((value & 0x7FFF) << 16) | struct.unpack_from("<H", data, pos)[0]
+        pos += 2
+    return value, pos
+
+
+def string_pool(data: bytes, off: int) -> tuple[list[str], list[tuple[int, int, str]]]:
+    count, = struct.unpack_from("<I", data, off + 8)
+    flags, = struct.unpack_from("<I", data, off + 16)
+    strings_start, = struct.unpack_from("<I", data, off + 20)
+    utf8 = bool(flags & 0x100)
+    values: list[str] = []
+    payloads: list[tuple[int, int, str]] = []
+    for i in range(count):
+        rel, = struct.unpack_from("<I", data, off + 28 + i * 4)
+        pos = off + strings_start + rel
+        if utf8:
+            _, pos = uleb(data, pos)
+            byte_len, pos = uleb(data, pos)
+            raw = data[pos : pos + byte_len]
+            value = raw.decode("utf-8")
+        else:
+            char_len, pos = utf16_len(data, pos)
+            byte_len = char_len * 2
+            raw = data[pos : pos + byte_len]
+            value = raw.decode("utf-16le")
+        payloads.append((pos, byte_len, value))
+        values.append(value)
+    return values, payloads
+
+
+def patch_manifest(data: bytes) -> bytes:
+    buf = bytearray(data)
+    pos = 8
+    strings: list[str] | None = None
+    payloads: list[tuple[int, int, str]] = []
+    while pos + 8 <= len(buf):
+        chunk_type, header_size, chunk_size = struct.unpack_from("<HHI", buf, pos)
+        if chunk_size < header_size or pos + chunk_size > len(buf):
+            raise ValueError("Nieprawidłowy rozmiar AndroidManifest.xml")
+        if chunk_type == 0x0001:
+            strings, payloads = string_pool(buf, pos)
+            break
+        pos += chunk_size
+    if strings is None:
+        raise ValueError("Brak puli tekstów w AndroidManifest.xml")
+
+    code_offset = None
+    name_index = None
+    package_seen = False
+    pos = 8
+    while pos + 8 <= len(buf):
+        chunk_type, header_size, chunk_size = struct.unpack_from("<HHI", buf, pos)
+        if chunk_size < header_size or pos + chunk_size > len(buf):
+            raise ValueError("Nieprawidłowy rozmiar AndroidManifest.xml")
+        if chunk_type == 0x0102:
+            ext = pos + header_size
+            tag_index, = struct.unpack_from("<I", buf, ext + 4)
+            if tag_index < len(strings) and strings[tag_index] == "manifest":
+                attr_start, attr_size, attr_count = struct.unpack_from("<HHH", buf, ext + 8)
+                attrs = ext + attr_start
+                for i in range(attr_count):
+                    at = attrs + i * attr_size
+                    ns_index, attr_index = struct.unpack_from("<II", buf, at)
+                    raw_index, = struct.unpack_from("<I", buf, at + 8)
+                    if attr_index >= len(strings):
+                        continue
+                    attr_name = strings[attr_index]
+                    ns = strings[ns_index] if ns_index < len(strings) else ""
+                    value_type = buf[at + 15]
+                    value_data, = struct.unpack_from("<I", buf, at + 16)
+                    if attr_name == "package" and not ns:
+                        package = strings[raw_index] if raw_index < len(strings) else ""
+                        if package:
+                            package_seen = True
+                            if package != PACKAGE:
+                                raise ValueError(f"Nieoczekiwany pakiet APK: {package}")
+                    if ns != "http://schemas.android.com/apk/res/android":
+                        continue
+                    if attr_name == "versionCode":
+                        if value_type not in (0x10, 0x11):
+                            raise ValueError("Nieznany typ android:versionCode")
+                        if value_data != OLD_CODE:
+                            raise ValueError(f"Oczekiwano versionCode {OLD_CODE}, jest {value_data}")
+                        code_offset = at + 16
+                    elif attr_name == "versionName":
+                        if value_type != 0x03 or value_data >= len(strings):
+                            raise ValueError("Nieznany typ android:versionName")
+                        name_index = value_data
+        pos += chunk_size
+    if not package_seen:
+        raise ValueError("Nie znaleziono pakietu Androida w manifeście")
+    if code_offset is None or name_index is None:
+        raise ValueError("Brak android:versionCode lub android:versionName")
+    if strings[name_index] != OLD_NAME:
+        raise ValueError(f"Oczekiwano versionName {OLD_NAME}, jest {strings[name_index]!r}")
+    start, length, value = payloads[name_index]
+    if value != OLD_NAME:
+        raise ValueError("Nie udało się wskazać tekstu android:versionName")
+    encoded = NEW_NAME.encode("utf-8") if length == len(OLD_NAME.encode("utf-8")) else NEW_NAME.encode("utf-16le")
+    if len(encoded) != length:
+        raise ValueError("Nowa nazwa wersji ma inną długość niż stara")
+    buf[start : start + length] = encoded
+    struct.pack_into("<I", buf, code_offset, NEW_CODE)
+    return bytes(buf)
+
+
+def signature_entry(name: str) -> bool:
+    upper = name.upper()
+    if upper == "META-INF/MANIFEST.MF":
+        return True
+    if not upper.startswith("META-INF/"):
+        return False
+    leaf = upper.rsplit("/", 1)[-1]
+    return leaf.endswith((".RSA", ".DSA", ".EC", ".SF", ".MF")) or leaf.startswith("SIG-")
+
+
+def patch_apk(source: Path, output: Path) -> None:
+    if source.resolve() == output.resolve():
+        raise ValueError("Plik wynikowy nie może nadpisać UltraSmart 77")
+    if hashlib.sha256(source.read_bytes()).hexdigest() != SOURCE_SHA256:
+        raise ValueError("APK nie jest zatwierdzonym oryginałem UltraSmart 77 (SHA-256)")
+    with zipfile.ZipFile(source, "r") as zin:
+        names = set(zin.namelist())
+        for required in ("AndroidManifest.xml", "assets/main_ui.js", "classes4.dex"):
+            if required not in names:
+                raise ValueError(f"Brak wymaganego pliku APK: {required}")
+        manifest = patch_manifest(zin.read("AndroidManifest.xml"))
+        js = zin.read("assets/main_ui.js").decode("utf-8")
+        if PACKAGE not in js or OLD_NAME not in js or str(OLD_CODE) not in js:
+            raise ValueError("main_ui.js nie odpowiada wersji UltraSmart 77")
+        if MARKER in js:
+            raise ValueError("Zakładka Wideo jest już w tym APK")
+        js = "document.title='Ispina Lokalnie';\n" + js.replace(OLD_NAME, NEW_NAME).replace(str(OLD_CODE), str(NEW_CODE))
+        js = js + "\n;/* " + MARKER + " */\n" + JS_PATCH
+
+        replacements: dict[str, bytes] = {
+            "AndroidManifest.xml": manifest,
+            "assets/main_ui.js": js.encode("utf-8"),
+            "classes4.dex": patch_shell_csp(zin.read("classes4.dex")),
+        }
+        if "assets/il-build.json" in names:
+            metadata = json.loads(zin.read("assets/il-build.json"))
+            if metadata.get("versionName") != OLD_NAME or metadata.get("versionCode") != OLD_CODE:
+                raise ValueError("il-build.json nie odpowiada wersji UltraSmart 77")
+            metadata["versionName"] = NEW_NAME
+            metadata["versionCode"] = NEW_CODE
+            metadata["variant"] = "ULTRASMART-79"
+            replacements["assets/il-build.json"] = json.dumps(metadata, ensure_ascii=False, indent=2).encode("utf-8")
+
+        output.parent.mkdir(parents=True, exist_ok=True)
+        with zipfile.ZipFile(output, "w", allowZip64=True) as zout:
+            for info in zin.infolist():
+                if signature_entry(info.filename):
+                    continue
+                zout.writestr(info, replacements.get(info.filename, zin.read(info.filename)))
+
+
+if __name__ == "__main__":
+    if len(sys.argv) != 3:
+        raise SystemExit("Użycie: patch_ultrasmart78_video.py input.apk output.apk")
+    patch_apk(Path(sys.argv[1]), Path(sys.argv[2]))
+    print(f"Utworzono {NEW_NAME} z zakładką Wideo.")
