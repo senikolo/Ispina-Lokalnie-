@@ -19,12 +19,12 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.7'
+      - uses: android-actions/setup-android@v4
+        with:
+          packages: 'platform-tools'
       - name: Install Android SDK and Lua syntax checker
         run: |
-          SDKMANAGER="$(find "$ANDROID_HOME/cmdline-tools" -path '*/bin/sdkmanager' -type f | head -1)"
-          test -x "$SDKMANAGER"
-          "$SDKMANAGER" --licenses < /dev/null || true
-          "$SDKMANAGER" 'platforms;android-35' 'build-tools;35.0.0'
+          sdkmanager 'platforms;android-35' 'build-tools;35.0.0'
           sudo apt-get update -qq
           sudo apt-get install -y -qq lua5.3 lua-socket lua-sec lua-filesystem
           cp /etc/ssl/certs/ca-certificates.crt kindle-wifi/assets/ilmail_k3.koplugin/ca-bundle.crt
