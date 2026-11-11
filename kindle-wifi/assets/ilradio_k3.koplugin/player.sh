@@ -823,7 +823,7 @@ case "${1:-}" in
         if has amixer; then
             echo "Mikser ALSA (odczyt):"
             for control_name in Master PCM Speaker Headphone; do
-                mix_line=$(amixer sget "$control_name" 2>/dev/null | grep -m 1 -E '\\[[0-9]+%\\]')
+                mix_line=$(amixer sget "$control_name" 2>/dev/null | grep -m 1 -E '\[[0-9]+%\]')
                 if [ -n "$mix_line" ]; then
                     printf '%s: %s\n' "$control_name" "$(printf '%s' "$mix_line" | cut -c 1-120)"
                 fi
