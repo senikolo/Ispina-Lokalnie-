@@ -13,9 +13,8 @@ import java.util.UUID;
 /** Atomic SFTP deployment; the phone is not part of mail traffic afterwards. */
 final class MailInstaller {
     private static final String NAME = "ilmail_k3.koplugin";
-    private static final String[] FILES = {"_meta.lua", "main.lua", "mailk3", "ca-bundle.crt"};
+    private static final String[] FILES = {"_meta.lua", "main.lua", "backend.lua", "imap.lua", "mail.lua", "LICENSE-THIRD-PARTY.txt", "ca-bundle.crt"};
     private static final String ROOT = CompanionFiles.PLUGINS;
-    private static final int MAX_BINARY_BYTES = 14 * 1024 * 1024;
 
     private MailInstaller() {}
 
@@ -45,7 +44,6 @@ final class MailInstaller {
                 stageExists = true;
                 for (Map.Entry<String, byte[]> entry : files.entrySet())
                     CompanionFiles.putVerified(sftp, stage + "/" + entry.getKey(), entry.getValue());
-                sftp.chmod(0700, stage + "/mailk3");
                 if (!matches(sftp, stage, files))
                     throw new IOException("Kindle nie potwierdził pełnego przesłania poczty.");
                 if (Thread.currentThread().isInterrupted()) throw new InterruptedException();
@@ -113,14 +111,10 @@ final class MailInstaller {
         Map<String, byte[]> result = new LinkedHashMap<>();
         for (String name : FILES) {
             try (InputStream input = context.getAssets().open(NAME + "/" + name)) {
-                int max = name.equals("mailk3") ? MAX_BINARY_BYTES : name.equals("ca-bundle.crt") ? 1024 * 1024 : 65536;
+                int max = name.equals("ca-bundle.crt") ? 1024 * 1024 : 65536;
                 byte[] bytes = BialolekaForecast.readBounded(input, max);
                 if (bytes.length == 0)
                     throw new IOException("Brakuje pliku " + name + " w pakiecie aplikacji.");
-                if (name.equals("mailk3") && (bytes.length < 4
-                        || bytes[0] != 0x7f || bytes[1] != 'E'
-                        || bytes[2] != 'L' || bytes[3] != 'F'))
-                    throw new IOException("Nieprawidłowy plik silnika poczty (ARM).");
                 result.put(name, bytes);
             }
         }
