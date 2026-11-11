@@ -38,7 +38,7 @@ local volume_input_open = false
 local volume_input_node
 local volume_owner
 local volume_listener
-local RADIO_VERSION = "2.28.4"
+local RADIO_VERSION = "2.28.5"
 local VOLUME_KEYS = {VMinus = -1, VolumeDown = -1, VolumeMinus = -1,
     VPlus = 1, VolumeUp = 1, VolumePlus = 1}
 
@@ -782,6 +782,49 @@ function ILRadio:playing_info(full)
     if item.kind == "radio" then title = shell_call("title")
     elseif item.path and item.path:lower():match("%.mp3$") then title, artist = T.id3(item.path) end
     local stream = item.stream
+    -- Keep the everyday "Co gra?" panel short; raw transport facts stay in
+    -- "Szczegóły źródła", which still calls playing_info(true).
+    if not full then
+        local state_label = state == "paused" and "Pauza"
+            or state == "stopped" and "Zatrzymane"
+            or item.audible or item.evidence == "decoded" and "Odtwarzanie"
+            or "Odtwarzacz uruchomiony"
+        local summary = item.name
+        if item.kind == "radio" then
+            summary = summary .. "\nTeraz gra: " .. (title and title ~= "" and title or "brak informacji od stacji")
+            local codec = stream and (stream.live_codec or stream.catalog_label or stream.codec)
+            local kbps, provenance
+            if stream and stream.live_measured then
+                kbps = string.format("%.0f kb/s", stream.live_measured)
+                provenance = "próbka"
+            elseif stream and stream.live_nominal then
+                kbps = tostring(stream.live_nominal) .. " kb/s"
+                provenance = "serwer"
+            elseif stream and stream.kbps then
+                kbps = tostring(stream.kbps) .. " kb/s"
+                provenance = "katalog"
+            end
+            local stream_label = codec or "format nieustalony"
+            if kbps then
+                stream_label = stream_label .. " · " .. kbps .. " (" .. provenance .. ")"
+            end
+            summary = summary .. "\nStrumień: " .. stream_label
+        else
+            if title and title ~= "" and title ~= item.name then
+                summary = summary .. "\nUtwór: " .. title
+            end
+            if artist and artist ~= "" then
+                summary = summary .. "\nWykonawca: " .. artist
+            end
+            local extension = item.path and item.path:match("%.([^.]+)$")
+            if extension then
+                summary = summary .. "\nFormat: " .. extension:upper()
+            end
+        end
+        summary = summary .. "\nStan: " .. state_label .. "\nGłośność: " .. self.volume .. "%"
+        self:notice(summary, 12)
+        return
+    end
     local status = state == "paused" and "Pauza" or state == "stopped" and "Zatrzymane"
         or item.audible and "Dźwięk potwierdzony przez słuchacza"
         or item.evidence == "decoded" and "Silnik zgłosił dekodowanie i wyjście audio"
