@@ -1,29 +1,29 @@
 -- PIN-protected app password storage. Uses native OpenSSL; never stores a plaintext password.
 -- Four-digit PINs are convenience locks, NOT protection against offline PIN guessing.
 local ffi = require("ffi")
+-- KOReader bundles its own OpenSSL and exposes it through ffi.loadlib.
+-- Reuse its declarations to avoid conflicting redeclarations of EVP types.
+require("ffi/crypto_h")
 ffi.cdef[[
-typedef struct evp_cipher_ctx_st EVP_CIPHER_CTX;
-typedef struct evp_cipher_st EVP_CIPHER;
 typedef struct evp_md_st EVP_MD;
-EVP_CIPHER_CTX *EVP_CIPHER_CTX_new(void);
-void EVP_CIPHER_CTX_free(EVP_CIPHER_CTX *ctx);
 const EVP_CIPHER *EVP_aes_256_gcm(void);
 const EVP_MD *EVP_sha256(void);
 int PKCS5_PBKDF2_HMAC(const char *pass, int passlen, const unsigned char *salt, int saltlen, int iter, const EVP_MD *digest, int keylen, unsigned char *out);
-int EVP_EncryptInit_ex(EVP_CIPHER_CTX *ctx, const EVP_CIPHER *type, void *impl, const unsigned char *key, const unsigned char *iv);
+int EVP_EncryptInit_ex(EVP_CIPHER_CTX *ctx, const EVP_CIPHER *type, ENGINE *impl, const unsigned char *key, const unsigned char *iv);
 int EVP_EncryptUpdate(EVP_CIPHER_CTX *ctx, unsigned char *out, int *outl, const unsigned char *in_, int inl);
 int EVP_EncryptFinal_ex(EVP_CIPHER_CTX *ctx, unsigned char *out, int *outl);
-int EVP_DecryptInit_ex(EVP_CIPHER_CTX *ctx, const EVP_CIPHER *type, void *impl, const unsigned char *key, const unsigned char *iv);
-int EVP_DecryptUpdate(EVP_CIPHER_CTX *ctx, unsigned char *out, int *outl, const unsigned char *in_, int inl);
-int EVP_DecryptFinal_ex(EVP_CIPHER_CTX *ctx, unsigned char *out, int *outl);
 int EVP_CIPHER_CTX_ctrl(EVP_CIPHER_CTX *ctx, int type, int arg, void *ptr);
 ]]
 local lib
-for _, name in ipairs({"crypto", "libcrypto.so.3", "libcrypto.so.1.1", "libcrypto.so.1.0.0"}) do
-    local ok, value = pcall(ffi.load, name)
-    if ok then lib = value; break end
+local ok, loaded = pcall(ffi.loadlib, "crypto", "57")
+if ok then lib=loaded end
+if not lib then
+    for _, name in ipairs({"crypto", "libcrypto.so.3", "libcrypto.so.1.1", "libcrypto.so.1.0.0"}) do
+        local success, value = pcall(ffi.load,name)
+        if success then lib=value;break end
+    end
 end
-assert(lib, "Biblioteka OpenSSL nie jest dostępna. Hasło nie może być zapamiętane.")
+assert(lib, "Brak biblioteki OpenSSL KOReadera.")
 local Vault = {}
 local ITERATIONS = 180000
 local function hex(s)
