@@ -787,7 +787,7 @@ function ILRadio:playing_info(full)
     if not full then
         local state_label = state == "paused" and "Pauza"
             or state == "stopped" and "Zatrzymane"
-            or item.audible or item.evidence == "decoded" and "Odtwarzanie"
+            or (item.audible or item.evidence == "decoded") and "Odtwarzanie"
             or "Odtwarzacz uruchomiony"
         local summary = item.name
         if item.kind == "radio" then
