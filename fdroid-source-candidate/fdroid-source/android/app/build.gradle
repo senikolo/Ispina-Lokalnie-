@@ -1,0 +1,42 @@
+plugins {
+    id 'com.android.application'
+}
+
+android {
+    namespace 'com.ispina.lokalnie'
+    compileSdk 34
+
+    defaultConfig {
+        applicationId 'com.ispina.mldcheck'
+        minSdk 23
+        targetSdk 34
+        versionCode 18321
+        versionName '1.83.21-fdroid-preview'
+    }
+
+    sourceSets {
+        main {
+            // Latest planner script from the public source tree, not a prebuilt APK.
+            assets.srcDirs += file("${rootProject.projectDir}/../../planner/assets")
+        }
+    }
+
+    buildTypes {
+        debug {
+            minifyEnabled false
+        }
+        release {
+            minifyEnabled false
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}
+
+
+dependencies {
+    implementation "androidx.work:work-runtime:2.9.1"
+}

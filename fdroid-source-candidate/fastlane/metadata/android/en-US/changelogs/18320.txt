@@ -1,0 +1,1 @@
+Added a Historical Curiosities menu item. Journey searches now start automatically after choosing a destination. Improved stop suggestions, explicit acceptance and its animated checkmark. Preserved full stop names and a more readable Senior mode.

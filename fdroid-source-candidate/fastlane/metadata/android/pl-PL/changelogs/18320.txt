@@ -1,0 +1,1 @@
+Dodano w menu „Ciekawostki historyczne”. Planer wyszukuje połączenia na teraz po wybraniu celu. Ulepszono podpowiedzi przystanków, potwierdzanie przyciskiem „Akceptuj” i animację zaznaczenia. Zachowano czytelniejszy tryb Senior i pełne nazwy przystanków.

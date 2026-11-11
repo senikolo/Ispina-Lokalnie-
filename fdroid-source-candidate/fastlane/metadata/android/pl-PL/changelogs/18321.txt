@@ -1,0 +1,1 @@
+Kandydat do kompilacji ze źródeł dla F-Droida. Planer rozkładów jest dostępny; bieżące dane LIVE MLD nie są włączone w tym szkicu.
