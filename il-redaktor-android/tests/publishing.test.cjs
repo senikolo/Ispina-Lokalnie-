@@ -79,6 +79,25 @@ function setup(initialStorage=[],nativeData) {
   return {c,node,storage,documentListeners,run:(script)=>vm.runInContext(script,c)};
 }
 
+test("backup reminder only records a completed export, never a canceled picker",()=>{
+  const fs=require("node:fs"),path=require("node:path");
+  const ui=fs.readFileSync(path.join(__dirname,"../app/src/main/assets/index.html"),"utf8");
+  assert.match(ui,/if\(id==="draft-backup"\)\{if\(ok\)/);
+  assert.match(ui,/id="backup-health"/);
+  assert.match(ui,/function renderBackupHealth/);
+});
+test("1.28.0 free Radar date selector, local SEO and diagnostic actions are exposed",()=>{ 
+  const fs=require("node:fs"),path=require("node:path");
+  const ui=fs.readFileSync(path.join(__dirname,"../app/src/main/assets/index.html"),"utf8");
+  const java=fs.readFileSync(path.join(__dirname,"../app/src/main/java/com/ispinalokalnie/redaktor/MainActivity.java"),"utf8");
+  const rss=fs.readFileSync(path.join(__dirname,"../app/src/main/java/com/ispinalokalnie/redaktor/FreeIspinaSearchClient.java"),"utf8");
+  assert.match(ui,/id="research-days"/);
+  assert.match(ui,/function runLocalSeoAudit/);
+  assert.match(ui,/function runLocalDiagnostics/);
+  assert.match(java,/askResearchWithDays/);
+  assert.match(rss,/entry".equals\(name\)/);
+  assert.match(rss,/sourcesAreFactChecked", false/);
+});
 test("publishing issues exactly one POST and verifies by GET before SUCCESS",async()=>{
   const a=setup(),calls=[];
   a.c.rpc=async(method,p,body)=>{
@@ -635,9 +654,9 @@ test("AI context exposes published posts only for reader recommendations",()=>{
 test("new build metadata and the PR APK workflow agree",()=>{
   const gradle=fs.readFileSync(path.join(__dirname,"../app/build.gradle"),"utf8");
   const workflow=fs.readFileSync(path.join(__dirname,"../../.github/workflows/il-redaktor-apk.yml"),"utf8");
-  assert.match(gradle,/versionCode 37/);assert.match(gradle,/versionName '1\.27\.0'/);assert.match(gradle,/https:\/\/il-redaktor-assistant\.vercel\.app\/api\/assistant/);
+  assert.match(gradle,/versionCode 38/);assert.match(gradle,/versionName '1\.28\.0'/);assert.match(gradle,/https:\/\/il-redaktor-assistant\.vercel\.app\/api\/assistant/);
   assert.match(gradle,/applicationId 'com\.ispinalokalnie\.redaktorsmart\.stable'/);
-  assert.match(workflow,/versionCode='37' versionName='1\.27\.0'/);
+  assert.match(workflow,/versionCode='38' versionName='1\.28\.0'/);
 });
 
 test("AI editor shortcut copies current title and text into a reviewable prompt without sending it",()=>{
@@ -1113,6 +1132,26 @@ test("editor change and focusout handlers persist drafts without needing network
 });
 
 
+test("short free RSS chat followups use preceding user topic without paid AI",()=>{
+ const fs=require("node:fs"),path=require("node:path");
+ const java=fs.readFileSync(path.join(__dirname,"../app/src/main/java/com/ispinalokalnie/redaktor/MainActivity.java"),"utf8");
+ const rss=fs.readFileSync(path.join(__dirname,"../app/src/main/java/com/ispinalokalnie/redaktor/FreeIspinaSearchClient.java"),"utf8");
+ assert.match(java,/askConversation\(MainActivity\.this, prompt,/);
+ assert.match(rss,/resolveConversationPrompt/);
+ assert.match(rss,/contextInherited/);
+});
+test("free radar never claims RSS results are fact-checked and latest query applies 30 days",()=>{
+ const a=setup();
+ const found={freeSearch:true,sourceLinksFound:true,verified:true,sources:[{title:"Most w Ispinie",url:"https://example.org/most"}],text:"Most w Ispinie",answer:"Most w Ispinie",successfulFeeds:4,failedFeeds:2,partialResults:true};
+ a.run("renderResearchResult("+JSON.stringify(found)+",'Ispina')");
+ const output=a.node("research-results").innerHTML+" "+a.node("research-status").textContent;
+ assert.match(output,/do sprawdzenia|do sprawdzenia/);
+ assert.match(output,/wynik jest niepełny/);
+ assert.doesNotMatch(output,/Zweryfikowane profile|potwierdzone źródła/);
+ const ui=require("node:fs").readFileSync(require("node:path").join(__dirname,"../app/src/main/assets/index.html"),"utf8");
+ assert.match(ui,/\$\("research-days"\)\.value="30"/);
+ assert.match(ui,/\$\("research-query"\)\.value="Ispina"/);
+});
 test("research UI shows only source-backed section text and safe source links",()=>{
   const a=setup();
   const result={
@@ -1128,7 +1167,7 @@ test("research UI shows only source-backed section text and safe source links",(
   const rendered=a.node("research-results").innerHTML;
   assert.match(rendered,/Profil potwierdzony/);
   assert.match(rendered,/data-research-link="https:\/\/example\.com\/raport"/);
-  assert.match(rendered,/Profil bez potwierdzonych źródeł/);
+  assert.match(rendered,/Profil bez znalezionych linków/);
   assert.doesNotMatch(rendered,/Ukryj tę niepotwierdzoną treść|Zbiorcze podsumowanie/);
 });
 

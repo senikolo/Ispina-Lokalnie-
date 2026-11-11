@@ -147,6 +147,37 @@ public final class ConfirmationInstrumentation extends Instrumentation {
             +"<item><title>Ispina bez daty</title><link>https://example.org/bez-daty</link></item>"
             +"<item><title>Ispina dawniej</title><link>https://example.org/archiwum</link><pubDate>Sat, 01 Jan 2000 00:00:00 +0000</pubDate></item>"
             +"<item><title>Inna miejscowość</title><link>https://example.org/inna</link></item></channel></rss>";
+        // Atom entries and arbitrary topics must work on Android 8 too.
+        String atom="<feed xmlns=\"http://www.w3.org/2005/Atom\"><entry><title>Kapliczka w Ispinie</title>"
+            +"<link rel=\"alternate\" href=\"https://example.org/kapliczka\"/>"
+            +"<summary>Odnowiona kapliczka</summary><published>2026-10-30T10:20:00Z</published></entry></feed>";
+        org.json.JSONArray atomItems=FreeIspinaSearchClient.parseFeed(atom,0,false);
+        if(atomItems.length()!=1 || !atomItems.getJSONObject(0).getString("url").contains("kapliczka"))
+            throw new AssertionError("Atom feed links were not parsed");
+        if(!"kapliczki".equals(FreeIspinaSearchClient.topic("Wyszukaj informacje o kapliczki w Ispinie")))
+            throw new AssertionError("Unlisted topic was discarded");
+        if(!FreeIspinaSearchClient.matchesTopic(
+            new org.json.JSONObject().put("title","Kapliczka w Ispinie"),"kapliczki"))
+            throw new AssertionError("Inflected Polish subject not matched");
+        if(FreeIspinaSearchClient.matchesTopic(
+            new org.json.JSONObject().put("title","Most w Ispinie"),"most kapliczki"))
+            throw new AssertionError("Multiword topic matched only one term");
+        if(!FreeIspinaSearchClient.matchesTopic(
+            new org.json.JSONObject().put("title","Most i kapliczka w Ispinie"),"most kapliczki"))
+            throw new AssertionError("Multiword topic failed to match all terms");
+        if(!"".equals(FreeIspinaSearchClient.topic(
+            "Co nowego o Ispinie w ostatnich 30 dniach? Sprawdź źródła urzędowe, BIP, lokalne media i przetargi.")))
+            throw new AssertionError("Broad multi-source brief was treated as a narrow topic");
+        org.json.JSONArray history=new org.json.JSONArray().put(new org.json.JSONObject()
+            .put("role","user").put("content","Co wiadomo o moście w Ispinie?"));
+        String inherited=FreeIspinaSearchClient.resolveConversationPrompt("A kiedy?",history);
+        if(!"Ispina most".equals(inherited))
+            throw new AssertionError("A short follow-up lost the previous subject: "+inherited);
+        if(!"Ispina".equals(FreeIspinaSearchClient.resolveConversationPrompt("Ispina",history)))
+            throw new AssertionError("An explicit broad query incorrectly inherited a previous subject");
+        if(!"Co z kapliczki w Ispinie?".equals(FreeIspinaSearchClient.resolveConversationPrompt(
+            "Co z kapliczki w Ispinie?",history)))
+            throw new AssertionError("Explicit new topic was overwritten with previous context");
         org.json.JSONArray manual=FreeIspinaSearchClient.parseFeed(xml,0,false);
         org.json.JSONArray background=FreeIspinaSearchClient.parseFeed(xml,now-86400000L,true);
         if(manual.length()!=3 || background.length()!=1)throw new AssertionError("Free RSS location/date/link filtering failed");
@@ -234,14 +265,14 @@ public final class ConfirmationInstrumentation extends Instrumentation {
             // document.readyState alone only confirms DOM loading on older WebView.
             captureUi("startup");
             if ("seed".equals(mode) || "seed-current".equals(mode)) {
-                int expectedVersion = "seed-current".equals(mode) ? 37 : 21;
+                int expectedVersion = "seed-current".equals(mode) ? 38 : 21;
                 if(getTargetContext().getPackageManager().getPackageInfo(getTargetContext().getPackageName(),0).versionCode!=expectedVersion)throw new AssertionError("Seed baseline versionCode mismatch: expected "+expectedVersion);
                 String seeded=evaluate("localStorage.removeItem(draftKey);draftStore=null;activeDraftId=null;$('post-title').value='Pierwszy szkic';$('post-body').value='Pierwsza wersja';persistDraft(true);$('post-body').value='Druga wersja';persistDraft(true);resetEditor();$('post-title').value='Drugi szkic';$('post-body').value='Drugi tekst';persistDraft(true);String(readDraftStore().drafts.length)");
                 if(!"\"2\"".equals(seeded))throw new AssertionError("Draft seeding failed: "+seeded);
                 if(!getTargetContext().getSharedPreferences("il_update_probe",0).edit().putString("marker","preserved").commit())throw new AssertionError("Preferences seeding failed");
                 result.putString("stream","IL_UPDATE_SEED=PASS\n");
             } else if ("verify".equals(mode)) {
-                if(getTargetContext().getPackageManager().getPackageInfo(getTargetContext().getPackageName(),0).versionCode!=37)throw new AssertionError("Verification must run after upgrade to versionCode 37");
+                if(getTargetContext().getPackageManager().getPackageInfo(getTargetContext().getPackageName(),0).versionCode!=38)throw new AssertionError("Verification must run after upgrade to versionCode 38");
                 String restored=evaluate("JSON.stringify(readDraftStore().drafts.map(d=>[d.title,d.body,d.revisions.length]))");
                 if(!restored.contains("Pierwszy szkic")||!restored.contains("Druga wersja")||!restored.contains("Drugi szkic"))throw new AssertionError("Drafts lost after reinstall: "+restored);
                 if(!"preserved".equals(getTargetContext().getSharedPreferences("il_update_probe",0).getString("marker","")))throw new AssertionError("Preferences lost after reinstall");
