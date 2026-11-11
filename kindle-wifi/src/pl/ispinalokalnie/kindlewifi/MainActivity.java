@@ -355,6 +355,9 @@ public final class MainActivity extends Activity {
         Button radio = secondaryButton("Radio", Glyph.SETTINGS);
         radio.setOnClickListener(v -> showRadioMenu());
         add(audio, radio, 6);
+        Button mail = secondaryButton("Poczta i książki", Glyph.BOOK);
+        mail.setOnClickListener(v -> showMailMenu());
+        add(audio, mail, 6);
         add(page, audio, 12);
 
         lastDetails = settings.getString("lastResult", "");
@@ -1240,6 +1243,43 @@ public final class MainActivity extends Activity {
             busy(false);
         });
         audioLibrary.show();
+    }
+
+    private void showMailMenu() {
+        if (sending) return;
+        String[] options = {
+                "Zainstaluj lub zaktualizuj pocztę w KOReaderze",
+                "Jak korzystać z poczty bez telefonu?",
+                "Bezpieczeństwo i ustawienia konta"
+        };
+        new DialogUi.Builder(this).setTitle("Poczta i książki · TEST")
+                .setItems(options, (dialog, selected) -> {
+                    switch (selected) {
+                        case 0:
+                            withKindle(() -> deviceAction("Instaluję pocztę na Kindle przez Wi-Fi…", () -> {
+                                Session session = openPairedDevice();
+                                try { return MailInstaller.install(this, session); }
+                                finally { session.disconnect(); }
+                            }, result -> showDeviceResult("Poczta na Kindle", result
+                                    + "\n\nUruchom ponownie KOReadera. W menu Narzędzia → Więcej narzędzi wybierz „Poczta i książki”."
+                                    + "\nTelefon nie musi być potem włączony.")));
+                            break;
+                        case 1:
+                            showDeviceResult("Poczta bez telefonu",
+                                    "Telefon służy tylko do pierwszej instalacji wtyczki. Później Kindle "
+                                    + "łączy się samodzielnie przez Wi-Fi z serwerem IMAP i SMTP. "
+                                    + "Możesz odebrać wiadomość, przeczytać ją, odpisać nową wiadomością "
+                                    + "oraz zapisać załącznik EPUB/PDF w dokumentach czytnika.");
+                            break;
+                        default:
+                            showDeviceResult("Ustawienia i bezpieczeństwo",
+                                    "Wtyczka na Kindle wymaga adresu konta, serwerów IMAP 993 i SMTP 465 "
+                                    + "oraz hasła aplikacji. Hasło podaje się wyłącznie na Kindle; "
+                                    + "aplikacja telefoniczna nie zbiera go ani nie przechowuje. "
+                                    + "Nie wyłączamy sprawdzania certyfikatów TLS. "
+                                    + "To wersja testowa wymagająca próby na fizycznym Kindle Keyboard 3.");
+                    }
+                }).setNegativeButton("Zamknij", null).show();
     }
 
     private void showRadioMenu() {
