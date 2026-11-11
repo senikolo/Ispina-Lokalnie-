@@ -71,10 +71,9 @@ jobs:
           "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify -v --print-certs ../artifacts/Kindle-przez-WiFi-Poczta-2.30.2-TEST.apk
           "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging ../artifacts/Kindle-przez-WiFi-Poczta-2.30.2-TEST.apk | head -3
       - uses: actions/upload-artifact@v4
-        if: always()
+        if: success()
         with:
-          name: kindle-mail-k3-test
-          path: |
-            artifacts/
-            kindle-wifi/assets/ilmail_k3.koplugin/ca-bundle.crt
-          if-no-files-found: warn
+          name: kindle-wifi-2.30.2-signed-apk
+          path: artifacts/Kindle-przez-WiFi-Poczta-2.30.2-TEST.apk
+          compression-level: 0
+          if-no-files-found: error
