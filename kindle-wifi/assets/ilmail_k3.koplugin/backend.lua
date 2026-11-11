@@ -135,7 +135,7 @@ function E.list(c,p)
                     "UID FETCH "..uid.." (UID BODY.PEEK[HEADER.FIELDS (FROM SUBJECT DATE)])",16384)
                 if ok then
                     local h=headers(head)
-                    rows[#rows+1]=table.concat({"LIST",uid,b64(h.from or ""),b64(h.subject or "(bez tematu)"),b64(h.date or "")},"\t")
+                    rows[#rows+1]=table.concat({"LIST",uid,b64(h.from and h.from~="" and h.from or "(nieznany nadawca)"),b64(h.subject and h.subject~="" and h.subject or "(bez tematu)"),b64(h.date and h.date~="" and h.date or " ")},"\t")
                 end
             end
         end
@@ -144,7 +144,7 @@ function E.list(c,p)
 end
 local function message(im,uid)
     assert(type(uid)=="string" and uid:match("^%d%d?%d?%d?%d?%d?%d?%d?%d?%d?%d?%d?$"),"Nieprawidłowy identyfikator e-mail.")
-    local h=headers(capture(im,"UID FETCH "..uid.." (UID BODY.PEEK[HEADER.FIELDS (FROM SUBJECT DATE)])",16384))
+    local h=headers(capture(im,"UID FETCH "..uid.." (UID BODY.PEEK[HEADER.FIELDS (FROM SUBJECT DATE REPLY-TO MESSAGE-ID)])",16384))
     local str=structure(im,uid)
     return h,str
 end
@@ -160,6 +160,8 @@ function E.read(c,p,uid)
         end
         local rows={
             "FROM\t"..b64(h.from or ""),
+            "REPLYTO\t"..b64(h["reply-to"] or ""),
+            "MESSAGEID\t"..b64(h["message-id"] or ""),
             "SUBJECT\t"..b64(h.subject or ""),
             "BODY\t"..b64(text),
         }
@@ -238,11 +240,14 @@ local function expect(conn,code)
     local got=readReply(conn)
     if got~=code then error("Serwer SMTP odrzucił operację (kod "..tostring(got)..").") end
 end
-local function smtpSession(c,p,recipient,subject,body)
+local function smtpSession(c,p,recipient,subject,body,replyid)
     local cfg=config(c,p)
     assert(checkEmail(recipient),"Nieprawidłowy adres odbiorcy.")
     assert(type(subject)=="string" and #subject<=200 and not subject:find("[%z\r\n]"),"Nieprawidłowy temat.")
     assert(type(body)=="string" and #body>=1 and #body<=5000,"Wiadomość jest pusta lub zbyt długa.")
+    -- Only a single syntactically safe Message-ID may enter additional SMTP headers.
+    if replyid~=nil and (type(replyid)~="string" or #replyid>250 or
+        not replyid:match("^<[^<>%c%s]+>$")) then replyid=nil end
     local tcp=assert(socket.tcp(),"Nie można utworzyć połączenia SMTP.")
     tcp:settimeout(15)
     local connected=tcp:connect(c.smtp,465)
@@ -268,6 +273,9 @@ local function smtpSession(c,p,recipient,subject,body)
         local payload=b64(body:gsub("\r\n","\n"):gsub("\n","\r\n"))
         sendAll(secured,"From: <"..c.email..">\r\nTo: <"..recipient..">\r\n")
         sendAll(secured,"Subject: =?UTF-8?B?"..b64(subject).."?=\r\n")
+        if replyid then
+            sendAll(secured,"In-Reply-To: "..replyid.."\r\nReferences: "..replyid.."\r\n")
+        end
         sendAll(secured,"MIME-Version: 1.0\r\nContent-Type: text/plain; charset=UTF-8\r\nContent-Transfer-Encoding: base64\r\n\r\n")
         for i=1,#payload,76 do sendAll(secured,payload:sub(i,i+75).."\r\n") end
         sendAll(secured,"\r\n.\r\n")
@@ -279,5 +287,5 @@ local function smtpSession(c,p,recipient,subject,body)
     if not ok then error(errorSafe(result)) end
     return result
 end
-function E.send(c,p,recipient,subject,body) return smtpSession(c,p,recipient,subject,body) end
+function E.send(c,p,recipient,subject,body,replyid) return smtpSession(c,p,recipient,subject,body,replyid) end
 return E
