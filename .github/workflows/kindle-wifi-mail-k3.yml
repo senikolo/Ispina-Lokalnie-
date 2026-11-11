@@ -30,6 +30,7 @@ jobs:
       - name: Static checks for bundled Lua plugin
         working-directory: kindle-wifi
         run: |
+          test -s assets/ilmail_k3.koplugin/vault.lua
           test -s assets/ilmail_k3.koplugin/backend.lua
           test -s assets/ilmail_k3.koplugin/imap.lua
           test -s assets/ilmail_k3.koplugin/mail.lua
@@ -38,10 +39,15 @@ jobs:
             lua5.3 -e 'assert(loadfile("assets/ilmail_k3.koplugin/_meta.lua"))'
             lua5.3 -e 'assert(loadfile("assets/ilmail_k3.koplugin/main.lua"))'
             lua5.3 -e 'assert(loadfile("assets/ilmail_k3.koplugin/backend.lua"))'
+            lua5.3 -e 'assert(loadfile("assets/ilmail_k3.koplugin/vault.lua"))'
             lua5.3 -e 'assert(loadfile("assets/ilmail_k3.koplugin/imap.lua"))'
             lua5.3 -e 'assert(loadfile("assets/ilmail_k3.koplugin/mail.lua"))'
+          elif command -v texlua >/dev/null 2>&1; then
+            texlua -e 'assert(loadfile("assets/ilmail_k3.koplugin/main.lua"))'
+            texlua -e 'assert(loadfile("assets/ilmail_k3.koplugin/backend.lua"))'
+            texlua -e 'assert(loadfile("assets/ilmail_k3.koplugin/vault.lua"))'
           else
-            echo "Lua runtime unavailable on runner: syntax tests not performed"
+            echo "Lua runtime unavailable on runner; manual syntax check is still required"
           fi
       - name: KOReader Lua and existing tests
         working-directory: kindle-wifi
@@ -58,17 +64,17 @@ jobs:
         run: |
           gradle --no-daemon -ParmOnly assembleRelease
           mkdir -p ../artifacts
-          cp build/outputs/apk/release/*-unsigned.apk ../artifacts/Kindle-przez-WiFi-2.29.0-TEST-unsigned.apk
-          test "$(stat -c %s ../artifacts/Kindle-przez-WiFi-2.29.0-TEST-unsigned.apk)" -lt 30000000
+          cp build/outputs/apk/release/*-unsigned.apk ../artifacts/Kindle-przez-WiFi-2.29.1-TEST-unsigned.apk
+          test "$(stat -c %s ../artifacts/Kindle-przez-WiFi-2.29.1-TEST-unsigned.apk)" -lt 30000000
           cp ../ilmail-k3-TEST.zip ../artifacts/ilmail-k3-TEST.zip
       - name: Build signed, installable side-by-side TEST APK
         working-directory: kindle-wifi
         run: |
           gradle --no-daemon -ParmOnly assembleMailTest
-          cp build/outputs/apk/mailTest/*.apk ../artifacts/Kindle-przez-WiFi-Poczta-2.29.0-TEST.apk
-          test "$(stat -c %s ../artifacts/Kindle-przez-WiFi-Poczta-2.29.0-TEST.apk)" -lt 30000000
-          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify -v --print-certs ../artifacts/Kindle-przez-WiFi-Poczta-2.29.0-TEST.apk
-          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging ../artifacts/Kindle-przez-WiFi-Poczta-2.29.0-TEST.apk | head -3
+          cp build/outputs/apk/mailTest/*.apk ../artifacts/Kindle-przez-WiFi-Poczta-2.29.1-TEST.apk
+          test "$(stat -c %s ../artifacts/Kindle-przez-WiFi-Poczta-2.29.1-TEST.apk)" -lt 30000000
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify -v --print-certs ../artifacts/Kindle-przez-WiFi-Poczta-2.29.1-TEST.apk
+          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging ../artifacts/Kindle-przez-WiFi-Poczta-2.29.1-TEST.apk | head -3
       - uses: actions/upload-artifact@v4
         if: always()
         with:
