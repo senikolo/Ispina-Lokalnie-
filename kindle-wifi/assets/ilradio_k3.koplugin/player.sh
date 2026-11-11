@@ -718,6 +718,8 @@ case "${1:-}" in
     timer-arm)
         case "${2:-}" in 30|60|90|120) :;; *) echo invalid_timer; exit 2;; esac
         timer_cancel
+        # $- contains shell option letters, not a numeric process ID.
+        # Use a validated numeric token so timer-cancel can stop its worker.
         timer_token="$-$(date +%s)"
         timer_seconds=$(($2 * 60))
         timer_deadline=$(($(date +%s) + timer_seconds))
