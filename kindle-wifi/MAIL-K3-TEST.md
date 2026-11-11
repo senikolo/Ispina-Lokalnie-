@@ -48,3 +48,10 @@ Weryfikacja na fizycznym Kindle K3 nadal wymagana: czas działania radia, automa
 - Jeśli starszy MPlayer nie potrafi pobrać próbki znanego strumienia HTTP MP3, ale znane są jego kodek i bitrate mieszczący się w ustawionym limicie, system może wykonać pojedynczą bezpośrednią próbę odtwarzania. Nie dotyczy to nieznanych adresów, przekroczeń bitrate ani rzeczywistych błędów HTTP, DNS i TLS.
 - VOX FM: na serwerze Icecast potwierdzono adres 3990-1.mp3 przy 128 kb/s oraz 3990-2.aac przy 48 kb/s. Przy limicie 64 kb/s nie wolno automatycznie przełączać na MP3 128 kb/s. Użytkownik musi zezwolić na wyższy transfer lub uruchomić działający wariant AAC.
 - Testy obejmują przypadki HTTP 200 + błąd próbkowania, HTTP 403/404/429/503 oraz próbę odtworzenia znanego MP3 bez próbki.
+
+## Naprawa regresji 2.30.3
+
+- Radio: przy niejednoznacznym błędzie pobierania próbki MP3 (także timeout starszego MPlayera) dopuszczana jest kontrolowana próba bezpośrednia, tylko dla HTTP MP3 z katalogu i znanym bitrate'em. Potwierdzone HTTP 4xx/5xx, DNS i TLS nadal są respektowane.
+- W menu każdej stacji jest opcja „Spróbuj MP3 (tryb zgodności)”. Wariant przekraczający limit transferu wymaga osobnej zgody i nie zmienia zapamiętanych ustawień.
+- Poczta: konfiguracja konta pozostaje otwarta przy kolejnych edycjach parametrów IMAP, SMTP, adresu i hasła. Po zapisie widać potwierdzenie.
+- Nadal nie przeprowadzono fizycznego testu na Kindle Keyboard 3 ani testu IMAP/SMTP na koncie użytkownika.
