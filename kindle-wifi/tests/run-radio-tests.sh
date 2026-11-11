@@ -92,4 +92,9 @@ finally:
 print("PASS: full MPlayer control FIFO cannot block the user interface")
 PY
 [ "$(sh "$player" stop)" = stopped ]
-echo 'PASS: playback evidence is visible while the decoder is running'
+[ "$(sh "$player" timer-arm 30)" = armed:1800 ]
+remaining=$(sh "$player" timer-left)
+[ "$remaining" -gt 0 ] && [ "$remaining" -le 1800 ]
+[ "$(sh "$player" timer-cancel)" = cancelled ]
+[ "$(sh "$player" timer-left)" = off ]
+echo 'PASS: playback evidence, 30-minute timer, remaining time and cancellation'

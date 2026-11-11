@@ -433,7 +433,9 @@ function ILRadio:monitor_radio()
             if item.last_pos and pos == item.last_pos and pos > 0 then item.stalls = (item.stalls or 0) + 1
             else item.stalls = 0 end
             item.last_pos = pos
-            if item.stalls >= 2 then reason = "buffer" end
+            -- Some K3 MPlayer versions report frozen position for healthy live streams.
+            -- Require sustained stalling after playback is established.
+            if item.stalls >= 5 and item.established then reason = "buffer" end
         end
     end
     if not reason and evidence == "pending" and item.checks >= 4 then reason = "buffer" end
@@ -537,6 +539,7 @@ end
 
 function ILRadio:onCloseWidget()
     UIManager:unschedule(self.decode_tick)
+    shell_call("timer-cancel")
     -- The player is a child process and can outlive the KOReader widget.
     -- Always ask the shell controller to stop it, even after UI state loss.
     self:stop()
@@ -899,6 +902,7 @@ function ILRadio:toggle_pause()
     if state == "active" then
         if not item or not item.path then
             if self:stop() then
+                shell_call("timer-cancel")
                 self:notice("Radio wstrzymane. Wybierz „Wznów ostatnią stację”, aby słuchać ponownie.")
             end
         else
@@ -978,6 +982,36 @@ function ILRadio:volume_change(delta, quiet)
         self:notice("Głośność przy następnym uruchomieniu: " .. self.volume .. "%.", 5)
         if current then current.volume_warning = true end
     end
+end
+
+function ILRadio:set_sleep_timer(minutes)
+    if minutes == 0 then
+        shell_call("timer-cancel")
+        self:notice("Automatyczne wyłączenie anulowane.")
+        return
+    end
+    local outcome = shell_call("timer-arm", minutes)
+    if outcome == "armed:" .. tostring(minutes * 60) then
+        self:notice("Radio i odtwarzacz zostaną wyłączone za " .. minutes .. " minut.")
+    else
+        self:notice("Nie udało się ustawić wyłączenia. Sprawdź diagnostykę audio.", 9)
+    end
+end
+
+function ILRadio:timer_menu()
+    local left = tonumber(shell_call("timer-left"))
+    local items = {}
+    if left then
+        items[#items+1] = {text = "Pozostało około " .. math.ceil(left / 60) .. " min", enabled = false}
+    end
+    for _, minutes in ipairs({30, 60, 90, 120}) do
+        local value = minutes
+        items[#items+1] = {text = "Wyłącz za " .. minutes .. " min", keep_menu_open = true,
+            callback = function() self:set_sleep_timer(value) end}
+    end
+    items[#items+1] = {text = "Anuluj wyłączenie", keep_menu_open = true,
+        callback = function() self:set_sleep_timer(0) end}
+    return items
 end
 
 function ILRadio:station_menu(category)
@@ -1105,11 +1139,6 @@ function ILRadio:radio_menu()
         { text = "Odtwarzacz MP3 i audiobooki", sub_item_table = {
             { text = "Moja muzyka", sub_item_table_func = function() return self:files_menu("music") end },
             { text = "Moje audiobooki", sub_item_table_func = function() return self:files_menu("books") end },
-            { text = "Co gra?", keep_menu_open = true, callback = function() self:playing_info() end },
-            { text = "Odtwarzaj / pauza", keep_menu_open = true, callback = function() self:toggle_pause() end },
-            { text = "Zatrzymaj", keep_menu_open = true, callback = function()
-                if self:stop() then self:notice("Odtwarzanie zatrzymane.") end
-            end },
             { text = "Następny utwór", callback = function() self:next_track(1) end },
             { text = "Poprzedni utwór", callback = function() self:next_track(-1) end },
         } },
@@ -1127,13 +1156,17 @@ function ILRadio:radio_menu()
         { text = "Następna stacja", callback = function() self:next_station(1) end },
         { text = "Poprzednia stacja", callback = function() self:next_station(-1) end },
         { text = "Odtwarzaj / pauza", keep_menu_open = true, callback = function() self:toggle_pause() end },
+        { text = "Automatyczne wyłączenie", sub_item_table_func = function() return self:timer_menu() end },
         { text = "Wznów ostatnią stację", keep_menu_open = true, callback = function()
             local station = self:find_last_station()
             if station then self:play_station(station)
             else self:notice("Brak ostatnio słuchanej stacji.") end
         end },
         { text = "Zatrzymaj", keep_menu_open = true, callback = function()
-            if self:stop() then self:notice("Odtwarzanie zatrzymane.") end
+            if self:stop() then
+                shell_call("timer-cancel")
+                self:notice("Odtwarzanie zatrzymane.")
+            end
         end },
         { text_func = function() return "Głośność · " .. self.volume .. "%" end, enabled = false },
         { text = "Ustawienia radia", sub_item_table = {

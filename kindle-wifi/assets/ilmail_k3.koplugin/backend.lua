@@ -258,7 +258,7 @@ local function smtpSession(c,p,recipient,subject,body,replyid)
         cafile=cfg.ca_file,
     }),"Nie można uruchomić bezpiecznego SMTP.")
     secured:settimeout(20)
-    secured:sni(c.smtp)
+    if type(secured.sni) == "function" then secured:sni(c.smtp) end
     local ok,result=pcall(function()
         assert(secured:dohandshake(),"Weryfikacja TLS dla SMTP nie powiodła się.")
         IMAP.verifyHost(secured,c.smtp)

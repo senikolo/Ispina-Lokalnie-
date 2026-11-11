@@ -7,6 +7,9 @@ R="${TMPDIR:-/tmp}/ilradio-k3"
 PID="$R/pid"
 TOKEN="$R/token"
 PAUSED="$R/paused"
+TIMER_PID="$R/timer.pid"
+TIMER_TOKEN="$R/timer.token"
+TIMER_DEADLINE="$R/timer.deadline"
 LOG="$R/player.log"
 case "${ILRADIO_K3_SESSION:-}" in
     *[!0-9-]*|"") last_token=$(cat "$R/last" 2>/dev/null);;
@@ -76,6 +79,17 @@ mark_children() {
     printf '%s\n' "$@" >> "$R/children-${ILRADIO_K3_SESSION:-$ILRADIO_K3_PROBE}"
 }
 
+timer_cancel() {
+    timer_pid=$(cat "$TIMER_PID" 2>/dev/null)
+    timer_token=$(cat "$TIMER_TOKEN" 2>/dev/null)
+    case "$timer_token" in
+        ''|*[!0-9-]*) :;;
+        *) if belongs "$timer_pid" "ILRADIO_K3_TIMER=$timer_token"; then
+               kill -TERM "$timer_pid" 2>/dev/null || :
+           fi;;
+    esac
+    rm -f "$TIMER_PID" "$TIMER_TOKEN" "$TIMER_DEADLINE"
+}
 short_wait() {
     if has usleep; then usleep 100000
     elif ! sleep 0.1 2>/dev/null; then sleep 1; fi
@@ -674,6 +688,40 @@ case "${1:-}" in
             belongs "$child" "ILRADIO_K3_SESSION=$token" && kill -CONT "$child" 2>/dev/null; then rm -f "$PAUSED"; echo active
         else echo stopped
         fi;;
+    timer-arm)
+        case "${2:-}" in 30|60|90|120) :;; *) echo invalid_timer; exit 2;; esac
+        timer_cancel
+        timer_token="$-$(date +%s)"
+        timer_seconds=$(("$2" * 60))
+        timer_deadline=$(($(date +%s) + timer_seconds))
+        printf '%s\n' "$timer_token" > "$TIMER_TOKEN"
+        printf '%s\n' "$timer_deadline" > "$TIMER_DEADLINE"
+        (export ILRADIO_K3_TIMER="$timer_token"; exec sh "$0" timer-run "$timer_deadline" "$timer_token") </dev/null >/dev/null 2>&1 &
+        echo "$!" > "$TIMER_PID"
+        echo "armed:$timer_seconds";;
+    timer-run)
+        deadline="${2:-0}"; original_token="${3:-}"
+        case "$deadline" in ''|*[!0-9]*) exit 2;; esac
+        while [ "$(cat "$TIMER_TOKEN" 2>/dev/null)" = "$original_token" ]; do
+            now=$(date +%s)
+            [ "$now" -ge "$deadline" ] && break
+            remaining=$((deadline - now))
+            [ "$remaining" -le 30 ] || remaining=30
+            sleep "$remaining" || exit 0
+        done
+        if [ "$(cat "$TIMER_TOKEN" 2>/dev/null)" = "$original_token" ]; then
+            sh "$0" stop >/dev/null 2>&1
+            rm -f "$TIMER_PID" "$TIMER_TOKEN" "$TIMER_DEADLINE"
+        fi;;
+    timer-left)
+        deadline=$(cat "$TIMER_DEADLINE" 2>/dev/null)
+        case "$deadline" in ''|*[!0-9]*) echo off;;
+            *) now=$(date +%s); remaining=$((deadline - now))
+               [ "$remaining" -gt 0 ] && echo "$remaining" || echo 0;;
+        esac;;
+    timer-cancel)
+        timer_cancel
+        echo cancelled;;
     stop)
         probe_stop; probe_result=$?
         stop_audio; audio_result=$?

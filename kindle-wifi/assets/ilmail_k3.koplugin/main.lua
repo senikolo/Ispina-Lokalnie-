@@ -162,7 +162,10 @@ function Mail:remember()
         return
     end
     ask("Ustal PIN (4–8 cyfr), inny niż przykładowy 2282","",function(pin)
-        if not Vault.validPIN(pin) then return false end
+        if not Vault.validPIN(pin) or pin == "2282" then
+            notice("Wybierz PIN inny niż 2282. Najlepiej użyj 6–8 cyfr.")
+            return false
+        end
         ask("Powtórz nowy PIN","",function(repeated)
             if repeated~=pin then notice("PIN-y są różne.");return false end
             local sealed,record=pcall(Vault.seal,self.password,pin)
@@ -238,11 +241,16 @@ function Mail:ready()
     return true
 end
 function Mail:run(command, args, recipient, subject, body, replyid)
+    if self.busy then notice("Trwa już operacja pocztowa."); return nil end
     if not self:ready() then return nil end
     local success,backend=pcall(dofile,plugin_dir.."/backend.lua")
-    if not success then notice("Brakuje obsługi IMAP/SMTP. Zaktualizuj wtyczkę.");return nil end
+    if not success then
+        notice("Nie można uruchomić poczty. Sprawdź biblioteki LuaSocket/LuaSec w diagnostyce.")
+        return nil
+    end
     local method=backend[command]
     if type(method)~="function" then notice("Nieznane polecenie poczty.");return nil end
+    self.busy = true
     local ok,result
     if command=="read" then
         ok,result=pcall(method,self.config,self.password,args[1])
@@ -253,11 +261,38 @@ function Mail:run(command, args, recipient, subject, body, replyid)
     else
         ok,result=pcall(method,self.config,self.password)
     end
+    self.busy = false
     if not ok then
-        notice((tostring(result):gsub("^.-:%d+: ","")):sub(1,400))
+        local reason = tostring(result):gsub("^.-:%d+: ", "")
+        local lower = reason:lower()
+        local msg = reason
+        if lower:find("timed out", 1, true) or lower:find("timeout", 1, true) then
+            msg = "Serwer pocztowy nie odpowiada. Sprawdź Wi-Fi i spróbuj ponownie."
+        elseif lower:find("certificate", 1, true) or lower:find("tls", 1, true) then
+            msg = "Nie udało się nawiązać bezpiecznego połączenia. Sprawdź datę Kindle'a i certyfikaty."
+        end
+        notice(msg:sub(1,270))
         return nil
     end
     return result
+end
+
+function Mail:diagnose()
+    local checks = {}
+    for _, module in ipairs({"socket", "ssl", "mime", "libs/libkoreader-lfs"}) do
+        local ok = pcall(require, module)
+        checks[#checks+1] = (ok and "OK: " or "BRAK: ") .. module
+    end
+    checks[#checks+1] = "Certyfikaty CA: " ..
+        (lfs.attributes(plugin_dir.."/ca-bundle.crt","mode") == "file" and "obecne" or "brak")
+    checks[#checks+1] = "Porty poczty: IMAP 993, SMTP 465."
+    checks[#checks+1] = "Certyfikat serwera jest sprawdzany podczas połączenia."
+    local ok, TextViewer = pcall(require, "ui/widget/textviewer")
+    if ok then
+        UIManager:show(TextViewer:new{title="Diagnostyka poczty",text=table.concat(checks,"\n")})
+    else
+        notice(table.concat(checks,"\n"))
+    end
 end
 function Mail:list()
     local data=self:run("list")
@@ -430,6 +465,7 @@ function Mail:addToMainMenu(menu_items)
                     })
                 end},
             }},
+            {text="Diagnostyka poczty",callback=function()self:diagnose()end},
             {text="Informacje i bezpieczeństwo",callback=function()
                 notice("Poczta łączy się bezpośrednio przez Wi-Fi Kindle'a. Wymaga działającego DNS, poprawnego zegara oraz TLS 1.2 i certyfikatów CA. Logowanie: hasło aplikacji, bez OAuth. Hasło możesz zapisać w formie zaszyfrowanej i odblokowywać PIN-em. PIN 4-cyfrowy chroni głównie przed przypadkowym dostępem, nie przed odczytem pamięci przez zaawansowaną osobę.")
             end},

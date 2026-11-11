@@ -54,7 +54,7 @@ function IMAP.connect(config)
         if not secured then fail(gettext("Could not initialize a secure connection.")) end
         self.conn = secured
         self.conn:settimeout(20)
-        self.conn:sni(config.host)
+        if type(self.conn.sni) == "function" then self.conn:sni(config.host) end
         local handshake = self.conn:dohandshake()
         if not handshake then fail(gettext("TLS verification failed. Check the server name, system date and CA certificates.")) end
         verifyHost(self.conn,config.host)

@@ -27,6 +27,10 @@ jobs:
           test -f /etc/ssl/certs/ca-certificates.crt
           cp /etc/ssl/certs/ca-certificates.crt kindle-wifi/assets/ilmail_k3.koplugin/ca-bundle.crt
           test -f "$ANDROID_HOME/platforms/android-35/android.jar" || echo "Android SDK 35 must be downloaded by Gradle or setup-android"
+      - name: Install mandatory Lua test runtime
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y lua5.3 lua-socket lua-sec lua-filesystem
       - name: Static checks for bundled Lua plugin
         working-directory: kindle-wifi
         run: |
@@ -35,26 +39,17 @@ jobs:
           test -s assets/ilmail_k3.koplugin/imap.lua
           test -s assets/ilmail_k3.koplugin/mail.lua
           test -s assets/ilmail_k3.koplugin/main.lua
-          if command -v lua5.3 >/dev/null 2>&1; then
-            lua5.3 -e 'assert(loadfile("assets/ilmail_k3.koplugin/_meta.lua"))'
-            lua5.3 -e 'assert(loadfile("assets/ilmail_k3.koplugin/main.lua"))'
-            lua5.3 -e 'assert(loadfile("assets/ilmail_k3.koplugin/backend.lua"))'
-            lua5.3 -e 'assert(loadfile("assets/ilmail_k3.koplugin/vault.lua"))'
-            lua5.3 -e 'assert(loadfile("assets/ilmail_k3.koplugin/imap.lua"))'
-            lua5.3 -e 'assert(loadfile("assets/ilmail_k3.koplugin/mail.lua"))'
-          elif command -v texlua >/dev/null 2>&1; then
-            texlua -e 'assert(loadfile("assets/ilmail_k3.koplugin/main.lua"))'
-            texlua -e 'assert(loadfile("assets/ilmail_k3.koplugin/backend.lua"))'
-            texlua -e 'assert(loadfile("assets/ilmail_k3.koplugin/vault.lua"))'
-          else
-            echo "Lua runtime unavailable on runner; manual syntax check is still required"
-          fi
+          for file in assets/ilmail_k3.koplugin/{_meta,main,backend,vault,imap,mail}.lua assets/ilradio_k3.koplugin/main.lua; do
+            lua5.3 -e 'assert(loadfile(arg[1]))' "$file"
+          done
+          sh -n assets/ilradio_k3.koplugin/player.sh
       - name: KOReader Lua and existing tests
         working-directory: kindle-wifi
         run: |
-          if command -v lua5.3 >/dev/null 2>&1; then lua5.3 tests/mail-backend-test.lua; fi
+          lua5.3 tests/mail-backend-test.lua
           bash tests/run-atomic-tests.sh
           bash tests/run-stream-probe-tests.sh
+          bash tests/run-radio-tests.sh
       - name: Prepare plugin bundle
         working-directory: kindle-wifi/assets
         run: |
@@ -64,17 +59,17 @@ jobs:
         run: |
           gradle --no-daemon -ParmOnly assembleRelease
           mkdir -p ../artifacts
-          cp build/outputs/apk/release/*-unsigned.apk ../artifacts/Kindle-przez-WiFi-2.29.2-TEST-unsigned.apk
-          test "$(stat -c %s ../artifacts/Kindle-przez-WiFi-2.29.2-TEST-unsigned.apk)" -lt 30000000
+          cp build/outputs/apk/release/*-unsigned.apk ../artifacts/Kindle-przez-WiFi-2.30.0-TEST-unsigned.apk
+          test "$(stat -c %s ../artifacts/Kindle-przez-WiFi-2.30.0-TEST-unsigned.apk)" -lt 30000000
           cp ../ilmail-k3-TEST.zip ../artifacts/ilmail-k3-TEST.zip
       - name: Build signed, installable side-by-side TEST APK
         working-directory: kindle-wifi
         run: |
           gradle --no-daemon -ParmOnly assembleMailTest
-          cp build/outputs/apk/mailTest/*.apk ../artifacts/Kindle-przez-WiFi-Poczta-2.29.2-TEST.apk
-          test "$(stat -c %s ../artifacts/Kindle-przez-WiFi-Poczta-2.29.2-TEST.apk)" -lt 30000000
-          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify -v --print-certs ../artifacts/Kindle-przez-WiFi-Poczta-2.29.2-TEST.apk
-          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging ../artifacts/Kindle-przez-WiFi-Poczta-2.29.2-TEST.apk | head -3
+          cp build/outputs/apk/mailTest/*.apk ../artifacts/Kindle-przez-WiFi-Poczta-2.30.0-TEST.apk
+          test "$(stat -c %s ../artifacts/Kindle-przez-WiFi-Poczta-2.30.0-TEST.apk)" -lt 30000000
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify -v --print-certs ../artifacts/Kindle-przez-WiFi-Poczta-2.30.0-TEST.apk
+          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging ../artifacts/Kindle-przez-WiFi-Poczta-2.30.0-TEST.apk | head -3
       - uses: actions/upload-artifact@v4
         if: always()
         with:
