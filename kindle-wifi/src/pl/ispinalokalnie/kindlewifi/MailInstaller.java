@@ -57,9 +57,19 @@ final class MailInstaller {
                     if (!matches(sftp, active, files))
                         throw new IOException("Nie potwierdzono instalacji po przeniesieniu.");
                 } catch (Exception failure) {
-                    if (backupExists && CompanionFiles.stat(sftp, active) == null) {
-                        move(sftp, session, backup, active);
-                        backupExists = false;
+                    if (backupExists) {
+                        try {
+                            if (CompanionFiles.stat(sftp, active) != null) {
+                                String failed = ROOT + "/.ilmail-failed-" + unique;
+                                move(sftp, session, active, failed);
+                            }
+                            if (CompanionFiles.stat(sftp, active) == null) {
+                                move(sftp, session, backup, active);
+                                backupExists = false;
+                            }
+                        } catch (Exception rollback) {
+                            failure.addSuppressed(rollback);
+                        }
                     }
                     throw failure;
                 }
