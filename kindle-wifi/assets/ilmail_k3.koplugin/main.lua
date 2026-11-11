@@ -129,6 +129,8 @@ function Mail:inputField(key, title)
         end
         self.config[key]=value
         self:saveConfig()
+        notice("Zapisano ustawienie. Możesz wprowadzić następny parametr.")
+        return true
     end)
 end
 function Mail:login()
@@ -441,17 +443,17 @@ function Mail:addToMainMenu(menu_items)
             {text="Odpowiedz na wiadomość — 10 szablonów",sub_item_table_func=function()return self:replyMenu()end},
             {text="Zapisz załącznik EPUB/PDF",sub_item_table_func=function()return self:saveMenu()end},
             {text="Konto i połączenie",sub_item_table={
-                {text="Adres e-mail",callback=function()self:inputField("email","Adres konta e-mail")end},
-                {text="Serwer IMAP (port 993)",callback=function()self:inputField("imap","Serwer IMAP — bez imaps://")end},
-                {text="Serwer SMTP (port 465)",callback=function()self:inputField("smtp","Serwer SMTP — bez smtps://")end},
-                {text="Hasło na tę sesję",callback=function()self:login()end},
-                {text="Zapamiętaj hasło (utwórz PIN)",callback=function()self:remember()end},
-                {text="Odblokuj pocztę (PIN)",callback=function()self:unlock()end},
-                {text="Zablokuj pocztę",callback=function()self:lock()end},
-                {text="Usuń zapamiętane hasło i PIN",callback=function()self:removeSaved()end},
+                {text="Adres e-mail",keep_menu_open=true,callback=function()self:inputField("email","Adres konta e-mail")end},
+                {text="Serwer IMAP (port 993)",keep_menu_open=true,callback=function()self:inputField("imap","Serwer IMAP — bez imaps://")end},
+                {text="Serwer SMTP (port 465)",keep_menu_open=true,callback=function()self:inputField("smtp","Serwer SMTP — bez smtps://")end},
+                {text="Hasło na tę sesję",keep_menu_open=true,callback=function()self:login()end},
+                {text="Zapamiętaj hasło (utwórz PIN)",keep_menu_open=true,callback=function()self:remember()end},
+                {text="Odblokuj pocztę (PIN)",keep_menu_open=true,callback=function()self:unlock()end},
+                {text="Zablokuj pocztę",keep_menu_open=true,callback=function()self:lock()end},
+                {text="Usuń zapamiętane hasło i PIN",keep_menu_open=true,callback=function()self:removeSaved()end},
             }},
             {text="Szablony odpowiedzi",sub_item_table={
-                {text="Zapisz własny szablon",callback=function()self:saveTemplate()end},
+                {text="Zapisz własny szablon",keep_menu_open=true,callback=function()self:saveTemplate()end},
                 {text="Usuń wszystkie własne szablony",callback=function()
                     UIManager:show(ConfirmBox:new{
                         text="Usunąć własne szablony? Dziesięć gotowych odpowiedzi pozostanie.",
@@ -465,7 +467,7 @@ function Mail:addToMainMenu(menu_items)
                     })
                 end},
             }},
-            {text="Diagnostyka poczty",callback=function()self:diagnose()end},
+            {text="Diagnostyka poczty",keep_menu_open=true,callback=function()self:diagnose()end},
             {text="Informacje i bezpieczeństwo",callback=function()
                 notice("Poczta łączy się bezpośrednio przez Wi-Fi Kindle'a. Wymaga działającego DNS, poprawnego zegara oraz TLS 1.2 i certyfikatów CA. Logowanie: hasło aplikacji, bez OAuth. Hasło możesz zapisać w formie zaszyfrowanej i odblokowywać PIN-em. PIN 4-cyfrowy chroni głównie przed przypadkowym dostępem, nie przed odczytem pamięci przez zaawansowaną osobę.")
             end},
