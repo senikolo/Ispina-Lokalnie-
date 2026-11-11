@@ -30,7 +30,7 @@ jobs:
       - name: Install mandatory Lua test runtime
         run: |
           sudo apt-get update -qq
-          sudo apt-get install -y lua5.3 lua-socket lua-sec lua-filesystem
+          sudo apt-get install -y lua5.3 lua-socket lua-sec lua-filesystem ffmpeg
       - name: Static checks for bundled Lua plugin
         working-directory: kindle-wifi
         run: |
