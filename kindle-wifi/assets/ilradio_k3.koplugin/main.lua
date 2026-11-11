@@ -431,7 +431,7 @@ function ILRadio:advance_radio()
             self:continue_radio("transport")
         end
     else
-        self:continue_radio(probe == "address" or probe == "invalid_target" and "address" or "transport")
+        self:continue_radio((probe == "address" or probe == "invalid_target") and "address" or "transport")
     end
 end
 
