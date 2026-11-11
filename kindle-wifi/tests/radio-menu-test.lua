@@ -300,7 +300,7 @@ end
 play_fixture()
 plugin.start_check()
 plugin:playing_info()
-assert(messages[#messages]:find("dźwięk niepotwierdzony", 1, true))
+assert(messages[#messages]:find("Stan: Odtwarzacz uruchomiony", 1, true))
 plugin:toggle_pause()
 assert(not scheduled[plugin.start_check])
 local before = #calls
