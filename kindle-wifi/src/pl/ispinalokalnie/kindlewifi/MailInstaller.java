@@ -13,7 +13,7 @@ import java.util.UUID;
 /** Atomic SFTP deployment; the phone is not part of mail traffic afterwards. */
 final class MailInstaller {
     private static final String NAME = "ilmail_k3.koplugin";
-    private static final String[] FILES = {"_meta.lua", "main.lua", "backend.lua", "imap.lua", "mail.lua", "LICENSE-THIRD-PARTY.txt", "ca-bundle.crt"};
+    private static final String[] FILES = {"_meta.lua", "main.lua", "backend.lua", "vault.lua", "imap.lua", "mail.lua", "LICENSE-THIRD-PARTY.txt", "ca-bundle.crt"};
     private static final String ROOT = CompanionFiles.PLUGINS;
 
     private MailInstaller() {}
