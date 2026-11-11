@@ -105,7 +105,12 @@ local radio_menu = plugin:radio_menu()
 local groups = assert(menu_item(radio_menu, "Stacje radiowe")).sub_item_table
 assert(#groups == 4 and not menu_item(groups, "Polskie Radio"))
 local player_menu = assert(menu_item(radio_menu, "Odtwarzacz MP3 i audiobooki")).sub_item_table
-assert(menu_item(player_menu, "Moja muzyka") and menu_item(player_menu, "Odtwarzaj / pauza"))
+assert(menu_item(player_menu, "Moja muzyka") and menu_item(player_menu, "Moje audiobooki"))
+assert(not menu_item(player_menu, "Odtwarzaj / pauza"))
+assert(menu_item(radio_menu, "Odtwarzaj / pauza"))
+local timer = assert(menu_item(radio_menu, "Automatyczne wyłączenie"))
+local timer_menu = timer.sub_item_table_func()
+assert(menu_item(timer_menu, "Wyłącz za 30 min") and menu_item(timer_menu, "Wyłącz za 120 min"))
 local first = plugin:station_menu("Popularne")[1]
 assert(first.text_func() == "RMF FM")
 first.sub_item_table[2].callback()
