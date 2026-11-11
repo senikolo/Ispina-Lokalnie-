@@ -55,3 +55,13 @@ Weryfikacja na fizycznym Kindle K3 nadal wymagana: czas działania radia, automa
 - W menu każdej stacji jest opcja „Spróbuj MP3 (tryb zgodności)”. Wariant przekraczający limit transferu wymaga osobnej zgody i nie zmienia zapamiętanych ustawień.
 - Poczta: konfiguracja konta pozostaje otwarta przy kolejnych edycjach parametrów IMAP, SMTP, adresu i hasła. Po zapisie widać potwierdzenie.
 - Nadal nie przeprowadzono fizycznego testu na Kindle Keyboard 3 ani testu IMAP/SMTP na koncie użytkownika.
+
+## Audyt i poprawki 2.30.4 (zdjęcia z Kindle K3, 11.11.2026)
+
+- MP3 i audiobooki: nie zatrzymuj rzeczywiście aktywnego odtwarzacza wyłącznie po 5 cyklach bez tekstowego potwierdzenia odtwarzania. Po rzeczywistym zakończeniu lub błędzie wciąż uruchamiany jest zapasowy silnik.
+- Radio: opóźnione logi MPlayera nie powodują fałszywego błędu buforowania, gdy proces nadal żyje i kontroler nie zgłasza awarii. Dla radia HTTP MP3 MPlayer korzysta z wybranego bufora 64/128/256 KiB; dla starszego AAC pozostaje tryb bez cache.
+- Głośność: dodano oddzielne ustawienie wzmocnienia programowego MPlayera: 110% (dotychczasowy poziom), 140% lub 170%. Nowe ustawienie działa po ponownym uruchomieniu dźwięku. Wyższe wartości mogą przesterować dźwięk, dlatego domyślnie pozostaje 110%.
+- Diagnostyka: odczyt poziomów ALSA Master/PCM/Speaker/Headphone bez modyfikowania miksera.
+- Timer: numeryczny token procesu umożliwia skuteczne anulowanie timera.
+- Poczta: zakodowanie Base64 pustych nagłówków Reply-To lub Message-ID nie może już wywołać `backend.lua:15 attempt to index a nil value`.
+- Nadal brak odsłuchu na fizycznym Kindle K3. W szczególności zrzut ekranu z kodem wyjścia MPlayera `2` nie pozwala bez ostatnich linii logu jednoznacznie rozstrzygnąć przyczyny zakończenia procesu.
