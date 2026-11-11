@@ -29,6 +29,7 @@ jobs:
           go test -v ./...
           go vet ./...
           CGO_ENABLED=0 GOOS=linux GOARCH=arm GOARM=6 go build -trimpath -ldflags '-s -w' -o ../../assets/ilmail_k3.koplugin/mailk3 .
+          cp /etc/ssl/certs/ca-certificates.crt ../../assets/ilmail_k3.koplugin/ca-bundle.crt
           file ../../assets/ilmail_k3.koplugin/mailk3
           test "$(stat -c %s ../../assets/ilmail_k3.koplugin/mailk3)" -lt 14000000
       - name: Install Android SDK and Lua syntax checker
