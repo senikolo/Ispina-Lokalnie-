@@ -55,7 +55,7 @@ end
 local function cipher(encrypt, key, iv, bytes, tag)
     local ctx=lib.EVP_CIPHER_CTX_new()
     assert(ctx~=nil,"Nie można uruchomić szyfrowania.")
-    local ok, result = pcall(function()
+    local ok, result, auth = pcall(function()
         local first = encrypt and lib.EVP_EncryptInit_ex or lib.EVP_DecryptInit_ex
         assert(first(ctx,lib.EVP_aes_256_gcm(),nil,nil,nil)==1,"Błąd AES-GCM.")
         assert(lib.EVP_CIPHER_CTX_ctrl(ctx,0x9,#iv,nil)==1,"Błąd inicjalizacji AES-GCM.")
@@ -84,7 +84,7 @@ local function cipher(encrypt, key, iv, bytes, tag)
     end)
     lib.EVP_CIPHER_CTX_free(ctx)
     if not ok then error(result,0) end
-    return result
+    return result, auth
 end
 function Vault.seal(password,pin)
     assert(type(password)=="string" and #password>0 and #password<=300,"Nieprawidłowe hasło.")
