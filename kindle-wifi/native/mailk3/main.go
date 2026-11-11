@@ -14,6 +14,7 @@ import (
  "io"
  "mime"
  "mime/multipart"
+ "mime/quotedprintable"
  "net"
  "net/mail"
  "net/smtp"
@@ -79,7 +80,7 @@ func newIMAP(c account) (*imapClient,error) {
  if _,e=im.cmd("SELECT INBOX");e!=nil {conn.Close();return nil,errors.New("Nie można otworzyć skrzynki INBOX.")}
  return im,nil
 }
-var litRE=regexp.MustCompile("(?i)\\{([0-9]+)\\}\\r?\\n$")
+var litRE=regexp.MustCompile("(?im)\\{([0-9]+)\\}\\r?\\n")
 func (c *imapClient) cmd(command string) ([]byte,error) {
  c.seq++
  tag:=fmt.Sprintf("A%04d",c.seq)
@@ -169,7 +170,7 @@ func walk(h textproto.MIMEHeader, r io.Reader, depth int, result *[]part)error {
  *result=append(*result,part{name:name,media:media,data:string(body),attachment:attach})
  return nil
 }
-func quotedPrintable(r io.Reader)io.Reader{return newQPReader(r)}
+func quotedPrintable(r io.Reader)io.Reader{return quotedprintable.NewReader(r)}
 func extract(raw []byte)(*mail.Message,[]part,error){
  m,e:=parseMessage(raw);if e!=nil{return nil,nil,e}
  h:=make(textproto.MIMEHeader)
