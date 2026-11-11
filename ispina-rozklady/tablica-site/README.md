@@ -43,3 +43,11 @@ WordPress: wymieniono tylko adres przycisku w sekcji `automatyczne-rozklady` str
 Obie oryginalne APK pobrano z Releases i sprawdzono ich SHA-256. Zbadano JS i adresy w DEX; brak ChatGPT Sites/OpenAI. Pomocnik UltraSmart interpretuje pytania lokalnie. Usługi online (rozkłady, pogoda, WordPress, media, rozpoznawanie mowy) mają odrębne zależności internetowe. Nie potwierdzono pełnego działania natywnego na urządzeniach, wszystkich streamów ani lektora online. Live 1.83.20 zawiera dodatkowy serwer TTS `ahm7xmakki.com`, którego dostępność i koszty po stronie operatora nie są gwarantowane; obecność alternatywnego TTS nie dowodzi działania każdego głosu.
 
 Nie zmieniono APK ani podpisów. Brakuje pełnego projektu Java/Kotlin i właściwych prywatnych kluczy. Bezpieczny dostęp do nowej tablicy: przeglądarka lub przycisk na stronie WordPress; nie twierdzimy, że zmieniło to wbudowany moduł odjazdów/planera. Stary WebView może wymagać aktualizacji lub otwarcia w aktualnej przeglądarce.
+
+## Lista filmów dla Androida — wdrożona usługa, nieprawidłowy klucz
+
+Aktualizacja 28.10.2026: endpoint wdrożono na istniejący hosting po potwierdzeniu właściciela. Sekret `IL_YOUTUBE_API_KEY` istnieje w Production, ale Google zwraca `API_KEY_INVALID` (HTTP 400); klient otrzymuje 503. Wartości klucza nie odczytywano. Dalszy odbiór czeka na podmianę nieprawidłowej wartości i ponowne wdrożenie z aktualnym sekretem.
+
+`GET /api/youtube-videos` jest osobnym, tylko do odczytu endpointem dla kanału `UCeeKoKHiH-rGyQOZn6wW-7A`. Wymaga **serwerowego** sekretu `IL_YOUTUBE_API_KEY` (pusty przykład w `.env.example`); bez niego zwraca 503 `not_configured`. To nowa opcjonalna zależność od Google Cloud / YouTube Data API, niezależna od istniejących odjazdów i pogody. Dotychczasowy opis hostingu „bez sekretów” odnosi się do tych istniejących funkcji. Sam PR nie wdraża nowego kodu.
+
+Konfiguracja, źródło kanału, limity, pełne stronicowanie, cache i scenariusze odbioru: [Wideo Android](../../tools/ultrasmart78-video-tab/README.md). Endpoint przyjmuje tylko `pageToken`; identyfikator playlisty przesłanych filmów odczytuje z oficjalnego `channels.list`. Odpowiedzi są buforowane 60 s, a klucz ani surowe błędy Google nie trafiają do klienta. Nie dodano płatnej usługi ani automatycznego wdrożenia.
