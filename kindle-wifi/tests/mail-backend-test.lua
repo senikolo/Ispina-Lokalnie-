@@ -10,7 +10,7 @@ end
 
 assert(Mail.quote("test@sample.net")=='"test@sample.net"')
 fails(function()Mail.quote("evil\r\nheader")end)
-assert(Mail.safeFilename("../../Test.epub")==".._.._Test.epub")
+assert(Mail.safeFilename("../../Test.epub")=="_.._.._Test.epub")
 assert(Mail.decodeWords("=?UTF-8?B?S3NpxIV6a2E=?=")=="Książka")
 assert(IMAP.hostnameMatches("imap.gmail.com","*.gmail.com"))
 assert(not IMAP.hostnameMatches("gmail.com","*.gmail.com"))
