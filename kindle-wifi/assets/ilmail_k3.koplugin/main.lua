@@ -3,6 +3,7 @@
 -- until KOReader exits, and each command uses a short-lived local config file.
 local UIManager = require("ui/uimanager")
 local InfoMessage = require("ui/widget/infomessage")
+local ConfirmBox = require("ui/widget/confirmbox")
 local InputDialog = require("ui/widget/inputdialog")
 local WidgetContainer = require("ui/widget/container/widgetcontainer")
 local DataStorage = require("datastorage")
@@ -11,6 +12,27 @@ if not ok_lfs then lfs = require("lfs") end
 local plugin_dir = debug.getinfo(1, "S").source:sub(2):match("^(.*)/") or "."
 local b64alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"
 local Mail = WidgetContainer:extend{ name="ilmail_k3", is_doc_only=false }
+local TEMPLATES = {
+    "Dziękuję za wiadomość i poświęcony czas.",
+    "Dziękuję za odpowiedź. Bardzo doceniam pomoc.",
+    "Dziękuję za przesłane informacje. Są dla mnie bardzo przydatne.",
+    "Dziękuję za materiały. Zapoznam się z nimi.",
+    "Potwierdzam otrzymanie wiadomości. Dziękuję.",
+    "Z przyjemnością skorzystam z propozycji. Dziękuję.",
+    "Czy mogę prosić o dodatkowe informacje?",
+    "Dziękuję za wyjaśnienia. Wszystko jest już dla mnie jasne.",
+    "Zajmę się tym i wrócę z odpowiedzią.",
+    "Serdecznie pozdrawiam i dziękuję za kontakt.",
+}
+local function validEmail(s)
+    return type(s)=="string" and #s<=250 and s:match("^[^%@%s<>]+@[^%@%s<>]+%.[^%@%s<>]+$")~=nil
+        and not s:find("[%z\r\n]")
+end
+local function addressFromHeader(raw)
+    if type(raw)~="string" or raw:find("[%z\r\n]") then return nil end
+    local addr=raw:match("<([^<>]+)>") or raw:match("^%s*([^%s,;]+@[^%s,;]+)%s*$")
+    return validEmail(addr) and addr or nil
+end
 
 local function quote(s)
     return "'" .. tostring(s):gsub("'", "'\"'\"'") .. "'"
@@ -81,9 +103,14 @@ function Mail:init()
         email="", imap="", smtp=""
     })
     self.password=nil
+    self.vault=G_reader_settings:readSetting("ilmail-k3-vault")
+    self.custom_templates=G_reader_settings:readSetting("ilmail-k3-templates") or {}
+    self.badPins=0
+    self.lockedUntil=0
     self.items={}
     self.attachments={}
     self.current_uid=nil
+    self.current=nil
     self.ui.menu:registerToMainMenu(self)
 end
 function Mail:saveConfig()
@@ -96,6 +123,10 @@ function Mail:inputField(key, title)
         if key=="imap" or key=="smtp" then
             if not value:match("^[%w%.%-]+$") then return false end
         end
+        if key=="email" and value~=self.config.email and self.vault then
+            -- A saved token must not be silently reused for a different account.
+            self:forgetSaved()
+        end
         self.config[key]=value
         self:saveConfig()
     end)
@@ -107,9 +138,91 @@ function Mail:login()
         notice("Hasło jest przechowywane tylko w pamięci KOReadera. Nie zapisano go w ustawieniach.")
     end,true)
 end
+function Mail:lock()
+    self.password=nil
+    self.items={}
+    self.attachments={}
+    self.current_uid=nil
+    self.current=nil
+    notice("Poczta zablokowana. Hasło usunięto z bieżącej sesji.")
+end
+function Mail:forgetSaved()
+    self.vault=nil
+    G_reader_settings:delSetting("ilmail-k3-vault")
+    G_reader_settings:flush()
+end
+function Mail:remember()
+    if not self.password or self.password=="" then
+        notice("Najpierw wybierz „Hasło na tę sesję” i wpisz hasło aplikacji.")
+        return
+    end
+    local ok, Vault = pcall(dofile,plugin_dir.."/vault.lua")
+    if not ok then
+        notice("Brak zgodnego szyfrowania OpenSSL. Hasło nie zostanie zapisane.")
+        return
+    end
+    ask("Ustal PIN (4–8 cyfr), inny niż przykładowy 2282","",function(pin)
+        if not Vault.validPIN(pin) then return false end
+        ask("Powtórz nowy PIN","",function(repeated)
+            if repeated~=pin then notice("PIN-y są różne.");return false end
+            local sealed,record=pcall(Vault.seal,self.password,pin)
+            if not sealed then notice("Nie można zaszyfrować hasła. Niczego nie zapisano.");return end
+            local verified,clear=pcall(Vault.open,record,pin)
+            if not verified or clear~=self.password then
+                notice("Błąd weryfikacji szyfrowania. Niczego nie zapisano.")
+                return
+            end
+            self.vault=record
+            G_reader_settings:saveSetting("ilmail-k3-vault",record)
+            G_reader_settings:flush()
+            self.badPins=0
+            notice("Hasło aplikacji zaszyfrowano. Przy następnym uruchomieniu podaj PIN.")
+        end,true)
+    end,true)
+end
+function Mail:unlock()
+    if self.password then notice("Poczta jest już odblokowana.");return end
+    if not self.vault then notice("Nie zapisano hasła. Wybierz „Hasło na tę sesję”.");return end
+    if os.time() < self.lockedUntil then
+        notice("Za dużo prób. Spróbuj ponownie później.")
+        return
+    end
+    local ok, Vault=pcall(dofile,plugin_dir.."/vault.lua")
+    if not ok then notice("Brak OpenSSL. Bez niego nie można odszyfrować hasła.");return end
+    ask("Odblokuj pocztę — PIN","",function(pin)
+        if not Vault.validPIN(pin) then return false end
+        local clear,err=Vault.open(self.vault,pin)
+        if not clear then
+            self.badPins=self.badPins+1
+            if self.badPins>=3 then
+                self.badPins=0
+                self.lockedUntil=os.time()+60
+                notice("Trzy błędne próby. Blokada na minutę.")
+            else
+                notice("Nieprawidłowy PIN. Pozostało prób: "..(3-self.badPins))
+            end
+            return true
+        end
+        self.password=clear
+        self.badPins=0
+        self.lockedUntil=0
+        notice("Poczta odblokowana na czas tej sesji KOReadera.")
+    end,true)
+end
+function Mail:removeSaved()
+    if not self.vault then notice("Nie ma zapisanego hasła.");return end
+    UIManager:show(ConfirmBox:new{
+        text="Usunąć zaszyfrowane hasło i wyłączyć odblokowywanie PIN-em? Konto i szablony zostaną zachowane.",
+        ok_text="Usuń",
+        ok_callback=function()
+            self:forgetSaved()
+            self:lock()
+        end,
+    })
+end
 function Mail:ready()
     if not self.password or self.password=="" then
-        notice("Najpierw wybierz „Hasło na tę sesję”. Do większości kont potrzebne jest hasło aplikacji.")
+        notice(self.vault and "Poczta jest zablokowana. Wybierz „Odblokuj pocztę (PIN)”." or "Najpierw wpisz hasło aplikacji do poczty.")
         return false
     end
     if not self.config.email:match("^[^%@%s]+@[^%@%s]+%.[^%@%s]+$")
@@ -124,7 +237,7 @@ function Mail:ready()
     end
     return true
 end
-function Mail:run(command, args, recipient, subject, body)
+function Mail:run(command, args, recipient, subject, body, replyid)
     if not self:ready() then return nil end
     local success,backend=pcall(dofile,plugin_dir.."/backend.lua")
     if not success then notice("Brakuje obsługi IMAP/SMTP. Zaktualizuj wtyczkę.");return nil end
@@ -136,7 +249,7 @@ function Mail:run(command, args, recipient, subject, body)
     elseif command=="save" then
         ok,result=pcall(method,self.config,self.password,args[1],args[2])
     elseif command=="send" then
-        ok,result=pcall(method,self.config,self.password,recipient,subject,body)
+        ok,result=pcall(method,self.config,self.password,recipient,subject,body,replyid)
     else
         ok,result=pcall(method,self.config,self.password)
     end
@@ -174,9 +287,12 @@ function Mail:read(uid)
     local from,subject,body="","",""
     self.attachments={}
     self.current_uid=uid
+    local replyto,messageid="",""
     for row in data:gmatch("[^\r\n]+") do
         local typ,val=row:match("^([A-Z]+)\t(.+)$")
         if typ=="FROM" then from=dec(val) or ""
+        elseif typ=="REPLYTO" then replyto=dec(val) or ""
+        elseif typ=="MESSAGEID" then messageid=dec(val) or ""
         elseif typ=="SUBJECT" then subject=dec(val) or ""
         elseif typ=="BODY" then body=dec(val) or ""
         elseif typ=="ATT" then
@@ -186,7 +302,9 @@ function Mail:read(uid)
             end
         end
     end
+    self.current={uid=uid,from=from,replyto=replyto,subject=subject,messageid=messageid}
     local message="Od: "..from.."\nTemat: "..subject.."\n\n"..body
+    message=message.."\n\nOdpowiedź: Poczta i książki → Odpowiedz na wiadomość."
     if #self.attachments>0 then message=message.."\n\nZałączniki EPUB/PDF: "..#self.attachments..
         "\nWróć do Poczty i wybierz „Zapisz załącznik”." end
     local ok,TextViewer=pcall(require,"ui/widget/textviewer")
@@ -218,19 +336,65 @@ function Mail:saveMenu()
     end
     return menu
 end
-function Mail:send()
+function Mail:compose(recipient, subject, body, replyid)
     if not self:ready() then return end
-    ask("Adres odbiorcy","",function(recipient)
-        if not recipient:match("^[^%@%s]+@[^%@%s]+%.[^%@%s]+$") then return false end
-        ask("Temat", "", function(subject)
-            if #subject>200 then return false end
-            ask("Krótka wiadomość (maks. 5000 znaków)","",function(body)
-                if #body<1 or #body>5000 then return false end
-                local data=self:run("send",nil,recipient,subject,body)
-                if data and data:match("^SENT") then notice("Serwer pocztowy przyjął wiadomość do wysłania.") end
+    ask("Odbiorca",recipient or "",function(to)
+        if not validEmail(to) then return false end
+        ask("Temat",subject or "",function(topic)
+            if #topic>200 or topic:find("[%z\r\n]") then return false end
+            ask("Treść wiadomości (maks. 5000 znaków)",body or "",function(message)
+                if #message<1 or #message>5000 or message:find("%z") then return false end
+                UIManager:show(ConfirmBox:new{
+                    text="Wysłać wiadomość do "..clean(to,75).."?\n\nTemat: "..clean(topic,75)..
+                        "\n\n"..clean(message,160),
+                    ok_text="Wyślij",
+                    ok_callback=function()
+                        local data=self:run("send",nil,to,topic,message,replyid)
+                        if data and data:match("^SENT") then
+                            notice("Wiadomość została przyjęta przez serwer SMTP.")
+                        end
+                    end,
+                })
             end)
         end)
     end)
+end
+function Mail:send()
+    self:compose("","","",nil)
+end
+function Mail:replyWith(body)
+    if not self:ready() then return end
+    local m=self.current
+    if not m then notice("Najpierw otwórz wiadomość, na którą chcesz odpowiedzieć.");return end
+    local to=addressFromHeader(m.replyto) or addressFromHeader(m.from)
+    if not to then notice("Nie można odczytać adresu nadawcy. Użyj nowej wiadomości.");return end
+    local subject=m.subject or ""
+    if not subject:lower():match("^re%s*:") then subject="Re: "..subject end
+    self:compose(to,subject,body,m.messageid)
+end
+function Mail:saveTemplate()
+    if #self.custom_templates>=10 then notice("Limit 10 własnych szablonów.");return end
+    ask("Nowy własny szablon (maks. 500 znaków)","",function(value)
+        if #value<1 or #value>500 or value:find("%z") then return false end
+        self.custom_templates[#self.custom_templates+1]=value
+        G_reader_settings:saveSetting("ilmail-k3-templates",self.custom_templates)
+        G_reader_settings:flush()
+        notice("Szablon zapisany.")
+    end)
+end
+function Mail:replyMenu()
+    if not self.current then
+        return {{text="Najpierw otwórz wiadomość w Odebranych.",enabled=false}}
+    end
+    local menu={{text="Napisz własną odpowiedź",callback=function()self:replyWith("")end,keep_menu_open=true}}
+    for i,t in ipairs(TEMPLATES) do
+        menu[#menu+1]={text=t,callback=function()self:replyWith(t)end,keep_menu_open=true}
+    end
+    for i,t in ipairs(self.custom_templates) do
+        menu[#menu+1]={text="[Mój "..i.."] "..clean(t,65),
+            callback=function()self:replyWith(t)end,keep_menu_open=true}
+    end
+    return menu
 end
 function Mail:addToMainMenu(menu_items)
     menu_items.ilmail_k3={
@@ -238,17 +402,36 @@ function Mail:addToMainMenu(menu_items)
         sorting_hint="more_tools",
         sub_item_table={
             {text="Odebrane — ostatnie 12 wiadomości",sub_item_table_func=function()return self:list()end},
-            {text="Wyślij krótką wiadomość",callback=function()self:send()end},
+            {text="Wyślij nową wiadomość",callback=function()self:send()end},
+            {text="Odpowiedz na wiadomość — 10 szablonów",sub_item_table_func=function()return self:replyMenu()end},
             {text="Zapisz załącznik EPUB/PDF",sub_item_table_func=function()return self:saveMenu()end},
             {text="Konto i połączenie",sub_item_table={
                 {text="Adres e-mail",callback=function()self:inputField("email","Adres konta e-mail")end},
                 {text="Serwer IMAP (port 993)",callback=function()self:inputField("imap","Serwer IMAP — bez imaps://")end},
                 {text="Serwer SMTP (port 465)",callback=function()self:inputField("smtp","Serwer SMTP — bez smtps://")end},
                 {text="Hasło na tę sesję",callback=function()self:login()end},
-                {text="Wyloguj / usuń hasło z pamięci",callback=function()self.password=nil;notice("Hasło usunięte z sesji.")end},
+                {text="Zapamiętaj hasło (utwórz PIN)",callback=function()self:remember()end},
+                {text="Odblokuj pocztę (PIN)",callback=function()self:unlock()end},
+                {text="Zablokuj pocztę",callback=function()self:lock()end},
+                {text="Usuń zapamiętane hasło i PIN",callback=function()self:removeSaved()end},
+            }},
+            {text="Szablony odpowiedzi",sub_item_table={
+                {text="Zapisz własny szablon",callback=function()self:saveTemplate()end},
+                {text="Usuń wszystkie własne szablony",callback=function()
+                    UIManager:show(ConfirmBox:new{
+                        text="Usunąć własne szablony? Dziesięć gotowych odpowiedzi pozostanie.",
+                        ok_text="Usuń",
+                        ok_callback=function()
+                            self.custom_templates={}
+                            G_reader_settings:delSetting("ilmail-k3-templates")
+                            G_reader_settings:flush()
+                            notice("Usunięto własne szablony.")
+                        end,
+                    })
+                end},
             }},
             {text="Informacje i bezpieczeństwo",callback=function()
-                notice("Poczta łączy się bezpośrednio przez Wi-Fi Kindle'a. Wymaga działającego DNS, poprawnego zegara oraz TLS 1.2 i certyfikatów CA. Logowanie: hasło aplikacji, bez OAuth. Hasło nie jest zapisywane na stałe.")
+                notice("Poczta łączy się bezpośrednio przez Wi-Fi Kindle'a. Wymaga działającego DNS, poprawnego zegara oraz TLS 1.2 i certyfikatów CA. Logowanie: hasło aplikacji, bez OAuth. Hasło możesz zapisać w formie zaszyfrowanej i odblokowywać PIN-em. PIN 4-cyfrowy chroni głównie przed przypadkowym dostępem, nie przed odczytem pamięci przez zaawansowaną osobę.")
             end},
         }
     }
