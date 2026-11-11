@@ -336,7 +336,7 @@ probe_stop() {
     stop_family ILRADIO_K3_PROBE "$probe_pid" "$probe_token" || return 1
     case "$probe_token" in
         ''|*[!0-9-]*) :;;
-        *) rm -f "$R/probe-$probe_token.pipe" "$R/children-$probe_token";;
+        *) rm -f "$R/probe-$probe_token.pipe" "$R/probe-$probe_token.raw" "$R/children-$probe_token";;
     esac
     rm -f "$R/probe.pid" "$R/probe.token"
 }
@@ -406,6 +406,43 @@ probe_run_wget() {
             network) echo 7;; buffer) echo 28;; *) echo 1;;
         esac > "$prefix.done"
     fi
+}
+
+probe_run_mplayer() {
+    prefix="$R/probe-$ILRADIO_K3_PROBE"
+    mplayer=$(mplayer_path)
+    if [ -z "$mplayer" ]; then echo 127 > "$prefix.done"; return; fi
+    # MPlayer's HTTP reader can dump the compressed stream without opening ALSA.
+    # Bound both the dump size and the time spent on a silent connection.
+    (
+        ulimit -f 32 || exit 2
+        export MPLAYER_HOME="$R"
+        exec "$mplayer" -noconfig all -novideo -nocache -dumpstream -dumpfile "$prefix.raw" "$1"
+    ) > "$prefix.error" 2>&1 &
+    downloader=$!
+    (sleep 9; kill -KILL "$downloader" 2>/dev/null || :) </dev/null >/dev/null 2>&1 &
+    watchdog=$!
+    mark_children "$downloader" "$watchdog"
+    trap 'kill "$downloader" "$watchdog" 2>/dev/null; rm -f "$prefix".*; exit 0' TERM INT HUP
+    wait "$downloader" 2>/dev/null
+    result=$?
+    kill "$watchdog" 2>/dev/null || :
+    wait "$watchdog" 2>/dev/null || :
+    if [ -s "$prefix.raw" ]; then
+        head -c 16384 "$prefix.raw" > "$prefix.sample"
+        # The native reader does not expose the final HTTP status or address.
+        printf '000\n%s\nmplayer\n' "$1" > "$prefix.meta"
+        result=0
+    else
+        case "$(stream_reason "$(tail -n 20 "$prefix.error")")" in
+            network) result=7;;
+            address) result=22;;
+            transport) result=127;;
+            *) if [ "$result" = 137 ]; then result=28; else result=1; fi;;
+        esac
+    fi
+    rm -f "$prefix.raw"
+    printf '%s\n' "$result" > "$prefix.done"
 }
 
 stream_reason() {
@@ -555,13 +592,15 @@ case "${1:-}" in
     probe-start)
         case "${2:-}" in http://*|https://*) :;; *) echo address; exit 0;; esac
         probe_stop || { echo busy; exit 4; }
-        rm -f "$R"/probe-*.sample "$R"/probe-*.meta "$R"/probe-*.headers "$R"/probe-*.done "$R"/probe-*.error
+        rm -f "$R"/probe-*.sample "$R"/probe-*.meta "$R"/probe-*.headers "$R"/probe-*.done "$R"/probe-*.error "$R"/probe-*.raw
         token="$$-$(date +%s)"
         printf '%s\n' "$token" > "$R/probe.token"
         if usable_curl; then
             ILRADIO_K3_PROBE="$token" launch probe-run "$2" </dev/null >/dev/null 2>&1 &
         elif has wget; then
             ILRADIO_K3_PROBE="$token" launch probe-run-wget "$2" </dev/null >/dev/null 2>&1 &
+        elif [ "${2#http://}" != "$2" ] && [ -n "$(mplayer_path)" ]; then
+            ILRADIO_K3_PROBE="$token" launch probe-run-mplayer "$2" </dev/null >/dev/null 2>&1 &
         else
             echo unavailable; exit 0
         fi
@@ -569,6 +608,7 @@ case "${1:-}" in
         echo "$R/probe-$token";;
     probe-run) probe_run "$2";;
     probe-run-wget) probe_run_wget "$2";;
+    probe-run-mplayer) probe_run_mplayer "$2";;
     probe-stop) probe_stop;;
     evidence) play_evidence;;
     facts)

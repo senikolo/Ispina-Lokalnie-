@@ -201,6 +201,32 @@ settle()
 assert(plugin.current and plugin.current.uri == "http://fixture.invalid/available")
 assert(plugin.current.stream.live_kbps == 48 and not plugin.job.approved)
 plugin:stop()
+
+io.popen = function(command)
+    local result = previous(command)
+    if command:find("'probe-start'", 1, true) then
+        local f = assert(io.open("/tmp/probe-228-1.meta", "wb"))
+        f:write("000\nhttp://fixture.invalid/native\nmplayer\n")
+        f:close()
+        os.remove("/tmp/probe-228-1.headers")
+    end
+    return result
+end
+local function probe_native()
+    plugin.job = {station = catalog[1], index = 0, starts = 0, engines = {}, variants = {
+        {url = "http://fixture.invalid/native", kbps = 48},
+    }}
+    plugin:advance_radio()
+    settle()
+end
+probe_native()
+assert(plugin.current and plugin.current.stream.live_kbps == 48)
+assert(not plugin.current.stream.live_final and plugin.current.stream.redirect_unknown)
+plugin:stop()
+plugin:set_quality("limit", 32)
+probe_native()
+assert(not plugin.current and messages[#messages].kind == "radio-error")
+plugin:set_quality("limit", nil)
 io.popen = previous
 
 local local_result = "pending"

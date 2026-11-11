@@ -37,7 +37,7 @@ local ENGINE_OPTIONS = {"auto", "gst-legacy", "gst-mixer", "mplayer", "mpg123", 
 local volume_input_open = false
 local volume_input_node
 local volume_owner
-local RADIO_VERSION = "2.28.1"
+local RADIO_VERSION = "2.28.2"
 local VOLUME_KEYS = {VMinus = -1, VolumeDown = -1, VolumeMinus = -1,
     VPlus = 1, VolumeUp = 1, VolumePlus = 1}
 
@@ -328,7 +328,10 @@ function ILRadio:check_probe()
     end
     local nominal = tonumber((final_header or ""):match("\nicy%-br:%s*(%d+)"))
         or tonumber((final_header or ""):match("\nice%-bitrate:%s*(%d+)"))
-    if (code == "200" or code == "206") and T.url(final) and (not method or not method:match("^wget") or exit == 0) then
+    local native_sample = method == "mplayer" and exit == 0 and final == stream.url
+    local http_sample = (code == "200" or code == "206") and (not method or not method:match("^wget") or exit == 0)
+    if (native_sample or http_sample) and T.url(final) then
+        local redirect_unknown = method == "wget" or native_sample
         local sample = read_small(prefix .. ".sample", 16384)
         local hls = sample:match("^#EXTM3U") and sample:find("\n#EXT%-X%-")
         local codec, kbps, measured, container, core_rate, core_channels = T.sample(sample, nominal)
@@ -337,8 +340,8 @@ function ILRadio:check_probe()
             stream.live_kbps = kbps
             stream.live_measured = measured
             stream.live_nominal = nominal
-            stream.live_final = method ~= "wget" and final or nil
-            stream.wget_probe = method == "wget"
+            stream.live_final = not redirect_unknown and final or nil
+            stream.redirect_unknown = redirect_unknown
             -- Avoid reusing short-lived redirect tokens on a separate connection.
             stream.play_url = final:find("rj%-tok=") and stream.url or final
             stream.live_container = container
@@ -348,8 +351,8 @@ function ILRadio:check_probe()
             self:accept_probe(stream)
             return
         elseif job.approved or T.cap(self.radio, stream.codec) == math.huge then
-            stream.live_final = method ~= "wget" and final or nil
-            stream.wget_probe = method == "wget"
+            stream.live_final = not redirect_unknown and final or nil
+            stream.redirect_unknown = redirect_unknown
             stream.play_url = final:find("rj%-tok=") and stream.url or final
             stream.live_container = hls and "HLS" or nil
             self:accept_probe(stream)
@@ -751,7 +754,7 @@ function ILRadio:playing_info(full)
         if stream.live_nominal then rate = rate .. " · " .. stream.live_nominal .. " kb/s (serwer)"
         elseif not stream.live_measured and stream.kbps then rate = rate .. " · " .. stream.kbps .. " kb/s (katalog)" end
         local origin = stream.source or "Nieustalony"
-        local active_host = stream.wget_probe and "Nieustalony po przekierowaniach"
+        local active_host = stream.redirect_unknown and "Nieustalony po przekierowaniach"
             or host(stream.live_final or item.uri)
         if stream.live_final and active_host ~= host(stream.final or stream.url) then
             origin = "Przekierowanie · typ serwera nieustalony"

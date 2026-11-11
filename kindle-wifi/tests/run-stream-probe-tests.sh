@@ -80,3 +80,29 @@ CURL
     [ "$(wc -c < "$prefix.sample")" = 16384 ]
     echo 'PASS: old curl without protocol flags falls back to wget'
 fi
+
+# Reproduce a Kindle with MPlayer and no standalone downloader.
+mkdir "$fixture/native"
+for command in sh dirname mkdir cat date head rm tail tr grep sleep setsid wc; do
+    ln -s "$(command -v "$command")" "$fixture/native/$command"
+done
+cat > "$fixture/native/mplayer" <<'MPLAYER'
+#!/usr/bin/python3
+import sys
+import urllib.request
+
+args = sys.argv[1:]
+assert "-dumpstream" in args and "-ao" not in args
+with urllib.request.urlopen(args[-1], timeout=3) as source:
+    with open(args[args.index("-dumpfile") + 1], "wb") as output:
+        output.write(source.read())
+MPLAYER
+chmod +x "$fixture/native/mplayer"
+export PATH="$fixture/native"
+probe "http://127.0.0.1:$port/radio.aac"
+[ "$(cat "$prefix.done")" = 0 ]
+grep -Fx mplayer "$prefix.meta"
+[ ! -e "$prefix.raw" ]
+[ "$(head -c 16384 "$prefix.sample" | wc -c)" = 16384 ]
+[ "$(sh "$player" probe-start "https://localhost:$secure/radio.aac")" = unavailable ]
+echo 'PASS: native HTTP MPlayer sample without curl or wget, bounded output and no HTTPS downgrade'
