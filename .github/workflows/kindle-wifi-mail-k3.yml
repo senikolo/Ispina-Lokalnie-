@@ -1,0 +1,65 @@
+name: Kindle Wi-Fi mail K3 TEST
+on:
+  push:
+    branches: [codex/kindle-wifi-mail-k3-20261111]
+    paths: ['kindle-wifi/**', '.github/workflows/kindle-wifi-mail-k3.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.23'
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.7'
+      - uses: android-actions/setup-android@v3
+      - name: Install Android SDK and Lua syntax checker
+        run: |
+          sdkmanager 'platforms;android-35' 'build-tools;35.0.0'
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq lua5.3
+      - name: Go unit tests, vet and Linux ARMv6 helper
+        working-directory: kindle-wifi/native/mailk3
+        run: |
+          go test -v ./...
+          go vet ./...
+          CGO_ENABLED=0 GOOS=linux GOARCH=arm GOARM=6 go build -trimpath -ldflags '-s -w' -o ../../assets/ilmail_k3.koplugin/mailk3 .
+          file ../../assets/ilmail_k3.koplugin/mailk3
+          test "$(stat -c %s ../../assets/ilmail_k3.koplugin/mailk3)" -lt 14000000
+      - name: KOReader Lua and existing tests
+        working-directory: kindle-wifi
+        run: |
+          lua5.3 -e 'assert(loadfile("assets/ilmail_k3.koplugin/_meta.lua"))'
+          lua5.3 -e 'assert(loadfile("assets/ilmail_k3.koplugin/main.lua"))'
+          bash tests/run-atomic-tests.sh
+          bash tests/run-stream-probe-tests.sh
+      - name: Prepare plugin bundle
+        working-directory: kindle-wifi/assets
+        run: |
+          zip -qr ../../ilmail-k3-TEST.zip ilmail_k3.koplugin
+      - name: Build phone release APK (unsigned)
+        working-directory: kindle-wifi
+        run: |
+          gradle --no-daemon -ParmOnly assembleRelease
+          mkdir -p ../artifacts
+          cp build/outputs/apk/release/*-unsigned.apk ../artifacts/Kindle-przez-WiFi-2.29.0-TEST-unsigned.apk
+          test "$(stat -c %s ../artifacts/Kindle-przez-WiFi-2.29.0-TEST-unsigned.apk)" -lt 30000000
+          cp ../ilmail-k3-TEST.zip ../artifacts/ilmail-k3-TEST.zip
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: kindle-mail-k3-test
+          path: |
+            artifacts/
+            kindle-wifi/assets/ilmail_k3.koplugin/mailk3
+          if-no-files-found: warn
