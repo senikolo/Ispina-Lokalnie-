@@ -35,3 +35,9 @@ Nie scalaj zmian do gałęzi stabilnej przed testami na fizycznym urządzeniu.
 - Weryfikacja w CI wymaga działającego interpretera Lua i faktycznie uruchamia testy pocztowe oraz radiowe. Brak Lua nie może już dać fałszywego sukcesu.
 - **Nadal wymagane testy na Kindle K3**: IMAP/SMTP, OpenSSL i AES-GCM, klawisze głośności, odtwarzanie radia przez 2 godziny, reakcja na utratę Wi-Fi i pracę timera przy wygaszonym ekranie.
 - Testowy APK ma odrębny identyfikator pakietu i nie usuwa wcześniejszej aplikacji.
+
+## Diagnostyka VOX FM — 2.30.1
+
+Po uruchomieniu MPlayera Kindle wykazał rozpoznanie MP3 (64 kb/s), inicjalizację ALSA (44,1 kHz stereo) i komunikat Starting playback. Nie dowodzi to odsłuchu w głośniku; połączenie później przestało być aktywne. Wersja 2.30.1 zapisuje kod wyjścia dekodera także dla radia, odróżnia zakończenie transmisji od braku silnika, nie odłącza aktywnego radia na podstawie niewiarygodnego licznika czasu MPlayera, poprawia token PID timera i dodaje alternatywny CDN VOX FM (ic2.smcdn.pl).
+
+Weryfikacja na fizycznym Kindle K3 nadal wymagana: czas działania radia, automatyczny powrót po chwilowej utracie Wi‑Fi, brak gry po wyjściu z KOReadera, klawisze głośności i timer.

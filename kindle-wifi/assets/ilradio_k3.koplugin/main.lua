@@ -24,7 +24,9 @@ local ERRORS = {
     buffer = "Strumień buforuje się za długo lub transmisja przerwała.",
     codec = "Silnik nie rozpoznał formatu audio albo brakuje dekodera.",
     output = "Silnik nie uzyskał dostępu do wyjścia audio.",
-    unconfirmed = "Brak potwierdzenia dźwięku. Sprawdź głośność i uruchom próbkę diagnostyczną.",
+    unconfirmed = "Nie udało się potwierdzić działania strumienia. Sprawdź diagnostykę audio.",
+    ended = "Transmisja urwała się po rozpoczęciu odtwarzania. Próbuję ponownie lub zmieniam źródło.",
+    playback = "Odtwarzacz zakończył pracę po uruchomieniu dźwięku. Sprawdź ostatni kod w diagnostyce.",
     engine = "Brak silnika dla tego formatu. Sprawdź „Diagnostykę audio”.",
     limit = "Parametry źródła przekraczają limit lub przepływność jest nieustalona.",
     transport = "Kindle nie ma narzędzia obsługującego połączenie z tym źródłem.",
@@ -38,7 +40,7 @@ local volume_input_open = false
 local volume_input_node
 local volume_owner
 local volume_listener
-local RADIO_VERSION = "2.30.0"
+local RADIO_VERSION = "2.30.1"
 local VOLUME_KEYS = {VMinus = -1, VolumeDown = -1, VolumeMinus = -1,
     VPlus = 1, VolumeUp = 1, VolumePlus = 1}
 
@@ -427,17 +429,9 @@ function ILRadio:monitor_radio()
     if not job or not item then return end
     local evidence = shell_call("evidence")
     local reason = evidence:match("^failed:(%w+)")
-    if item.engine == "mplayer" and evidence == "decoded" then
-        local pos = tonumber(shell_call("position"))
-        if pos then
-            if item.last_pos and pos == item.last_pos and pos > 0 then item.stalls = (item.stalls or 0) + 1
-            else item.stalls = 0 end
-            item.last_pos = pos
-            -- Some K3 MPlayer versions report frozen position for healthy live streams.
-            -- Require sustained stalling after playback is established.
-            if item.stalls >= 5 and item.established then reason = "buffer" end
-        end
-    end
+    -- Do not use MPlayer's timeline to infer a live-stream stall.
+    -- Older ARM builds can keep reporting the same position while audio plays.
+    -- Actual process termination or a decoder/transport error still triggers recovery.
     if not reason and evidence == "pending" and item.checks >= 4 then reason = "buffer" end
     if reason then
         if item.established and (item.stable or 0) >= 3 and not job.reconnecting then

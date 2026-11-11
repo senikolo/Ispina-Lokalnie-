@@ -343,7 +343,9 @@ run_logged() {
     wait "$worker"
     result=$?
     wait "$logger"
-    if [ -n "$4" ]; then printf '%s\n' "$result" > "$R/end-$ILRADIO_K3_SESSION"; fi
+    # Save the decoder exit status for radio as well as local MP3.
+    # Otherwise a stream disconnect appears as an unexplained or misleading URL error.
+    printf '%s\n' "$result" > "$R/end-$ILRADIO_K3_SESSION"
     rm -f "$fifo" "$R/worker-$ILRADIO_K3_SESSION"
 }
 
@@ -482,7 +484,20 @@ play_evidence() {
     details=$(tail -n 36 "$LOG" 2>/dev/null | grep -vE 'StreamTitle|ICY-META|title=')
     reason=$(stream_reason "$details")
     if [ "$reason" != unconfirmed ]; then echo "failed:$reason"; return; fi
-    if ! is_ours; then echo failed:unconfirmed; return; fi
+    if ! is_ours; then
+        # An audio pipeline may reach ALSA and start before its stream disconnects.
+        # Preserve this fact in diagnostics; a stopped process is not a codec failure.
+        result=$(cat "$R/end-$last_token" 2>/dev/null)
+        if [ -s "$LOG.audio" ] && grep -Eq 'Starting playback|ILRADIO_OUTPUT|new-state=\(GstState\)playing' "$LOG.audio"; then
+            case "$result" in
+                0) echo failed:ended; return;;
+                ''|*[!0-9]*) :;;
+                *) echo failed:playback; return;;
+            esac
+        fi
+        echo failed:unconfirmed
+        return
+    fi
     startup=$(cat "$LOG.audio" 2>/dev/null)
     if printf '%s' "$startup" | grep -Eq '^AO: |ILRADIO_OUTPUT|audio-codec=|^MPEG.*L III' &&
        printf '%s' "$startup" | grep -Eq 'Starting playback|ILRADIO_OUTPUT|new-state=\(GstState\)playing|^MPEG.*L III'; then
@@ -807,6 +822,7 @@ case "${1:-}" in
             fi
         done
         echo "evidence=$(play_evidence)"
+        if [ -s "$R/end-$last_token" ]; then echo "last-decoder-exit=$(cat "$R/end-$last_token")"; fi
         if [ -r "$R/report" ]; then echo "Ostatnia stacja / adres / wynik:"; head -n 3 "$R/report" | cut -c 1-180; fi
         for file in "$R"/test-*.aac "$R"/test-*.m4a "$R"/test-*.mp3; do
             if [ -f "$file" ]; then head -n 1 "$file"; fi
