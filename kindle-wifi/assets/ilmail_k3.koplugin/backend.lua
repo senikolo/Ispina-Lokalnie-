@@ -12,7 +12,15 @@ local E={}
 local DEST="/mnt/us/documents"
 local MAX_TEXT=120000
 local MAX_ATTACHMENT=10*1024*1024
-local function b64(s) return (mime.b64(s):gsub("%s+$","")) end
+-- LuaSocket's mime.b64 may return nil for an empty input. Empty optional
+-- Reply-To/Message-ID fields are common: never index a nil result.
+local function b64(s)
+    s = tostring(s or "")
+    if s == "" then return "" end
+    local encoded = mime.b64(s)
+    assert(type(encoded) == "string", "Nie udało się zakodować danych wiadomości.")
+    return (encoded:gsub("%s+$", ""))
+end
 local function q(s) return MIME.quote(s) end
 local function checkEmail(s)
     return type(s)=="string" and #s<=250 and s:match("^[^%@%s<>]+@[^%@%s<>]+%.[^%@%s<>]+$")
