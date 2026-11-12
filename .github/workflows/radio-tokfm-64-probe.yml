@@ -1,0 +1,21 @@
+name: Confirm TOK FM 64k MP3 source
+on:
+  push:
+    branches: [feat/kindle-somafm-stream-stability-20261112]
+    paths: ['.github/workflows/radio-tokfm-64-probe.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verify-tok:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Verify MP3 frame bitrate on TOK FM 64k URL
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq ffmpeg >/dev/null
+          curl --http0.9 -L -sS --max-time 6 --connect-timeout 3 -o /tmp/tok64.mp3 "http://stream30.radiostream.pl/tuba10-2.mp3" || true
+          test "$(stat -c %s /tmp/tok64.mp3)" -ge 12000
+          ffprobe -v error -f mp3 -show_entries stream=codec_name,bit_rate -of default=noprint_wrappers=1 /tmp/tok64.mp3
+          ffprobe -v error -f mp3 -show_entries stream=bit_rate -of csv=p=0 /tmp/tok64.mp3 | grep -Fx 64000
