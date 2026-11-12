@@ -27,7 +27,7 @@ os.execute=function(command)
     if command:find("command -v ",1,true) then return false end
     error("Unexpected shell command: "..tostring(command))
 end
-local replies={}, calls={}
+local replies, calls = {}, {}
 package.preload["socket.http"]=function()
     return {TIMEOUT=4,request=function(req)
         local response=replies[req.url] and replies[req.url][req.method]
@@ -75,7 +75,7 @@ assert(calls[#calls].method=="GET" and calls[#calls].url==phone.."status")
 assert(shown[#shown].text:find("TEST OK",1,true))
 assert(shown[#shown].text:find("Nie oznacza",1,true))
 assert(calls[#calls-1].body:find("agree=yes",1,true))
-assert(calls[#calls-1].body:find("simulation=kindle%-lab") == nil or true)
+assert(calls[#calls-1].body:find("simulation=kindle-lab",1,true))
 -- Email mode: same phone, different form, no email retained on the Kindle.
 reply(phone,"GET",{code=200,body=[[
 <html><form action="/register" method="POST">
