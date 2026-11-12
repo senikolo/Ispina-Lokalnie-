@@ -146,8 +146,8 @@ local function assess(results)
             and (not item.body or trim(answer.body):find(item.body, 1, true))
         if matches then successful = successful + 1
         elseif not answer.code then errors = errors + 1
-        elseif answer.code >= 300 and answer.code < 400
-            or answer.code == 200 or answer.code == 511 or answer.code == 403 then
+        elseif answer.code and ((answer.code >= 300 and answer.code < 400)
+            or answer.code == 200 or answer.code == 511 or answer.code == 403) then
             portal = portal + 1
         end
         if answer.portal then host = answer.portal end
