@@ -320,7 +320,6 @@ local function parse_form(html, page_url)
     local a, b = lower:find("<form[%s>][^>]*>")
     if not a then
         -- A visible guest link can be submitted only on explicit user request.
-        for start, finish in lower:gmatch("()(<a%s+[^>]*>.-</a>)()") do end -- harmless Lua iterator guard
         local pos = 1
         while true do
             local x, y = lower:find("<a[%s][^>]*>", pos)
@@ -507,17 +506,166 @@ function Guest:check()
                 end
             end
             local assessed = assess(answers)
+            cleanup_session(self.portal_session)
+            self.portal_session = nil
+            self.portal = nil
+            if assessed.state == "portal" or assessed.state == "mixed" then
+                -- Tokenized redirect is session-only, never written into a report.
+                self.portal_hint = (answers[1] and answers[1].redirect_raw)
+                    or (answers[2] and answers[2].redirect_raw)
+                    or (answers[3] and answers[3].redirect_raw)
+                    or TARGETS[1].url
+            else
+                self.portal_hint = nil
+            end
             local message = report_text(assessed, wifi)
             persist(message)
             if assessed.state == "portal" or assessed.state == "mixed" then
-                return message .. "\n\nJeśli to sieć gościnna, otwórz w przeglądarce Kindle http://neverssl.com "
-                    .. "i zaakceptuj wymagane warunki."
+                return message .. "\n\nWybierz „Otwórz portal w KOReaderze”, aby sprawdzić logowanie."
             end
             return message
         end)
         self.running = false
         notice(ok and result or "Test sieci nie powiódł się. Wybierz „Ponów test”.", 25)
     end)
+end
+
+function Guest:load_portal()
+    if self.running then notice("Trwa już sprawdzanie sieci.",5); return end
+    if not self.portal_hint then
+        notice("Najpierw wybierz „Sprawdź Wi-Fi i portal”.",9)
+        return
+    end
+    self.running=true
+    notice("Odczytuję stronę gościa z Kindle'a…",3)
+    UIManager:scheduleIn(0.2,function()
+        local ok, result = pcall(function()
+            cleanup_session(self.portal_session)
+            self.portal_session={}
+            local current = self.portal_hint
+            local response, err
+            local steps=0
+            repeat
+                response, err = portal_http(current,"GET",nil,self.portal_session)
+                if not response then break end
+                local next_url = response.redirect_raw and combine(current,response.redirect_raw)
+                if next_url and response.code >=300 and response.code <400 and steps<3 then
+                    if hostname(next_url) ~= hostname(current) then self.portal_session.cookie=nil end
+                    current=next_url
+                    steps=steps+1
+                else break end
+            until false
+            if not response then return "Nie odczytano strony: "..scrub(err,100) end
+            if response.code <200 or response.code >=400 then
+                return "Portal zwrócił HTTP "..tostring(response.code)
+                    .. ". Formularz może być niedostępny."
+            end
+            local form, why = parse_form(response.body,current)
+            if not form then
+                self.portal=nil
+                return "Nie można automatycznie obsłużyć strony. "..scrub(why,200)
+            end
+            if hostname(form.url) ~= hostname(current) then
+                self.portal=nil
+                return "Formularz przekierowuje na inny serwer. Dla bezpieczeństwa "
+                    .. "nie wysyłam danych automatycznie."
+            end
+            self.portal={form=form,host=hostname(form.url),text=page_text(response.body)}
+            return "Wykryto prosty portal logowania: "..self.portal.host
+                .. (form.email_field and "\nWymaga adresu e-mail." or "\nMożliwy dostęp jako gość.")
+                .. "\nPrzed połączeniem wybierz „Pokaż treść portalu”."
+                .. "\nNastępnie wybierz „Połącz jako gość” lub „Podaj e-mail”."
+        end)
+        self.running=false
+        notice(ok and result or "Błąd odczytu portalu. Nie wysłano żadnych danych.",22)
+    end)
+end
+
+function Guest:show_portal()
+    if not self.portal then
+        notice("Najpierw wybierz „Otwórz portal w KOReaderze”.",8)
+        return
+    end
+    local text="Portal: "..self.portal.host.."\n\n"
+        .. (self.portal.text~="" and self.portal.text or "Brak czytelnego tekstu.")
+        .. "\n\nZewnętrzny regulamin lub polityka prywatności mogą wymagać przeglądarki."
+    local ok, TextViewer = pcall(require,"ui/widget/textviewer")
+    if ok and TextViewer and TextViewer.new then
+        UIManager:show(TextViewer:new{title="Treść portalu Wi-Fi",text=text})
+    else notice(text,25) end
+end
+
+function Guest:submit_portal(email)
+    local current=self.portal
+    if not current then notice("Najpierw odczytaj portal.",7); return end
+    local form=current.form
+    if form.email_field and (type(email)~="string"
+        or #email>240 or not email:match("^[%w%._%+%-]+@[%w%-%.]+%.[%a]+$")) then
+        notice("Podaj prawidłowy adres e-mail.",9); return
+    end
+    local target_host = hostname(form.url)
+    if not target_host or target_host~=current.host then
+        notice("Serwer formularza jest inny od strony logowania. Operacja przerwana.",10)
+        return
+    end
+    local warning=form.url:match("^http://") and
+        "\nUwaga: połączenie HTTP nie szyfruje wysyłanych danych." or ""
+    UIManager:show(ConfirmBox:new{
+        text="Sprawdź, czy zgadzasz się z regulaminem sieci Wi-Fi operatora. "
+            .. "Wtyczka wyśle formularz wyłącznie po Twoim potwierdzeniu.\n"
+            .. "Serwer: "..current.host
+            .. (email and "\nAdres e-mail będzie wysłany do operatora." or "")
+            .. warning,
+        ok_text="Akceptuję i łączę",
+        ok_callback=function()
+            if self.running then notice("Trwa inne połączenie.",5); return end
+            self.running=true
+            UIManager:scheduleIn(0.2,function()
+                local ok, result=pcall(function()
+                    local payload=encode_form(form,email)
+                    if not payload or #payload>4000 then return "Nieprawidłowe pola formularza." end
+                    local url=form.url
+                    if form.method=="GET" and payload~="" then
+                        url=url..(url:find("?",1,true) and "&" or "?")..payload
+                        if not valid_url(url) then return "Adres formularza jest zbyt długi." end
+                    end
+                    local answer, err=portal_http(url,form.method,
+                        form.method=="POST" and payload or nil,self.portal_session or {})
+                    if not answer then return "Nie wysłano: "..scrub(err,90) end
+                    if answer.code>=400 then return "Serwer odrzucił formularz: HTTP "
+                        ..tostring(answer.code)..". Nie potwierdzono dostępu." end
+                    -- HTTP 200 or redirect is NOT proof of successful authentication.
+                    return "Serwer przyjął żądanie (HTTP "..tostring(answer.code)
+                        .."). Sprawdź teraz dostęp przyciskiem „Ponów test”."
+                end)
+                self.running=false
+                notice(ok and result or "Nie udało się wysłać formularza.",20)
+            end)
+        end,
+    })
+end
+
+function Guest:ask_email()
+    if not self.portal then notice("Najpierw odczytaj portal.",8); return end
+    if not self.portal.form.email_field then
+        notice("Ten formularz nie wymaga adresu e-mail. Użyj „Połącz jako gość”.",9)
+        return
+    end
+    local dlg
+    dlg=InputDialog:new{
+        title="Adres e-mail do sieci gościnnej",input="",input_type="text",
+        buttons={{{text="Anuluj",id="close",callback=function() UIManager:close(dlg) end},
+            {text="Dalej",is_enter_default=true,callback=function()
+                local email=trim(dlg:getInputText() or "")
+                if #email>240 or not email:match("^[%w%._%+%-]+@[%w%-%.]+%.[%a]+$") then
+                    notice("Sprawdź adres e-mail.",8)
+                    return
+                end
+                UIManager:close(dlg)
+                self:submit_portal(email)
+            end}}},
+    }
+    UIManager:show(dlg)
 end
 
 function Guest:last_report()
@@ -543,15 +691,23 @@ function Guest:addToMainMenu(menu)
                 callback=function() self:check() end},
             {text="Ponów test", keep_menu_open=true,
                 callback=function() self:check() end},
+            {text="Otwórz portal w KOReaderze", keep_menu_open=true,
+                callback=function() self:load_portal() end},
+            {text="Pokaż treść portalu", keep_menu_open=true,
+                callback=function() self:show_portal() end},
+            {text="Połącz jako gość", keep_menu_open=true,
+                callback=function() self:submit_portal(nil) end},
+            {text="Podaj e-mail", keep_menu_open=true,
+                callback=function() self:ask_email() end},
             {text="Ostatni raport", keep_menu_open=true,
                 callback=function() self:last_report() end},
             {text="Jak połączyć Kindle w pociągu?", callback=function()
                 notice("1. W ustawieniach Kindle'a wybierz sieć Wi-Fi pociągu (2,4 GHz).\n"
                     .. "2. Otwórz IL Wi-Fi Gość i sprawdź połączenie.\n"
-                    .. "3. Jeżeli jest portal, otwórz przeglądarkę Kindle i stronę http://neverssl.com/.\n"
-                    .. "4. Samodzielnie zaakceptuj regulamin lub wpisz e-mail.\n"
-                    .. "5. Wróć do KOReadera i ponów test.\n\n"
-                    .. "Wersja TEST wykrywa portal, ale nie loguje automatycznie.", 30)
+                    .. "3. Otwórz portal w KOReaderze i zapoznaj się z treścią strony.\n"
+                    .. "4. Wybierz dostęp jako gość lub wpisz e-mail, a potem zatwierdź regulamin.\n"
+                    .. "5. Ponów test. Nie każdy portal działa bez JavaScriptu lub CAPTCHA.\n\n"
+                    .. "Wtyczka nie obchodzi zabezpieczeń sieci.", 30)
             end},
         },
     }
@@ -559,5 +715,7 @@ end
 
 Guest.test = {assess=assess, safe_url=safe_url, report_text=report_text,
     http_probe=http_probe, wifi_state=wifi_state, targets=TARGETS, backup=BACKUP,
-    failure_reason=failure_reason, matches=matches}
+    failure_reason=failure_reason, matches=matches,
+    parse_form=parse_form, encode_form=encode_form, combine=combine,
+    portal_http=portal_http, valid_url=valid_url}
 return Guest
