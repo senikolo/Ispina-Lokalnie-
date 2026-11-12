@@ -17,7 +17,7 @@ final class RadioInstaller {
     private static final String[] LEGACY_FILES = {"_meta.lua", "stations.lua", "player.sh", "main.lua"};
     private static final String[] FILES = {"_meta.lua", "stations.lua", "player.sh", "main.lua", "tuning.lua", "streams.tsv",
             "test-lc48.aac", "test-he32.aac", "test-hev224.aac", "test-lc48.m4a", "test-mp364.mp3", "test-real-he32.aac", "test-real-hev224.aac"};
-    private static final int MAX_FILE = 65536;
+    private static final int MAX_FILE = 128 * 1024; // radio main.lua is larger than 64 KiB
     private static final String LEGACY_META =
             "5846de1c14e95256bdc7ecf0600a84177d23142eb41544bf617952c057bc7f08";
     private static final String ACTIVE = CompanionFiles.PLUGINS + "/" + NAME;
@@ -193,8 +193,15 @@ final class RadioInstaller {
         Map<String, byte[]> files = new LinkedHashMap<>();
         for (String name : FILES) {
             try (InputStream in = context.getAssets().open(NAME + "/" + name)) {
-                byte[] bytes = BialolekaForecast.readBounded(in, MAX_FILE);
-                if (bytes.length == 0) throw new IOException("Brakuje pliku potrzebnego do instalacji IL Radio.");
+                byte[] bytes;
+                try {
+                    bytes = BoundedInput.read(in, MAX_FILE);
+                } catch (IOException error) {
+                    throw new IOException("Nie można odczytać pliku IL Radio: " + name
+                            + " (limit " + MAX_FILE + " bajtów). " + error.getMessage(), error);
+                }
+                if (bytes.length == 0)
+                    throw new IOException("Pusty plik IL Radio: " + name + ".");
                 files.put(name, bytes);
             }
         }

@@ -47,14 +47,20 @@ done
 [ -s "$PCM_OUTPUT" ] && [ "$(sh "$player" status)" = stopped ]
 [ "$(sh "$player" stop)" = stopped ]
 echo 'PASS: local HTTP MP3 through the legacy player pipeline, decoded PCM verified via FFmpeg'
+export MPLAYER_ARGS="$fixture/mplayer-args"
 cat > "$fixture/bin/mplayer" <<'PLAYER'
 #!/bin/sh
+printf '%s\n' "$*" > "$MPLAYER_ARGS"
 printf '%s\n' 'AUDIO: 22050 Hz, 2 ch, s16le, 32.0 kbit/3%' 'AO: [alsa]' 'Starting playback...'
 for i in $(seq 1 80); do printf "StreamTitle='Fixture %s'\n" "$i"; done
 exec sleep 20
 PLAYER
 chmod +x "$fixture/bin/mplayer"
-[ "$(sh "$player" start "http://127.0.0.1:$port/sample.mp3" mplayer 65 "" 0 128 "" "Fixture Radio")" = 'starting:mplayer' ]
+[ "$(sh "$player" start "http://127.0.0.1:$port/sample.mp3" mplayer 65 "" 0 128 MP3 "Fixture Radio" "" 140)" = 'starting:mplayer' ]
+for delay in {1..30}; do [ -s "$MPLAYER_ARGS" ] && break; sleep .1; done
+grep -Fq -- '-cache 128' "$MPLAYER_ARGS"
+grep -Fq -- '-softvol-max 140' "$MPLAYER_ARGS"
+echo 'PASS: MP3 streams honour selected cache and gain'
 for delay in {1..30}; do
     if [ "$(sh "$player" title)" = "Fixture 80" ]; then break; fi
     sleep .1
@@ -92,4 +98,9 @@ finally:
 print("PASS: full MPlayer control FIFO cannot block the user interface")
 PY
 [ "$(sh "$player" stop)" = stopped ]
-echo 'PASS: playback evidence is visible while the decoder is running'
+[ "$(sh "$player" timer-arm 30)" = armed:1800 ]
+remaining=$(sh "$player" timer-left)
+[ "$remaining" -gt 0 ] && [ "$remaining" -le 1800 ]
+[ "$(sh "$player" timer-cancel)" = cancelled ]
+[ "$(sh "$player" timer-left)" = off ]
+echo 'PASS: playback evidence, 30-minute timer, remaining time and cancellation'

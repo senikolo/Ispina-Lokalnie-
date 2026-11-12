@@ -95,7 +95,28 @@ local menu = {}
 plugin:addToMainMenu(menu)
 assert(menu.ilradio_k3 and menu.ilradio_k3.sorting_hint == "more_tools")
 local catalog = dofile(source .. "/stations.lua")
-assert(#catalog == 27)
+local T = dofile(source .. "/tuning.lua")
+-- ECO 128: cover both user overrides and absent bitrate metadata.
+assert(T.hard_limit == 128)
+assert(T.cap({mode="high", limit=0}, "MP3") == 128)
+assert(T.cap({mode="auto", limit=256}, "MP3") == 128)
+assert(T.cap({mode="auto", limit=32}, "AAC") == 32)
+assert(T.allowed({mode="high", limit=0}, {codec="MP3",kbps=128}))
+assert(not T.allowed({mode="high", limit=0}, {codec="MP3",kbps=256}))
+assert(not T.allowed({mode="high", limit=0}, {codec="MP3"}))
+assert(not T.hard_allowed({kbps=129}))
+assert(data.radio_eco128_migrated and plugin.radio.mode=="auto"
+    and plugin.radio.minimum and plugin.radio.limit==128)
+
+assert(T.probeFailure("200", 1) == "unconfirmed", "HTTP 200 + generic probe error is not a rejected address")
+assert(T.probeFailure("000", 1) == "unconfirmed")
+assert(T.probeFailure("404", 22) == "address")
+assert(T.probeFailure("403", 22) == "address")
+assert(T.probeFailure("503", 22) == "server")
+assert(T.probeFailure("429", 22) == "server")
+assert(T.probeFailure("302", 1) == "transport")
+assert(T.probeFailure("200", 28) == "buffer")
+assert(#catalog == 33, "Expected 33 stations including four SomaFM channels")
 local function menu_item(items, title)
     for _, item in ipairs(items) do
         if item.text == title then return item end
@@ -105,10 +126,15 @@ local radio_menu = plugin:radio_menu()
 local groups = assert(menu_item(radio_menu, "Stacje radiowe")).sub_item_table
 assert(#groups == 4 and not menu_item(groups, "Polskie Radio"))
 local player_menu = assert(menu_item(radio_menu, "Odtwarzacz MP3 i audiobooki")).sub_item_table
-assert(menu_item(player_menu, "Moja muzyka") and menu_item(player_menu, "Odtwarzaj / pauza"))
+assert(menu_item(player_menu, "Moja muzyka") and menu_item(player_menu, "Moje audiobooki"))
+assert(not menu_item(player_menu, "Odtwarzaj / pauza"))
+assert(menu_item(radio_menu, "Odtwarzaj / pauza"))
+local timer = assert(menu_item(radio_menu, "Automatyczne wyłączenie"))
+local timer_menu = timer.sub_item_table_func()
+assert(menu_item(timer_menu, "Wyłącz za 30 min") and menu_item(timer_menu, "Wyłącz za 120 min"))
 local first = plugin:station_menu("Popularne")[1]
 assert(first.text_func() == "RMF FM")
-first.sub_item_table[2].callback()
+first.sub_item_table[3].callback()
 assert(data.favorites["RMF FM"] and #plugin:station_menu("Ulubione") == 1)
 first.sub_item_table[1].callback()
 local function settle()
@@ -132,15 +158,56 @@ end
 assert(rocker(114, 1) and data.volume == 70)
 assert(calls[#calls]:find("'volume' '70'", 1, true))
 plugin:playing_info()
-assert(messages[#messages]:find("dźwięk niepotwierdzony", 1, true))
-assert(messages[#messages]:find("Próbny utwór", 1, true))
+local concise = messages[#messages]
+assert(concise:find("RMF FM", 1, true))
+assert(concise:find("Teraz gra: Próbny utwór", 1, true))
+assert(concise:find("Strumień: ", 1, true))
+assert(concise:find("Stan: Odtwarzacz uruchomiony", 1, true))
+assert(concise:find("Głośność: 70%", 1, true))
+assert(not concise:find("Serwer próby:", 1, true))
+assert(not concise:find("Silnik:", 1, true))
+assert(not concise:find("Połączenie:", 1, true))
+assert(not concise:find("dźwięk niepotwierdzony", 1, true))
+assert(#concise < 260)
+plugin:playing_info(true)
+local detail=messages[#messages]
+assert(detail:find("Serwer próby:", 1, true))
+assert(detail:find("Silnik:", 1, true))
+assert(detail:find("dźwięk niepotwierdzony", 1, true))
 evidence = "decoded"
 plugin.radio_tick()
 assert(plugin.current.evidence == "decoded" and not data.radio_last_working)
 plugin:confirm_sound()
 assert(data.radio_last_working["RMF FM"] == plugin.current.stream.url)
+-- A stream heard for a while can lose Wi-Fi after several minutes.
+-- Restore playback without changing saved bitrate or buffer settings.
+plugin.radio_tick()
+plugin.radio_tick()
+assert(plugin.current.established, "Expected a proven playing radio session")
+local persisted_buffer = plugin.radio.buffer
+evidence = "failed:buffer"
+plugin.radio_tick()
+assert(plugin.job and plugin.job.reconnect_cache == 256
+    and scheduled[plugin.retry_tick], "A proven stream must retry with a deeper cache")
+local before_retry = #calls
+evidence = "pending"
+plugin.retry_tick()
+settle()
+assert(plugin.current and plugin.radio.buffer == persisted_buffer)
+local deeper = false
+for i = before_retry + 1, #calls do
+    if calls[i]:find("'start'", 1, true) and calls[i]:find("'256'", 1, true) then deeper = true end
+end
+assert(deeper, "Recovered radio must actually pass a 256 KiB cache to the player")
+evidence = "decoded"
 
 local options = menu_item(plugin:radio_menu(), "Ustawienia radia").sub_item_table
+local gain = assert(menu_item(options, "Wzmocnienie dźwięku (MPlayer)"))
+assert(#gain.sub_item_table == 3 and plugin.boost == 110)
+gain.sub_item_table[2].callback()
+assert(plugin.boost == 140 and data.audio_softvol_max == 140)
+gain.sub_item_table[1].callback()
+assert(plugin.boost == 110 and data.audio_softvol_max == 110)
 local volume = menu_item(options, "Ekranowe przyciski głośności +/−")
 assert(volume.checked_func())
 volume.callback()
@@ -161,6 +228,13 @@ plugin:stop()
 assert(not scheduled[plugin.retry_tick] and not scheduled[plugin.probe_tick])
 assert(not rocker(115, 1) and data.volume == 75)
 assert(plugin:play("file:///mnt/us/music/test.mp3", "Próba", "music", "/mnt/us/music/test.mp3"))
+plugin:playing_info()
+local mp3_summary=messages[#messages]
+assert(mp3_summary:find("Próba", 1, true))
+assert(mp3_summary:find("Format: MP3", 1, true))
+assert(mp3_summary:find("Głośność: 75%", 1, true))
+assert(not mp3_summary:find("Silnik:", 1, true))
+assert(not mp3_summary:find("Serwer próby:", 1, true))
 assert(rocker(114, 1) and data.volume == 70)
 plugin:onCloseWidget()
 assert(not rocker(114, 1) and data.volume == 70)
@@ -234,6 +308,72 @@ assert(not plugin.current and messages[#messages].kind == "radio-error")
 plugin:set_quality("limit", nil)
 io.popen = previous
 
+-- Old native HTTP engines may play streams they cannot dump as a probe sample.
+-- Allow a single bounded direct attempt for a known, within-limit MP3 URL.
+local before_native_fallback = io.popen
+io.popen = function(command)
+    local result = before_native_fallback(command)
+    if command:find("'probe-start'", 1, true) and command:find("native-without-sample.mp3", 1, true) then
+        local prefix = "/tmp/probe-228-1"
+        local f = assert(io.open(prefix .. ".meta", "wb"))
+        f:write("000\nhttp://fixture.invalid/native-without-sample.mp3\nmplayer\n")
+        f:close()
+        f = assert(io.open(prefix .. ".done", "wb"))
+        f:write("1"); f:close()
+        f = assert(io.open(prefix .. ".sample", "wb"))
+        f:close()
+    end
+    return result
+end
+plugin.job = {station = catalog[1], index = 0, starts = 0, engines = {}, variants = {
+    {url = "http://fixture.invalid/native-without-sample.mp3", codec = "MP3", kbps = 64},
+}}
+plugin:advance_radio()
+settle()
+assert(plugin.current and plugin.current.engine == "mplayer")
+assert(plugin.current.stream.native_direct_tried and plugin.current.stream.kbps == 64)
+plugin:stop()
+io.popen = before_native_fallback
+
+-- Regression: a native MPlayer probe timeout must not prevent direct MP3
+-- when a known, within-limit catalogue stream is available.
+io.popen = function(command)
+    local result = before_native_fallback(command)
+    if command:find("'probe-start'", 1, true) and command:find("timeout-mp3.mp3", 1, true) then
+        local prefix = "/tmp/probe-228-1"
+        local f = assert(io.open(prefix .. ".meta", "wb"))
+        f:write("000\nhttp://fixture.invalid/timeout-mp3.mp3\nmplayer\n")
+        f:close()
+        f = assert(io.open(prefix .. ".done", "wb"))
+        f:write("28"); f:close()
+        f = assert(io.open(prefix .. ".sample", "wb"))
+        f:close()
+    end
+    return result
+end
+plugin.job = {station = catalog[1], index = 0, starts = 0, engines = {}, variants = {
+    {url = "http://fixture.invalid/timeout-mp3.mp3", codec = "MP3", kbps = 64},
+}}
+plugin:advance_radio()
+settle()
+assert(plugin.current and plugin.current.stream.native_direct_tried)
+assert(plugin.current.engine == "mplayer")
+plugin:stop()
+io.popen = before_native_fallback
+
+-- A 128 kb/s MP3 compatibility choice requires explicit consent when the
+-- user's configured limit is lower. No silent data-limit changes.
+local rmf_menu = plugin:station_menu("Popularne")[1].sub_item_table
+assert(rmf_menu[2].text == "Spróbuj MP3 (tryb zgodności)")
+rmf_menu[2].callback()
+local mp3_permission = messages[#messages]
+assert(mp3_permission.kind == "radio-error")
+assert(mp3_permission.ok_text == "Uruchom MP3")
+assert(not plugin.current)
+mp3_permission.ok_callback()
+assert(plugin.current and plugin.current.stream.codec == "MP3")
+plugin:stop()
+
 io.popen = function(command)
     if command:find("'radio-transport'", 1, true) then
         return {read = function() return "http-only" end, close = function() end}
@@ -274,7 +414,7 @@ end
 play_fixture()
 plugin.start_check()
 plugin:playing_info()
-assert(messages[#messages]:find("dźwięk niepotwierdzony", 1, true))
+assert(messages[#messages]:find("Stan: Odtwarzacz uruchomiony", 1, true))
 plugin:toggle_pause()
 assert(not scheduled[plugin.start_check])
 local before = #calls
@@ -289,7 +429,12 @@ plugin:stop()
 play_fixture()
 local_result = "pending"
 for _ = 1, 5 do plugin.start_check() end
-assert(not plugin.current and state == "stopped", "Silent decoder must release playback")
+assert(plugin.current and state == "active", "Running audio must not stop because evidence is late")
+assert(scheduled[plugin.start_check] == 8)
+-- A confirmed decoder failure must still release playback.
+local_result = "failed"
+plugin.start_check()
+assert(not plugin.current and state == "stopped", "Failed decoder must release playback")
 io.popen = previous
 local radio_session = true
 io.popen = function(command)

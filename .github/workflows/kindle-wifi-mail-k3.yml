@@ -1,0 +1,93 @@
+name: Kindle Wi-Fi mail K3 TEST
+on:
+  push:
+    branches: [codex/kindle-wifi-mail-k3-20261111]
+    paths: ['kindle-wifi/**', '.github/workflows/kindle-wifi-mail-k3.yml']
+  workflow_dispatch:
+concurrency:
+  group: kindle-wifi-mail-k3-test
+  cancel-in-progress: true
+permissions:
+  contents: read
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.7'
+      - uses: android-actions/setup-android@v4
+        with:
+          packages: 'platform-tools'
+      - name: Prepare trusted certificates and available SDK
+        run: |
+          test -f /etc/ssl/certs/ca-certificates.crt
+          cp /etc/ssl/certs/ca-certificates.crt kindle-wifi/assets/ilmail_k3.koplugin/ca-bundle.crt
+          test -f "$ANDROID_HOME/platforms/android-35/android.jar" || echo "Android SDK 35 must be downloaded by Gradle or setup-android"
+      - name: Install mandatory Lua test runtime
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y lua5.3 lua-socket lua-sec lua-filesystem ffmpeg
+      - name: Informational SomaFM and Krakow source probe
+        continue-on-error: true
+        working-directory: kindle-wifi
+        run: python3 tests/audit-somafm-sources.py
+      - name: Informational audit of potential new public radio streams
+        continue-on-error: true
+        working-directory: kindle-wifi
+        run: bash tests/audit-new-station-streams.sh
+      - name: Static checks for bundled Lua plugin
+        working-directory: kindle-wifi
+        run: |
+          test -s assets/ilmail_k3.koplugin/vault.lua
+          test -s assets/ilmail_k3.koplugin/backend.lua
+          test -s assets/ilmail_k3.koplugin/imap.lua
+          test -s assets/ilmail_k3.koplugin/mail.lua
+          test -s assets/ilmail_k3.koplugin/main.lua
+          for file in assets/ilmail_k3.koplugin/{_meta,main,backend,vault,imap,mail}.lua assets/ilradio_k3.koplugin/main.lua; do
+            luac5.3 -p "$file"
+          done
+          sh -n assets/ilradio_k3.koplugin/player.sh
+      - name: KOReader Lua and existing tests
+        working-directory: kindle-wifi
+        run: |
+          lua5.3 tests/mail-backend-test.lua
+          lua5.3 tests/mail-ui-test.lua
+          lua5.3 tests/chillout-catalog-test.lua
+          lua5.3 tests/somafm-catalog-test.lua
+          bash tests/run-atomic-tests.sh
+          bash tests/run-stream-probe-tests.sh
+          bash tests/run-radio-tests.sh
+      - name: Prepare plugin bundle
+        working-directory: kindle-wifi/assets
+        run: |
+          zip -qr ../../ilmail-k3-TEST.zip ilmail_k3.koplugin
+      - name: Build phone release APK (unsigned)
+        working-directory: kindle-wifi
+        run: |
+          gradle --no-daemon -ParmOnly assembleRelease
+          mkdir -p ../artifacts
+          cp build/outputs/apk/release/*-unsigned.apk ../artifacts/Kindle-przez-WiFi-2.30.12-TEST-unsigned.apk
+          test "$(stat -c %s ../artifacts/Kindle-przez-WiFi-2.30.12-TEST-unsigned.apk)" -lt 30000000
+          cp ../ilmail-k3-TEST.zip ../artifacts/ilmail-k3-TEST.zip
+      - name: Build signed, installable side-by-side TEST APK
+        working-directory: kindle-wifi
+        run: |
+          gradle --no-daemon -ParmOnly assembleMailTest
+          cp build/outputs/apk/mailTest/*.apk ../artifacts/Kindle-przez-WiFi-Poczta-2.30.12-TEST.apk
+          test "$(stat -c %s ../artifacts/Kindle-przez-WiFi-Poczta-2.30.12-TEST.apk)" -lt 30000000
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify -v --print-certs ../artifacts/Kindle-przez-WiFi-Poczta-2.30.12-TEST.apk
+          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging ../artifacts/Kindle-przez-WiFi-Poczta-2.30.12-TEST.apk | head -3
+      - uses: actions/upload-artifact@v4
+        if: success()
+        with:
+          name: kindle-wifi-2.30.12-signed-apk
+          path: artifacts/Kindle-przez-WiFi-Poczta-2.30.12-TEST.apk
+          compression-level: 0
+          if-no-files-found: error

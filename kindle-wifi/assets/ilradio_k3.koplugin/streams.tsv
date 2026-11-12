@@ -9,10 +9,15 @@ TOK FM	http://stream30.radiostream.pl/tuba10-2.mp3	MP3	64	Operator RadioStream	2
 Radio ESKA Kraków	http://ic1.smcdn.pl/2070-1.mp3	MP3	128	CDN grupy ZPR Media	2026-11-11T07:17:20+00:00	http://ic1.smcdn.pl/2070-1.mp3	MPEG Audio	128.00
 Radio ESKA Kraków	http://ic1.smcdn.pl/2070-2.aac	HE-AAC	48	CDN grupy ZPR Media	2026-11-11T07:17:20+00:00	http://ic1.smcdn.pl/2070-2.aac	ADTS	48.44
 VOX FM	http://ic1.smcdn.pl/3990-1.mp3	MP3	128	CDN grupy ZPR Media	2026-11-11T07:17:20+00:00	http://ic1.smcdn.pl/3990-1.mp3	MPEG Audio	128.00
+VOX FM	http://ic2.smcdn.pl/3990-1.mp3	MP3	128	Serwer zapasowy VOX FM
 VOX FM	http://ic1.smcdn.pl/3990-2.aac	HE-AAC	48	CDN grupy ZPR Media	2026-11-11T07:17:20+00:00	http://ic1.smcdn.pl/3990-2.aac	ADTS	47.67
 Złote Przeboje	http://radiostream.pl/tuba8928-1.mp3	MP3	128	Operator RadioStream	2026-11-11T07:17:20+00:00	http://radiostream.pl/tuba8928-1.mp3	MPEG Audio	128.00
 Radio Nowy Świat	http://stream.rcs.revma.com/ypqt40u0x1zuv	MP3	128	Zewnętrzny operator CDN	2026-11-11T07:17:20+00:00	http://n04-us1.rcs.revma.com/ypqt40u0x1zuv?rj-ttl=5&rj-tok=AAABocmALQQAxc4mgxsYhxS_rQ	MPEG Audio	128.00
+Radio Wnet	http://audio.radiownet.pl:8000/stream32	AAC	32	Oficjalny wariant oszczędny Wnet (na stronie: stream32)	2026-11-12		ADTS	
+Radio Wnet	http://audio.radiownet.pl:8000/stream64	AAC	64	Oficjalny wariant oszczędny Wnet (na stronie: stream64)	2026-11-12		ADTS	
 Radio Wnet	http://audio.radiownet.pl:8000/stream	MP3	160	Dotychczasowy katalog · dostawca nieustalony	2026-11-11T07:17:20+00:00	http://audio.radiownet.pl:8000/stream	MPEG Audio	160.00
+Radio Kraków	http://stream3.nadaje.com:9118/radiokrakow	MP3	96	Wariant Tarnów; program regionalny może się różnić; kandydat do testów Kindle				
+Radio Kraków	http://stream3.nadaje.com:9120/radiokrakow	MP3	96	Wariant Nowy Sącz; program regionalny może się różnić; kandydat do testów Kindle				
 Radio Kraków	http://stream3.nadaje.com:9116/radiokrakow	MP3	256	Zewnętrzny operator nadaje.com	2026-11-11T07:17:20+00:00	http://stream3.nadaje.com:9116/radiokrakow	MPEG Audio	256.00
 Radio RDC	http://stream2.nadaje.com:11140/rdc	MP3	256	Zewnętrzny operator nadaje.com	2026-11-11T07:17:20+00:00	http://stream2.nadaje.com:11140/rdc	MPEG Audio	256.00
 Radio Katowice	http://stream4.nadaje.com:9212/radiokatowice	MP3	128	Zewnętrzny operator nadaje.com	2026-11-11T07:17:20+00:00	http://stream4.nadaje.com:9212/radiokatowice	MPEG Audio	128.00
@@ -22,6 +27,8 @@ Radio Wrocław	http://stream4.nadaje.com:9240/prw	MP3	128	Zewnętrzny operator n
 Radio Poznań	http://stream4.nadaje.com:8578/poznan	MP3	96	Zewnętrzny operator nadaje.com	2026-11-11T07:17:20+00:00	http://stream4.nadaje.com:8578/poznan	MPEG Audio	96.00
 Radio Warszawa	http://streaming01.technologicznie.net:8765/radio_warszawa.mp3	MP3	256	Dotychczasowy katalog · dostawca nieustalony	2026-11-11T07:17:20+00:00	http://streaming01.technologicznie.net:8765/radio_warszawa.mp3	MPEG Audio	256.00
 RMF Chillout	http://31.192.216.8/CHILLOUT	HE-AAC	64	Adres IP katalogu RMF · typ serwera nieustalony	2026-11-11T07:17:20+00:00	http://31.192.216.8/CHILLOUT	ADTS	63.81
+Chillizet	https://ch.cdn.eurozet.pl/chi-net.mp3	MP3	128	Oficjalny CDN Eurozet; sprawdzony ffprobe w GitHub Actions 12.11.2026	2026-11-12T10:51:55+00:00	https://ch.cdn.eurozet.pl/chi-net.mp3	MPEG Audio	128.00
+FluxFM Chillout	https://streams.fluxfm.de/chillout/mp3-128/streams.fluxfm.de/	MP3	128	Oficjalny katalog FluxFM; sprawdzony ffprobe w GitHub Actions 12.11.2026	2026-11-12T10:51:57+00:00	https://streams.fluxfm.de/chillout/mp3-128/streams.fluxfm.de/	MPEG Audio	128.00
 RMF 90s	http://31.192.216.7/90S	HE-AAC	64	Adres IP katalogu RMF · typ serwera nieustalony	2026-11-11T07:17:20+00:00	http://31.192.216.7/90S	ADTS	64.20
 RMF Dance	http://rmfstream1.interia.pl:8000/rmf_dance	MP3	128	Infrastruktura RMF	2026-11-11T07:17:20+00:00	http://rmfstream1.interia.pl:8000/rmf_dance	MPEG Audio	128.00
 RMF Dance	http://31.192.216.10/DANCE	HE-AAC	64	Adres IP katalogu RMF · typ serwera nieustalony	2026-11-11T07:17:20+00:00	http://31.192.216.10/DANCE	ADTS	64.41
@@ -35,3 +42,19 @@ Radio RAM	http://stream4.nadaje.com:9220/ram	MP3	128	Zewnętrzny operator nadaje
 Radio RAM	http://stream2.nadaje.com:9228/ram.aac	AAC-LC	64	Zewnętrzny operator nadaje.com	2026-11-11T07:17:20+00:00	http://stream2.nadaje.com:9228/ram.aac	ADTS	63.47
 ESKA Warszawa	http://waw.ic.smcdn.pl/2380-1.mp3	MP3	128	CDN grupy ZPR Media	2026-11-11T07:17:20+00:00	http://ic2.smcdn.pl/2380-1.mp3	MPEG Audio	128.00
 ESKA ROCK	http://ic2.smcdn.pl/5380-2.aac	HE-AAC	48	CDN grupy ZPR Media	2026-11-11T07:17:20+00:00	http://ic2.smcdn.pl/5380-2.aac	ADTS	47.86
+SomaFM Groove Salad	http://ice5.somafm.com/groovesalad-64-aac	HE-AAC	64	Oficjalny SomaFM ice5; wariant bez TLS dla Kindle K3	2026-11-12		ADTS	
+SomaFM Groove Salad	http://ice2.somafm.com/groovesalad-64-aac	HE-AAC	64	Oficjalny SomaFM ice2; wariant bez TLS dla Kindle K3	2026-11-12		ADTS	
+SomaFM Groove Salad	http://ice5.somafm.com/groovesalad-128-mp3	MP3	128	Oficjalny SomaFM ice5; zapasowy MP3 bez TLS	2026-11-12		MPEG Audio	
+SomaFM Groove Salad	http://ice2.somafm.com/groovesalad-128-mp3	MP3	128	Oficjalny SomaFM ice2; zapasowy MP3 bez TLS	2026-11-12		MPEG Audio	
+SomaFM Drone Zone	http://ice5.somafm.com/dronezone-64-aac	HE-AAC	64	Oficjalny SomaFM ice5; wariant bez TLS dla Kindle K3	2026-11-12		ADTS	
+SomaFM Drone Zone	http://ice6.somafm.com/dronezone-64-aac	HE-AAC	64	Oficjalny SomaFM ice6; wariant bez TLS dla Kindle K3	2026-11-12		ADTS	
+SomaFM Drone Zone	http://ice5.somafm.com/dronezone-128-mp3	MP3	128	Oficjalny SomaFM ice5; zapasowy MP3 bez TLS	2026-11-12		MPEG Audio	
+SomaFM Drone Zone	http://ice6.somafm.com/dronezone-128-mp3	MP3	128	Oficjalny SomaFM ice6; zapasowy MP3 bez TLS	2026-11-12		MPEG Audio	
+SomaFM Deep Space One	http://ice5.somafm.com/deepspaceone-64-aac	HE-AAC	64	Oficjalny SomaFM ice5; wariant bez TLS dla Kindle K3	2026-11-12		ADTS	
+SomaFM Deep Space One	http://ice6.somafm.com/deepspaceone-64-aac	HE-AAC	64	Oficjalny SomaFM ice6; wariant bez TLS dla Kindle K3	2026-11-12		ADTS	
+SomaFM Deep Space One	http://ice5.somafm.com/deepspaceone-128-mp3	MP3	128	Oficjalny SomaFM ice5; zapasowy MP3 bez TLS	2026-11-12		MPEG Audio	
+SomaFM Deep Space One	http://ice6.somafm.com/deepspaceone-128-mp3	MP3	128	Oficjalny SomaFM ice6; zapasowy MP3 bez TLS	2026-11-12		MPEG Audio	
+SomaFM Lush	http://ice5.somafm.com/lush-64-aac	HE-AAC	64	Oficjalny SomaFM ice5; wariant bez TLS dla Kindle K3	2026-11-12		ADTS	
+SomaFM Lush	http://ice2.somafm.com/lush-64-aac	HE-AAC	64	Oficjalny SomaFM ice2; wariant bez TLS dla Kindle K3	2026-11-12		ADTS	
+SomaFM Lush	http://ice5.somafm.com/lush-128-mp3	MP3	128	Oficjalny SomaFM ice5; zapasowy MP3 bez TLS	2026-11-12		MPEG Audio	
+SomaFM Lush	http://ice2.somafm.com/lush-128-mp3	MP3	128	Oficjalny SomaFM ice2; zapasowy MP3 bez TLS	2026-11-12		MPEG Audio	

@@ -1,5 +1,5 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    android:versionCode="49" android:versionName="2.28.4">
+    android:versionCode="65" android:versionName="2.30.12">
     <uses-sdk android:minSdkVersion="26" android:targetSdkVersion="34"/>
     <uses-permission android:name="android.permission.INTERNET"/>
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
@@ -23,7 +23,5 @@
                 <data android:mimeType="*/*"/>
             </intent-filter>
         </activity>
-        <service android:name="pl.ispinalokalnie.kindlewifi.WeatherJob"
-            android:permission="android.permission.BIND_JOB_SERVICE" android:exported="false"/>
     </application>
 </manifest>

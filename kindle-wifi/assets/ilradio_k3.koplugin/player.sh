@@ -7,6 +7,9 @@ R="${TMPDIR:-/tmp}/ilradio-k3"
 PID="$R/pid"
 TOKEN="$R/token"
 PAUSED="$R/paused"
+TIMER_PID="$R/timer.pid"
+TIMER_TOKEN="$R/timer.token"
+TIMER_DEADLINE="$R/timer.deadline"
 LOG="$R/player.log"
 case "${ILRADIO_K3_SESSION:-}" in
     *[!0-9-]*|"") last_token=$(cat "$R/last" 2>/dev/null);;
@@ -76,6 +79,17 @@ mark_children() {
     printf '%s\n' "$@" >> "$R/children-${ILRADIO_K3_SESSION:-$ILRADIO_K3_PROBE}"
 }
 
+timer_cancel() {
+    timer_pid=$(cat "$TIMER_PID" 2>/dev/null)
+    timer_token=$(cat "$TIMER_TOKEN" 2>/dev/null)
+    case "$timer_token" in
+        ''|*[!0-9-]*) :;;
+        *) if belongs "$timer_pid" "ILRADIO_K3_TIMER=$timer_token"; then
+               kill -TERM "$timer_pid" 2>/dev/null || :
+           fi;;
+    esac
+    rm -f "$TIMER_PID" "$TIMER_TOKEN" "$TIMER_DEADLINE"
+}
 short_wait() {
     if has usleep; then usleep 100000
     elif ! sleep 0.1 2>/dev/null; then sleep 1; fi
@@ -209,6 +223,8 @@ play_backend() {
     offset=$5
     cache=$6
     codec=$7
+    boost=${8:-110}
+    case "$boost" in 110|140|170) :;; *) boost=110;; esac
     volume=$(awk -v percent="$pct" 'BEGIN {printf "%.2f", percent / 100}')
     case "$engine" in
         gst-legacy|gst-mixer)
@@ -227,12 +243,18 @@ play_backend() {
             export MPLAYER_HOME="$R"
             fifo="$R/control-$ILRADIO_K3_SESSION"
             mkfifo "$fifo" || exit 2
-            set -- -noconfig all -ao alsa -novideo -quiet -softvol -slave -input "file=$fifo" -volume "$pct"
+            set -- -noconfig all -ao alsa -novideo -quiet -softvol -softvol-max "$boost" -slave -input "file=$fifo" -volume "$pct"
             if [ -n "$local_path" ]; then
                 exec "$mplayer" "$@" -ss "$offset" "$local_path"
             fi
-            # The old ARM port can hang while probing unseekable AAC or filling its forked cache.
-            set -- "$@" -nocache
+            # Honour the configured buffer for HTTP MP3 to reduce underruns.
+            # The older K3 ARM port may hang when caching unseekable AAC,
+            # so AAC retains uncached playback for compatibility.
+            if [ "$codec" = MP3 ]; then
+                set -- "$@" -cache "$cache"
+            else
+                set -- "$@" -nocache
+            fi
             if [ "$codec" = AAC ]; then set -- "$@" -demuxer aac; fi
             case "$uri" in
                 https://*)
@@ -329,7 +351,9 @@ run_logged() {
     wait "$worker"
     result=$?
     wait "$logger"
-    if [ -n "$4" ]; then printf '%s\n' "$result" > "$R/end-$ILRADIO_K3_SESSION"; fi
+    # Save the decoder exit status for radio as well as local MP3.
+    # Otherwise a stream disconnect appears as an unexplained or misleading URL error.
+    printf '%s\n' "$result" > "$R/end-$ILRADIO_K3_SESSION"
     rm -f "$fifo" "$R/worker-$ILRADIO_K3_SESSION"
 }
 
@@ -405,7 +429,7 @@ probe_run_wget() {
         printf '%s\n%s\nwget\n' "${code:-000}" "$1" > "$prefix.meta"
         reason=$(stream_reason "$(tail -n 20 "$prefix.error")")
         case "$reason" in
-            tls) echo 60;; transport) echo 127;; address) echo 22;;
+            tls) echo 60;; transport) echo 127;; address) echo 22;; server) echo 69;;
             network) echo 7;; buffer) echo 28;; *) echo 1;;
         esac > "$prefix.done"
     fi
@@ -443,6 +467,7 @@ probe_run_mplayer() {
         case "$(stream_reason "$(tail -n 20 "$prefix.error")")" in
             network) result=7;;
             address) result=22;;
+            server) result=69;;
             transport) result=127;;
             *) if [ "$result" = 137 ]; then result=28; else result=1; fi;;
         esac
@@ -456,7 +481,8 @@ stream_reason() {
     if printf '%s' "$pattern" | grep -Eiq 'missing-transport|unrecognized option|invalid option|illegal option|not an http or ftp url|https.*not supported'; then echo transport
     elif printf '%s' "$pattern" | grep -Eiq 'certificate|SSL|TLS|curl: \((35|51|58|59|60|77|83|90|91)\)'; then echo tls
     elif printf '%s' "$pattern" | grep -Eiq 'No suitable plugins|No decoder|Cannot find codec|Cannot find audio codec|missing (a )?plug-?in|unrecognized format'; then echo codec
-    elif printf '%s' "$pattern" | grep -Eiq 'HTTP/[0-9.]+ [45][0-9][0-9]|[45][0-9][0-9] (Not Found|Forbidden|Unauthorized)|curl: \(22\)'; then echo address
+    elif printf '%s' "$pattern" | grep -Eiq 'HTTP/[0-9.]+ (5[0-9][0-9]|429)|5[0-9][0-9] (Internal Server Error|Bad Gateway|Service Unavailable)|429 Too Many Requests'; then echo server
+    elif printf '%s' "$pattern" | grep -Eiq 'HTTP/[0-9.]+ 4[0-9][0-9]|4[0-9][0-9] (Not Found|Forbidden|Unauthorized)|curl: \(22\)'; then echo address
     elif printf '%s' "$pattern" | grep -Eiq 'Could not (connect|resolve)|Connection refused|Network is unreachable|curl: \((5|6|7)\)'; then echo network
     elif printf '%s' "$pattern" | grep -Eiq 'timeout|timed out|too slow|curl: \(28\)'; then echo buffer
     elif printf '%s' "$pattern" | grep -Eiq 'audio device|audio driver|alsa.*(error|fail)|Failed to initialize audio'; then echo output
@@ -465,10 +491,34 @@ stream_reason() {
 
 play_evidence() {
     if [ -e "$PAUSED" ] && is_ours; then echo paused; return; fi
+    # A decoder that has already reached ALSA and is still alive must not
+    # be stopped because of an old, nonfatal log entry. Several Kindle 3
+    # engines log transient network warnings even during audible playback.
+    if is_ours; then
+        startup=$(cat "$LOG.audio" 2>/dev/null)
+        if printf '%s' "$startup" | grep -Eq '^AO: |ILRADIO_OUTPUT|audio-codec=|^MPEG.*L III' &&
+           printf '%s' "$startup" | grep -Eq 'Starting playback|ILRADIO_OUTPUT|new-state=\(GstState\)playing|^MPEG.*L III'; then
+            echo decoded
+            return
+        fi
+    fi
     details=$(tail -n 36 "$LOG" 2>/dev/null | grep -vE 'StreamTitle|ICY-META|title=')
     reason=$(stream_reason "$details")
     if [ "$reason" != unconfirmed ]; then echo "failed:$reason"; return; fi
-    if ! is_ours; then echo failed:unconfirmed; return; fi
+    if ! is_ours; then
+        # An audio pipeline may reach ALSA and start before its stream disconnects.
+        # Preserve this fact in diagnostics; a stopped process is not a codec failure.
+        result=$(cat "$R/end-$last_token" 2>/dev/null)
+        if [ -s "$LOG.audio" ] && grep -Eq 'Starting playback|ILRADIO_OUTPUT|new-state=\(GstState\)playing' "$LOG.audio"; then
+            case "$result" in
+                0) echo failed:ended; return;;
+                ''|*[!0-9]*) :;;
+                *) echo failed:playback; return;;
+            esac
+        fi
+        echo failed:unconfirmed
+        return
+    fi
     startup=$(cat "$LOG.audio" 2>/dev/null)
     if printf '%s' "$startup" | grep -Eq '^AO: |ILRADIO_OUTPUT|audio-codec=|^MPEG.*L III' &&
        printf '%s' "$startup" | grep -Eq 'Starting playback|ILRADIO_OUTPUT|new-state=\(GstState\)playing|^MPEG.*L III'; then
@@ -575,6 +625,8 @@ case "${1:-}" in
         case "$offset" in ''|*[!0-9]*|????????*) offset=0;; esac
         [ "$pct" -le 100 ] || pct=100
         case "$cache" in 64|128|256) :;; *) cache=128;; esac
+        boost=${11:-110}
+        case "$boost" in 110|140|170) :;; *) boost=110;; esac
         engine=$(backend "$wanted")
         [ -n "$engine" ] || { echo no_engine; exit 3; }
         stop_audio || { echo stop_failed; exit 4; }
@@ -595,7 +647,7 @@ case "${1:-}" in
         fi
         (
             export ILRADIO_K3_SESSION="$token"
-            launch run "$engine" "$uri" "$pct" "$local_path" "$offset" "$cache" "$codec"
+            launch run "$engine" "$uri" "$pct" "$local_path" "$offset" "$cache" "$codec" "$boost"
         ) </dev/null >/dev/null 2>&1 &
         echo "$!" > "$PID"
         for attempt in 1 2 3 4 5 6 7 8 9 10; do
@@ -674,6 +726,42 @@ case "${1:-}" in
             belongs "$child" "ILRADIO_K3_SESSION=$token" && kill -CONT "$child" 2>/dev/null; then rm -f "$PAUSED"; echo active
         else echo stopped
         fi;;
+    timer-arm)
+        case "${2:-}" in 30|60|90|120) :;; *) echo invalid_timer; exit 2;; esac
+        timer_cancel
+        # $- contains shell option letters, not a numeric process ID.
+        # Use a validated numeric token so timer-cancel can stop its worker.
+        timer_token="$-$(date +%s)"
+        timer_seconds=$(($2 * 60))
+        timer_deadline=$(($(date +%s) + timer_seconds))
+        printf '%s\n' "$timer_token" > "$TIMER_TOKEN"
+        printf '%s\n' "$timer_deadline" > "$TIMER_DEADLINE"
+        (export ILRADIO_K3_TIMER="$timer_token"; exec sh "$0" timer-run "$timer_deadline" "$timer_token") </dev/null >/dev/null 2>&1 &
+        echo "$!" > "$TIMER_PID"
+        echo "armed:$timer_seconds";;
+    timer-run)
+        deadline="${2:-0}"; original_token="${3:-}"
+        case "$deadline" in ''|*[!0-9]*) exit 2;; esac
+        while [ "$(cat "$TIMER_TOKEN" 2>/dev/null)" = "$original_token" ]; do
+            now=$(date +%s)
+            [ "$now" -ge "$deadline" ] && break
+            remaining=$((deadline - now))
+            [ "$remaining" -le 30 ] || remaining=30
+            sleep "$remaining" || exit 0
+        done
+        if [ "$(cat "$TIMER_TOKEN" 2>/dev/null)" = "$original_token" ]; then
+            sh "$0" stop >/dev/null 2>&1
+            rm -f "$TIMER_PID" "$TIMER_TOKEN" "$TIMER_DEADLINE"
+        fi;;
+    timer-left)
+        deadline=$(cat "$TIMER_DEADLINE" 2>/dev/null)
+        case "$deadline" in ''|*[!0-9]*) echo off;;
+            *) now=$(date +%s); remaining=$((deadline - now))
+               [ "$remaining" -gt 0 ] && echo "$remaining" || echo 0;;
+        esac;;
+    timer-cancel)
+        timer_cancel
+        echo cancelled;;
     stop)
         probe_stop; probe_result=$?
         stop_audio; audio_result=$?
@@ -743,6 +831,17 @@ case "${1:-}" in
             done
             echo "Zużycie baterii wymaga porównania na Kindle; bitrate określa transfer."
         fi
+        # Observe the K3 WM8960 hardware mixer without changing any level.
+        # Software volume 100% is not proof of full hardware output.
+        if has amixer; then
+            echo "Mikser ALSA (odczyt):"
+            for control_name in Master PCM Speaker Headphone; do
+                mix_line=$(amixer sget "$control_name" 2>/dev/null | grep -m 1 -E '\[[0-9]+%\]')
+                if [ -n "$mix_line" ]; then
+                    printf '%s: %s\n' "$control_name" "$(printf '%s' "$mix_line" | cut -c 1-120)"
+                fi
+            done
+        fi
         for program in gst-launch-0.10 gst-launch gst-launch-1.0 mpg123 mpv amixer curl wget; do
             if has "$program"; then echo "+ $program"; fi
         done
@@ -759,6 +858,7 @@ case "${1:-}" in
             fi
         done
         echo "evidence=$(play_evidence)"
+        if [ -s "$R/end-$last_token" ]; then echo "last-decoder-exit=$(cat "$R/end-$last_token")"; fi
         if [ -r "$R/report" ]; then echo "Ostatnia stacja / adres / wynik:"; head -n 3 "$R/report" | cut -c 1-180; fi
         for file in "$R"/test-*.aac "$R"/test-*.m4a "$R"/test-*.mp3; do
             if [ -f "$file" ]; then head -n 1 "$file"; fi
@@ -813,8 +913,16 @@ case "${1:-}" in
             *[!0-9]*|""|????*) echo unsupported; exit 2;;
             *) if [ "$2" -gt 100 ]; then exit 2; fi; adj="$2%";;
         esac
-        if has amixer && { amixer -q sset Master "$adj" >/dev/null 2>&1 ||
-            amixer -q sset PCM "$adj" >/dev/null 2>&1; }; then echo adjusted
+        # Master and PCM are independent mixer stages on some Kindle builds.
+        # Adjust both only when explicitly requested by the user; otherwise
+        # the hardware volume remains untouched.
+        changed=0
+        if has amixer; then
+            for channel in Master PCM; do
+                if amixer -q sset "$channel" "$adj" >/dev/null 2>&1; then changed=1; fi
+            done
+        fi
+        if [ "$changed" = 1 ]; then echo adjusted
         else echo unsupported
         fi;;
     *) exit 2;;

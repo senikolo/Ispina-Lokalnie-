@@ -145,7 +145,7 @@ public final class RemoteFiles {
                 throw new IOException("Folder postępu ma nietypową zawartość. Użyj listy plików KOReadera.");
             byte[] bytes;
             try (InputStream input = channel.get(literal(path + "/" + name))) {
-                bytes = BialolekaForecast.readBounded(input, remaining);
+                bytes = BoundedInput.read(input, remaining);
             }
             if (bytes.length != attr.getSize()) throw new IOException("Metadane zmieniły się podczas odczytu.");
             remaining -= bytes.length;
@@ -200,7 +200,7 @@ public final class RemoteFiles {
                 String path = stage + "/" + item.getKey();
                 channel.put(new ByteArrayInputStream(item.getValue()), literal(path));
                 try (InputStream input = channel.get(literal(path))) {
-                    if (!Arrays.equals(item.getValue(), BialolekaForecast.readBounded(input, item.getValue().length)))
+                    if (!Arrays.equals(item.getValue(), BoundedInput.read(input, item.getValue().length)))
                         throw new IOException("Nie potwierdzono kopii postępu czytania.");
                 }
             }

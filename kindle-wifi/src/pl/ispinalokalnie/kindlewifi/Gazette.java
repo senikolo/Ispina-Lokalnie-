@@ -97,7 +97,7 @@ final class Gazette {
                 int code = connection.getResponseCode();
                 if (code == 200) {
                     try (InputStream input = connection.getInputStream()) {
-                        return BialolekaForecast.readBounded(input, MAX_FEED_BYTES);
+                        return BoundedInput.read(input, MAX_FEED_BYTES);
                     }
                 }
                 String location = connection.getHeaderField("Location");

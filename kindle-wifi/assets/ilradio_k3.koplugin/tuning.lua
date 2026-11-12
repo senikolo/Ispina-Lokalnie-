@@ -1,7 +1,8 @@
 local T = {}
 T.modes = {{"ultra", "Ultraoszczędny"}, {"eco", "Oszczędny"},
     {"auto", "Automatyczny"}, {"high", "Wysoka jakość"}}
-T.limits = {24, 32, 48, 64, 96, 128, 0}
+T.hard_limit = 128
+T.limits = {24, 32, 48, 64, 96, 128}
 T.codecs = {{"auto", "Według trybu"}, {"aac", "AAC jako pierwszy"}, {"mp3", "MP3 jako pierwszy"}}
 T.buffers = {64, 128, 256}
 
@@ -50,21 +51,45 @@ function T.variants(station, catalog, custom)
     return list
 end
 
+-- Never let settings, phone imports, or one-time compatibility consent
+-- exceed 128 kb/s. An unmeasured stream is not a safe direct-play target.
+function T.hard_allowed(stream)
+    return type(stream) == "table" and type(stream.kbps) == "number"
+        and stream.kbps > 0 and stream.kbps <= T.hard_limit
+end
+
 function T.cap(settings, codec)
-    local limit = settings.limit
-    if limit == 0 then limit = nil end
+    local limit = tonumber(settings.limit)
+    if not limit or limit == 0 then limit = nil end
     local maximum
     if settings.mode == "ultra" then maximum = 32
     elseif settings.mode == "eco" then maximum = codec == "MP3" and 64 or 48
-    elseif settings.mode == "auto" then maximum = limit and math.huge or (settings.limit == 0 and math.huge or 64)
+    elseif settings.mode == "auto" then maximum = limit and math.huge or 64
     else maximum = math.huge end
-    return limit and math.min(limit, maximum) or maximum
+    return math.min(T.hard_limit, limit and math.min(limit, maximum) or maximum)
 end
 
 function T.allowed(settings, stream)
-    local cap = T.cap(settings, stream.codec)
-    return stream.kbps and stream.kbps > 0 and stream.kbps <= cap
-        or (not stream.kbps and cap == math.huge)
+    return T.hard_allowed(stream) and stream.kbps <= T.cap(settings, stream.codec)
+end
+
+-- Return an address error only for an explicit rejected HTTP response.
+-- Legacy Kindle decoders can fail the sample probe while still being able to play.
+function T.probeFailure(code, exit_code)
+    local http = tonumber(code)
+    if http and http >= 500 and http <= 599 then return "server" end
+    if http == 408 then return "buffer" end
+    if http == 429 then return "server" end
+    if http and http >= 400 and http <= 499 then return "address" end
+    if http and http >= 300 and http <= 399 then return "transport" end
+    if exit_code == 35 or exit_code == 51 or exit_code == 58 or exit_code == 59
+        or exit_code == 60 or exit_code == 77 or exit_code == 90 then return "tls" end
+    if exit_code == 127 then return "transport" end
+    if exit_code == 5 or exit_code == 6 or exit_code == 7 then return "network" end
+    if exit_code == 69 then return "server" end
+    if exit_code == 22 then return "address" end
+    if exit_code == 28 or not exit_code then return "buffer" end
+    return "unconfirmed"
 end
 
 function T.rank(settings, list, last, speech)

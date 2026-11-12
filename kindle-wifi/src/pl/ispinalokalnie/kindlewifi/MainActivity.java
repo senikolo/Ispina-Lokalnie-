@@ -169,6 +169,7 @@ public final class MainActivity extends Activity {
         getWindow().setNavigationBarColor(0xff153e36);
         getWindow().getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR);
         settings = getSharedPreferences("kindle", MODE_PRIVATE);
+        disableLegacyWeather();
         sshIdentity = new SshIdentity(getFilesDir());
         if (queue == null) {
             queue = new TransferQueue(getFilesDir());
@@ -212,7 +213,7 @@ public final class MainActivity extends Activity {
         heroSurface.setCornerRadius(dp(26));
         hero.setBackground(heroSurface);
         add(page, connectionCard(), 10);
-        deviceTools = action("Zegar i pogoda", Glyph.SETTINGS, GREEN, SURFACE, 0);
+        deviceTools = action("Zegar Kindle’a", Glyph.SETTINGS, GREEN, SURFACE, 0);
         deviceTools.setOnClickListener(v -> showDeviceTools());
         add(page, deviceTools, 10);
         add(page, hero, 12);
@@ -355,6 +356,9 @@ public final class MainActivity extends Activity {
         Button radio = secondaryButton("Radio", Glyph.SETTINGS);
         radio.setOnClickListener(v -> showRadioMenu());
         add(audio, radio, 6);
+        Button mail = secondaryButton("Poczta i książki", Glyph.BOOK);
+        mail.setOnClickListener(v -> showMailMenu());
+        add(audio, mail, 6);
         add(page, audio, 12);
 
         lastDetails = settings.getString("lastResult", "");
@@ -382,7 +386,6 @@ public final class MainActivity extends Activity {
     @Override protected void onResume() {
         super.onResume();
         refreshNetwork();
-        WeatherJob.kick(this);
         queueActions.execute(() -> {
             java.util.List<File> items = queue.files();
             runOnUiThread(() -> {
@@ -984,20 +987,36 @@ public final class MainActivity extends Activity {
         refreshNetwork();
         showKindleStatus(KINDLE_FOUND, true);
         android.widget.Toast.makeText(this, KINDLE_FOUND, android.widget.Toast.LENGTH_SHORT).show();
-        WeatherJob.kick(this);
         if (onReady != null) onReady.run();
+    }
+
+    private void disableLegacyWeather() {
+        // Upgrade migration: remove the previous periodic/immediate weather jobs.
+        // Leave unrelated Kindle/KOReader settings, radio and email accounts intact.
+        android.app.job.JobScheduler scheduler =
+                (android.app.job.JobScheduler) getSystemService(JOB_SCHEDULER_SERVICE);
+        if (scheduler != null) {
+            scheduler.cancel(215031);
+            scheduler.cancel(215032);
+        }
+        settings.edit()
+                .remove("weather_reader_key")
+                .remove("weather_sent_at")
+                .remove("weather_try_at")
+                .remove("weather_try_result")
+                .remove("weather_report")
+                .remove("weather_fetched_at")
+                .remove("weather_sent_forecast")
+                .apply();
     }
 
     private void showDeviceTools() {
         if (sending) return;
-        boolean weather = WeatherSync.isEnabled(settings);
-        long lastSent = weather ? settings.getLong(WeatherSync.LAST_SENT, 0) : 0;
-        long lastTry = weather ? settings.getLong(WeatherSync.LAST_TRY, 0) : 0;
         LinearLayout fields = column();
         fields.setPadding(dp(20), dp(12), dp(20), dp(12));
         ScrollView scroll = new ScrollView(this);
         scroll.addView(fields);
-        AlertDialog dialog = new DialogUi.Builder(this).setTitle("Zegar i pogoda")
+        AlertDialog dialog = new DialogUi.Builder(this).setTitle("Zegar Kindle’a")
                 .setView(scroll).setNegativeButton("Zamknij", null).create();
         TextView clock = heading("Zegar Kindle’a", 16, GREEN);
         markHeading(clock);
@@ -1014,45 +1033,7 @@ public final class MainActivity extends Activity {
             withKindle(this::showWarsawClockPatch);
         });
         add(fields, warsawClock, 6);
-        TextView weatherTitle = heading("Pogoda dla Białołęki", 16, GREEN);
-        markHeading(weatherTitle);
-        add(fields, weatherTitle, 15);
-        if (weather) {
-            String status = lastSent == 0 ? "Prognoza czeka na pierwszą wysyłkę."
-                    : "Ostatnio wysłano " + warsawTime(lastSent / 1000);
-            if (lastTry != 0 && lastTry != lastSent) status += "\nOstatnia próba "
-                    + warsawTime(lastTry / 1000) + "\n" + settings.getString(WeatherSync.LAST_RESULT, "");
-            add(fields, label(status, 14, MUTED), 5);
-        }
-        Button weatherAction = secondaryButton(weather ? "Wyślij pogodę teraz" : "Zainstaluj pogodę", Glyph.REFRESH);
-        weatherAction.setOnClickListener(v -> {
-            dialog.dismiss();
-            if (weather) syncWeather(); else confirmWeatherInstall();
-        });
-        add(fields, weatherAction, 6);
-        Button weatherHelp = action(weather ? "Wyłącz automatyczną pogodę" : "Jak aktualizuje się pogoda?",
-                Glyph.INFO, GREEN, SURFACE, 0);
-        weatherHelp.setOnClickListener(v -> {
-            dialog.dismiss();
-            if (weather) {
-                settings.edit().remove(WeatherSync.ACTIVE_PIN).apply();
-                WeatherJob.cancel(this);
-                showDeviceResult("Automatyczna pogoda wyłączona", "Aplikacja przestała wysyłać prognozę w tle.");
-            } else {
-                showDeviceResult(WeatherSync.LOCATION,
-                        "Telefon pobiera prognozę mniej więcej co trzy godziny. Przesyła ją, gdy Kindle jest dostępny. "
-                        + "Ostatnią prognozę możesz odczytać w KOReaderze także bez internetu.");
-            }
-        });
-        add(fields, weatherHelp, 5);
         dialog.show();
-    }
-
-    private void confirmWeatherInstall() {
-        new DialogUi.Builder(this).setTitle("Pogoda dla Białołęki")
-                .setMessage("Zainstalować wtyczkę w KOReaderze i włączyć automatyczne przesyłanie prognozy?")
-                .setNegativeButton("Anuluj", null)
-                .setPositiveButton("Zainstaluj", (dialog, which) -> withKindle(this::installWeather)).show();
     }
 
     private interface DeviceAction<T> { T run() throws Exception; }
@@ -1083,7 +1064,8 @@ public final class MainActivity extends Activity {
                         return;
                     }
                     String message = error instanceof JSchException || error instanceof SftpException
-                            ? userMessage(error) : "Spróbuj ponownie, gdy Kindle jest wybudzony i połączony z siecią.";
+                            ? userMessage(error)
+                            : "Operacja nie została ukończona. Sprawdź szczegóły techniczne.";
                     ResultPanel panel = new ResultPanel("", "Nie udało się dokończyć", message, ResultTone.ATTENTION);
                     panel.details(technicalMessage(error));
                     panel.show("Zamknij", null, null, null);
@@ -1103,7 +1085,7 @@ public final class MainActivity extends Activity {
 
     private static String warsawTime(long epoch) {
         return java.time.format.DateTimeFormatter.ofPattern("dd.MM.yyyy, HH:mm:ss")
-                .withZone(BialolekaForecast.WARSAW).format(java.time.Instant.ofEpochSecond(epoch));
+                .withZone(java.time.ZoneId.of("Europe/Warsaw")).format(java.time.Instant.ofEpochSecond(epoch));
     }
 
     private void showClockComparison() {
@@ -1203,28 +1185,6 @@ public final class MainActivity extends Activity {
                 "Plik o tej samej nazwie ma inną zawartość. Zmień jego nazwę, jeśli chcesz zainstalować tę poprawkę.");
     }
 
-    private void installWeather() {
-        deviceAction("Instaluję pogodę na Kindle’u…", () -> {
-            String pin = settings.getString("kindle_key", "");
-            Session session = openPairedDevice();
-            try { WeatherSync.install(this, session); }
-            finally { session.disconnect(); }
-            settings.edit().putString(WeatherSync.ACTIVE_PIN, pin)
-                    .remove(WeatherSync.LAST_SENT).remove(WeatherSync.SENT_FORECAST)
-                    .remove(WeatherSync.LAST_TRY).remove(WeatherSync.LAST_RESULT).apply();
-            return WeatherJob.kick(this) ? "" : "\n\nAndroid nie zaplanował pracy w tle. Użyj przycisku „Wyślij pogodę teraz”.";
-        }, result -> showDeviceResult("Wtyczka pogody zainstalowana",
-                "Zamknij i uruchom ponownie KOReadera z KUAL. W menu Narzędzia znajdziesz „Pogoda – Białołęka”. "
-                + "Pierwsza prognoza pojawi się po udanej wysyłce." + result));
-    }
-
-    private void syncWeather() {
-        deviceAction("Aktualizuję pogodę…", () -> {
-            String result = WeatherSync.refresh(getApplicationContext(), true);
-            return result.isEmpty() ? "Nie potwierdzono przesłania prognozy." : result;
-        }, result -> showDeviceResult(WeatherSync.LOCATION, result));
-    }
-
     private void showDeviceResult(String title, String message) {
         String[] parts = message.split("\n\nSzczegóły z KOReadera: ", 2);
         ResultPanel panel = new ResultPanel("", title, parts[0], ResultTone.INFO);
@@ -1240,6 +1200,43 @@ public final class MainActivity extends Activity {
             busy(false);
         });
         audioLibrary.show();
+    }
+
+    private void showMailMenu() {
+        if (sending) return;
+        String[] options = {
+                "Zainstaluj lub zaktualizuj pocztę w KOReaderze",
+                "Jak korzystać z poczty bez telefonu?",
+                "Bezpieczeństwo i ustawienia konta"
+        };
+        new DialogUi.Builder(this).setTitle("Poczta i książki · TEST")
+                .setItems(options, (dialog, selected) -> {
+                    switch (selected) {
+                        case 0:
+                            withKindle(() -> deviceAction("Instaluję pocztę na Kindle przez Wi-Fi…", () -> {
+                                Session session = openPairedDevice();
+                                try { return MailInstaller.install(this, session); }
+                                finally { session.disconnect(); }
+                            }, result -> showDeviceResult("Poczta na Kindle", result
+                                    + "\n\nUruchom ponownie KOReadera. W menu Narzędzia → Więcej narzędzi wybierz „Poczta i książki”."
+                                    + "\nTelefon nie musi być potem włączony.")));
+                            break;
+                        case 1:
+                            showDeviceResult("Poczta bez telefonu",
+                                    "Telefon służy tylko do pierwszej instalacji wtyczki. Później Kindle "
+                                    + "łączy się samodzielnie przez Wi-Fi z serwerem IMAP i SMTP. "
+                                    + "Możesz odebrać wiadomość, przeczytać ją, odpisać nową wiadomością "
+                                    + "oraz zapisać załącznik EPUB/PDF w dokumentach czytnika.");
+                            break;
+                        default:
+                            showDeviceResult("Ustawienia i bezpieczeństwo",
+                                    "Wtyczka na Kindle wymaga adresu konta, serwerów IMAP 993 i SMTP 465 "
+                                    + "oraz hasła aplikacji. Hasło podaje się wyłącznie na Kindle; "
+                                    + "aplikacja telefoniczna nie zbiera go ani nie przechowuje. "
+                                    + "Nie wyłączamy sprawdzania certyfikatów TLS. "
+                                    + "To wersja testowa wymagająca próby na fizycznym Kindle Keyboard 3.");
+                    }
+                }).setNegativeButton("Zamknij", null).show();
     }
 
     private void showRadioMenu() {
@@ -1516,7 +1513,7 @@ public final class MainActivity extends Activity {
     private void sendGazette(java.util.List<java.net.URI> feeds) {
         deviceAction("Pobieram kanały RSS…", () -> {
             Gazette.Edition edition = Gazette.fetch(feeds);
-            java.time.ZonedDateTime now = java.time.ZonedDateTime.now(BialolekaForecast.WARSAW);
+            java.time.ZonedDateTime now = java.time.ZonedDateTime.now(java.time.ZoneId.of("Europe/Warsaw"));
             String name = "Gazetka-" + now.format(java.time.format.DateTimeFormatter.ofPattern("uuuu-MM-dd-HHmm")) + ".epub";
             File epub = File.createTempFile("gazetka-", ".epub", getCacheDir());
             Session session = null;
@@ -1528,7 +1525,6 @@ public final class MainActivity extends Activity {
                 String path = VerifiedTransfer.upload(channel, epub, name, DESTINATION, message -> { });
                 boolean recent = recordRecent(channel, path);
                 record(java.util.UUID.randomUUID().toString(), name, savedAddress(), "Zapisano i sprawdzono", path);
-                WeatherJob.kick(this);
                 String message = "Przesłano " + edition.articles.size() + " wpisów w jednym pliku EPUB."
                         + "\n\n" + new File(path).getName();
                 if (!edition.unavailable.isEmpty()) message += "\n\nPominięte kanały: "
@@ -2757,7 +2753,6 @@ public final class MainActivity extends Activity {
                         + (recentReceiptFailed ? "\nNie zaktualizowano części listy ostatnich przesyłek. Książki są w documents.\n" : "")
                         + "\nW KOReaderze otwórz documents. Wyjdź z folderu i wejdź ponownie, aby odświeżyć listę.";
                 settings.edit().putString("lastResult", result).apply();
-                if (ok > 0) WeatherJob.kick(this);
                 transferThread = null;
                 batchRunning.set(false);
                 final int sentOk = ok;

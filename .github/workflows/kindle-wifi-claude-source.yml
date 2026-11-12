@@ -1,0 +1,34 @@
+name: Kindle Wi-Fi Claude source bundle
+on:
+  push:
+    branches: [codex/kindle-wifi-mail-k3-20261111]
+    paths:
+      - .github/workflows/kindle-wifi-claude-source.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  package-source:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - name: Archive complete Kindle source and Android build workflow
+        run: |
+          mkdir -p output
+          git archive --format=zip --prefix=kindle-wifi-source/ HEAD \
+            kindle-wifi/ \
+            .github/workflows/kindle-wifi-mail-k3.yml \
+            .github/workflows/kindle-wifi-radio-2-28.yml \
+            > output/Kindle-WiFi-Zrodla-dla-Claude.zip
+          test -s output/Kindle-WiFi-Zrodla-dla-Claude.zip
+          unzip -tqq output/Kindle-WiFi-Zrodla-dla-Claude.zip
+          echo "Commit: $(git rev-parse HEAD)" > output/WERSJA.txt
+          sha256sum output/Kindle-WiFi-Zrodla-dla-Claude.zip >> output/WERSJA.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: kindle-wifi-claude-source
+          path: output/
+          retention-days: 14
+          compression-level: 0
+          if-no-files-found: error

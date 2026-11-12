@@ -16,15 +16,20 @@ local T = dofile(dir .. "/tuning.lua")
 local stations = dofile(dir .. "/stations.lua")
 local catalog = T.rows(dir .. "/streams.tsv")
 local PHONE_CONFIG = "/mnt/us/koreader/settings/ilradio-phone.tsv"
-local SPEECH = {["TOK FM"] = true, ["RMF 24"] = true, ["Polskie Radio 24"] = true}
+local SPEECH = {["TOK FM"] = true, ["RMF 24"] = true, ["Polskie Radio 24"] = true,
+    ["Radio Kraków"] = true, ["Radio RDC"] = true, ["Radio Wnet"] = true,
+    ["Radio Warszawa"] = true}
 local ERRORS = {
     network = "Brak połączenia z serwerem. Sprawdź Wi-Fi i dostęp do internetu.",
     tls = "Nie udało się bezpiecznie połączyć przez HTTPS. Sprawdź datę i certyfikaty Kindle’a.",
-    address = "Serwer odrzucił adres lub adres jest nieaktualny.",
+    address = "Serwer odmówił dostępu do tego adresu (HTTP 4xx). Spróbuj innego źródła.",
+    server = "Serwer stacji jest chwilowo niedostępny (HTTP 5xx). Spróbuj ponownie.",
     buffer = "Strumień buforuje się za długo lub transmisja przerwała.",
     codec = "Silnik nie rozpoznał formatu audio albo brakuje dekodera.",
     output = "Silnik nie uzyskał dostępu do wyjścia audio.",
-    unconfirmed = "Brak potwierdzenia dźwięku. Sprawdź głośność i uruchom próbkę diagnostyczną.",
+    unconfirmed = "Nie udało się sprawdzić źródła na tym Kindle. To nie potwierdza, że adres jest błędny.",
+    ended = "Transmisja urwała się po rozpoczęciu odtwarzania. Próbuję ponownie lub zmieniam źródło.",
+    playback = "Odtwarzacz zakończył pracę po uruchomieniu dźwięku. Sprawdź ostatni kod w diagnostyce.",
     engine = "Brak silnika dla tego formatu. Sprawdź „Diagnostykę audio”.",
     limit = "Parametry źródła przekraczają limit lub przepływność jest nieustalona.",
     transport = "Kindle nie ma narzędzia obsługującego połączenie z tym źródłem.",
@@ -38,7 +43,7 @@ local volume_input_open = false
 local volume_input_node
 local volume_owner
 local volume_listener
-local RADIO_VERSION = "2.28.4"
+local RADIO_VERSION = "2.30.5"
 local VOLUME_KEYS = {VMinus = -1, VolumeDown = -1, VolumeMinus = -1,
     VPlus = 1, VolumeUp = 1, VolumePlus = 1}
 
@@ -158,11 +163,26 @@ function ILRadio:init()
     self.engine = self.settings:readSetting("engine") or "auto"
     self.volume = tonumber(self.settings:readSetting("volume")) or 70
     self.volume = math.max(0, math.min(100, self.volume))
-    self.radio = self.settings:readSetting("radio_quality") or {mode = "eco", codec = "auto", buffer = 128}
+    -- Software gain is opt-in; normal mode preserves MPlayer's prior level.
+    self.boost = tonumber(self.settings:readSetting("audio_softvol_max")) or 110
+    if self.boost ~= 110 and self.boost ~= 140 and self.boost ~= 170 then self.boost = 110 end
+    self.radio = self.settings:readSetting("radio_quality") or {
+        mode = "auto", codec = "auto", limit = 128, buffer = 128, minimum = true,
+    }
     self.working = self.settings:readSetting("radio_last_working") or {}
     self.decoded = self.settings:readSetting("radio_last_decoded") or {}
     self.show_volume_buttons = self.settings:readSetting("show_volume_buttons") ~= false
     self:read_phone_config()
+    -- Upgrade existing installations to ECO 128 once. Subsequent explicit
+    -- choices remain available, but the absolute ceiling stays at 128 kb/s.
+    if not self.settings:readSetting("radio_eco128_migrated") then
+        self.radio.mode = "auto"
+        self.radio.codec = "auto"
+        self.radio.limit = 128
+        self.radio.minimum = true
+        self.settings:saveSetting("radio_quality", self.radio)
+        self.settings:saveSetting("radio_eco128_migrated", true)
+    end
     self.volume_step = tonumber(self.settings:readSetting("volume_step")) or 5
     if self.volume_step ~= 2 and self.volume_step ~= 5 and self.volume_step ~= 10 then self.volume_step = 5 end
     self.last_station_name = self.settings:readSetting("last_station_name")
@@ -232,6 +252,23 @@ function ILRadio:finish_radio()
     local job = self.job
     if not job then return end
     local higher = job.higher or job.http_fallback
+    if higher and not T.hard_allowed(higher) then higher = nil end
+    -- Older Kindle 3 decoders may reject every low-bitrate HE-AAC stream.
+    -- Offer a known MP3 source instead of leaving the station silent.
+    -- Never exceed the chosen data limit without an explicit confirmation.
+    local needs_compatibility = {
+        codec = true, engine = true, playback = true, ended = true,
+        buffer = true, limit = true, unconfirmed = true,
+    }
+    if not higher and needs_compatibility[job.reason or "unconfirmed"] then
+        for _, candidate in ipairs(job.variants or {}) do
+            if candidate.codec == "MP3" and T.hard_allowed(candidate)
+                and not T.allowed(self.radio, candidate)
+                and (not higher or candidate.kbps < higher.kbps) then
+                higher = candidate
+            end
+        end
+    end
     local message = ERRORS[job.reason] or ERRORS.unconfirmed
     self:radio_result(job.reason or "unconfirmed")
     if not self:stop() then return end
@@ -285,7 +322,8 @@ function ILRadio:start_radio_variant(stream)
     if not engine or job.starts >= 8 then self:continue_radio(job.reason or "engine"); return end
     job.starts = job.starts + 1
     local uri = stream.play_url or stream.url
-    local result = shell_call("start", uri, engine, self.volume, "", 0, self.radio.buffer, codec or "", job.station[1])
+    local cache = math.max(tonumber(self.radio.buffer) or 128, job.reconnect_cache or 0)
+    local result = shell_call("start", uri, engine, self.volume, "", 0, cache, codec or "", job.station[1], "", self.boost)
     if not result:match("^starting:") then
         job.engine_index = job.engine_index + 1
         self:continue_radio("engine")
@@ -299,6 +337,11 @@ function ILRadio:start_radio_variant(stream)
     UIManager:scheduleIn(5, self.radio_tick)
 end
 
+local function known_http_mp3(stream)
+    return stream and stream.codec == "MP3" and tonumber(stream.kbps)
+        and stream.kbps > 0 and stream.url and stream.url:match("^http://")
+end
+
 local function offer_higher(job, stream)
     if not job.higher or (stream.kbps and (not job.higher.kbps or stream.kbps < job.higher.kbps)) then
         job.higher = stream
@@ -307,7 +350,7 @@ end
 
 function ILRadio:accept_probe(stream)
     local job = self.job
-    if job.approved or T.allowed(self.radio, stream) then
+    if T.hard_allowed(stream) and (job.approved or T.allowed(self.radio, stream)) then
         job.ready = stream
         self:start_radio_variant(stream)
     else
@@ -361,26 +404,37 @@ function ILRadio:check_probe()
             stream.kbps = kbps
             self:accept_probe(stream)
             return
-        elseif job.approved or T.cap(self.radio, stream.codec) == math.huge then
-            stream.live_final = not redirect_unknown and final or nil
-            stream.redirect_unknown = redirect_unknown
-            stream.play_url = final:find("rj%-tok=") and stream.url or final
-            stream.live_container = hls and "HLS" or nil
-            self:accept_probe(stream)
-            return
         end
+        -- Unknown bitrate is not safe under a strict 128 kb/s ceiling.
         if hls then
             offer_higher(job, stream)
             self:continue_radio("limit")
         else
             self:continue_radio(exit == 28 and "buffer" or "codec")
         end
-    elseif exit == 35 or exit == 51 or exit == 58 or exit == 59 or exit == 60 or exit == 77 or exit == 90 then
-        self:continue_radio("tls")
-    elseif exit == 127 then self:continue_radio("transport")
-    elseif exit == 5 or exit == 6 or exit == 7 then self:continue_radio("network")
-    elseif exit == 28 or not exit then self:continue_radio("buffer")
-    else self:continue_radio("address") end
+    else
+        local failure = T.probeFailure(code, exit)
+        -- An old MPlayer may play HTTP MP3 correctly but fail to dump a
+        -- probe sample (often with a timeout). Do not mislabel that as 4xx.
+        -- Never bypass a confirmed HTTP error, DNS error, or TLS error.
+        local ambiguous = failure == "unconfirmed"
+            or (failure == "buffer" and (method == "mplayer" or code == "200" or code == "206"))
+        if ambiguous and known_http_mp3(stream) and not stream.native_direct_tried
+            and shell_call("probe", "mplayer") == "mplayer" then
+            stream.native_direct_tried = true
+            stream.play_url = stream.url
+            if T.hard_allowed(stream) and (T.allowed(self.radio, stream) or job.approved) then
+                self:accept_probe(stream)
+            else
+                -- Exceeding the chosen data limit still needs explicit consent.
+                stream.direct = true
+                offer_higher(job, stream)
+                self:continue_radio("limit")
+            end
+            return
+        end
+        self:continue_radio(failure)
+    end
 end
 
 function ILRadio:advance_radio()
@@ -401,7 +455,7 @@ function ILRadio:advance_radio()
     if not stream then self:finish_radio(); return end
     job.active = stream
     job.engine_index = 1
-    if job.direct and stream.url:match("^http://") then
+    if job.direct and T.hard_allowed(stream) and stream.url:match("^http://") then
         self:accept_probe(stream)
         return
     end
@@ -411,14 +465,25 @@ function ILRadio:advance_radio()
         job.probe_checks = 0
         UIManager:scheduleIn(2, self.probe_tick)
     elseif probe == "unavailable" then
-        if stream.url:match("^http://") and not stream.kbps and not job.higher then job.higher = stream end
-        if job.approved or T.cap(self.radio, stream.codec) == math.huge then
-            self:accept_probe(stream)
+        -- The network-probe tool may be absent on Kindle 3 even when native
+        -- HTTP MP3 playback is functional. Permit exactly one constrained
+        -- attempt for a catalogued MP3 stream with a known bitrate.
+        if known_http_mp3(stream) and not stream.native_direct_tried
+            and shell_call("probe", "mplayer") == "mplayer" then
+            stream.native_direct_tried = true
+            stream.play_url = stream.url
+            if T.hard_allowed(stream) and (T.allowed(self.radio, stream) or job.approved) then
+                self:accept_probe(stream)
+            else
+                stream.direct = true
+                offer_higher(job, stream)
+                self:continue_radio("limit")
+            end
         else
             self:continue_radio("transport")
         end
     else
-        self:continue_radio("address")
+        self:continue_radio((probe == "address" or probe == "invalid_target") and "address" or "transport")
     end
 end
 
@@ -427,20 +492,23 @@ function ILRadio:monitor_radio()
     if not job or not item then return end
     local evidence = shell_call("evidence")
     local reason = evidence:match("^failed:(%w+)")
-    if item.engine == "mplayer" and evidence == "decoded" then
-        local pos = tonumber(shell_call("position"))
-        if pos then
-            if item.last_pos and pos == item.last_pos and pos > 0 then item.stalls = (item.stalls or 0) + 1
-            else item.stalls = 0 end
-            item.last_pos = pos
-            if item.stalls >= 2 then reason = "buffer" end
-        end
+    -- Do not use MPlayer's timeline to infer a live-stream stall.
+    -- Older ARM builds can keep reporting the same position while audio plays.
+    -- Actual process termination or a decoder/transport error still triggers recovery.
+    -- Do not mistake delayed logs for stopped radio while MPlayer is alive.
+    if not reason and evidence == "pending" and item.checks >= 4
+        and (shell_call("status") ~= "active" or shell_call("health") == "failed") then
+        reason = "buffer"
     end
-    if not reason and evidence == "pending" and item.checks >= 4 then reason = "buffer" end
     if reason then
         if item.established and (item.stable or 0) >= 3 and not job.reconnecting then
             -- New bounded budget after an established session, with one retry of the last source.
             job.starts, job.reconnecting, job.engine_index = 0, true, 1
+            -- An established radio stream that drops may be a Wi-Fi underrun.
+            -- Retry with the maximum existing buffer (256 KiB), without
+            -- raising bitrate or changing persisted user settings.
+            if reason == "buffer" or reason == "network" or reason == "ended"
+                or reason == "playback" then job.reconnect_cache = 256 end
             local ranked = T.rank(self.radio, T.variants(job.station, catalog, self.custom),
                 item.stream.url, SPEECH[item.name])
             job.variants = {item.stream}
@@ -450,6 +518,13 @@ function ILRadio:monitor_radio()
                 end
             end
             job.index, job.ready = 0, nil
+        elseif item.evidence == "decoded" and not job.short_retry and job.starts < 8
+            and (reason == "playback" or reason == "ended" or reason == "buffer") then
+            -- A station heard briefly should get one retry of its proven
+            -- stream before we abandon it for a different codec or CDN.
+            job.short_retry = true
+            job.engine_index = 1
+            job.ready = item.stream
         else
             job.engine_index = job.engine_index + 1
             -- Network/TLS errors usually need another URL, rather than another decoder.
@@ -537,6 +612,7 @@ end
 
 function ILRadio:onCloseWidget()
     UIManager:unschedule(self.decode_tick)
+    shell_call("timer-cancel")
     -- The player is a child process and can outlive the KOReader widget.
     -- Always ask the shell controller to stop it, even after UI state loss.
     self:stop()
@@ -547,7 +623,7 @@ function ILRadio:start_local(item)
         item.engine_index = item.engine_index + 1
         local engine = item.engines[item.engine_index]
         local offset = item.kind == "books" and engine == "mplayer" and self.positions[item.path] or 0
-        local result = shell_call("start", item.uri, engine, self.volume, item.path, offset or 0, 128, "", item.name, item.kind)
+        local result = shell_call("start", item.uri, engine, self.volume, item.path, offset or 0, 128, "", item.name, item.kind, self.boost)
         if result:match("^starting:") then
             item.engine = engine
             item.checks, item.evidence = 0, "pending"
@@ -595,8 +671,14 @@ function ILRadio:monitor_local()
     if result == "decoded" or result == "pending" then
         item.checks = item.checks + 1
         if result == "decoded" then item.evidence = "decoded" end
-        if item.evidence == "decoded" or item.checks < 5 then
-            UIManager:scheduleIn(item.evidence == "decoded" and 8 or 3, self.start_check)
+        -- Older MPlayer may play audibly without emitting startup log lines.
+        -- Avoid terminating a healthy decoder after ~14 seconds.
+        local active_without_error = result == "pending"
+            and shell_call("status") == "active"
+            and shell_call("health") ~= "failed"
+        if item.evidence == "decoded" or item.checks < 5 or active_without_error then
+            UIManager:scheduleIn(item.evidence == "decoded" and 8
+                or (item.checks < 5 and 3 or 8), self.start_check)
             return
         end
     end
@@ -613,6 +695,11 @@ function ILRadio:monitor_local()
         end
     elseif item.evidence ~= "decoded" then
         if not self:start_local(item) then shell_call("stop") end
+    elseif not item.short_retry and item.engine_index < #item.engines then
+        -- One alternate decoder on a genuinely failed local file. No loop
+        -- and never restart a track whose playback ended normally.
+        item.short_retry = true
+        if not self:start_local(item) then shell_call("stop") end
     else
         self:notice("Odtwarzanie pliku zostało przerwane. Sprawdź Diagnostykę audio.", 7)
     end
@@ -621,6 +708,13 @@ end
 function ILRadio:play_station(station, approved_url, direct)
     self:read_phone_config()
     local variants = T.variants(station, catalog, self.custom)
+    -- Reject known high-bitrate streams before contacting the server.
+    -- Unknown variants must pass a probe with a safe measured bitrate.
+    local bounded = {}
+    for _, stream in ipairs(variants) do
+        if not stream.kbps or T.hard_allowed(stream) then bounded[#bounded + 1] = stream end
+    end
+    variants = bounded
     local http_only = shell_call("radio-transport") == "http-only"
     if http_only then
         for i = #variants, 1, -1 do
@@ -782,6 +876,49 @@ function ILRadio:playing_info(full)
     if item.kind == "radio" then title = shell_call("title")
     elseif item.path and item.path:lower():match("%.mp3$") then title, artist = T.id3(item.path) end
     local stream = item.stream
+    -- Keep the everyday "Co gra?" panel short; raw transport facts stay in
+    -- "Szczegóły źródła", which still calls playing_info(true).
+    if not full then
+        local state_label = state == "paused" and "Pauza"
+            or state == "stopped" and "Zatrzymane"
+            or (item.audible or item.evidence == "decoded") and "Odtwarzanie"
+            or "Odtwarzacz uruchomiony"
+        local summary = item.name
+        if item.kind == "radio" then
+            summary = summary .. "\nTeraz gra: " .. (title and title ~= "" and title or "brak informacji od stacji")
+            local codec = stream and (stream.live_codec or stream.catalog_label or stream.codec)
+            local kbps, provenance
+            if stream and stream.live_measured then
+                kbps = string.format("%.0f kb/s", stream.live_measured)
+                provenance = "próbka"
+            elseif stream and stream.live_nominal then
+                kbps = tostring(stream.live_nominal) .. " kb/s"
+                provenance = "serwer"
+            elseif stream and stream.kbps then
+                kbps = tostring(stream.kbps) .. " kb/s"
+                provenance = "katalog"
+            end
+            local stream_label = codec or "format nieustalony"
+            if kbps then
+                stream_label = stream_label .. " · " .. kbps .. " (" .. provenance .. ")"
+            end
+            summary = summary .. "\nStrumień: " .. stream_label
+        else
+            if title and title ~= "" and title ~= item.name then
+                summary = summary .. "\nUtwór: " .. title
+            end
+            if artist and artist ~= "" then
+                summary = summary .. "\nWykonawca: " .. artist
+            end
+            local extension = item.path and item.path:match("%.([^.]+)$")
+            if extension then
+                summary = summary .. "\nFormat: " .. extension:upper()
+            end
+        end
+        summary = summary .. "\nStan: " .. state_label .. "\nGłośność: " .. self.volume .. "%"
+        self:notice(summary, 12)
+        return
+    end
     local status = state == "paused" and "Pauza" or state == "stopped" and "Zatrzymane"
         or item.audible and "Dźwięk potwierdzony przez słuchacza"
         or item.evidence == "decoded" and "Silnik zgłosił dekodowanie i wyjście audio"
@@ -856,6 +993,7 @@ function ILRadio:toggle_pause()
     if state == "active" then
         if not item or not item.path then
             if self:stop() then
+                shell_call("timer-cancel")
                 self:notice("Radio wstrzymane. Wybierz „Wznów ostatnią stację”, aby słuchać ponownie.")
             end
         else
@@ -937,6 +1075,65 @@ function ILRadio:volume_change(delta, quiet)
     end
 end
 
+function ILRadio:set_sleep_timer(minutes)
+    if minutes == 0 then
+        shell_call("timer-cancel")
+        self:notice("Automatyczne wyłączenie anulowane.")
+        return
+    end
+    local outcome = shell_call("timer-arm", minutes)
+    if outcome == "armed:" .. tostring(minutes * 60) then
+        self:notice("Radio i odtwarzacz zostaną wyłączone za " .. minutes .. " minut.")
+    else
+        self:notice("Nie udało się ustawić wyłączenia. Sprawdź diagnostykę audio.", 9)
+    end
+end
+
+function ILRadio:timer_menu()
+    local left = tonumber(shell_call("timer-left"))
+    local items = {}
+    if left then
+        items[#items+1] = {text = "Pozostało około " .. math.ceil(left / 60) .. " min", enabled = false}
+    end
+    for _, minutes in ipairs({30, 60, 90, 120}) do
+        local value = minutes
+        items[#items+1] = {text = "Wyłącz za " .. minutes .. " min", keep_menu_open = true,
+            callback = function() self:set_sleep_timer(value) end}
+    end
+    items[#items+1] = {text = "Anuluj wyłączenie", keep_menu_open = true,
+        callback = function() self:set_sleep_timer(0) end}
+    return items
+end
+
+function ILRadio:play_compatible_mp3(station)
+    local available = {}
+    for _, stream in ipairs(T.variants(station, catalog, self.custom)) do
+        if known_http_mp3(stream) and T.hard_allowed(stream) then available[#available + 1] = stream end
+    end
+    table.sort(available, function(a, b) return a.kbps < b.kbps end)
+    local stream = available[1]
+    if not stream then
+        self:notice("Brak zgodnego strumienia MP3 do 128 kb/s przez HTTP.", 7)
+        return
+    end
+    if shell_call("probe", "mplayer") ~= "mplayer" then
+        self:notice("Na Kindle nie wykryto MPlayera. Zainstaluj silnik audio z aplikacji telefonu.", 9)
+        return
+    end
+    local start = function() self:play_station(station, stream.url, true) end
+    if T.allowed(self.radio, stream) then
+        start()
+    else
+        UIManager:show(ConfirmBox:new {
+            text = "Zgodny wariant MP3 dla „" .. station[1] .. "” ma " .. stream.kbps
+                .. " kb/s i przekracza ustawiony limit. Uruchomić jednorazowo?",
+            ok_text = "Uruchom MP3",
+            cancel_text = "Anuluj",
+            ok_callback = start,
+        })
+    end
+end
+
 function ILRadio:station_menu(category)
     local menu = {}
     for _, station in ipairs(stations) do
@@ -948,6 +1145,8 @@ function ILRadio:station_menu(category)
                 text_func = function() return (self.favorites[name] and "★ " or "") .. name end,
                 sub_item_table = {
                     { text = "Słuchaj", keep_menu_open = true, callback = function() self:play_station(entry) end },
+                    { text = "Spróbuj MP3 (tryb zgodności)", keep_menu_open = true,
+                        callback = function() self:play_compatible_mp3(entry) end },
                     {
                         keep_menu_open = true,
                         text_func = function()
@@ -1062,11 +1261,6 @@ function ILRadio:radio_menu()
         { text = "Odtwarzacz MP3 i audiobooki", sub_item_table = {
             { text = "Moja muzyka", sub_item_table_func = function() return self:files_menu("music") end },
             { text = "Moje audiobooki", sub_item_table_func = function() return self:files_menu("books") end },
-            { text = "Co gra?", keep_menu_open = true, callback = function() self:playing_info() end },
-            { text = "Odtwarzaj / pauza", keep_menu_open = true, callback = function() self:toggle_pause() end },
-            { text = "Zatrzymaj", keep_menu_open = true, callback = function()
-                if self:stop() then self:notice("Odtwarzanie zatrzymane.") end
-            end },
             { text = "Następny utwór", callback = function() self:next_track(1) end },
             { text = "Poprzedni utwór", callback = function() self:next_track(-1) end },
         } },
@@ -1084,21 +1278,51 @@ function ILRadio:radio_menu()
         { text = "Następna stacja", callback = function() self:next_station(1) end },
         { text = "Poprzednia stacja", callback = function() self:next_station(-1) end },
         { text = "Odtwarzaj / pauza", keep_menu_open = true, callback = function() self:toggle_pause() end },
+        { text = "Automatyczne wyłączenie", sub_item_table_func = function() return self:timer_menu() end },
         { text = "Wznów ostatnią stację", keep_menu_open = true, callback = function()
             local station = self:find_last_station()
             if station then self:play_station(station)
             else self:notice("Brak ostatnio słuchanej stacji.") end
         end },
         { text = "Zatrzymaj", keep_menu_open = true, callback = function()
-            if self:stop() then self:notice("Odtwarzanie zatrzymane.") end
+            if self:stop() then
+                shell_call("timer-cancel")
+                self:notice("Odtwarzanie zatrzymane.")
+            end
         end },
         { text_func = function() return "Głośność · " .. self.volume .. "%" end, enabled = false },
         { text = "Ustawienia radia", sub_item_table = {
+            { text = "Głośność sprzętowa Kindle’a (ALSA)", sub_item_table = {
+                { text = "Ustaw poziom sprzętowy 80%", keep_menu_open = true, callback = function()
+                    local ok = shell_call("system-volume", "80") == "adjusted"
+                    self:notice(ok and "Ustawiono poziom sprzętowy na 80%."
+                        or "Ten Kindle nie udostępnia sterowania mikserem ALSA.", 6)
+                end },
+                { text = "Ustaw poziom sprzętowy 100%", keep_menu_open = true, callback = function()
+                    local ok = shell_call("system-volume", "100") == "adjusted"
+                    self:notice(ok and "Ustawiono poziom sprzętowy na 100%. Przy zniekształceniach obniż poziom."
+                        or "Ten Kindle nie udostępnia sterowania mikserem ALSA.", 8)
+                end },
+            } },
+            { text = "Wzmocnienie dźwięku (MPlayer)", sub_item_table = {
+                { text = "Normalne · 110%", checked_func = function() return self.boost == 110 end,
+                    keep_menu_open = true, callback = function() self.boost = 110
+                        self:save("audio_softvol_max", self.boost)
+                        self:notice("Normalne wzmocnienie. Zadziała od następnego uruchomienia utworu lub radia.") end },
+                { text = "Głośniejsze · 140%", checked_func = function() return self.boost == 140 end,
+                    keep_menu_open = true, callback = function() self.boost = 140
+                        self:save("audio_softvol_max", self.boost)
+                        self:notice("Wzmocnienie 140%. Uruchom ponownie odtwarzanie. Przy zniekształceniach wybierz 110%.") end },
+                { text = "Mocniejsze · 170%", checked_func = function() return self.boost == 170 end,
+                    keep_menu_open = true, callback = function() self.boost = 170
+                        self:save("audio_softvol_max", self.boost)
+                        self:notice("Wzmocnienie 170% może przesterować dźwięk. Zacznij od niskiej głośności i uruchom ponownie odtwarzanie.") end },
+            } },
             { text = "Tryb jakości", sub_item_table_func = function() return self:quality_options("mode", T.modes) end },
-            { text = "Maksymalny bitrate", sub_item_table_func = function()
-                local options = {{false, "Według trybu"}}
+            { text = "Maksymalny bitrate (twardy limit 128 kb/s)", sub_item_table_func = function()
+                local options = {{false, "Według trybu (maks. 128 kb/s)"}}
                 for _, value in ipairs(T.limits) do
-                    options[#options + 1] = {value, value == 0 and "Bez limitu trybu Auto / Wysoka" or (value .. " kb/s")}
+                    options[#options + 1] = {value, value .. " kb/s"}
                 end
                 return self:quality_options("limit", options)
             end },
