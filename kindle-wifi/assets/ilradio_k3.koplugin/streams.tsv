@@ -27,6 +27,8 @@ Radio Wrocław	http://stream4.nadaje.com:9240/prw	MP3	128	Zewnętrzny operator n
 Radio Poznań	http://stream4.nadaje.com:8578/poznan	MP3	96	Zewnętrzny operator nadaje.com	2026-11-11T07:17:20+00:00	http://stream4.nadaje.com:8578/poznan	MPEG Audio	96.00
 Radio Warszawa	http://streaming01.technologicznie.net:8765/radio_warszawa.mp3	MP3	256	Dotychczasowy katalog · dostawca nieustalony	2026-11-11T07:17:20+00:00	http://streaming01.technologicznie.net:8765/radio_warszawa.mp3	MPEG Audio	256.00
 RMF Chillout	http://31.192.216.8/CHILLOUT	HE-AAC	64	Adres IP katalogu RMF · typ serwera nieustalony	2026-11-11T07:17:20+00:00	http://31.192.216.8/CHILLOUT	ADTS	63.81
+Chillizet	https://ch.cdn.eurozet.pl/chi-net.mp3	MP3	128	Oficjalny CDN Eurozet; sprawdzony ffprobe w GitHub Actions 12.11.2026	2026-11-12T10:51:55+00:00	https://ch.cdn.eurozet.pl/chi-net.mp3	MPEG Audio	128.00
+FluxFM Chillout	https://streams.fluxfm.de/chillout/mp3-128/streams.fluxfm.de/	MP3	128	Oficjalny katalog FluxFM; sprawdzony ffprobe w GitHub Actions 12.11.2026	2026-11-12T10:51:57+00:00	https://streams.fluxfm.de/chillout/mp3-128/streams.fluxfm.de/	MPEG Audio	128.00
 RMF 90s	http://31.192.216.7/90S	HE-AAC	64	Adres IP katalogu RMF · typ serwera nieustalony	2026-11-11T07:17:20+00:00	http://31.192.216.7/90S	ADTS	64.20
 RMF Dance	http://rmfstream1.interia.pl:8000/rmf_dance	MP3	128	Infrastruktura RMF	2026-11-11T07:17:20+00:00	http://rmfstream1.interia.pl:8000/rmf_dance	MPEG Audio	128.00
 RMF Dance	http://31.192.216.10/DANCE	HE-AAC	64	Adres IP katalogu RMF · typ serwera nieustalony	2026-11-11T07:17:20+00:00	http://31.192.216.10/DANCE	ADTS	64.41

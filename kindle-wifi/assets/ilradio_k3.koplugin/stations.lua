@@ -20,6 +20,8 @@ return {
     {"Radio Poznań", "Regionalne"},
     {"Radio Warszawa", "Regionalne"},
     {"RMF Chillout", "Muzyczne"},
+    {"Chillizet", "Muzyczne"},
+    {"FluxFM Chillout", "Muzyczne"},
     {"RMF 90s", "Muzyczne"},
     {"RMF Dance", "Muzyczne"},
     {"RMF Polski Rock", "Muzyczne"},
