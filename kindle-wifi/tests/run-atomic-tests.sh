@@ -10,7 +10,7 @@ if grep -R "BialolekaForecast\\|WeatherJob.kick" src/pl/ispinalokalnie/kindlewif
   echo "Weather dependency still present in phone code" >&2
   exit 1
 fi
-javac -encoding UTF-8 -d build/mock-tests \\
+javac -encoding UTF-8 -d build/mock-tests \
   src/pl/ispinalokalnie/kindlewifi/BoundedInput.java tests/BoundedInputTest.java
 java -Dfile.encoding=UTF-8 -cp build/mock-tests pl.ispinalokalnie.kindlewifi.BoundedInputTest
 javac -encoding UTF-8 -d build/mock-tests \
