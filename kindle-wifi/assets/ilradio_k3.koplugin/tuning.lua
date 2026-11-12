@@ -1,7 +1,8 @@
 local T = {}
 T.modes = {{"ultra", "Ultraoszczędny"}, {"eco", "Oszczędny"},
     {"auto", "Automatyczny"}, {"high", "Wysoka jakość"}}
-T.limits = {24, 32, 48, 64, 96, 128, 0}
+T.hard_limit = 128
+T.limits = {24, 32, 48, 64, 96, 128}
 T.codecs = {{"auto", "Według trybu"}, {"aac", "AAC jako pierwszy"}, {"mp3", "MP3 jako pierwszy"}}
 T.buffers = {64, 128, 256}
 
@@ -50,21 +51,26 @@ function T.variants(station, catalog, custom)
     return list
 end
 
+-- Never let settings, phone imports, or one-time compatibility consent
+-- exceed 128 kb/s. An unmeasured stream is not a safe direct-play target.
+function T.hard_allowed(stream)
+    return type(stream) == "table" and type(stream.kbps) == "number"
+        and stream.kbps > 0 and stream.kbps <= T.hard_limit
+end
+
 function T.cap(settings, codec)
-    local limit = settings.limit
-    if limit == 0 then limit = nil end
+    local limit = tonumber(settings.limit)
+    if not limit or limit == 0 then limit = nil end
     local maximum
     if settings.mode == "ultra" then maximum = 32
     elseif settings.mode == "eco" then maximum = codec == "MP3" and 64 or 48
-    elseif settings.mode == "auto" then maximum = limit and math.huge or (settings.limit == 0 and math.huge or 64)
+    elseif settings.mode == "auto" then maximum = limit and math.huge or 64
     else maximum = math.huge end
-    return limit and math.min(limit, maximum) or maximum
+    return math.min(T.hard_limit, limit and math.min(limit, maximum) or maximum)
 end
 
 function T.allowed(settings, stream)
-    local cap = T.cap(settings, stream.codec)
-    return stream.kbps and stream.kbps > 0 and stream.kbps <= cap
-        or (not stream.kbps and cap == math.huge)
+    return T.hard_allowed(stream) and stream.kbps <= T.cap(settings, stream.codec)
 end
 
 -- Return an address error only for an explicit rejected HTTP response.
