@@ -1257,15 +1257,14 @@ public final class MainActivity extends Activity {
                         case 1: showDeviceResult("Próba wtyczki na Kindle",
                                 "Po instalacji uruchom ponownie KOReadera z KUAL. "
                                 + "Otwórz Narzędzia → Więcej narzędzi → IL Wi-Fi Gość · TEST. "
-                                + "Wybierz „Sprawdź Wi-Fi i portal”. "
+                                + "Wybierz „Sprawdź Wi-Fi i portal”, a następnie „Otwórz portal w KOReaderze”. "
                                 + "Najpierw sprawdź domowe Wi-Fi, potem sieć wymagającą zgody gościa. "
                                 + "Telefon nie jest potrzebny do samego testu."); break;
-                        default: showDeviceResult("Wersja diagnostyczna",
-                                "Ta wersja wykrywa dostęp do internetu i podejrzenie portalu, "
-                                + "ale nie klika formularzy i nie wysyła e-maili. "
-                                + "Strona pociągu może wymagać nowoczesnej przeglądarki, "
-                                + "z którą Kindle Keyboard 3 nie jest zgodny. "
-                                + "Portal należy otworzyć w przeglądarce Kindle i zalogować się samodzielnie.");
+                        default: showDeviceResult("Proste portale bez przeglądarki",
+                                "IL Wi-Fi Gość 1.2 wykrywa portal, pozwala obejrzeć jego treść "
+                                + "oraz potwierdzić dostęp jako gość lub podać e-mail bezpośrednio na Kindle. "
+                                + "Nie akceptuje regulaminu bez Twojego zatwierdzenia. "
+                                + "Rozbudowane portale JavaScript, CAPTCHA lub niezgodny TLS mogą wymagać przeglądarki.");
                     }
                 }).setNegativeButton("Zamknij", null).show();
     }
@@ -1275,7 +1274,8 @@ public final class MainActivity extends Activity {
             Session session = openPairedDevice();
             try {
                 CompanionFiles.install(this, session, "ilwifi_guest.koplugin",
-                        "a4e91075c750dcf004d2b0c3402a19d4bd139775a3125ee943d6aeb97ecf82c6");
+                        "a4e91075c750dcf004d2b0c3402a19d4bd139775a3125ee943d6aeb97ecf82c6",
+                        "a56c371d0345f99bdfa19d9c990eb1422a2761c4e43406202a4be45ec7aeafca");
                 return "Wtyczka została przesłana i sprawdzona. "
                         + "Zamknij KOReadera i uruchom ponownie przez KUAL. "
                         + "W menu Narzędzia → Więcej narzędzi wybierz „IL Wi-Fi Gość · TEST”. "
