@@ -1326,7 +1326,8 @@ public final class MainActivity extends Activity {
             try {
                 CompanionFiles.install(this, session, "ilwifi_guest.koplugin",
                         "a4e91075c750dcf004d2b0c3402a19d4bd139775a3125ee943d6aeb97ecf82c6",
-                        "a56c371d0345f99bdfa19d9c990eb1422a2761c4e43406202a4be45ec7aeafca");
+                        "a56c371d0345f99bdfa19d9c990eb1422a2761c4e43406202a4be45ec7aeafca",
+                        "ea59003d22c89b8eee0378e87dc2cdcc345e5e22f521285167e03f54a9a552a7");
                 return "Wtyczka została przesłana i sprawdzona. "
                         + "Zamknij KOReadera i uruchom ponownie przez KUAL. "
                         + "W menu Narzędzia → Więcej narzędzi wybierz „IL Wi-Fi Gość · TEST”. "
