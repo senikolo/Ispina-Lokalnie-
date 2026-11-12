@@ -1,4 +1,4 @@
-name: Kindle Radio 2.30.17 - tests and signed APK
+name: Kindle Radio 2.30.18 - tests and signed APK
 on:
   push:
     branches:
@@ -10,7 +10,7 @@ on:
 permissions:
   contents: read
 concurrency:
-  group: kindle-radio-2-30-17
+  group: kindle-radio-2-30-18
   cancel-in-progress: true
 jobs:
   test-and-build:
@@ -41,6 +41,7 @@ jobs:
           luac5.3 -p assets/ilwifi_guest.koplugin/main.lua
           luac5.3 -p assets/ilwifi_guest.koplugin/_meta.lua
           lua5.3 tests/wifi-guest-test.lua
+          lua5.3 tests/wifi-portal-test.lua
           luac5.3 -p assets/ilradio_k3.koplugin/main.lua
           luac5.3 -p assets/ilradio_k3.koplugin/stations.lua
           luac5.3 -p assets/ilradio_k3.koplugin/tuning.lua
@@ -59,8 +60,8 @@ jobs:
           set -euo pipefail
           gradle --no-daemon -ParmOnly assembleMailTest
           mkdir -p ../build-artifacts
-          cp build/outputs/apk/mailTest/*.apk ../build-artifacts/Kindle-przez-WiFi-Radio-2.30.17-TEST.apk
-          apk=../build-artifacts/Kindle-przez-WiFi-Radio-2.30.17-TEST.apk
+          cp build/outputs/apk/mailTest/*.apk ../build-artifacts/Kindle-przez-WiFi-Radio-2.30.18-TEST.apk
+          apk=../build-artifacts/Kindle-przez-WiFi-Radio-2.30.18-TEST.apk
           test "$(stat -c %s "$apk")" -lt 30000000
           "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --print-certs "$apk"
           "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$apk" | head -n 3
@@ -73,8 +74,8 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: success()
         with:
-          name: Kindle-Radio-2.30.17-TEST-signed
-          path: build-artifacts/Kindle-przez-WiFi-Radio-2.30.17-TEST.apk
+          name: Kindle-Radio-2.30.18-TEST-signed
+          path: build-artifacts/Kindle-przez-WiFi-Radio-2.30.18-TEST.apk
           compression-level: 0
           retention-days: 7
           if-no-files-found: error
