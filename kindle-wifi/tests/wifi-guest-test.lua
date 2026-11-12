@@ -98,10 +98,12 @@ local menu={}
 plugin:addToMainMenu(menu)
 assert(menu.ilwifi_guest and menu.ilwifi_guest.sorting_hint=="more_tools")
 local actions=menu.ilwifi_guest.sub_item_table
-assert(#actions==8 and actions[1].text=="Sprawdź Wi-Fi i portal"
-    and actions[2].text=="Ponów test" and actions[3].text=="Otwórz portal w KOReaderze"
-    and actions[4].text=="Pokaż treść portalu" and actions[5].text=="Połącz jako gość"
-    and actions[6].text=="Podaj e-mail" and actions[7].text=="Ostatni raport")
+assert(#actions==10 and actions[1].text=="Sprawdź Wi-Fi i portal"
+    and actions[2].text=="Ponów test" and actions[3].text=="Test lokalnego portalu na telefonie"
+    and actions[4].text=="Wpisz adres telefonu ręcznie"
+    and actions[5].text=="Otwórz portal w KOReaderze"
+    and actions[6].text=="Pokaż treść portalu" and actions[7].text=="Połącz jako gość"
+    and actions[8].text=="Podaj e-mail" and actions[9].text=="Ostatni raport")
 
 set({code=204,body=""}, {code=200,body="Microsoft Connect Test"}, {code=204,body=""})
 queries={}
@@ -131,4 +133,4 @@ assert(shown[#shown].text:find("Otwórz portal w KOReaderze",1,true))
 assert(not shown[#shown].text:find("not-for-log",1,true))
 
 os.execute = execute
-print("PASS: Wi-Fi guest v1.2: internet, DNS/timeout, fallback, portal, retry, safe diagnostics")
+print("PASS: Wi-Fi guest v1.3: internet, DNS/timeout, fallback, portal, retry, safe diagnostics")
