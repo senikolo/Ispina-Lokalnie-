@@ -216,6 +216,9 @@ public final class MainActivity extends Activity {
         deviceTools = action("Zegar Kindle’a", Glyph.SETTINGS, GREEN, SURFACE, 0);
         deviceTools.setOnClickListener(v -> showDeviceTools());
         add(page, deviceTools, 10);
+        Button guestWifi = action("Wi-Fi w pociągu · TEST", Glyph.HOTSPOT, GREEN, SURFACE, 0);
+        guestWifi.setOnClickListener(v -> showGuestWifiMenu());
+        add(page, guestWifi, 6);
         add(page, hero, 12);
         LinearLayout heroTop = row();
         TextView heroTitle = heading("Twoja kolejka", 25, Color.WHITE);
@@ -1237,6 +1240,49 @@ public final class MainActivity extends Activity {
                                     + "To wersja testowa wymagająca próby na fizycznym Kindle Keyboard 3.");
                     }
                 }).setNegativeButton("Zamknij", null).show();
+    }
+
+
+    private void showGuestWifiMenu() {
+        if (sending) return;
+        String[] options = {
+                "Zainstaluj IL Wi-Fi Gość na Kindle",
+                "Jak sprawdzić działanie?",
+                "Ograniczenia portali logowania"
+        };
+        new DialogUi.Builder(this).setTitle("IL Wi-Fi Gość · TEST")
+                .setItems(options, (dialog, selected) -> {
+                    switch (selected) {
+                        case 0: withKindle(this::installGuestWifi); break;
+                        case 1: showDeviceResult("Próba wtyczki na Kindle",
+                                "Po instalacji uruchom ponownie KOReadera z KUAL. "
+                                + "Otwórz Narzędzia → Więcej narzędzi → IL Wi-Fi Gość · TEST. "
+                                + "Wybierz „Sprawdź Wi-Fi i portal”. "
+                                + "Najpierw sprawdź domowe Wi-Fi, potem sieć wymagającą zgody gościa. "
+                                + "Telefon nie jest potrzebny do samego testu."); break;
+                        default: showDeviceResult("Wersja diagnostyczna",
+                                "Ta wersja wykrywa dostęp do internetu i podejrzenie portalu, "
+                                + "ale nie klika formularzy i nie wysyła e-maili. "
+                                + "Strona pociągu może wymagać nowoczesnej przeglądarki, "
+                                + "z którą Kindle Keyboard 3 nie jest zgodny. "
+                                + "Portal należy otworzyć w przeglądarce Kindle i zalogować się samodzielnie.");
+                    }
+                }).setNegativeButton("Zamknij", null).show();
+    }
+
+    private void installGuestWifi() {
+        deviceAction("Instaluję IL Wi-Fi Gość przez Wi-Fi…", () -> {
+            Session session = openPairedDevice();
+            try {
+                CompanionFiles.install(this, session, "ilwifi_guest.koplugin");
+                return "Wtyczka została przesłana i sprawdzona. "
+                        + "Zamknij KOReadera i uruchom ponownie przez KUAL. "
+                        + "W menu Narzędzia → Więcej narzędzi wybierz „IL Wi-Fi Gość · TEST”. "
+                        + "Późniejsze testy odbywają się bez udziału telefonu.";
+            } finally {
+                session.disconnect();
+            }
+        }, result -> showDeviceResult("IL Wi-Fi Gość na Kindle", result));
     }
 
     private void showRadioMenu() {
