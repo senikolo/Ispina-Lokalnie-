@@ -41,7 +41,7 @@ local volume_input_open = false
 local volume_input_node
 local volume_owner
 local volume_listener
-local RADIO_VERSION = "2.30.4"
+local RADIO_VERSION = "2.30.5"
 local VOLUME_KEYS = {VMinus = -1, VolumeDown = -1, VolumeMinus = -1,
     VPlus = 1, VolumeUp = 1, VolumePlus = 1}
 
@@ -666,6 +666,11 @@ function ILRadio:monitor_local()
         end
     elseif item.evidence ~= "decoded" then
         if not self:start_local(item) then shell_call("stop") end
+    elseif not item.short_retry and item.engine_index < #item.engines then
+        -- One alternate decoder on a genuinely failed local file. No loop
+        -- and never restart a track whose playback ended normally.
+        item.short_retry = true
+        if not self:start_local(item) then shell_call("stop") end
     else
         self:notice("Odtwarzanie pliku zostało przerwane. Sprawdź Diagnostykę audio.", 7)
     end
@@ -1251,6 +1256,18 @@ function ILRadio:radio_menu()
         end },
         { text_func = function() return "Głośność · " .. self.volume .. "%" end, enabled = false },
         { text = "Ustawienia radia", sub_item_table = {
+            { text = "Głośność sprzętowa Kindle’a (ALSA)", sub_item_table = {
+                { text = "Ustaw poziom sprzętowy 80%", keep_menu_open = true, callback = function()
+                    local ok = shell_call("system-volume", "80") == "adjusted"
+                    self:notice(ok and "Ustawiono poziom sprzętowy na 80%."
+                        or "Ten Kindle nie udostępnia sterowania mikserem ALSA.", 6)
+                end },
+                { text = "Ustaw poziom sprzętowy 100%", keep_menu_open = true, callback = function()
+                    local ok = shell_call("system-volume", "100") == "adjusted"
+                    self:notice(ok and "Ustawiono poziom sprzętowy na 100%. Przy zniekształceniach obniż poziom."
+                        or "Ten Kindle nie udostępnia sterowania mikserem ALSA.", 8)
+                end },
+            } },
             { text = "Wzmocnienie dźwięku (MPlayer)", sub_item_table = {
                 { text = "Normalne · 110%", checked_func = function() return self.boost == 110 end,
                     keep_menu_open = true, callback = function() self.boost = 110
