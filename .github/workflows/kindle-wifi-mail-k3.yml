@@ -1,7 +1,7 @@
 name: Kindle Wi-Fi mail K3 TEST
 on:
   push:
-    branches: [codex/kindle-wifi-mail-k3-20261111]
+    branches: [codex/kindle-wifi-mail-k3-20261111, feat/kindle-mail-pin-auto-epub-pdf-20261112]
     paths: ['kindle-wifi/**', '.github/workflows/kindle-wifi-mail-k3.yml']
   workflow_dispatch:
 concurrency:
@@ -46,11 +46,12 @@ jobs:
         working-directory: kindle-wifi
         run: |
           test -s assets/ilmail_k3.koplugin/vault.lua
+          test -s assets/ilmail_k3.koplugin/auto.lua
           test -s assets/ilmail_k3.koplugin/backend.lua
           test -s assets/ilmail_k3.koplugin/imap.lua
           test -s assets/ilmail_k3.koplugin/mail.lua
           test -s assets/ilmail_k3.koplugin/main.lua
-          for file in assets/ilmail_k3.koplugin/{_meta,main,backend,vault,imap,mail}.lua assets/ilradio_k3.koplugin/main.lua; do
+          for file in assets/ilmail_k3.koplugin/{_meta,main,auto,backend,vault,imap,mail}.lua assets/ilradio_k3.koplugin/main.lua; do
             luac5.3 -p "$file"
           done
           sh -n assets/ilradio_k3.koplugin/player.sh
@@ -73,21 +74,21 @@ jobs:
         run: |
           gradle --no-daemon -ParmOnly assembleRelease
           mkdir -p ../artifacts
-          cp build/outputs/apk/release/*-unsigned.apk ../artifacts/Kindle-przez-WiFi-2.30.12-TEST-unsigned.apk
-          test "$(stat -c %s ../artifacts/Kindle-przez-WiFi-2.30.12-TEST-unsigned.apk)" -lt 30000000
+          cp build/outputs/apk/release/*-unsigned.apk ../artifacts/Kindle-przez-WiFi-2.30.20-TEST-unsigned.apk
+          test "$(stat -c %s ../artifacts/Kindle-przez-WiFi-2.30.20-TEST-unsigned.apk)" -lt 30000000
           cp ../ilmail-k3-TEST.zip ../artifacts/ilmail-k3-TEST.zip
       - name: Build signed, installable side-by-side TEST APK
         working-directory: kindle-wifi
         run: |
           gradle --no-daemon -ParmOnly assembleMailTest
-          cp build/outputs/apk/mailTest/*.apk ../artifacts/Kindle-przez-WiFi-Poczta-2.30.12-TEST.apk
-          test "$(stat -c %s ../artifacts/Kindle-przez-WiFi-Poczta-2.30.12-TEST.apk)" -lt 30000000
-          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify -v --print-certs ../artifacts/Kindle-przez-WiFi-Poczta-2.30.12-TEST.apk
-          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging ../artifacts/Kindle-przez-WiFi-Poczta-2.30.12-TEST.apk | head -3
+          cp build/outputs/apk/mailTest/*.apk ../artifacts/Kindle-przez-WiFi-Poczta-2.30.20-TEST.apk
+          test "$(stat -c %s ../artifacts/Kindle-przez-WiFi-Poczta-2.30.20-TEST.apk)" -lt 30000000
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify -v --print-certs ../artifacts/Kindle-przez-WiFi-Poczta-2.30.20-TEST.apk
+          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging ../artifacts/Kindle-przez-WiFi-Poczta-2.30.20-TEST.apk | head -3
       - uses: actions/upload-artifact@v4
         if: success()
         with:
-          name: kindle-wifi-2.30.12-signed-apk
-          path: artifacts/Kindle-przez-WiFi-Poczta-2.30.12-TEST.apk
+          name: kindle-wifi-2.30.20-signed-apk
+          path: artifacts/Kindle-przez-WiFi-Poczta-2.30.20-TEST.apk
           compression-level: 0
           if-no-files-found: error
