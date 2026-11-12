@@ -1085,9 +1085,24 @@ public final class MainActivity extends Activity {
                         panel.show("Zamknij", null, null, null);
                         return;
                     }
-                    String message = error instanceof JSchException || error instanceof SftpException
-                            ? userMessage(error) : "Spróbuj ponownie, gdy Kindle jest wybudzony i połączony z siecią.";
-                    ResultPanel panel = new ResultPanel("", "Nie udało się dokończyć", message, ResultTone.ATTENTION);
+                    boolean weatherRefresh = working.startsWith("Aktualizuję pogodę");
+                    String message;
+                    if (weatherRefresh) {
+                        if (error instanceof JSchException || error instanceof SftpException) {
+                            message = "Prognoza mogła zostać pobrana, ale nie udało się jej przesłać na Kindle. Sprawdź serwer SSH.";
+                        } else if (error.getMessage() != null &&
+                                (error.getMessage().contains("pogody") || error.getMessage().contains("prognozy"))) {
+                            message = error.getMessage();
+                        } else {
+                            message = "Nie udało się zaktualizować prognozy. Sprawdź internet w telefonie i ponów próbę.";
+                        }
+                    } else {
+                        message = error instanceof JSchException || error instanceof SftpException
+                                ? userMessage(error) : "Spróbuj ponownie, gdy Kindle jest wybudzony i połączony z siecią.";
+                    }
+                    ResultPanel panel = new ResultPanel(weatherRefresh ? "Pogoda dla Białołęki" : "",
+                            weatherRefresh ? "Nie zaktualizowano prognozy" : "Nie udało się dokończyć",
+                            message, ResultTone.ATTENTION);
                     panel.details(technicalMessage(error));
                     panel.show("Zamknij", null, null, null);
                 });
