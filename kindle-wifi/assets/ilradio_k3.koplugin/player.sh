@@ -491,6 +491,17 @@ stream_reason() {
 
 play_evidence() {
     if [ -e "$PAUSED" ] && is_ours; then echo paused; return; fi
+    # A decoder that has already reached ALSA and is still alive must not
+    # be stopped because of an old, nonfatal log entry. Several Kindle 3
+    # engines log transient network warnings even during audible playback.
+    if is_ours; then
+        startup=$(cat "$LOG.audio" 2>/dev/null)
+        if printf '%s' "$startup" | grep -Eq '^AO: |ILRADIO_OUTPUT|audio-codec=|^MPEG.*L III' &&
+           printf '%s' "$startup" | grep -Eq 'Starting playback|ILRADIO_OUTPUT|new-state=\(GstState\)playing|^MPEG.*L III'; then
+            echo decoded
+            return
+        fi
+    fi
     details=$(tail -n 36 "$LOG" 2>/dev/null | grep -vE 'StreamTitle|ICY-META|title=')
     reason=$(stream_reason "$details")
     if [ "$reason" != unconfirmed ]; then echo "failed:$reason"; return; fi
