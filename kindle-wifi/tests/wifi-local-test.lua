@@ -65,7 +65,7 @@ local count=#calls
 plugin:local_test("8.8.8.8")
 assert(#calls==count,"Never connect to public IP for local simulator")
 plugin:local_test("192.168.43.1")
-assert(plugin.local_test and plugin.portal and plugin.portal.form)
+assert(plugin.is_local_test and plugin.portal and plugin.portal.form)
 assert(#calls==count+1 and calls[#calls].url==phone)
 plugin:submit_portal(nil)
 assert(shown[#shown].kind=="confirm")
