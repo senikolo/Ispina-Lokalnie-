@@ -187,22 +187,37 @@ function IMAP:download(item, path)
     assert(type(item.uid) == "number" and item.uid%1 == 0 and item.uid > 0, gettext("Invalid UID"))
     assert(type(item.section) == "string" and item.section:match("^%d+[.%d]*$"), gettext("Invalid MIME section"))
     local file = assert(io.open(path,"wb"), gettext("Could not create the temporary download file."))
-    local bytes, wire_bytes, literals = 0, 0, 0
+    -- BODYSTRUCTURE octet counts are advisory: some IMAP servers report a
+    -- different MIME transfer size from the literal returned by BODY.PEEK.
+    -- Trust neither count for integrity; instead verify the actual FETCH
+    -- literal length and enforce independent wire/decoded byte limits.
+    local max_wire_bytes = 20*1024*1024
+    local max_decoded_bytes = 10*1024*1024
+    local bytes, wire_bytes, literals, fetched_size = 0, 0, 0, nil
     local ok, err = pcall(function()
         local decode = Mail.decoder(item.encoding,function(chunk)
+            assert(bytes + #chunk <= max_decoded_bytes, gettext("Attachment exceeds the 10 MB limit."))
             assert(file:write(chunk), gettext("Not enough storage space, or writing failed."))
             bytes = bytes + #chunk
         end)
         local lines = self:command("UID FETCH " .. item.uid .. " (UID BODY.PEEK[" .. item.section .. "])", nil,
             function(chunk,size,prefix)
                 assert(prefix:find("BODY[" .. item.section .. "]",1,true), gettext("Unexpected attachment response"))
-                if wire_bytes == 0 then literals = literals + 1 end
-                assert(size == item.wire_size, gettext("Attachment size changed. Please refresh the inbox."))
+                assert(type(size) == "number" and size <= max_wire_bytes,
+                    gettext("Attachment transfer exceeds the safety limit."))
+                if not fetched_size then
+                    fetched_size = size
+                    literals = literals + 1
+                else
+                    assert(size == fetched_size, gettext("Unexpected attachment response"))
+                end
                 decode(chunk); wire_bytes = wire_bytes + #chunk
+                assert(wire_bytes <= fetched_size, gettext("The attachment is missing or incomplete."))
             end)
         local matched = false
         for _, fields in ipairs(fetchAttributes(lines)) do if tonumber(fields.UID) == item.uid then matched=true end end
-        assert(matched and literals == 1 and wire_bytes == item.wire_size, gettext("The attachment is missing or incomplete."))
+        assert(matched and literals == 1 and fetched_size and wire_bytes == fetched_size,
+            gettext("The attachment is missing or incomplete."))
         decode(nil)
         assert(file:flush(), gettext("Could not write the attachment."))
         require("ffi/util").fsyncOpenedFile(file)
