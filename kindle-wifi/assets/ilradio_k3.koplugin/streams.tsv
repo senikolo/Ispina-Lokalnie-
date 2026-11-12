@@ -16,6 +16,9 @@ Radio Nowy Świat	http://stream.rcs.revma.com/ypqt40u0x1zuv	MP3	128	Zewnętrzny 
 Radio Wnet	http://audio.radiownet.pl:8000/stream32	AAC	32	Oficjalny wariant oszczędny Wnet (na stronie: stream32)	2026-11-12		ADTS	
 Radio Wnet	http://audio.radiownet.pl:8000/stream64	AAC	64	Oficjalny wariant oszczędny Wnet (na stronie: stream64)	2026-11-12		ADTS	
 Radio Wnet	http://audio.radiownet.pl:8000/stream	MP3	160	Dotychczasowy katalog · dostawca nieustalony	2026-11-11T07:17:20+00:00	http://audio.radiownet.pl:8000/stream	MPEG Audio	160.00
+Polskie Radio Program 1	http://stream3.polskieradio.pl:8900/	MP3	192	Polskie Radio; zmierzone GitHub Actions; jednorazowe potwierdzenie wymagane	2026-11-12T14:57:31+00:00		MPEG Audio	192.00
+Polskie Radio Program 1	http://mp3.polskieradio.pl:8900/	MP3	192	Oficjalny alternatywny host PR1; potwierdzono ramki MP3 192	2026-11-12T14:57:38+00:00		MPEG Audio	192.00
+Polskie Radio Program 1	http://stream3.polskieradio.pl:8950/	AAC-LC	192	Polskie Radio; zmierzone AAC 191.5 kb/s; dekoder Kindle niepotwierdzony	2026-11-12T14:57:47+00:00		ADTS	191.50
 Radio Kraków	http://stream3.nadaje.com:9118/radiokrakow	MP3	96	Wariant Tarnów; program regionalny może się różnić; kandydat do testów Kindle				
 Radio Kraków	http://stream3.nadaje.com:9120/radiokrakow	MP3	96	Wariant Nowy Sącz; program regionalny może się różnić; kandydat do testów Kindle				
 Radio Kraków	http://stream3.nadaje.com:9116/radiokrakow	MP3	256	Zewnętrzny operator nadaje.com	2026-11-11T07:17:20+00:00	http://stream3.nadaje.com:9116/radiokrakow	MPEG Audio	256.00
@@ -58,3 +61,6 @@ SomaFM Lush	http://ice5.somafm.com/lush-64-aac	HE-AAC	64	Oficjalny SomaFM ice5; 
 SomaFM Lush	http://ice2.somafm.com/lush-64-aac	HE-AAC	64	Oficjalny SomaFM ice2; wariant bez TLS dla Kindle K3	2026-11-12		ADTS	
 SomaFM Lush	http://ice5.somafm.com/lush-128-mp3	MP3	128	Oficjalny SomaFM ice5; zapasowy MP3 bez TLS	2026-11-12		MPEG Audio	
 SomaFM Lush	http://ice2.somafm.com/lush-128-mp3	MP3	128	Oficjalny SomaFM ice2; zapasowy MP3 bez TLS	2026-11-12		MPEG Audio	
+1.FM Brazilian Birds	http://strm112.1.fm/brazilianbirds_mobile_mp3	MP3	256	1.FM; zmierzone 256 mimo etykiety mobile; wymaga jednorazowego potwierdzenia	2026-11-12T14:57:49+00:00		MPEG Audio	256.00
+1.FM Brazilian Birds	https://strm112.1.fm/brazilianbirds_mobile_mp3	MP3	256	1.FM TLS; zmierzone 256; może nie działać na starym Kindle	2026-11-12T14:57:49+00:00		MPEG Audio	256.00
+1.FM Brazilian Birds	https://strmreg.1.fm/brazilianbirds_mobile_mp3	MP3	256	1.FM zapasowy host TLS; zmierzone 256	2026-11-12T14:57:51+00:00		MPEG Audio	256.00
