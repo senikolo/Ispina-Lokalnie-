@@ -92,9 +92,9 @@ local function testAttachment(encoded, literal_size, structure_size)
 end
 local encoded_pdf="JVBERi0xLjQK" -- %PDF-1.4 followed by LF
 local bytes,err,data=testAttachment(encoded_pdf,#encoded_pdf,#encoded_pdf+2)
-assert(bytes==9 and data=="%PDF-1.4\\n", "BODYSTRUCTURE size mismatch should not reject a valid attachment: "..tostring(err))
+assert(bytes==9 and data=="%PDF-1.4\n", "BODYSTRUCTURE size mismatch should not reject a valid attachment: "..tostring(err))
 bytes,err,data=testAttachment(encoded_pdf,#encoded_pdf,#encoded_pdf)
-assert(bytes==9 and data=="%PDF-1.4\\n", "Normal attachment must still work: "..tostring(err))
+assert(bytes==9 and data=="%PDF-1.4\n", "Normal attachment must still work: "..tostring(err))
 bytes,err=testAttachment(encoded_pdf:sub(1,8),#encoded_pdf,#encoded_pdf)
 assert(bytes==nil and err, "A truncated FETCH literal must be rejected")
 
