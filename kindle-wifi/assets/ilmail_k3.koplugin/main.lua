@@ -106,7 +106,10 @@ local function ask(title, initial, on_save, secret, after_save)
                 -- Showing an InfoMessage over an open InputDialog can
                 -- cause an unexpected return to the reader on older K3 UI.
                 UIManager:close(dialog)
-                if after_save then notice(after_save) end
+                if type(after_save)=="function" then
+                    local callback_ok=pcall(after_save)
+                    if not callback_ok then notice("Nie udało się przejść do następnego kroku.") end
+                elseif after_save then notice(after_save) end
             end,
         }}},
     }
@@ -158,8 +161,7 @@ function Mail:login()
     ask("Hasło aplikacji do poczty (tylko na tę sesję)","",function(value)
         if #value<1 or #value>300 or value:find("[%c]") then return false end
         self.password=value
-        notice("Hasło jest przechowywane tylko w pamięci KOReadera. Nie zapisano go w ustawieniach.")
-    end,true)
+    end,true,"Hasło jest przechowywane tylko w pamięci KOReadera.")
 end
 function Mail:lock()
     self.password=nil
@@ -167,6 +169,7 @@ function Mail:lock()
     self.attachments={}
     self.current_uid=nil
     self.current=nil
+    self.scannedOnce=false
     notice("Poczta zablokowana. Hasło usunięto z bieżącej sesji.")
 end
 function Mail:forgetSaved()
@@ -176,49 +179,63 @@ function Mail:forgetSaved()
 end
 function Mail:remember()
     if not self.password or self.password=="" then
-        notice("Najpierw wybierz „Hasło na tę sesję” i wpisz hasło aplikacji.")
+        notice("Najpierw wpisz hasło aplikacji do poczty.")
         return
     end
-    local ok, Vault = pcall(dofile,plugin_dir.."/vault.lua")
+    local ok,Vault=pcall(dofile,plugin_dir.."/vault.lua")
     if not ok then
         notice("Brak zgodnego szyfrowania OpenSSL. Hasło nie zostanie zapisane.")
         return
     end
-    ask("Ustal PIN (4–8 cyfr), inny niż przykładowy 2282","",function(pin)
-        if not Vault.validPIN(pin) or pin == "2282" then
-            notice("Wybierz PIN inny niż 2282. Najlepiej użyj 6–8 cyfr.")
+    local candidate
+    ask("Ustal nowy PIN – dokładnie 4 cyfry","",function(pin)
+        if not Vault.validPIN(pin) or #pin~=4 or pin=="2282" then
+            notice("Wybierz własny czterocyfrowy PIN, inny niż 2282.")
             return false
         end
-        ask("Powtórz nowy PIN","",function(repeated)
-            if repeated~=pin then notice("PIN-y są różne.");return false end
-            local sealed,record=pcall(Vault.seal,self.password,pin)
-            if not sealed then notice("Nie można zaszyfrować hasła. Niczego nie zapisano.");return end
-            local verified,clear=pcall(Vault.open,record,pin)
+        candidate=pin
+        return true
+    end,true,function()
+        -- Open the second dialog only after the first has closed.
+        ask("Powtórz czterocyfrowy PIN","",function(repeated)
+            if repeated~=candidate then notice("PIN-y są różne.");return false end
+            local sealed,record=pcall(Vault.seal,self.password,candidate)
+            if not sealed then
+                notice("Nie można zaszyfrować hasła. Niczego nie zapisano.")
+                return false
+            end
+            local verified,clear=pcall(Vault.open,record,candidate)
             if not verified or clear~=self.password then
                 notice("Błąd weryfikacji szyfrowania. Niczego nie zapisano.")
-                return
+                return false
             end
             self.vault=record
             G_reader_settings:saveSetting("ilmail-k3-vault",record)
             G_reader_settings:flush()
             self.badPins=0
-            notice("Hasło aplikacji zaszyfrowano. Przy następnym uruchomieniu podaj PIN.")
-        end,true)
-    end,true)
+            candidate=nil
+            return true
+        end,true,"Hasło zapisano w postaci zaszyfrowanej. Od teraz używaj PIN-u.")
+    end)
 end
-function Mail:unlock()
-    if self.password then notice("Poczta jest już odblokowana.");return end
-    if not self.vault then notice("Nie zapisano hasła. Wybierz „Hasło na tę sesję”.");return end
+function Mail:unlock(on_success)
+    if self.password then
+        if on_success then on_success() else notice("Poczta jest już odblokowana.") end
+        return
+    end
+    if not self.vault then notice("Nie zapisano hasła. Otwórz Konto i połączenie.");return end
     if os.time() < self.lockedUntil then
         notice("Za dużo prób. Spróbuj ponownie później.")
         return
     end
-    local ok, Vault=pcall(dofile,plugin_dir.."/vault.lua")
-    if not ok then notice("Brak OpenSSL. Bez niego nie można odszyfrować hasła.");return end
-    ask("Odblokuj pocztę — PIN","",function(pin)
+    local ok,Vault=pcall(dofile,plugin_dir.."/vault.lua")
+    if not ok then notice("Brak OpenSSL. Nie można odszyfrować hasła.");return end
+    local unlocked=false
+    ask("Poczta – wprowadź czterocyfrowy PIN","",function(pin)
+        -- An existing saved 6-8 digit PIN still works after upgrading.
         if not Vault.validPIN(pin) then return false end
-        local clear,err=Vault.open(self.vault,pin)
-        if not clear then
+        local success,clear=pcall(Vault.open,self.vault,pin)
+        if not success or not clear then
             self.badPins=self.badPins+1
             if self.badPins>=3 then
                 self.badPins=0
@@ -232,8 +249,17 @@ function Mail:unlock()
         self.password=clear
         self.badPins=0
         self.lockedUntil=0
-        notice("Poczta odblokowana na czas tej sesji KOReadera.")
-    end,true)
+        unlocked=true
+        return true
+    end,true,function()
+        if unlocked then
+            if on_success then
+                on_success()
+            else
+                notice("Poczta odblokowana.")
+            end
+        end
+    end)
 end
 function Mail:removeSaved()
     if not self.vault then notice("Nie ma zapisanego hasła.");return end
@@ -495,4 +521,7 @@ function Mail:addToMainMenu(menu_items)
         }
     }
 end
+-- Keep the existing mail functions and menus; extend them with automatic
+-- EPUB/PDF discovery and user-controlled downloads on the Kindle.
+dofile(plugin_dir.."/auto.lua")(Mail)
 return Mail
