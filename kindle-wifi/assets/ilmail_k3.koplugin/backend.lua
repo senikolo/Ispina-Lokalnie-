@@ -10,7 +10,7 @@ local ok_lfs,lfs=pcall(require,"libs/libkoreader-lfs")
 if not ok_lfs then lfs=require("lfs") end
 
 local E={}
-local DEST="/mnt/us/documents"
+local DEST="/mnt/us/documents/Poczta"
 local MAX_TEXT=120000
 local MAX_ATTACHMENT=10*1024*1024
 -- LuaSocket's mime.b64 may return nil for an empty input. Empty optional
@@ -157,6 +157,46 @@ local function message(im,uid)
     local str=structure(im,uid)
     return h,str
 end
+-- Scan the most recent messages for EPUB/PDF without downloading their bodies.
+-- This is bounded for the K3: BODYSTRUCTURE metadata only, at most 20 messages.
+function E.scan(c,p)
+    return withImap(c,p,function(im)
+        local ids,seen={},{}
+        for _,line in ipairs(im:command("UID SEARCH ALL")) do
+            local words=line:match("^%* SEARCH(.*)")
+            if words then
+                for uid in words:gmatch("%d+") do
+                    if #uid<=12 and not seen[uid] then
+                        seen[uid]=true
+                        ids[#ids+1]=uid
+                    end
+                end
+            end
+        end
+        table.sort(ids,function(a,b) return tonumber(a)>tonumber(b) end)
+        local rows={}
+        local scanned,skipped=0,0
+        for i=1,math.min(#ids,20) do
+            local uid=ids[i]
+            scanned=scanned+1
+            local ok,h,str=pcall(message,im,uid)
+            if ok then
+                local files=filterAttachments(str)
+                for index,item in ipairs(files) do
+                    rows[#rows+1]=table.concat({
+                        "FILE",uid,index,b64(item.name),tostring(item.size),
+                        b64(h.from or ""),b64(h.subject or ""),tostring(im.validity)
+                    },"\t")
+                end
+            else
+                skipped=skipped+1
+            end
+        end
+        table.insert(rows,1,table.concat({"SCAN",scanned,skipped},"\t"))
+        return table.concat(rows,"\n")
+    end)
+end
+
 function E.read(c,p,uid)
     return withImap(c,p,function(im)
         local h,str=message(im,uid)
@@ -181,8 +221,15 @@ function E.read(c,p,uid)
     end)
 end
 local function chooseName(name)
+    assert(lfs.symlinkattributes("/mnt/us/documents","mode")=="directory",
+        "Nie znaleziono folderu dokumentów Kindle.")
     local st=lfs.symlinkattributes(DEST,"mode")
-    assert(st=="directory","Nie znaleziono folderu dokumentów.")
+    if not st then
+        local ok,err=lfs.mkdir(DEST)
+        assert(ok,"Nie można utworzyć folderu Poczta: "..tostring(err))
+        st=lfs.symlinkattributes(DEST,"mode")
+    end
+    assert(st=="directory","Folder Poczta nie jest zwykłym katalogiem.")
     name=MIME.safeFilename(name)
     assert(name:lower():match("%.epub$") or name:lower():match("%.pdf$"),"Nieobsługiwany załącznik.")
     local base,ext=name:match("^(.*)(%.[^.]+)$")
