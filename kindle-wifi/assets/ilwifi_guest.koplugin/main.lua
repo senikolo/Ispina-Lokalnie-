@@ -524,7 +524,7 @@ function Guest:local_test(address)
     cleanup_session(self.portal_session)
     self.portal_session=nil
     self.portal=nil
-    self.local_test=true
+    self.is_local_test=true
     self.portal_hint="http://"..gateway..":8765/"
     self:load_portal()
 end
@@ -554,7 +554,7 @@ end
 
 function Guest:check()
     if self.running then notice("Sprawdzanie sieci już trwa.", 5); return end
-    self.local_test=false
+    self.is_local_test=false
     self.running = true
     notice("Sprawdzam połączenie z Kindle'a…", 3)
     UIManager:scheduleIn(0.2, function()
@@ -696,7 +696,7 @@ function Guest:submit_portal(email)
                     if not answer then return "Nie wysłano: "..scrub(err,90) end
                     if answer.code>=400 then return "Serwer odrzucił formularz: HTTP "
                         ..tostring(answer.code)..". Nie potwierdzono dostępu." end
-                    if self.local_test then
+                    if self.is_local_test then
                         local gateway=self.portal_hint and
                             self.portal_hint:match("^http://([%d%.]+):8765/")
                         if not private_ip(gateway) then return "Nie ustalono lokalnego adresu testowego." end
