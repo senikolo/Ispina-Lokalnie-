@@ -16,7 +16,9 @@ local T = dofile(dir .. "/tuning.lua")
 local stations = dofile(dir .. "/stations.lua")
 local catalog = T.rows(dir .. "/streams.tsv")
 local PHONE_CONFIG = "/mnt/us/koreader/settings/ilradio-phone.tsv"
-local SPEECH = {["TOK FM"] = true, ["RMF 24"] = true, ["Polskie Radio 24"] = true}
+local SPEECH = {["TOK FM"] = true, ["RMF 24"] = true, ["Polskie Radio 24"] = true,
+    ["Radio Kraków"] = true, ["Radio RDC"] = true, ["Radio Wnet"] = true,
+    ["Radio Warszawa"] = true}
 local ERRORS = {
     network = "Brak połączenia z serwerem. Sprawdź Wi-Fi i dostęp do internetu.",
     tls = "Nie udało się bezpiecznie połączyć przez HTTPS. Sprawdź datę i certyfikaty Kindle’a.",
@@ -164,11 +166,23 @@ function ILRadio:init()
     -- Software gain is opt-in; normal mode preserves MPlayer's prior level.
     self.boost = tonumber(self.settings:readSetting("audio_softvol_max")) or 110
     if self.boost ~= 110 and self.boost ~= 140 and self.boost ~= 170 then self.boost = 110 end
-    self.radio = self.settings:readSetting("radio_quality") or {mode = "eco", codec = "auto", buffer = 128}
+    self.radio = self.settings:readSetting("radio_quality") or {
+        mode = "auto", codec = "auto", limit = 128, buffer = 128, minimum = true,
+    }
     self.working = self.settings:readSetting("radio_last_working") or {}
     self.decoded = self.settings:readSetting("radio_last_decoded") or {}
     self.show_volume_buttons = self.settings:readSetting("show_volume_buttons") ~= false
     self:read_phone_config()
+    -- Upgrade existing installations to ECO 128 once. Subsequent explicit
+    -- choices remain available, but the absolute ceiling stays at 128 kb/s.
+    if not self.settings:readSetting("radio_eco128_migrated") then
+        self.radio.mode = "auto"
+        self.radio.codec = "auto"
+        self.radio.limit = 128
+        self.radio.minimum = true
+        self.settings:saveSetting("radio_quality", self.radio)
+        self.settings:saveSetting("radio_eco128_migrated", true)
+    end
     self.volume_step = tonumber(self.settings:readSetting("volume_step")) or 5
     if self.volume_step ~= 2 and self.volume_step ~= 5 and self.volume_step ~= 10 then self.volume_step = 5 end
     self.last_station_name = self.settings:readSetting("last_station_name")
@@ -238,6 +252,7 @@ function ILRadio:finish_radio()
     local job = self.job
     if not job then return end
     local higher = job.higher or job.http_fallback
+    if higher and not T.hard_allowed(higher) then higher = nil end
     -- Older Kindle 3 decoders may reject every low-bitrate HE-AAC stream.
     -- Offer a known MP3 source instead of leaving the station silent.
     -- Never exceed the chosen data limit without an explicit confirmation.
@@ -247,7 +262,7 @@ function ILRadio:finish_radio()
     }
     if not higher and needs_compatibility[job.reason or "unconfirmed"] then
         for _, candidate in ipairs(job.variants or {}) do
-            if candidate.codec == "MP3" and candidate.kbps and candidate.kbps > 0
+            if candidate.codec == "MP3" and T.hard_allowed(candidate)
                 and not T.allowed(self.radio, candidate)
                 and (not higher or candidate.kbps < higher.kbps) then
                 higher = candidate
@@ -334,7 +349,7 @@ end
 
 function ILRadio:accept_probe(stream)
     local job = self.job
-    if job.approved or T.allowed(self.radio, stream) then
+    if T.hard_allowed(stream) and (job.approved or T.allowed(self.radio, stream)) then
         job.ready = stream
         self:start_radio_variant(stream)
     else
@@ -388,14 +403,8 @@ function ILRadio:check_probe()
             stream.kbps = kbps
             self:accept_probe(stream)
             return
-        elseif job.approved or T.cap(self.radio, stream.codec) == math.huge then
-            stream.live_final = not redirect_unknown and final or nil
-            stream.redirect_unknown = redirect_unknown
-            stream.play_url = final:find("rj%-tok=") and stream.url or final
-            stream.live_container = hls and "HLS" or nil
-            self:accept_probe(stream)
-            return
         end
+        -- Unknown bitrate is not safe under a strict 128 kb/s ceiling.
         if hls then
             offer_higher(job, stream)
             self:continue_radio("limit")
@@ -413,7 +422,7 @@ function ILRadio:check_probe()
             and shell_call("probe", "mplayer") == "mplayer" then
             stream.native_direct_tried = true
             stream.play_url = stream.url
-            if T.allowed(self.radio, stream) or job.approved then
+            if T.hard_allowed(stream) and (T.allowed(self.radio, stream) or job.approved) then
                 self:accept_probe(stream)
             else
                 -- Exceeding the chosen data limit still needs explicit consent.
@@ -445,7 +454,7 @@ function ILRadio:advance_radio()
     if not stream then self:finish_radio(); return end
     job.active = stream
     job.engine_index = 1
-    if job.direct and stream.url:match("^http://") then
+    if job.direct and T.hard_allowed(stream) and stream.url:match("^http://") then
         self:accept_probe(stream)
         return
     end
@@ -462,15 +471,13 @@ function ILRadio:advance_radio()
             and shell_call("probe", "mplayer") == "mplayer" then
             stream.native_direct_tried = true
             stream.play_url = stream.url
-            if T.allowed(self.radio, stream) or job.approved then
+            if T.hard_allowed(stream) and (T.allowed(self.radio, stream) or job.approved) then
                 self:accept_probe(stream)
             else
                 stream.direct = true
                 offer_higher(job, stream)
                 self:continue_radio("limit")
             end
-        elseif job.approved or T.cap(self.radio, stream.codec) == math.huge then
-            self:accept_probe(stream)
         else
             self:continue_radio("transport")
         end
@@ -695,6 +702,13 @@ end
 function ILRadio:play_station(station, approved_url, direct)
     self:read_phone_config()
     local variants = T.variants(station, catalog, self.custom)
+    -- Reject known high-bitrate streams before contacting the server.
+    -- Unknown variants must pass a probe with a safe measured bitrate.
+    local bounded = {}
+    for _, stream in ipairs(variants) do
+        if not stream.kbps or T.hard_allowed(stream) then bounded[#bounded + 1] = stream end
+    end
+    variants = bounded
     local http_only = shell_call("radio-transport") == "http-only"
     if http_only then
         for i = #variants, 1, -1 do
@@ -1088,12 +1102,12 @@ end
 function ILRadio:play_compatible_mp3(station)
     local available = {}
     for _, stream in ipairs(T.variants(station, catalog, self.custom)) do
-        if known_http_mp3(stream) then available[#available + 1] = stream end
+        if known_http_mp3(stream) and T.hard_allowed(stream) then available[#available + 1] = stream end
     end
     table.sort(available, function(a, b) return a.kbps < b.kbps end)
     local stream = available[1]
     if not stream then
-        self:notice("Ta stacja nie ma znanego strumienia MP3 przez HTTP.", 7)
+        self:notice("Brak zgodnego strumienia MP3 do 128 kb/s przez HTTP.", 7)
         return
     end
     if shell_call("probe", "mplayer") ~= "mplayer" then
@@ -1299,10 +1313,10 @@ function ILRadio:radio_menu()
                         self:notice("Wzmocnienie 170% może przesterować dźwięk. Zacznij od niskiej głośności i uruchom ponownie odtwarzanie.") end },
             } },
             { text = "Tryb jakości", sub_item_table_func = function() return self:quality_options("mode", T.modes) end },
-            { text = "Maksymalny bitrate", sub_item_table_func = function()
-                local options = {{false, "Według trybu"}}
+            { text = "Maksymalny bitrate (twardy limit 128 kb/s)", sub_item_table_func = function()
+                local options = {{false, "Według trybu (maks. 128 kb/s)"}}
                 for _, value in ipairs(T.limits) do
-                    options[#options + 1] = {value, value == 0 and "Bez limitu trybu Auto / Wysoka" or (value .. " kb/s")}
+                    options[#options + 1] = {value, value .. " kb/s"}
                 end
                 return self:quality_options("limit", options)
             end },

@@ -96,6 +96,18 @@ plugin:addToMainMenu(menu)
 assert(menu.ilradio_k3 and menu.ilradio_k3.sorting_hint == "more_tools")
 local catalog = dofile(source .. "/stations.lua")
 local T = dofile(source .. "/tuning.lua")
+-- ECO 128: cover both user overrides and absent bitrate metadata.
+assert(T.hard_limit == 128)
+assert(T.cap({mode="high", limit=0}, "MP3") == 128)
+assert(T.cap({mode="auto", limit=256}, "MP3") == 128)
+assert(T.cap({mode="auto", limit=32}, "AAC") == 32)
+assert(T.allowed({mode="high", limit=0}, {codec="MP3",kbps=128}))
+assert(not T.allowed({mode="high", limit=0}, {codec="MP3",kbps=256}))
+assert(not T.allowed({mode="high", limit=0}, {codec="MP3"}))
+assert(not T.hard_allowed({kbps=129}))
+assert(data.radio_eco128_migrated and plugin.radio.mode=="auto"
+    and plugin.radio.minimum and plugin.radio.limit==128)
+
 assert(T.probeFailure("200", 1) == "unconfirmed", "HTTP 200 + generic probe error is not a rejected address")
 assert(T.probeFailure("000", 1) == "unconfirmed")
 assert(T.probeFailure("404", 22) == "address")
