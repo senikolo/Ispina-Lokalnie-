@@ -94,7 +94,6 @@ input.buttons[1][2].callback()
 assert(shown[#shown].kind=="confirm")
 shown[#shown].ok_callback()
 assert(shown[#shown].text:find("TEST OK",1,true))
-assert(calls[#calls-1].body:find("test%%40example") == nil)
 assert(calls[#calls-1].body:find("test%40example.org",1,true))
 os.execute=original_execute
 print("PASS: Kindle local Android hotspot portal, consent, e-mail form, no public IP")
