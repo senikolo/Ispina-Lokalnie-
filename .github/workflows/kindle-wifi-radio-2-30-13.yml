@@ -1,4 +1,4 @@
-name: Kindle Radio 2.30.14 - tests and signed APK
+name: Kindle Radio 2.30.15 - tests and signed APK
 on:
   push:
     branches:
@@ -10,7 +10,7 @@ on:
 permissions:
   contents: read
 concurrency:
-  group: kindle-radio-2-30-14
+  group: kindle-radio-2-30-15
   cancel-in-progress: true
 jobs:
   test-and-build:
@@ -45,6 +45,7 @@ jobs:
           lua5.3 tests/tuning-test.lua assets/ilradio_k3.koplugin
           lua5.3 tests/somafm-catalog-test.lua
           lua5.3 tests/high-bitrate-stations-test.lua
+          lua5.3 tests/low-mp3-stations-test.lua
           lua5.3 tests/radio-menu-test.lua assets/ilradio_k3.koplugin modern
           lua5.3 tests/radio-menu-test.lua assets/ilradio_k3.koplugin legacy
           bash tests/run-radio-tests.sh
@@ -55,19 +56,20 @@ jobs:
           set -euo pipefail
           gradle --no-daemon -ParmOnly assembleMailTest
           mkdir -p ../build-artifacts
-          cp build/outputs/apk/mailTest/*.apk ../build-artifacts/Kindle-przez-WiFi-Radio-2.30.14-TEST.apk
-          apk=../build-artifacts/Kindle-przez-WiFi-Radio-2.30.14-TEST.apk
+          cp build/outputs/apk/mailTest/*.apk ../build-artifacts/Kindle-przez-WiFi-Radio-2.30.15-TEST.apk
+          apk=../build-artifacts/Kindle-przez-WiFi-Radio-2.30.15-TEST.apk
           test "$(stat -c %s "$apk")" -lt 30000000
           "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --print-certs "$apk"
           "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$apk" | head -n 3
           unzip -l "$apk" | grep -F 'assets/ilradio_k3.koplugin/main.lua'
           unzip -l "$apk" | grep -F 'assets/ilradio_k3.koplugin/streams.tsv'
+          unzip -p "$apk" assets/ilradio_k3.koplugin/stations.lua | grep -F 'Radio Pasja'
           sha256sum "$apk"
       - uses: actions/upload-artifact@v4
         if: success()
         with:
-          name: Kindle-Radio-2.30.14-TEST-signed
-          path: build-artifacts/Kindle-przez-WiFi-Radio-2.30.14-TEST.apk
+          name: Kindle-Radio-2.30.15-TEST-signed
+          path: build-artifacts/Kindle-przez-WiFi-Radio-2.30.15-TEST.apk
           compression-level: 0
           retention-days: 7
           if-no-files-found: error
