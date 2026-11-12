@@ -6,7 +6,8 @@ local MIME=dofile(base.."/mail.lua")
 local socket=require("socket")
 local ssl=require("ssl")
 local mime=require("mime")
-local lfs=require("libs/libkoreader-lfs")
+local ok_lfs,lfs=pcall(require,"libs/libkoreader-lfs")
+if not ok_lfs then lfs=require("lfs") end
 
 local E={}
 local DEST="/mnt/us/documents"
