@@ -1,4 +1,4 @@
--- Offline regression tests for IL Wi-Fi Gość v1.1: no real network or logins.
+-- Offline regression tests for IL Wi-Fi Gość v1.2: no real network or logins.
 local source = "assets/ilwifi_guest.koplugin/main.lua"
 local shown, registered = {}, nil
 package.preload["ui/widget/container/widgetcontainer"] = function()
@@ -9,6 +9,12 @@ package.preload["ui/uimanager"] = function()
         show=function(_, item) shown[#shown+1] = item end,
         scheduleIn=function(_, _, callback) callback() end,
     }
+end
+package.preload["ui/widget/confirmbox"] = function()
+    return {new=function(_,item)return item end}
+end
+package.preload["ui/widget/inputdialog"] = function()
+    return {new=function(_,item)return item end}
 end
 package.preload["ui/widget/infomessage"] = function()
     return {new=function(_, item) return item end}
@@ -92,8 +98,10 @@ local menu={}
 plugin:addToMainMenu(menu)
 assert(menu.ilwifi_guest and menu.ilwifi_guest.sorting_hint=="more_tools")
 local actions=menu.ilwifi_guest.sub_item_table
-assert(#actions==4 and actions[1].text=="Sprawdź Wi-Fi i portal"
-    and actions[2].text=="Ponów test" and actions[3].text=="Ostatni raport")
+assert(#actions==8 and actions[1].text=="Sprawdź Wi-Fi i portal"
+    and actions[2].text=="Ponów test" and actions[3].text=="Otwórz portal w KOReaderze"
+    and actions[4].text=="Pokaż treść portalu" and actions[5].text=="Połącz jako gość"
+    and actions[6].text=="Podaj e-mail" and actions[7].text=="Ostatni raport")
 
 set({code=204,body=""}, {code=200,body="Microsoft Connect Test"}, {code=204,body=""})
 queries={}
@@ -119,8 +127,8 @@ set({code=302,headers={Location="http://train.example/guest?auth=not-for-log"}},
     {code=200,body="<html>Sign in</html>"}, {code=302})
 actions[2].callback()
 assert(shown[#shown].text:find("Portal: prawdopodobny",1,true))
-assert(shown[#shown].text:find("neverssl.com",1,true))
+assert(shown[#shown].text:find("Otwórz portal w KOReaderze",1,true))
 assert(not shown[#shown].text:find("not-for-log",1,true))
 
 os.execute = execute
-print("PASS: Wi-Fi guest v1.1: internet, DNS/timeout, fallback, portal, retry, safe diagnostics")
+print("PASS: Wi-Fi guest v1.2: internet, DNS/timeout, fallback, portal, retry, safe diagnostics")
