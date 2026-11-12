@@ -48,7 +48,13 @@ jobs:
             uid=st.get("stationuuid") or url
             if uid not in unique or st.get("votes",0)>unique[uid].get("votes",0):unique[uid]=st
           selected=sorted(unique.values(),key=lambda v:v.get("votes",0),reverse=True)
+          with open("stations-candidates.json","w") as f: json.dump(selected,f,ensure_ascii=False,indent=2)
           print("CANDIDATES_TOTAL",len(selected),flush=True)
           for st in selected[:180]:
             print("CANDIDATE", json.dumps({k:st.get(k) for k in ("name","bitrate","codec","votes","countrycode","tags","url","url_resolved","lastcheckok","lastchecktime")},ensure_ascii=False),flush=True)
           PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Kindle-64kbps-MP3-Candidates
+          path: stations-candidates.json
+          retention-days: 2
