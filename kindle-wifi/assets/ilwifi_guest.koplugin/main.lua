@@ -317,7 +317,8 @@ local function parse_form(html, page_url)
         return nil, "Nie udało się odczytać strony portalu."
     end
     local lower = html:lower()
-    local a, b = lower:find("<form[%s>][^>]*>")
+    local a, b = lower:find("<form[%s>]")
+    if a then b = lower:find(">", b, true) end
     if not a then
         -- A visible guest link can be submitted only on explicit user request.
         local pos = 1
@@ -348,7 +349,8 @@ local function parse_form(html, page_url)
     local form = {url=target, method=meth, fields={}, label="Dostęp jako gość"}
     local pos, inputs = b + 1, 0
     while true do
-        local x, y = lower:find("<input[%s>][^>]*>", pos)
+        local x, y = lower:find("<input[%s>]", pos)
+        if x then y = lower:find(">", y, true) end
         if not x or x >= close then break end
         inputs = inputs + 1
         if inputs > 25 then return nil, "Formularz jest zbyt rozbudowany." end
@@ -639,6 +641,8 @@ function Guest:submit_portal(email)
                         .."). Sprawdź teraz dostęp przyciskiem „Ponów test”."
                 end)
                 self.running=false
+                cleanup_session(self.portal_session)
+                self.portal_session=nil
                 notice(ok and result or "Nie udało się wysłać formularza.",20)
             end)
         end,
