@@ -322,7 +322,8 @@ function ILRadio:start_radio_variant(stream)
     if not engine or job.starts >= 8 then self:continue_radio(job.reason or "engine"); return end
     job.starts = job.starts + 1
     local uri = stream.play_url or stream.url
-    local result = shell_call("start", uri, engine, self.volume, "", 0, tonumber(self.radio.buffer) or 128, codec or "", job.station[1], "", self.boost)
+    local cache = math.max(tonumber(self.radio.buffer) or 128, job.reconnect_cache or 0)
+    local result = shell_call("start", uri, engine, self.volume, "", 0, cache, codec or "", job.station[1], "", self.boost)
     if not result:match("^starting:") then
         job.engine_index = job.engine_index + 1
         self:continue_radio("engine")
@@ -503,6 +504,11 @@ function ILRadio:monitor_radio()
         if item.established and (item.stable or 0) >= 3 and not job.reconnecting then
             -- New bounded budget after an established session, with one retry of the last source.
             job.starts, job.reconnecting, job.engine_index = 0, true, 1
+            -- An established radio stream that drops may be a Wi-Fi underrun.
+            -- Retry with the maximum existing buffer (256 KiB), without
+            -- raising bitrate or changing persisted user settings.
+            if reason == "buffer" or reason == "network" or reason == "ended"
+                or reason == "playback" then job.reconnect_cache = 256 end
             local ranked = T.rank(self.radio, T.variants(job.station, catalog, self.custom),
                 item.stream.url, SPEECH[item.name])
             job.variants = {item.stream}

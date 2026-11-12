@@ -116,7 +116,7 @@ assert(T.probeFailure("503", 22) == "server")
 assert(T.probeFailure("429", 22) == "server")
 assert(T.probeFailure("302", 1) == "transport")
 assert(T.probeFailure("200", 28) == "buffer")
-assert(#catalog == 29, "Expected 29 stations including Chillizet and FluxFM Chillout")
+assert(#catalog == 33, "Expected 33 stations including four SomaFM channels")
 local function menu_item(items, title)
     for _, item in ipairs(items) do
         if item.text == title then return item end
@@ -179,6 +179,27 @@ plugin.radio_tick()
 assert(plugin.current.evidence == "decoded" and not data.radio_last_working)
 plugin:confirm_sound()
 assert(data.radio_last_working["RMF FM"] == plugin.current.stream.url)
+-- A stream heard for a while can lose Wi-Fi after several minutes.
+-- Restore playback without changing saved bitrate or buffer settings.
+plugin.radio_tick()
+plugin.radio_tick()
+assert(plugin.current.established, "Expected a proven playing radio session")
+local persisted_buffer = plugin.radio.buffer
+evidence = "failed:buffer"
+plugin.radio_tick()
+assert(plugin.job and plugin.job.reconnect_cache == 256
+    and scheduled[plugin.retry_tick], "A proven stream must retry with a deeper cache")
+local before_retry = #calls
+evidence = "pending"
+plugin.retry_tick()
+settle()
+assert(plugin.current and plugin.radio.buffer == persisted_buffer)
+local deeper = false
+for i = before_retry + 1, #calls do
+    if calls[i]:find("'start'", 1, true) and calls[i]:find("'256'", 1, true) then deeper = true end
+end
+assert(deeper, "Recovered radio must actually pass a 256 KiB cache to the player")
+evidence = "decoded"
 
 local options = menu_item(plugin:radio_menu(), "Ustawienia radia").sub_item_table
 local gain = assert(menu_item(options, "Wzmocnienie dźwięku (MPlayer)"))
