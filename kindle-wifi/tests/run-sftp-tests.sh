@@ -30,7 +30,7 @@ curl --retry 3 -fsSL https://repo.maven.apache.org/maven2/com/github/mwiede/jsch
 cp="$fixture/classes:$fixture/jsch.jar:$ANDROID_HOME/platforms/android-35/android.jar"
 src=src/pl/ispinalokalnie/kindlewifi
 javac -encoding UTF-8 -cp "$cp" -d "$fixture/classes" \
-    "$src"/{AudioFiles,BialolekaForecast,CompanionFiles,KindleTools,RadioInstaller,RemoteFiles,VerifiedTransfer}.java \
+    "$src"/{AudioFiles,BoundedInput,CompanionFiles,KindleTools,RadioInstaller,RemoteFiles,VerifiedTransfer}.java \
     tests/{AudioSftpTest,RemoteFilesTest,TransferTest}.java
 java -cp "$cp" TransferTest "$fixture"
 java -cp "$cp" RemoteFilesTest "$fixture"
