@@ -1085,11 +1085,14 @@ public final class MainActivity extends Activity {
                         panel.show("Zamknij", null, null, null);
                         return;
                     }
-                    boolean weatherRefresh = working.startsWith("Aktualizuję pogodę");
+                    boolean weatherRefresh = working.startsWith("Aktualizuję pogodę")
+                            || error instanceof BialolekaForecast.ForecastException;
                     String message;
                     if (weatherRefresh) {
                         if (error instanceof JSchException || error instanceof SftpException) {
                             message = "Prognoza mogła zostać pobrana, ale nie udało się jej przesłać na Kindle. Sprawdź serwer SSH.";
+                        } else if (error instanceof BialolekaForecast.ForecastException) {
+                            message = "Nie udało się odebrać poprawnej prognozy. " + error.getMessage();
                         } else if (error.getMessage() != null &&
                                 (error.getMessage().contains("pogody") || error.getMessage().contains("prognozy"))) {
                             message = error.getMessage();
