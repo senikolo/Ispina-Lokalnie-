@@ -34,6 +34,10 @@ jobs:
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y lua5.3 lua-socket lua-sec lua-filesystem ffmpeg
+      - name: Informational audit of potential new public radio streams
+        continue-on-error: true
+        working-directory: kindle-wifi
+        run: bash tests/audit-new-station-streams.sh
       - name: Static checks for bundled Lua plugin
         working-directory: kindle-wifi
         run: |
