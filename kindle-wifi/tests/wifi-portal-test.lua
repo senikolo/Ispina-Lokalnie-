@@ -110,13 +110,13 @@ actions[1].callback()
 assert(plugin.portal_hint==tokenized, "Token preserved only in RAM")
 assert(shown[#shown].text:find("Otwórz portal w KOReaderze",1,true))
 assert(not shown[#shown].text:find("session=secret",1,true),"Do not reveal token in report")
-actions[3].callback()
+actions[5].callback()
 assert(plugin.portal and plugin.portal.host=="portal.train" and plugin.portal.form)
 assert(shown[#shown].text:find("Możliwy dostęp jako gość",1,true))
-actions[4].callback()
+actions[6].callback()
 assert(shown[#shown].kind=="viewer" and shown[#shown].text:find("Wi-Fi dla pasażerów",1,true))
 local total=#calls
-actions[5].callback()
+actions[7].callback()
 local confirm=shown[#shown]
 assert(confirm.kind=="confirm" and confirm.ok_text=="Akceptuję i łączę")
 assert(#calls==total,"No submission without explicit acceptance")
@@ -130,9 +130,9 @@ assert(not calls[#calls].payload:find("session=secret",1,true))
 
 -- Email portal: user types into InputDialog and separately confirms network terms.
 route(tokenized,"GET",{code=200,body=email_page})
-actions[3].callback()
+actions[5].callback()
 assert(plugin.portal and plugin.portal.form.email_field=="email")
-actions[6].callback()
+actions[8].callback()
 local input=shown[#shown]
 assert(input.kind=="input" and input.input_type=="text")
 input.user_input="guest@example.com"
@@ -147,4 +147,4 @@ assert(calls[#calls].payload:find("guest%40example.com",1,true))
 assert(not shown[#shown].text:find("Internet: dostępny",1,true))
 
 os.execute=execute
-print("PASS: Wi-Fi guest 1.2: guest/login HTML, consent, email, privacy, unsupported JS")
+print("PASS: Wi-Fi guest 1.3: guest/login HTML, consent, email, privacy, unsupported JS")
