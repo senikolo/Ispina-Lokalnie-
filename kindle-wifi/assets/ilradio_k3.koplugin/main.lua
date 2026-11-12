@@ -238,6 +238,22 @@ function ILRadio:finish_radio()
     local job = self.job
     if not job then return end
     local higher = job.higher or job.http_fallback
+    -- Older Kindle 3 decoders may reject every low-bitrate HE-AAC stream.
+    -- Offer a known MP3 source instead of leaving the station silent.
+    -- Never exceed the chosen data limit without an explicit confirmation.
+    local needs_compatibility = {
+        codec = true, engine = true, playback = true, ended = true,
+        buffer = true, limit = true, unconfirmed = true,
+    }
+    if not higher and needs_compatibility[job.reason or "unconfirmed"] then
+        for _, candidate in ipairs(job.variants or {}) do
+            if candidate.codec == "MP3" and candidate.kbps and candidate.kbps > 0
+                and not T.allowed(self.radio, candidate)
+                and (not higher or candidate.kbps < higher.kbps) then
+                higher = candidate
+            end
+        end
+    end
     local message = ERRORS[job.reason] or ERRORS.unconfirmed
     self:radio_result(job.reason or "unconfirmed")
     if not self:stop() then return end
