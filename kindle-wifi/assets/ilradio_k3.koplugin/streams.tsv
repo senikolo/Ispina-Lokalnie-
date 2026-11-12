@@ -42,3 +42,19 @@ Radio RAM	http://stream4.nadaje.com:9220/ram	MP3	128	Zewnętrzny operator nadaje
 Radio RAM	http://stream2.nadaje.com:9228/ram.aac	AAC-LC	64	Zewnętrzny operator nadaje.com	2026-11-11T07:17:20+00:00	http://stream2.nadaje.com:9228/ram.aac	ADTS	63.47
 ESKA Warszawa	http://waw.ic.smcdn.pl/2380-1.mp3	MP3	128	CDN grupy ZPR Media	2026-11-11T07:17:20+00:00	http://ic2.smcdn.pl/2380-1.mp3	MPEG Audio	128.00
 ESKA ROCK	http://ic2.smcdn.pl/5380-2.aac	HE-AAC	48	CDN grupy ZPR Media	2026-11-11T07:17:20+00:00	http://ic2.smcdn.pl/5380-2.aac	ADTS	47.86
+SomaFM Groove Salad	http://ice5.somafm.com/groovesalad-64-aac	HE-AAC	64	Oficjalny SomaFM ice5; wariant bez TLS dla Kindle K3	2026-11-12		ADTS	
+SomaFM Groove Salad	http://ice2.somafm.com/groovesalad-64-aac	HE-AAC	64	Oficjalny SomaFM ice2; wariant bez TLS dla Kindle K3	2026-11-12		ADTS	
+SomaFM Groove Salad	http://ice5.somafm.com/groovesalad-128-mp3	MP3	128	Oficjalny SomaFM ice5; zapasowy MP3 bez TLS	2026-11-12		MPEG Audio	
+SomaFM Groove Salad	http://ice2.somafm.com/groovesalad-128-mp3	MP3	128	Oficjalny SomaFM ice2; zapasowy MP3 bez TLS	2026-11-12		MPEG Audio	
+SomaFM Drone Zone	http://ice5.somafm.com/dronezone-64-aac	HE-AAC	64	Oficjalny SomaFM ice5; wariant bez TLS dla Kindle K3	2026-11-12		ADTS	
+SomaFM Drone Zone	http://ice6.somafm.com/dronezone-64-aac	HE-AAC	64	Oficjalny SomaFM ice6; wariant bez TLS dla Kindle K3	2026-11-12		ADTS	
+SomaFM Drone Zone	http://ice5.somafm.com/dronezone-128-mp3	MP3	128	Oficjalny SomaFM ice5; zapasowy MP3 bez TLS	2026-11-12		MPEG Audio	
+SomaFM Drone Zone	http://ice6.somafm.com/dronezone-128-mp3	MP3	128	Oficjalny SomaFM ice6; zapasowy MP3 bez TLS	2026-11-12		MPEG Audio	
+SomaFM Deep Space One	http://ice5.somafm.com/deepspaceone-64-aac	HE-AAC	64	Oficjalny SomaFM ice5; wariant bez TLS dla Kindle K3	2026-11-12		ADTS	
+SomaFM Deep Space One	http://ice6.somafm.com/deepspaceone-64-aac	HE-AAC	64	Oficjalny SomaFM ice6; wariant bez TLS dla Kindle K3	2026-11-12		ADTS	
+SomaFM Deep Space One	http://ice5.somafm.com/deepspaceone-128-mp3	MP3	128	Oficjalny SomaFM ice5; zapasowy MP3 bez TLS	2026-11-12		MPEG Audio	
+SomaFM Deep Space One	http://ice6.somafm.com/deepspaceone-128-mp3	MP3	128	Oficjalny SomaFM ice6; zapasowy MP3 bez TLS	2026-11-12		MPEG Audio	
+SomaFM Lush	http://ice5.somafm.com/lush-64-aac	HE-AAC	64	Oficjalny SomaFM ice5; wariant bez TLS dla Kindle K3	2026-11-12		ADTS	
+SomaFM Lush	http://ice2.somafm.com/lush-64-aac	HE-AAC	64	Oficjalny SomaFM ice2; wariant bez TLS dla Kindle K3	2026-11-12		ADTS	
+SomaFM Lush	http://ice5.somafm.com/lush-128-mp3	MP3	128	Oficjalny SomaFM ice5; zapasowy MP3 bez TLS	2026-11-12		MPEG Audio	
+SomaFM Lush	http://ice2.somafm.com/lush-128-mp3	MP3	128	Oficjalny SomaFM ice2; zapasowy MP3 bez TLS	2026-11-12		MPEG Audio	
