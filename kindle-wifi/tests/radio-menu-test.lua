@@ -120,7 +120,7 @@ assert(T.probeFailure("503", 22) == "server")
 assert(T.probeFailure("429", 22) == "server")
 assert(T.probeFailure("302", 1) == "transport")
 assert(T.probeFailure("200", 28) == "buffer")
-assert(#catalog == 33, "Expected 33 stations including four SomaFM channels")
+assert(#catalog == 35, "Expected 35 stations including PR1 and Brazilian Birds")
 local function menu_item(items, title)
     for _, item in ipairs(items) do
         if item.text == title then return item end
@@ -129,6 +129,31 @@ end
 local radio_menu = plugin:radio_menu()
 local groups = assert(menu_item(radio_menu, "Stacje radiowe")).sub_item_table
 assert(#groups == 4 and not menu_item(groups, "Polskie Radio"))
+-- The new high-rate stations need explicit confirmation on every launch.
+local function find_named_station(category, wanted)
+    for _, item in ipairs(plugin:station_menu(category)) do
+        if item.text_func and item.text_func() == wanted then return item end
+    end
+end
+for _, row in ipairs({
+    {"Popularne", "Polskie Radio Program 1", 192},
+    {"Muzyczne", "1.FM Brazilian Birds", 256},
+}) do
+    local item = assert(find_named_station(row[1], row[2]), "Missing station " .. row[2])
+    local high = assert(menu_item(item.sub_item_table, "Słuchaj mimo limitu (" .. row[3] .. " kb/s)"))
+    item.sub_item_table[1].callback()
+    assert(not plugin.job and messages[#messages]:find("mimo limitu", 1, true),
+        "Ordinary play must remain blocked by ECO128")
+    high.callback()
+    local confirm = messages[#messages]
+    assert(confirm.kind == "radio-error" and confirm.ok_text == "Słuchaj " .. row[3] .. " kb/s")
+    assert(not plugin.job, "The high-rate stream must not start before confirmation")
+    confirm.ok_callback()
+    assert(plugin.job and plugin.job.high_ceiling == row[3] and #plugin.job.variants >= 2,
+        "Confirmed playback must allow this station's real sources")
+    plugin:stop()
+end
+
 local player_menu = assert(menu_item(radio_menu, "Odtwarzacz MP3 i audiobooki")).sub_item_table
 assert(menu_item(player_menu, "Moja muzyka") and menu_item(player_menu, "Moje audiobooki"))
 assert(not menu_item(player_menu, "Odtwarzaj / pauza"))
