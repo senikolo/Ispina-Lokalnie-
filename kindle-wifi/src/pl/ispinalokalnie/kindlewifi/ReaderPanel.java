@@ -183,7 +183,7 @@ final class ReaderPanel {
         if (attrs == null) return null;
         if (!attrs.isReg() || attrs.getSize() > 32768) throw new IOException("Plik panelu jest nieprawidłowy.");
         try (InputStream input = sftp.get(path)) {
-            return new String(BialolekaForecast.readBounded(input, 32768), StandardCharsets.UTF_8);
+            return new String(BoundedInput.read(input, 32768), StandardCharsets.UTF_8);
         }
     }
 
