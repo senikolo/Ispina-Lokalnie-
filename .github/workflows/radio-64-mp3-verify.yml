@@ -1,0 +1,76 @@
+name: Verify 64 kbps MP3 candidate audio frames
+on:
+  push:
+    branches: [feat/kindle-somafm-stream-stability-20261112]
+    paths: ['.github/workflows/radio-64-mp3-verify.yml']
+  workflow_dispatch:
+permissions:
+  actions: read
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: Kindle-64kbps-MP3-Candidates
+          run-id: 43250405436
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Install audio probe
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq ffmpeg >/dev/null
+      - name: Verify MP3 actual frames and bitrates
+        run: |
+          python3 - <<'PY'
+          import json, subprocess, concurrent.futures, os, tempfile, re, csv
+          stations=json.load(open("stations-candidates.json"))
+          picks=[0,2,5,8,10,25,39,50,54,62,71,76,120,125,126,132,134,
+            140,149,154,155,160,163,165,168,170,171,179,180,183,196,
+            202,204,207,208,213,218,222,226,238,239,242,246,254,261,
+            266,267,271,273,278,288,289,308,309,312,314,321,323,340,
+            346,349,366,382,384,402,405,409,413,415,416,474,475,476,
+            487,493,500,501,517,528,529,530,531]
+          def probe(index):
+            s=stations[index]
+            url=s.get("url_resolved") or s.get("url")
+            with tempfile.TemporaryDirectory(prefix="radiok3") as folder:
+              dest=os.path.join(folder,"sample.mp3")
+              hdr=os.path.join(folder,"headers.txt")
+              cmd=["curl","-sSL","--http0.9","--max-time","5","--connect-timeout","3",
+                "-r","0-64000","-D",hdr,"-o",dest,"-A","MPlayer/1.4",url]
+              try:
+                c=subprocess.run(cmd,capture_output=True,text=True,timeout=8)
+                sz=os.path.getsize(dest) if os.path.exists(dest) else 0
+                headers=open(hdr,errors="replace").read().lower() if os.path.exists(hdr) else ""
+                icy=re.findall(r"(?m)^icy-br:\\s*(\\d+)",headers)
+                if sz<10000:return index,s,0,0,sz,c.returncode,"small/no stream"
+                a=subprocess.run(["ffprobe","-v","error","-f","mp3","-probesize","64000","-analyzeduration","1000000","-show_entries","stream=codec_name,bit_rate:format=bit_rate","-of","json",dest],capture_output=True,text=True,timeout=8)
+                if a.returncode:return index,s,0,icy[-1] if icy else 0,sz,c.returncode,"ffprobe failed"
+                j=json.loads(a.stdout)
+                streams=j.get("streams",[])
+                codec=streams[0].get("codec_name") if streams else "none"
+                bit=int(streams[0].get("bit_rate") or j.get("format",{}).get("bit_rate") or 0)//1000
+                return index,s,bit,icy[-1] if icy else 0,sz,c.returncode,codec
+              except Exception as e: return index,s,0,0,0,99,str(e)[:60]
+          print("START",len(picks),flush=True)
+          out=[]
+          with concurrent.futures.ThreadPoolExecutor(max_workers=10) as pool:
+            for f in concurrent.futures.as_completed([pool.submit(probe,i) for i in picks]):
+              i,s,actual,icy,sz,rc,codec=f.result()
+              passed=codec=="mp3" and 0<actual<=64 and (not icy or int(icy)<=64)
+              row=dict(index=i,name=s["name"],catalog_kbps=s["bitrate"],measured_kbps=actual,
+                icy_kbps=icy,bytes=sz,curl_exit=rc,codec=codec,passed=passed,
+                url=s["url"],url_resolved=s["url_resolved"],tags=s["tags"],countrycode=s["countrycode"])
+              out.append(row)
+              print(("PASS" if passed else "FAIL"),i,s["name"][:44],"catalog",s["bitrate"],"frames",actual,"icy",icy,"bytes",sz,"codec",codec,flush=True)
+          out.sort(key=lambda x:x["index"])
+          with open("radio64-validation.json","w") as f:json.dump(out,f,ensure_ascii=False,indent=2)
+          print("SUMMARY",len(out),"pass",sum(bool(x["passed"]) for x in out),flush=True)
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Kindle-64kbps-MP3-Verification
+          path: radio64-validation.json
+          retention-days: 2
