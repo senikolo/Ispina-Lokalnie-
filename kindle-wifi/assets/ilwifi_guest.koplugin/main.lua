@@ -1,11 +1,13 @@
 -- IL Wi-Fi Gosc (TEST) for Kindle Keyboard 3 / KOReader.
--- Detection only: NEVER submits a portal form or stores an e-mail/password.
+-- Simple guest portal flow. Requires explicit user consent; never stores credentials.
 local WidgetContainer = require("ui/widget/container/widgetcontainer")
 local UIManager = require("ui/uimanager")
 local InfoMessage = require("ui/widget/infomessage")
+local ConfirmBox = require("ui/widget/confirmbox")
+local InputDialog = require("ui/widget/inputdialog")
 
 local Guest = WidgetContainer:extend {name="ilwifi_guest", is_doc_only=false}
-local VERSION = "1.1.0"
+local VERSION = "1.2.0"
 local REPORT = "/mnt/us/koreader/settings/ilwifi-guest-last.txt"
 local TARGETS = {
     {url="http://connectivitycheck.gstatic.com/generate_204", code=204, title="Kontrola 204"},
@@ -50,12 +52,24 @@ local function safe_url(value)
     return bare and bare:sub(1, 180) or nil
 end
 
-local function location(headers)
+local function valid_url(value)
+    if type(value) ~= "string" or #value > 2048 or value:find("[%c%s]") then return nil end
+    local scheme, authority = value:match("^(https?)://([^/%?#]+)")
+    if not scheme or not authority or authority:find("@",1,true) then return nil end
+    if not authority:match("^[%w%-%._:%[%]]+$") then return nil end
+    return value
+end
+
+local function raw_header(headers, field)
     if type(headers) ~= "table" then return nil end
     for key, value in pairs(headers) do
-        if tostring(key):lower() == "location" then return safe_url(value) end
+        if tostring(key):lower() == field then return value end
     end
     return nil
+end
+
+local function location(headers)
+    return safe_url(raw_header(headers, "location"))
 end
 
 local function failure_reason(raw, exit_code)
@@ -102,7 +116,8 @@ local function from_socket(url)
     if not ok then return nil, failure_reason(success) end
     if not success then return nil, failure_reason(code) end
     return {code=tonumber(code), body=table.concat(collected),
-        portal=location(headers), via="LuaSocket"}
+        portal=location(headers), redirect_raw=valid_url(raw_header(headers, "location")),
+        via="LuaSocket"}
 end
 
 local function from_command(url)
@@ -137,13 +152,14 @@ local function from_command(url)
     local status
     for num in raw_headers:gmatch("HTTP/%d%.%d%s+(%d%d%d)") do status = tonumber(num) end
     if not status then status = tonumber(raw_headers:match("ICY%s+(%d%d%d)")) end
-    local portal
+    local portal, redirect_raw
     for line in raw_headers:gmatch("[^\r\n]+") do
         local value = line:match("^%s*[Ll][Oo][Cc][Aa][Tt][Ii][Oo][Nn]:%s*(%S+)")
-        if value then portal = safe_url(value) end
+        if value then portal = safe_url(value); redirect_raw = valid_url(value) end
     end
     if not status then return nil, failure_reason(raw_errors, exit_code) end
-    return {code=status, body=raw_body, portal=portal, via="curl/wget"}
+    return {code=status, body=raw_body, portal=portal,
+        redirect_raw=redirect_raw, via="curl/wget"}
 end
 
 local function http_probe(url)
