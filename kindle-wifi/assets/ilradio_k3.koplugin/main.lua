@@ -20,6 +20,9 @@ local SPEECH = {["TOK FM"] = true, ["RMF 24"] = true, ["Polskie Radio 24"] = tru
     ["Radio Kraków"] = true, ["Radio RDC"] = true, ["Radio Wnet"] = true,
     ["Polskie Radio Program 1"] = true,
     ["Radio Warszawa"] = true}
+-- Only these requested stations may use one-time, explicitly confirmed high-bitrate playback.
+-- The global ECO ceiling remains 128 kb/s for every other station and default action.
+local HIGH_STATION_CAPS = {["Polskie Radio Program 1"] = 192, ["1.FM Brazilian Birds"] = 256}
 local ERRORS = {
     network = "Brak połączenia z serwerem. Sprawdź Wi-Fi i dostęp do internetu.",
     tls = "Nie udało się bezpiecznie połączyć przez HTTPS. Sprawdź datę i certyfikaty Kindle’a.",
@@ -349,9 +352,15 @@ local function offer_higher(job, stream)
     end
 end
 
+local function station_stream_permitted(job, settings, stream)
+    if T.hard_allowed(stream) and (job.approved or T.allowed(settings, stream)) then return true end
+    return job.high_ceiling and type(stream.kbps) == "number"
+        and stream.kbps > T.hard_limit and stream.kbps <= job.high_ceiling
+end
+
 function ILRadio:accept_probe(stream)
     local job = self.job
-    if T.hard_allowed(stream) and (job.approved or T.allowed(self.radio, stream)) then
+    if station_stream_permitted(job, self.radio, stream) then
         job.ready = stream
         self:start_radio_variant(stream)
     else
@@ -424,7 +433,7 @@ function ILRadio:check_probe()
             and shell_call("probe", "mplayer") == "mplayer" then
             stream.native_direct_tried = true
             stream.play_url = stream.url
-            if T.hard_allowed(stream) and (T.allowed(self.radio, stream) or job.approved) then
+            if station_stream_permitted(job, self.radio, stream) then
                 self:accept_probe(stream)
             else
                 -- Exceeding the chosen data limit still needs explicit consent.
@@ -473,7 +482,7 @@ function ILRadio:advance_radio()
             and shell_call("probe", "mplayer") == "mplayer" then
             stream.native_direct_tried = true
             stream.play_url = stream.url
-            if T.hard_allowed(stream) and (T.allowed(self.radio, stream) or job.approved) then
+            if station_stream_permitted(job, self.radio, stream) then
                 self:accept_probe(stream)
             else
                 stream.direct = true
@@ -716,14 +725,20 @@ function ILRadio:monitor_local()
     end
 end
 
-function ILRadio:play_station(station, approved_url, direct)
+function ILRadio:play_station(station, approved_url, direct, high_ceiling)
+    -- A higher cap is never imported, persisted or inferred from the stream.
+    -- It only comes from the station-specific confirmation action.
+    if high_ceiling ~= HIGH_STATION_CAPS[station[1]] then high_ceiling = nil end
     self:read_phone_config()
     local variants = T.variants(station, catalog, self.custom)
     -- Reject known high-bitrate streams before contacting the server.
     -- Unknown variants must pass a probe with a safe measured bitrate.
     local bounded = {}
     for _, stream in ipairs(variants) do
-        if not stream.kbps or T.hard_allowed(stream) then bounded[#bounded + 1] = stream end
+        if not stream.kbps or T.hard_allowed(stream)
+            or (high_ceiling and stream.kbps > T.hard_limit and stream.kbps <= high_ceiling) then
+            bounded[#bounded + 1] = stream
+        end
     end
     variants = bounded
     local http_only = shell_call("radio-transport") == "http-only"
@@ -739,8 +754,13 @@ function ILRadio:play_station(station, approved_url, direct)
         end
         variants = filtered
     end
+    if #variants == 0 and HIGH_STATION_CAPS[station[1]] and not high_ceiling then
+        self:notice("Ta stacja nadaje obecnie w " .. HIGH_STATION_CAPS[station[1]]
+            .. " kb/s. W menu stacji wybierz „Słuchaj mimo limitu”, aby potwierdzić jednorazowo.", 11)
+        return
+    end
     if not self:stop() then return end
-    self.job = {station = station, variants = T.rank(self.radio, variants, self.working[station[1]] or self.decoded[station[1]], SPEECH[station[1]]),
+    self.job = {high_ceiling = high_ceiling, station = station, variants = T.rank(self.radio, variants, self.working[station[1]] or self.decoded[station[1]], SPEECH[station[1]]),
         index = 0, starts = 0, engines = {}, approved = approved_url ~= nil, http_only = http_only, direct = direct}
     self.last_station_name = station[1]
     self.settings:saveSetting("last_station_name", self.last_station_name)
@@ -1145,6 +1165,19 @@ function ILRadio:play_compatible_mp3(station)
     end
 end
 
+function ILRadio:play_high_station(station)
+    local cap = HIGH_STATION_CAPS[station[1]]
+    if not cap then return end
+    UIManager:show(ConfirmBox:new {
+        text = "„" .. station[1] .. "” nadaje w " .. cap .. " kb/s. To przekracza zwykły "
+            .. "limit 128 kb/s i zwiększy wykorzystanie Wi-Fi. "
+            .. "Uruchomić tylko tę stację, tylko ten raz?",
+        ok_text = "Słuchaj " .. cap .. " kb/s",
+        cancel_text = "Anuluj",
+        ok_callback = function() self:play_station(station, nil, false, cap) end,
+    })
+end
+
 function ILRadio:station_menu(category)
     local menu = {}
     for _, station in ipairs(stations) do
@@ -1171,6 +1204,14 @@ function ILRadio:station_menu(category)
                     },
                 },
             }
+            local cap = HIGH_STATION_CAPS[name]
+            if cap then
+                table.insert(menu[#menu].sub_item_table, 2, {
+                    text = "Słuchaj mimo limitu (" .. cap .. " kb/s)",
+                    keep_menu_open = true,
+                    callback = function() self:play_high_station(entry) end,
+                })
+            end
         end
     end
     if #menu == 0 then
