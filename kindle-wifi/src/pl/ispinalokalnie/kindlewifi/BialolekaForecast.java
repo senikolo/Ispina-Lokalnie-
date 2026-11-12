@@ -3,6 +3,8 @@ package pl.ispinalokalnie.kindlewifi;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InterruptedIOException;
+import java.net.SocketTimeoutException;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
@@ -19,19 +21,22 @@ final class BialolekaForecast {
             + "&current=temperature_2m,apparent_temperature,weather_code,wind_speed_10m"
             + "&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max";
     static final ZoneId WARSAW = ZoneId.of("Europe/Warsaw");
+    private static final int MAX_RESPONSE_BYTES = 96 * 1024;
     private static final DateTimeFormatter STAMP = DateTimeFormatter.ofPattern("dd.MM, HH:mm").withZone(WARSAW);
 
     static String fetch() throws Exception {
         HttpsURLConnection connection = (HttpsURLConnection) new URL(URL_STRING).openConnection();
-        connection.setConnectTimeout(6500);
-        connection.setReadTimeout(6500);
+        connection.setConnectTimeout(12000);
+        connection.setReadTimeout(15000);
         connection.setInstanceFollowRedirects(false);
         try {
             if (connection.getResponseCode() != 200) throw new IOException("Serwer prognozy jest niedostępny.");
             try (InputStream input = connection.getInputStream()) {
-                String payload = new String(readBounded(input, 24000), StandardCharsets.UTF_8);
+                String payload = new String(readBounded(input, MAX_RESPONSE_BYTES), StandardCharsets.UTF_8);
                 return report(new JSONObject(payload), Instant.now());
             }
+        } catch (SocketTimeoutException error) {
+            throw new IOException("Serwer prognozy nie odpowiedział na czas. Spróbuj ponownie.", error);
         } finally { connection.disconnect(); }
     }
 
@@ -39,9 +44,15 @@ final class BialolekaForecast {
         ByteArrayOutputStream buffer = new ByteArrayOutputStream();
         byte[] part = new byte[1024];
         int count;
-        while ((count = input.read(part)) != -1) {
-            if (Thread.currentThread().isInterrupted() || buffer.size() + count > limit)
-                throw new IOException("Odczyt został przerwany lub przekroczył limit.");
+        while (true) {
+            if (Thread.currentThread().isInterrupted())
+                throw new InterruptedIOException("Aktualizacja pogody została anulowana.");
+            count = input.read(part);
+            if (count == -1) break;
+            if (Thread.currentThread().isInterrupted())
+                throw new InterruptedIOException("Aktualizacja pogody została anulowana.");
+            if (count > limit - buffer.size())
+                throw new IOException("Serwer pogody przesłał zbyt dużo danych.");
             buffer.write(part, 0, count);
         }
         return buffer.toByteArray();
