@@ -68,6 +68,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public final class MainActivity extends Activity {
     private static final int PICK_FILE = 101;
     private AudioLibrary audioLibrary;
+    private final GuestPortalServer guestPortalServer = new GuestPortalServer();
     private static final int WIFI_NAME_PERMISSION = 102;
     private static final String HOTSPOT_STATE_CHANGED = "android.net.wifi.WIFI_AP_STATE_CHANGED";
     private static final String KINDLE_FOUND = "Udało się! Kindle gotowy do przesyłania";
@@ -1245,28 +1246,78 @@ public final class MainActivity extends Activity {
 
     private void showGuestWifiMenu() {
         if (sending) return;
-        String[] options = {
-                "Zainstaluj IL Wi-Fi Gość na Kindle",
-                "Jak sprawdzić działanie?",
-                "Ograniczenia portali logowania"
+        String[] options={
+            "Zainstaluj / zaktualizuj IL Wi-Fi Gość",
+            "Uruchom symulację · dostęp jako gość",
+            "Uruchom symulację · formularz e-mail",
+            "Status portalu testowego",
+            "Zatrzymaj portal testowy",
+            "Instrukcja lokalnego testu",
+            "Ograniczenia prawdziwych sieci"
         };
         new DialogUi.Builder(this).setTitle("IL Wi-Fi Gość · TEST")
-                .setItems(options, (dialog, selected) -> {
-                    switch (selected) {
-                        case 0: withKindle(this::installGuestWifi); break;
-                        case 1: showDeviceResult("Próba wtyczki na Kindle",
-                                "Po instalacji uruchom ponownie KOReadera z KUAL. "
-                                + "Otwórz Narzędzia → Więcej narzędzi → IL Wi-Fi Gość · TEST. "
-                                + "Wybierz „Sprawdź Wi-Fi i portal”, a następnie „Otwórz portal w KOReaderze”. "
-                                + "Najpierw sprawdź domowe Wi-Fi, potem sieć wymagającą zgody gościa. "
-                                + "Telefon nie jest potrzebny do samego testu."); break;
-                        default: showDeviceResult("Proste portale bez przeglądarki",
-                                "IL Wi-Fi Gość 1.2 wykrywa portal, pozwala obejrzeć jego treść "
-                                + "oraz potwierdzić dostęp jako gość lub podać e-mail bezpośrednio na Kindle. "
-                                + "Nie akceptuje regulaminu bez Twojego zatwierdzenia. "
-                                + "Rozbudowane portale JavaScript, CAPTCHA lub niezgodny TLS mogą wymagać przeglądarki.");
-                    }
-                }).setNegativeButton("Zamknij", null).show();
+            .setItems(options,(dialog,index)->{
+                switch(index){
+                    case 0: withKindle(this::installGuestWifi);break;
+                    case 1: launchGuestTest(false);break;
+                    case 2: launchGuestTest(true);break;
+                    case 3: showGuestTestStatus();break;
+                    case 4: stopGuestTest();break;
+                    case 5: showDeviceResult("Test Wi-Fi bez internetu",
+                        "1. Włącz hotspot telefonu (pasmo 2,4 GHz). Wyłącz dane mobilne, jeśli chcesz.\n\n"
+                        +"2. Uruchom w tej aplikacji symulację gościa lub e-mail.\n\n"
+                        +"3. Połącz Kindle z hotspotem telefonu.\n\n"
+                        +"4. W KOReaderze wybierz IL Wi-Fi Gość → Test lokalnego portalu na telefonie.\n\n"
+                        +"5. Otwórz wykryty portal, zapoznaj się z treścią i zaakceptuj testowy formularz.\n\n"
+                        +"6. Kindle sprawdzi odpowiedź lokalnego serwera; przy sukcesie wyświetli TEST OK.\n\n"
+                        +"Pozostaw aplikację otwartą do zakończenia próby. "
+                        +"Ten test nie zapewnia internetu i nie sprawdza automatycznego przekierowania DNS.");break;
+                    default: showDeviceResult("Ograniczenia",
+                        "Lokalna symulacja sprawdza odczyt i wysyłanie formularzy HTTP na Kindle. "
+                        +"Nie jest prawdziwym captive portalem, nie przechwytuje ruchu i nie "
+                        +"potwierdza zgodności z siecią konkretnego pociągu. "
+                        +"Wymagający JavaScriptu/CAPTCHA/TLS portal może nadal nie działać.");
+                }
+            }).setNegativeButton("Zamknij",null).show();
+    }
+
+    private void launchGuestTest(boolean emailMode) {
+        try {
+            guestPortalServer.start();
+            guestPortalServer.setEmailMode(emailMode);
+            getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+            showGuestTestStatus();
+        } catch (java.io.IOException error) {
+            showDeviceResult("Nie uruchomiono portalu",
+                "Port TCP 8765 jest zajęty albo serwer nie może nasłuchiwać. "
+                +"Wyłącz inne serwery w telefonie i ponów próbę.");
+        }
+    }
+
+    private void stopGuestTest() {
+        guestPortalServer.stop();
+        getWindow().clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+        showDeviceResult("Portal testowy", "Zatrzymano lokalny serwer. "
+            +"Nie zapisano adresu e-mail ani historii logowania.");
+    }
+
+    private void showGuestTestStatus() {
+        if(!guestPortalServer.isRunning()) {
+            showDeviceResult("Portal testowy wyłączony",
+                "Uruchom najpierw „Symulację · dostęp jako gość” lub „Symulację · formularz e-mail”.");
+            return;
+        }
+        String mode=guestPortalServer.isEmailMode()?"Formularz e-mail":"Dostęp jako gość";
+        showDeviceResult("Portal testowy uruchomiony",
+            "Tryb: "+mode+"\n"
+            +"Port: 8765 · tylko w Twojej sieci lokalnej\n"
+            +"Przyjęte formularze: "+guestPortalServer.getAccepted()+"\n\n"
+            +"Włącz hotspot 2,4 GHz. Połącz Kindle z tym hotspotem, następnie "
+            +"otwórz IL Wi-Fi Gość → „Test lokalnego portalu na telefonie”. "
+            +"Adres telefonu wtyczka ustali z bramy sieciowej Wi-Fi.\n\n"
+            +"Nie potrzeba internetu mobilnego ani komputera. "
+            +"Pozostaw aplikację na pierwszym planie. "
+            +"Po teście wybierz „Zatrzymaj portal testowy”.");
     }
 
     private void installGuestWifi() {
@@ -2228,6 +2279,7 @@ public final class MainActivity extends Activity {
     }
 
     @Override protected void onDestroy() {
+        guestPortalServer.stop();
         for (ImportBatch batch : pendingImports) batch.stop();
         Thread worker = transferThread;
         if (worker != null) { cancellationRequested = true; worker.interrupt(); }
