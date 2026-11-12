@@ -40,12 +40,9 @@ public final class GuestPortalServerTest {
             check(page.status==200 && page.body.contains("action=\"/authorize\""),"guest HTML form");
             check(page.body.contains("name=\"agree\""),"explicit consent");
             check(request("/status",null).body.equals("TEST_NOT_AUTHENTICATED"),"no implied authentication");
-            check(request("/authorize","simulation=kindle-lab&agree=yes").status==404,"GET not accepted");
-        }finally{portal.stop();}
-        // The request helper uses GET when payload is null. Exercise refusal first,
-        // then an accepted guest login and a separate e-mail mode reset.
-        portal.start();
-        try {
+            check(request("/authorize",null).status==404,"GET not accepted");
+            // Test invalid submission before a successful explicit POST.
+
             Response fail=request("/authorize","simulation=kindle-lab&guest=go");
             check(fail.status==400,"consent cannot be bypassed");
             Response guest=request("/authorize","simulation=kindle-lab&agree=yes&guest=go");
