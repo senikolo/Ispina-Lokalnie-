@@ -103,4 +103,7 @@ remaining=$(sh "$player" timer-left)
 [ "$remaining" -gt 0 ] && [ "$remaining" -le 1800 ]
 [ "$(sh "$player" timer-cancel)" = cancelled ]
 [ "$(sh "$player" timer-left)" = off ]
-echo 'PASS: playback evidence, 30-minute timer, remaining time and cancellation'
+printf "%s\n" expired > "$TMPDIR/ilradio-k3/timer-expired"
+[ "$(sh "$player" timer-expired)" = yes ]
+[ "$(sh "$player" timer-expired)" = no ]
+echo 'PASS: playback evidence, 30-minute timer, remaining time and one-shot expiration'
