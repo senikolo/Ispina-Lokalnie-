@@ -1,16 +1,16 @@
-name: Kindle Radio 2.30.13 - tests and signed APK
+name: Kindle Radio 2.30.14 - tests and signed APK
 on:
   push:
     branches:
       - feat/kindle-somafm-stream-stability-20261112
     paths:
       - 'kindle-wifi/**'
-      - '.github/workflows/kindle-wifi-radio-2-30-13.yml'
+      - '.github/workflows/kindle-wifi-radio-2-30-14.yml'
   workflow_dispatch:
 permissions:
   contents: read
 concurrency:
-  group: kindle-radio-2-30-13
+  group: kindle-radio-2-30-14
   cancel-in-progress: true
 jobs:
   test-and-build:
@@ -44,6 +44,7 @@ jobs:
           sh -n assets/ilradio_k3.koplugin/player.sh
           lua5.3 tests/tuning-test.lua assets/ilradio_k3.koplugin
           lua5.3 tests/somafm-catalog-test.lua
+          lua5.3 tests/high-bitrate-stations-test.lua
           lua5.3 tests/radio-menu-test.lua assets/ilradio_k3.koplugin modern
           lua5.3 tests/radio-menu-test.lua assets/ilradio_k3.koplugin legacy
           bash tests/run-radio-tests.sh
@@ -54,8 +55,8 @@ jobs:
           set -euo pipefail
           gradle --no-daemon -ParmOnly assembleMailTest
           mkdir -p ../build-artifacts
-          cp build/outputs/apk/mailTest/*.apk ../build-artifacts/Kindle-przez-WiFi-Radio-2.30.13-TEST.apk
-          apk=../build-artifacts/Kindle-przez-WiFi-Radio-2.30.13-TEST.apk
+          cp build/outputs/apk/mailTest/*.apk ../build-artifacts/Kindle-przez-WiFi-Radio-2.30.14-TEST.apk
+          apk=../build-artifacts/Kindle-przez-WiFi-Radio-2.30.14-TEST.apk
           test "$(stat -c %s "$apk")" -lt 30000000
           "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --print-certs "$apk"
           "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$apk" | head -n 3
@@ -65,8 +66,8 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: success()
         with:
-          name: Kindle-Radio-2.30.13-TEST-signed
-          path: build-artifacts/Kindle-przez-WiFi-Radio-2.30.13-TEST.apk
+          name: Kindle-Radio-2.30.14-TEST-signed
+          path: build-artifacts/Kindle-przez-WiFi-Radio-2.30.14-TEST.apk
           compression-level: 0
           retention-days: 7
           if-no-files-found: error
