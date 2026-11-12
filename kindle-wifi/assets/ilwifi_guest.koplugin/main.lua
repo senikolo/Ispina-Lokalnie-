@@ -7,7 +7,7 @@ local ConfirmBox = require("ui/widget/confirmbox")
 local InputDialog = require("ui/widget/inputdialog")
 
 local Guest = WidgetContainer:extend {name="ilwifi_guest", is_doc_only=false}
-local VERSION = "1.2.0"
+local VERSION = "1.3.0"
 local REPORT = "/mnt/us/koreader/settings/ilwifi-guest-last.txt"
 local TARGETS = {
     {url="http://connectivitycheck.gstatic.com/generate_204", code=204, title="Kontrola 204"},
@@ -489,12 +489,72 @@ local function cleanup_session(session)
     end
 end
 
+local function default_gateway()
+    local routes=read("/proc/net/route",8192)
+    for line in routes:gmatch("[^\n]+") do
+        local interface,destination,gateway=line:match("^(%S+)%s+(%S+)%s+(%S+)")
+        if interface and (interface=="wlan0" or interface=="wlan1")
+            and destination=="00000000" and gateway and #gateway==8
+            and gateway:match("^%x%x%x%x%x%x%x%x$") and gateway~="00000000" then
+            local bytes={}
+            for i=7,1,-2 do bytes[#bytes+1]=tonumber(gateway:sub(i,i+1),16) end
+            return table.concat(bytes,".")
+        end
+    end
+    return nil
+end
+
+local function private_ip(address)
+    if type(address)~="string" or not address:match("^%d+%.%d+%.%d+%.%d+$") then
+        return false
+    end
+    local a,b,c,d=address:match("^(%d+)%.(%d+)%.(%d+)%.(%d+)$")
+    a,b,c,d=tonumber(a),tonumber(b),tonumber(c),tonumber(d)
+    if not a or a>255 or b>255 or c>255 or d>255 then return false end
+    return a==10 or (a==172 and b>=16 and b<=31) or (a==192 and b==168)
+end
+
+function Guest:local_test(address)
+    local gateway=address or default_gateway()
+    if not private_ip(gateway) then
+        notice("Nie ustalono adresu telefonu. Włącz hotspot, połącz Kindle "
+            .. "i wybierz „Wpisz adres telefonu ręcznie”.",12)
+        return
+    end
+    cleanup_session(self.portal_session)
+    self.portal_session=nil
+    self.portal=nil
+    self.local_test=true
+    self.portal_hint="http://"..gateway..":8765/"
+    self:load_portal()
+end
+
+function Guest:manual_local_test()
+    local dialog
+    dialog=InputDialog:new{
+        title="Adres IP telefonu w hotspocie",input="192.168.43.1",input_type="text",
+        buttons={{{text="Anuluj",id="close",callback=function()
+            UIManager:close(dialog)
+        end},{text="Testuj",is_enter_default=true,callback=function()
+            local input=trim(dialog:getInputText() or "")
+            if not private_ip(input) then
+                notice("Wpisz prywatny adres IPv4 telefonu, np. 192.168.43.1.",9)
+                return
+            end
+            UIManager:close(dialog)
+            self:local_test(input)
+        end}}},
+    }
+    UIManager:show(dialog)
+end
+
 function Guest:init()
     self.ui.menu:registerToMainMenu(self)
 end
 
 function Guest:check()
     if self.running then notice("Sprawdzanie sieci już trwa.", 5); return end
+    self.local_test=false
     self.running = true
     notice("Sprawdzam połączenie z Kindle'a…", 3)
     UIManager:scheduleIn(0.2, function()
@@ -636,7 +696,21 @@ function Guest:submit_portal(email)
                     if not answer then return "Nie wysłano: "..scrub(err,90) end
                     if answer.code>=400 then return "Serwer odrzucił formularz: HTTP "
                         ..tostring(answer.code)..". Nie potwierdzono dostępu." end
-                    -- HTTP 200 or redirect is NOT proof of successful authentication.
+                    if self.local_test then
+                        local gateway=self.portal_hint and
+                            self.portal_hint:match("^http://([%d%.]+):8765/")
+                        if not private_ip(gateway) then return "Nie ustalono lokalnego adresu testowego." end
+                        local status=portal_http("http://"..gateway..":8765/status",
+                            "GET",nil,self.portal_session or {})
+                        if status and status.code==200 and
+                            (trim(status.body)=="TEST_OK_GUEST" or trim(status.body)=="TEST_OK_EMAIL") then
+                            return "TEST OK: lokalny portal zaakceptował formularz. "
+                                .. "Nie oznacza to połączenia z internetem ani zgodności z Wi-Fi pociągu."
+                        end
+                        return "Lokalny portal odpowiedział, ale nie potwierdził formularza. "
+                            .. "Sprawdź stan serwera na telefonie."
+                    end
+                    -- HTTP 200 or redirect is NOT proof of successful train authentication.
                     return "Serwer przyjął żądanie (HTTP "..tostring(answer.code)
                         .."). Sprawdź teraz dostęp przyciskiem „Ponów test”."
                 end)
@@ -695,6 +769,10 @@ function Guest:addToMainMenu(menu)
                 callback=function() self:check() end},
             {text="Ponów test", keep_menu_open=true,
                 callback=function() self:check() end},
+            {text="Test lokalnego portalu na telefonie", keep_menu_open=true,
+                callback=function() self:local_test() end},
+            {text="Wpisz adres telefonu ręcznie", keep_menu_open=true,
+                callback=function() self:manual_local_test() end},
             {text="Otwórz portal w KOReaderze", keep_menu_open=true,
                 callback=function() self:load_portal() end},
             {text="Pokaż treść portalu", keep_menu_open=true,
@@ -721,5 +799,6 @@ Guest.test = {assess=assess, safe_url=safe_url, report_text=report_text,
     http_probe=http_probe, wifi_state=wifi_state, targets=TARGETS, backup=BACKUP,
     failure_reason=failure_reason, matches=matches,
     parse_form=parse_form, encode_form=encode_form, combine=combine,
-    portal_http=portal_http, valid_url=valid_url}
+    portal_http=portal_http, valid_url=valid_url,
+    private_ip=private_ip, default_gateway=default_gateway}
 return Guest
