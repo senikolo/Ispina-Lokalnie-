@@ -18,6 +18,7 @@ local catalog = T.rows(dir .. "/streams.tsv")
 local PHONE_CONFIG = "/mnt/us/koreader/settings/ilradio-phone.tsv"
 local SPEECH = {["TOK FM"] = true, ["RMF 24"] = true, ["Polskie Radio 24"] = true,
     ["Radio Kraków"] = true, ["Radio RDC"] = true, ["Radio Wnet"] = true,
+    ["Polskie Radio Program 1"] = true,
     ["Radio Warszawa"] = true}
 local ERRORS = {
     network = "Brak połączenia z serwerem. Sprawdź Wi-Fi i dostęp do internetu.",
@@ -43,7 +44,7 @@ local volume_input_open = false
 local volume_input_node
 local volume_owner
 local volume_listener
-local RADIO_VERSION = "2.30.13"
+local RADIO_VERSION = "2.30.14"
 local VOLUME_KEYS = {VMinus = -1, VolumeDown = -1, VolumeMinus = -1,
     VPlus = 1, VolumeUp = 1, VolumePlus = 1}
 
