@@ -54,7 +54,7 @@ jobs:
               if "ICY 200 OK" in str(e):
                 with tempfile.NamedTemporaryFile(delete=False,suffix=".bin") as temp: path=temp.name
                 try:
-                  cp=subprocess.run(["curl","-sSL","--max-time","7","-D","/tmp/icy-headers.txt","-o",path,url],capture_output=True,text=True,timeout=11)
+                  cp=subprocess.run(["curl","--http0.9","-sSL","--max-time","7","-D","/tmp/icy-headers.txt","-o",path,url],capture_output=True,text=True,timeout=11)
                   print("CURL",cp.returncode,cp.stderr[:100],flush=True)
                   print("HEADERS",open("/tmp/icy-headers.txt").read()[:350],flush=True)
                   with open(path,"rb") as f: print("PREFIX",repr(f.read(32)),flush=True)
