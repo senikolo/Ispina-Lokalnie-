@@ -120,7 +120,7 @@ assert(T.probeFailure("503", 22) == "server")
 assert(T.probeFailure("429", 22) == "server")
 assert(T.probeFailure("302", 1) == "transport")
 assert(T.probeFailure("200", 28) == "buffer")
-assert(#catalog == 35, "Expected 35 stations including PR1 and Brazilian Birds")
+assert(#catalog == 63, "Expected 35 original and 28 new MP3 stations")
 local function menu_item(items, title)
     for _, item in ipairs(items) do
         if item.text == title then return item end
@@ -128,7 +128,37 @@ local function menu_item(items, title)
 end
 local radio_menu = plugin:radio_menu()
 local groups = assert(menu_item(radio_menu, "Stacje radiowe")).sub_item_table
-assert(#groups == 4 and not menu_item(groups, "Polskie Radio"))
+assert(#groups == 5 and not menu_item(groups, "Polskie Radio"))
+-- Thirty low-rate choices are grouped without duplicating TOK FM or Radio Kampus.
+local low_section = assert(menu_item(groups, "30 stacji MP3 do 64 kb/s"))
+local low_groups = low_section.sub_item_table
+assert(#low_groups == 4, "Four readable categories on legacy Kindle")
+local low_counts = {["Relaks i natura"]=11, ["Jazz i muzyka świata"]=8,
+    ["Klasyka i nostalgia"]=5, ["Polska i audycje"]=6}
+for category, expected in pairs(low_counts) do
+    assert(menu_item(low_groups, category), "Missing submenu " .. category)
+    local entries = plugin:station_menu(category)
+    assert(#entries == expected, "Expected " .. expected .. " in " .. category)
+    local first_low = entries[1]
+    first_low.sub_item_table[1].callback()
+    assert(plugin.job and plugin.job.low_mp3_only, "Selection must enforce 64 kb/s MP3")
+    for _, stream in ipairs(plugin.job.variants) do
+        assert(stream.codec == "MP3" and stream.kbps and stream.kbps <= 64,
+            "All candidates must remain MP3 <=64 kb/s")
+    end
+    plugin:stop()
+end
+assert(#plugin:station_menu("Popularne") == 11, "Original popular stations remain")
+-- The existing named stations must appear in the curated category once each.
+local curated_names = {}
+for _, group in ipairs(low_groups) do
+    for _, item in ipairs(plugin:station_menu(group.text)) do
+        local name = item.text_func()
+        assert(not curated_names[name], "Duplicate curated radio station: " .. name)
+        curated_names[name] = true
+    end
+end
+assert(curated_names["TOK FM"] and curated_names["Radio Kampus"])
 -- The new high-rate stations need explicit confirmation on every launch.
 local function find_named_station(category, wanted)
     for _, item in ipairs(plugin:station_menu(category)) do
