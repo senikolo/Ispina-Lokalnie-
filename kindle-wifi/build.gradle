@@ -3,7 +3,7 @@ android {
     namespace 'pl.ispinalokalnie.kindlewifi'
     compileSdk 35
     buildToolsVersion "35.0.0"
-    defaultConfig { applicationId 'pl.ispinalokalnie.kindlewifi.v23'; minSdk 26; targetSdk 34; versionCode 70; versionName '2.30.17' }
+    defaultConfig { applicationId 'pl.ispinalokalnie.kindlewifi.v23'; minSdk 26; targetSdk 34; versionCode 70; versionName '2.30.17'; manifestPlaceholders = [appLabel: 'Kindle przez Wi-Fi'] }
     sourceSets { main { manifest.srcFile 'AndroidManifest.xml'; java.srcDirs = ['src']; res.srcDirs = ['res']; assets.srcDirs = ['assets'] } }
     // Keep the existing OCR model while excluding desktop-only emulator ABIs from the phone build.
     if (project.hasProperty('armOnly')) {
@@ -15,7 +15,8 @@ android {
         // Installable side-by-side verification build. The permanent app keeps its original ID.
         mailTest {
             initWith release
-            applicationIdSuffix ".mailtest"
+            applicationIdSuffix ".guest11"
+            manifestPlaceholders = [appLabel: 'Kindle Wi-Fi Gość TEST']
             versionNameSuffix "-TEST"
             signingConfig signingConfigs.debug
             debuggable false
