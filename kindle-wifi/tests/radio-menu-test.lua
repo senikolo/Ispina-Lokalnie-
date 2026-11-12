@@ -19,6 +19,7 @@ package.preload["device"] = function() return { model = "Kindle3", input = input
 local state, last_position = "stopped", "56"
 local evidence = "pending"
 local no_transport = false
+local timer_expired = false
 package.preload["ui/widget/container/widgetcontainer"] = function()
     return { extend = function(_, class) return class end }
 end
@@ -57,6 +58,9 @@ io.popen = function(command)
                 local f = assert(io.open(response .. suffix, "wb")); f:write(contents); f:close()
             end
         end
+    elseif command:find("'timer-expired'", 1, true) then
+        response = timer_expired and "yes" or "no"
+        timer_expired = false
     elseif command:find("'evidence'", 1, true) then response = evidence
     elseif command:find("'probe' 'mplayer'", 1, true) then response = "mplayer"
     elseif command:find("'start'", 1, true) then response, state = "starting:mplayer", "active"
@@ -199,6 +203,15 @@ for i = before_retry + 1, #calls do
     if calls[i]:find("'start'", 1, true) and calls[i]:find("'256'", 1, true) then deeper = true end
 end
 assert(deeper, "Recovered radio must actually pass a 256 KiB cache to the player")
+evidence = "decoded"
+-- Sleep timer ends a real radio session: it must NOT auto-reconnect.
+timer_expired = true
+plugin.radio_tick()
+assert(not plugin.current and not plugin.job and state == "stopped")
+assert(not scheduled[plugin.radio_tick] and not scheduled[plugin.retry_tick],
+    "Sleep timer must not rearm playback")
+assert(messages[#messages]:find("wyłącznik czasowy", 1, true))
+plugin:play_station(catalog[1]); settle()
 evidence = "decoded"
 
 local options = menu_item(plugin:radio_menu(), "Ustawienia radia").sub_item_table
