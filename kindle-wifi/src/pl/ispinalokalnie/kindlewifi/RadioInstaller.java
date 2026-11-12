@@ -193,7 +193,7 @@ final class RadioInstaller {
         Map<String, byte[]> files = new LinkedHashMap<>();
         for (String name : FILES) {
             try (InputStream in = context.getAssets().open(NAME + "/" + name)) {
-                byte[] bytes = BialolekaForecast.readBounded(in, MAX_FILE);
+                byte[] bytes = BoundedInput.read(in, MAX_FILE);
                 if (bytes.length == 0) throw new IOException("Brakuje pliku potrzebnego do instalacji IL Radio.");
                 files.put(name, bytes);
             }

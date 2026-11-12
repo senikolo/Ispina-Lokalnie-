@@ -122,7 +122,7 @@ final class MailInstaller {
         for (String name : FILES) {
             try (InputStream input = context.getAssets().open(NAME + "/" + name)) {
                 int max = name.equals("ca-bundle.crt") ? 1024 * 1024 : 65536;
-                byte[] bytes = BialolekaForecast.readBounded(input, max);
+                byte[] bytes = BoundedInput.read(input, max);
                 if (bytes.length == 0)
                     throw new IOException("Brakuje pliku " + name + " w pakiecie aplikacji.");
                 result.put(name, bytes);
