@@ -24,36 +24,75 @@ final class BialolekaForecast {
     private static final int MAX_RESPONSE_BYTES = 96 * 1024;
     private static final DateTimeFormatter STAMP = DateTimeFormatter.ofPattern("dd.MM, HH:mm").withZone(WARSAW);
 
+    // Explicit error type lets the UI identify forecast failures even when
+    // the call was made from a generic background/device operation.
+    static final class ForecastException extends IOException {
+        ForecastException(String message) { super(message); }
+        ForecastException(String message, Throwable cause) { super(message, cause); }
+    }
+
     static String fetch() throws Exception {
         HttpsURLConnection connection = (HttpsURLConnection) new URL(URL_STRING).openConnection();
         connection.setConnectTimeout(12000);
         connection.setReadTimeout(15000);
         connection.setInstanceFollowRedirects(false);
+        connection.setUseCaches(false);
+        // Do not accept a captive-portal HTML page or an opaque compressed
+        // response as a valid forecast. Keep requests small on older phones.
+        connection.setRequestProperty("Accept", "application/json");
+        connection.setRequestProperty("Accept-Encoding", "identity");
         try {
-            if (connection.getResponseCode() != 200) throw new IOException("Serwer prognozy jest niedostępny.");
+            int status = connection.getResponseCode();
+            if (status != 200)
+                throw new ForecastException("Serwer prognozy zwrócił HTTP " + status + ".");
+            String type = connection.getContentType();
+            String safeType = type == null ? "(brak)" : type.trim();
+            boolean json = safeType.toLowerCase(Locale.ROOT).startsWith("application/json")
+                    || safeType.toLowerCase(Locale.ROOT).startsWith("application/geo+json");
+            if (!json)
+                throw new ForecastException("Zamiast prognozy otrzymano odpowiedź typu: " + safeType + " (HTTP 200).");
+            long expected = connection.getContentLengthLong();
+            if (expected > MAX_RESPONSE_BYTES)
+                throw new ForecastException("Odpowiedź pogodowa deklaruje " + expected
+                        + " bajtów, a limit to " + MAX_RESPONSE_BYTES + ". Typ: " + safeType + ".");
             try (InputStream input = connection.getInputStream()) {
-                String payload = new String(readBounded(input, MAX_RESPONSE_BYTES), StandardCharsets.UTF_8);
-                return report(new JSONObject(payload), Instant.now());
+                byte[] bytes;
+                try {
+                    bytes = readBounded(input, MAX_RESPONSE_BYTES);
+                } catch (ForecastException error) {
+                    throw new ForecastException(error.getMessage() + " HTTP 200, typ: "
+                            + safeType + ", Content-Length: " + expected + ".", error);
+                }
+                String payload = new String(bytes, StandardCharsets.UTF_8);
+                if (!payload.trim().startsWith("{"))
+                    throw new ForecastException("Serwer nie zwrócił obiektu JSON z prognozą.");
+                try {
+                    return report(new JSONObject(payload), Instant.now());
+                } catch (org.json.JSONException error) {
+                    throw new ForecastException("Serwer odesłał nieprawidłowe dane prognozy JSON.", error);
+                }
             }
         } catch (SocketTimeoutException error) {
-            throw new IOException("Serwer prognozy nie odpowiedział na czas. Spróbuj ponownie.", error);
+            throw new ForecastException("Upłynął czas oczekiwania na serwer prognozy.", error);
         } finally { connection.disconnect(); }
     }
 
     static byte[] readBounded(InputStream input, int limit) throws IOException {
+        if (limit <= 0) throw new IllegalArgumentException("Limit musi być dodatni.");
         ByteArrayOutputStream buffer = new ByteArrayOutputStream();
         byte[] part = new byte[1024];
-        int count;
         while (true) {
             if (Thread.currentThread().isInterrupted())
                 throw new InterruptedIOException("Aktualizacja pogody została anulowana.");
-            count = input.read(part);
+            int count = input.read(part);
             if (count == -1) break;
             if (Thread.currentThread().isInterrupted())
                 throw new InterruptedIOException("Aktualizacja pogody została anulowana.");
             if (count > limit - buffer.size())
-                throw new IOException("Serwer pogody przesłał zbyt dużo danych.");
-            buffer.write(part, 0, count);
+                throw new ForecastException("Odebrano ponad " + limit
+                        + " bajtów zamiast krótkiej prognozy (co najmniej "
+                        + (buffer.size() + count) + " bajtów).");
+            if (count > 0) buffer.write(part, 0, count);
         }
         return buffer.toByteArray();
     }
