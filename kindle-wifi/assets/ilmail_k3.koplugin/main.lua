@@ -77,7 +77,7 @@ end
 local function notice(message)
     UIManager:show(InfoMessage:new{ text=message, timeout=7 })
 end
-local function ask(title, initial, on_save, secret)
+local function ask(title, initial, on_save, secret, after_save)
     local dialog
     dialog=InputDialog:new{
         title=title, input=initial or "", input_type="text",
@@ -87,11 +87,26 @@ local function ask(title, initial, on_save, secret)
         end},{
             text="Zapisz",is_enter_default=true,callback=function()
                 local value=dialog:getInputText()
-                if type(value)~="string" or on_save(value)==false then
+                if type(value)~="string" then
                     notice("Sprawdź wprowadzone dane.")
                     return
                 end
+                -- Never let a settings write throw out of the KOReader
+                -- dialog callback: retain the input so it can be corrected.
+                local ok, accepted = pcall(on_save, value)
+                if not ok then
+                    notice("Nie zapisano ustawienia. Spróbuj ponownie.")
+                    return
+                end
+                if accepted == false then
+                    notice("Sprawdź wprowadzone dane.")
+                    return
+                end
+                -- Close the input dialog before displaying confirmation.
+                -- Showing an InfoMessage over an open InputDialog can
+                -- cause an unexpected return to the reader on older K3 UI.
                 UIManager:close(dialog)
+                if after_save then notice(after_save) end
             end,
         }}},
     }
@@ -99,9 +114,14 @@ local function ask(title, initial, on_save, secret)
     dialog:onShowKeyboard()
 end
 function Mail:init()
-    self.config=G_reader_settings:readSetting("ilmail-k3-account", {
-        email="", imap="", smtp=""
-    })
+    local stored=G_reader_settings:readSetting("ilmail-k3-account") or {}
+    -- Old settings can be missing one field after an interrupted migration.
+    if type(stored)~="table" then stored={} end
+    self.config={
+        email=type(stored.email)=="string" and stored.email or "",
+        imap=type(stored.imap)=="string" and stored.imap or "",
+        smtp=type(stored.smtp)=="string" and stored.smtp or "",
+    }
     self.password=nil
     self.vault=G_reader_settings:readSetting("ilmail-k3-vault")
     self.custom_templates=G_reader_settings:readSetting("ilmail-k3-templates") or {}
@@ -127,11 +147,12 @@ function Mail:inputField(key, title)
             -- A saved token must not be silently reused for a different account.
             self:forgetSaved()
         end
+        local previous=self.config[key]
         self.config[key]=value
-        self:saveConfig()
-        notice("Zapisano ustawienie. Możesz wprowadzić następny parametr.")
+        local saved=pcall(self.saveConfig,self)
+        if not saved then self.config[key]=previous; return false end
         return true
-    end)
+    end,false,"Zapisano ustawienie. Możesz wprowadzić następny parametr.")
 end
 function Mail:login()
     ask("Hasło aplikacji do poczty (tylko na tę sesję)","",function(value)
