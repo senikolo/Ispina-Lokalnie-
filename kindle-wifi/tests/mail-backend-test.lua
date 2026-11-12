@@ -98,4 +98,46 @@ assert(bytes==9 and data=="%PDF-1.4\n", "Normal attachment must still work: "..t
 bytes,err=testAttachment(encoded_pdf:sub(1,8),#encoded_pdf,#encoded_pdf)
 assert(bytes==nil and err, "A truncated FETCH literal must be rejected")
 
+
+-- Discover EPUB/PDF metadata from a bounded subset of mailbox messages.
+local mockUpvalues={}
+for i=1,30 do
+    local name,value=debug.getupvalue(backend.scan,i)
+    if not name then break end
+    if name=="withImap" or name=="message" then
+        mockUpvalues[#mockUpvalues+1]={index=i,name=name,value=value}
+    end
+end
+assert(#mockUpvalues==2,"Scan must have IMAP and message wrappers")
+for _,entry in ipairs(mockUpvalues) do
+    if entry.name=="withImap" then
+        debug.setupvalue(backend.scan,entry.index,function(_,_,callback)
+            local im={
+                validity=42,
+                command=function(_,cmd)
+                    assert(cmd=="UID SEARCH ALL","Scan should use only mailbox metadata")
+                    return {"* SEARCH 101 102"}
+                end,
+            }
+            return callback(im)
+        end)
+    elseif entry.name=="message" then
+        debug.setupvalue(backend.scan,entry.index,function(_,uid)
+            local parsed=Mail.parse('* 1 FETCH (UID '..uid..' BODYSTRUCTURE ("APPLICATION" "PDF" NIL NIL NIL "BASE64" 24 NIL ("ATTACHMENT" ("FILENAME" "paper.pdf")) NIL NIL))')
+            return {from="Sender",subject="History"},parsed[4][4]
+        end)
+    end
+end
+local scan=backend.scan({email="x@example.org",imap="i.example.org",smtp="s.example.org"},"password")
+for _,entry in ipairs(mockUpvalues) do debug.setupvalue(backend.scan,entry.index,entry.value) end
+assert(scan:match("^SCAN\t2\t0"),"Incorrect scan header")
+local count=0
+for row in scan:gmatch("[^\r\n]+") do
+    if row:match("^FILE\t") then
+        count=count+1
+        assert(row:match("\t42$"),"UIDVALIDITY must accompany attachment metadata")
+    end
+end
+assert(count==2,"Two recent PDF attachments expected")
+
 print("mail K3: MIME, TLS hostname, attachment literal integrity and validation OK")
