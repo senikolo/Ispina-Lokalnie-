@@ -15,7 +15,7 @@ import java.util.Locale;
 final class KindleTools {
     private static final long SYNC_TOLERANCE_SECONDS = 15;
     private static final DateTimeFormatter WARSAW_CLOCK =
-            DateTimeFormatter.ofPattern("HH:mm", Locale.ROOT).withZone(BialolekaForecast.WARSAW);
+            DateTimeFormatter.ofPattern("HH:mm", Locale.ROOT).withZone(java.time.ZoneId.of("Europe/Warsaw"));
     private static final DateTimeFormatter UTC_DATE =
             DateTimeFormatter.ofPattern("uuuu-MM-dd HH:mm:ss", Locale.ROOT).withZone(ZoneOffset.UTC);
 

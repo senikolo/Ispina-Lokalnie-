@@ -45,7 +45,7 @@ final class RadioSettings {
         if (!entry.isReg() || entry.isLink() || entry.getSize() > MAX_BYTES)
             throw new IOException("Plik ustawień radia jest niedostępny.");
         try (InputStream input = files.get(path)) {
-            return parse(new String(BialolekaForecast.readBounded(input, MAX_BYTES), StandardCharsets.UTF_8));
+            return parse(new String(BoundedInput.read(input, MAX_BYTES), StandardCharsets.UTF_8));
         }
     }
 
@@ -120,7 +120,7 @@ final class RadioSettings {
     static Map<String, List<String[]>> catalog(Context context) throws IOException {
         Map<String, List<String[]>> catalog = new LinkedHashMap<>();
         try (InputStream input = context.getAssets().open("ilradio_k3.koplugin/streams.tsv")) {
-            String contents = new String(BialolekaForecast.readBounded(input, MAX_BYTES), StandardCharsets.UTF_8);
+            String contents = new String(BoundedInput.read(input, MAX_BYTES), StandardCharsets.UTF_8);
             for (String line : contents.split("\\r?\\n")) {
                 if (line.startsWith("#")) continue;
                 String[] row = line.split("\\t", -1);

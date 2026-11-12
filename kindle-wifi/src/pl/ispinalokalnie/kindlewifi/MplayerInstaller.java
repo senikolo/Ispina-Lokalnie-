@@ -74,7 +74,7 @@ final class MplayerInstaller {
             if (connection.getResponseCode() != 200)
                 throw new IOException("Serwer MobileRead nie udostępnił archiwum MPlayera.");
             try (InputStream input = connection.getInputStream()) {
-                return playerFromArchive(BialolekaForecast.readBounded(input, ARCHIVE_BYTES));
+                return playerFromArchive(BoundedInput.read(input, ARCHIVE_BYTES));
             }
         } finally {
             connection.disconnect();
@@ -88,7 +88,7 @@ final class MplayerInstaller {
         try (ZipInputStream zip = new ZipInputStream(new ByteArrayInputStream(archive))) {
             for (ZipEntry entry; (entry = zip.getNextEntry()) != null; ) {
                 if (!entry.getName().equals("mplayer/mplayer")) continue;
-                byte[] binary = BialolekaForecast.readBounded(zip, PLAYER_BYTES);
+                byte[] binary = BoundedInput.read(zip, PLAYER_BYTES);
                 if (binary.length == PLAYER_BYTES
                         && PLAYER_SHA256.equals(VerifiedTransfer.sha256(new ByteArrayInputStream(binary))))
                     return binary;
