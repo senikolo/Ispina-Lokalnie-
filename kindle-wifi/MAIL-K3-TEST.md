@@ -1,6 +1,20 @@
-# Poczta i książki na Kindle Keyboard 3 — TEST 2.30.0
+# Poczta i książki na Kindle Keyboard 3 — TEST 2.30.20
 
 Rozszerzenie istniejącej aplikacji **Kindle przez Wi-Fi**. Telefon służy tylko do instalacji wtyczki przez SFTP. Po instalacji poczta łączy się z serwerem bezpośrednio przez Wi-Fi Kindle'a.
+
+## Wersja 2.30.20 TEST — PIN i automatyczne załączniki (12.11.2026)
+
+Po wejściu do sekcji **Poczta i książki** w KOReaderze pojawia się prośba o PIN (jeżeli konto i zapamiętane hasło zostały wcześniej skonfigurowane). Po poprawnym odblokowaniu wtyczka przez Wi-Fi Kindle'a sprawdza metadane **ostatnich 20 wiadomości**. Nie pobiera treści ani załączników podczas skanowania.
+
+Jeżeli znajdzie niepobrane EPUB/PDF, proponuje przejście do listy, na której można zaznaczyć i odznaczyć pliki. **Dopiero po potwierdzeniu** pobiera zaznaczone załączniki do folderu **/mnt/us/documents/Poczta**. Zapamiętuje identyfikatory już zapisanych załączników (konto, UIDVALIDITY, UID i numer części) i nie proponuje ich ponownie. Pozostaje ręczne zapisywanie załączników z otwartej wiadomości oraz dotychczasowe odczytywanie, odpowiadanie i wysyłanie e-maili.
+
+**Nowy PIN** ma dokładnie cztery cyfry i wymaga dwukrotnego wpisania. Zachowano odblokowywanie starszych zapisów 4–8-cyfrowych. Po trzech błędnych próbach następuje minutowa blokada w bieżącej sesji. Cztery cyfry to wygoda, nie silna ochrona przed osobą mającą dostęp do pamięci Kindle.
+
+**Pierwsza konfiguracja:** w sekcji **Konto i połączenie** wpisz adres e-mail, serwery IMAP/SMTP i hasło aplikacji. Następnie wybierz **Zapamiętaj hasło (utwórz PIN)**. Po ponownym wejściu do poczty użyj PIN-u. Bez konta, hasła i prawidłowego TLS automatyczne skanowanie nie może działać.
+
+**Ograniczenia:** automatyczne skanowanie dotyczy ostatnich 20 wiadomości; inne pliki można zapisać po ręcznym otwarciu wcześniejszego e-maila. Obowiązuje limit 10 MiB rozkodowanego załącznika. Nowe funkcje nie były testowane na fizycznym Kindle K3; wynik testów automatycznych nie gwarantuje zgodności OpenSSL, sieci IMAP i interfejsu z konkretnym czytnikiem.
+
+Po zainstalowaniu testowego APK na Androidzie otwórz w nim **Poczta i książki → Zainstaluj lub zaktualizuj pocztę**, a następnie uruchom ponownie KOReadera. Telefon nie jest potrzebny podczas korzystania z poczty, tylko do instalacji modułu.
 
 ## Nowości 2.30.0
 
