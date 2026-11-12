@@ -20,7 +20,7 @@ final class WarsawClockPatch {
     static Status run(Context context, Session session, Action action) throws Exception {
         byte[] contents;
         try (InputStream asset = context.getAssets().open("patches/" + FILE)) {
-            contents = BialolekaForecast.readBounded(asset, 4096);
+            contents = BoundedInput.read(asset, 4096);
         }
         ChannelSftp sftp = CompanionFiles.channel(session);
         try { return run(sftp, action, contents); }
