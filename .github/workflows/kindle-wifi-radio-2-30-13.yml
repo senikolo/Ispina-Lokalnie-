@@ -1,0 +1,72 @@
+name: Kindle Radio 2.30.13 - tests and signed APK
+on:
+  push:
+    branches:
+      - feat/kindle-somafm-stream-stability-20261112
+    paths:
+      - 'kindle-wifi/**'
+      - '.github/workflows/kindle-wifi-radio-2-30-13.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: kindle-radio-2-30-13
+  cancel-in-progress: true
+jobs:
+  test-and-build:
+    name: KOReader radio regression and Android 8+ APK
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.7'
+      - uses: android-actions/setup-android@v3
+        with:
+          packages: platform-tools
+      - name: SDK and test runtimes
+        run: |
+          sdkmanager 'platforms;android-35' 'build-tools;35.0.0'
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq lua5.3 ffmpeg
+      - name: Radio parser, catalog, timer and playback tests
+        working-directory: kindle-wifi
+        run: |
+          set -euo pipefail
+          luac5.3 -p assets/ilradio_k3.koplugin/main.lua
+          luac5.3 -p assets/ilradio_k3.koplugin/stations.lua
+          luac5.3 -p assets/ilradio_k3.koplugin/tuning.lua
+          sh -n assets/ilradio_k3.koplugin/player.sh
+          lua5.3 tests/tuning-test.lua assets/ilradio_k3.koplugin
+          lua5.3 tests/somafm-catalog-test.lua
+          lua5.3 tests/radio-menu-test.lua assets/ilradio_k3.koplugin modern
+          lua5.3 tests/radio-menu-test.lua assets/ilradio_k3.koplugin legacy
+          bash tests/run-radio-tests.sh
+          bash tests/run-stream-probe-tests.sh
+      - name: Build installable signed TEST APK
+        working-directory: kindle-wifi
+        run: |
+          set -euo pipefail
+          gradle --no-daemon -ParmOnly assembleMailTest
+          mkdir -p ../build-artifacts
+          cp build/outputs/apk/mailTest/*.apk ../build-artifacts/Kindle-przez-WiFi-Radio-2.30.13-TEST.apk
+          apk=../build-artifacts/Kindle-przez-WiFi-Radio-2.30.13-TEST.apk
+          test "$(stat -c %s "$apk")" -lt 30000000
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --print-certs "$apk"
+          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$apk" | head -n 3
+          unzip -l "$apk" | grep -F 'assets/ilradio_k3.koplugin/main.lua'
+          unzip -l "$apk" | grep -F 'assets/ilradio_k3.koplugin/streams.tsv'
+          sha256sum "$apk"
+      - uses: actions/upload-artifact@v4
+        if: success()
+        with:
+          name: Kindle-Radio-2.30.13-TEST-signed
+          path: build-artifacts/Kindle-przez-WiFi-Radio-2.30.13-TEST.apk
+          compression-level: 0
+          retention-days: 7
+          if-no-files-found: error
