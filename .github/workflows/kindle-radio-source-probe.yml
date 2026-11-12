@@ -14,22 +14,28 @@ jobs:
       - name: Probe real audio streams (metadata and frames)
         shell: bash
         run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg >/dev/null
           python3 - <<'PY'
           import urllib.request, subprocess, tempfile, os
           stations = {
             "PR1 mp3 port": "http://stream3.polskieradio.pl:8900/",
             "PR1 alternate mp3": "http://mp3.polskieradio.pl:8900/",
             "PR1 playlist": "http://stream3.polskieradio.pl:8900/listen.pls",
+            "PR1 direct AAC": "http://stream3.polskieradio.pl:8950/",
             "PR1 HLS": "https://stream11.polskieradio.pl/pr1/pr1.sdp/playlist.m3u8",
             "Brazilian mobile HTTPS": "https://strm112.1.fm/brazilianbirds_mobile_mp3",
             "Brazilian mobile HTTP": "http://strm112.1.fm/brazilianbirds_mobile_mp3",
+            "Brazilian _128 hostname": "http://strm112.1.fm/brazilianbirds_128",
+            "Brazilian _64 hostname": "http://strm112.1.fm/brazilianbirds_64",
+            "Brazilian sc old": "http://sc-brazilianbirds.1.fm:10076/",
+            "Brazilian alternative host": "https://strmreg.1.fm/brazilianbirds_mobile_mp3",
             "Brazilian MP3 128": "http://185.33.21.112:80/brazilianbirds_128",
           }
           for name, url in stations.items():
             print("\\nPROBE:", name, url, flush=True)
             try:
               req = urllib.request.Request(url, headers={"User-Agent":"MPlayer/1.4","Icy-MetaData":"0"})
-              with urllib.request.urlopen(req, timeout=15) as resp:
+              with urllib.request.urlopen(req, timeout=9) as resp:
                 print("FINAL_URL", resp.url, "STATUS", resp.status, "CONTENT_TYPE", resp.headers.get("content-type"), "ICY_BR", resp.headers.get("icy-br"),flush=True)
                 data = resp.read(56000)
               print("AUDIO_BYTES",len(data), "PREFIX", repr(data[:80]), flush=True)
@@ -43,5 +49,16 @@ jobs:
                   cp=subprocess.run(["ffprobe","-v","error","-f","mp3","-show_entries","format=bit_rate:stream=codec_name,bit_rate","-of","default=noprint_wrappers=1",path],capture_output=True,text=True,timeout=12)
                   print("FFPROBE",cp.returncode,cp.stdout[:800],cp.stderr[:400],flush=True)
                 finally: os.unlink(path)
-            except Exception as e: print("ERROR",type(e).__name__,str(e),flush=True)
+            except Exception as e:
+              print("ERROR",type(e).__name__,str(e),flush=True)
+              if "ICY 200 OK" in str(e):
+                with tempfile.NamedTemporaryFile(delete=False,suffix=".bin") as temp: path=temp.name
+                try:
+                  cp=subprocess.run(["curl","-sSL","--max-time","7","-D","/tmp/icy-headers.txt","-o",path,url],capture_output=True,text=True,timeout=11)
+                  print("CURL",cp.returncode,cp.stderr[:100],flush=True)
+                  print("HEADERS",open("/tmp/icy-headers.txt").read()[:350],flush=True)
+                  with open(path,"rb") as f: print("PREFIX",repr(f.read(32)),flush=True)
+                  cp=subprocess.run(["ffprobe","-v","error","-show_entries","format=bit_rate:stream=codec_name,bit_rate","-of","default=noprint_wrappers=1",path],capture_output=True,text=True,timeout=10)
+                  print("ICY_FFPROBE",cp.returncode,cp.stdout[:500],cp.stderr[:200],flush=True)
+                finally: os.unlink(path)
           PY
