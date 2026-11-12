@@ -266,6 +266,228 @@ local function notice(text, seconds)
     UIManager:show(InfoMessage:new {text=text, timeout=seconds or 8})
 end
 
+
+-- A compact no-JavaScript guest portal assistant.
+-- URL tokens, form fields, cookies and any e-mail stay in RAM only.
+local function hostname(url)
+    local h = valid_url(url) and url:match("^https?://([^/%?#]+)")
+    return h and h:lower()
+end
+
+local function combine(base, relative)
+    if not relative or relative == "" then return valid_url(base) end
+    if relative:match("^https?://") then return valid_url(relative) end
+    if relative:match("^//") then
+        return valid_url((base:match("^(https?):") or "http") .. ":" .. relative)
+    end
+    if relative:find("[%c%s]") or relative:match("^[%w+.-]+:") then return nil end
+    local site = base:match("^(https?://[^/]+)")
+    if not site then return nil end
+    if relative:sub(1,1) == "/" then return valid_url(site .. relative) end
+    local folder = base:match("^([^?#]+)") or base
+    folder = folder:match("^(.*)/[^/]*$") or site
+    return valid_url(folder .. "/" .. relative)
+end
+
+local function entity_decode(value)
+    value = tostring(value or "")
+    return value:gsub("&amp;", "&"):gsub("&quot;", '"'):gsub("&#39;", "'")
+        :gsub("&lt;", "<"):gsub("&gt;", ">")
+end
+
+local function attribute(tag, wanted)
+    for name, q, value in tag:gmatch("([%w_%-]+)%s*=%s*([\"'])(.-)%2") do
+        if name:lower() == wanted then return entity_decode(value) end
+    end
+    local pattern = "%f[%w]" .. wanted .. "%s*=%s*([^%s>\"']+)"
+    return entity_decode(tag:lower():match(pattern))
+end
+
+local function page_text(html)
+    local text = tostring(html or ""):gsub("<[sS][cC][rR][iI][pP][tT][^>]*>.-</[sS][cC][rR][iI][pP][tT]%s*>", " ")
+        :gsub("<[sS][tT][yY][lL][eE][^>]*>.-</[sS][tT][yY][lL][eE]%s*>", " ")
+        :gsub("<[bB][rR]%s*/?>", "\n"):gsub("</[pP]%s*>", "\n")
+        :gsub("<[^>]+>", " "):gsub("[ \t]+", " ")
+        :gsub("\n%s*\n+", "\n")
+    return scrub(entity_decode(text), 2200)
+end
+
+local function parse_form(html, page_url)
+    if type(html) ~= "string" or #html > 35000 or not valid_url(page_url) then
+        return nil, "Nie udało się odczytać strony portalu."
+    end
+    local lower = html:lower()
+    local a, b = lower:find("<form[%s>][^>]*>")
+    if not a then
+        -- A visible guest link can be submitted only on explicit user request.
+        for start, finish in lower:gmatch("()(<a%s+[^>]*>.-</a>)()") do end -- harmless Lua iterator guard
+        local pos = 1
+        while true do
+            local x, y = lower:find("<a[%s][^>]*>", pos)
+            if not x then break end
+            local ending = lower:find("</a%s*>", y + 1) or y
+            local tag = html:sub(x, y)
+            local label = page_text(html:sub(y + 1, ending - 1)):lower()
+            local href = attribute(tag, "href")
+            local target = combine(page_url, href)
+            if target and (label:find("guest",1,true) or label:find("gość",1,true)
+                or label:find("free wifi",1,true) or label:find("bezpłat",1,true)) then
+                return {url=target, method="GET", fields={}, email_field=nil,
+                    label="Dostęp jako gość", guest_link=true}
+            end
+            pos = ending + 4
+        end
+        return nil, "Ta strona nie ma prostego formularza. Może wymagać JavaScriptu lub CAPTCHA."
+    end
+    local close = lower:find("</form%s*>", b + 1)
+    if not close then return nil, "Formularz jest niekompletny." end
+    local tag = html:sub(a,b)
+    local target = combine(page_url, attribute(tag,"action") or "")
+    if not target then return nil, "Nieprawidłowy adres formularza." end
+    local meth = (attribute(tag,"method") or "GET"):upper()
+    if meth ~= "GET" and meth ~= "POST" then return nil, "Nieobsługiwana metoda formularza." end
+    local form = {url=target, method=meth, fields={}, label="Dostęp jako gość"}
+    local pos, inputs = b + 1, 0
+    while true do
+        local x, y = lower:find("<input[%s>][^>]*>", pos)
+        if not x or x >= close then break end
+        inputs = inputs + 1
+        if inputs > 25 then return nil, "Formularz jest zbyt rozbudowany." end
+        local input = html:sub(x,y)
+        local name = attribute(input,"name")
+        local kind = (attribute(input,"type") or "text"):lower()
+        local value = attribute(input,"value") or ""
+        local is_email = kind == "email" or
+            (kind == "text" and name and name:lower():find("mail",1,true))
+        if kind == "password" or kind == "file" or kind == "tel" then
+            return nil, "Portal wymaga danych, których wtyczka nie obsługuje."
+        end
+        if name and #name <= 100 and not name:find("[%c]") then
+            if kind == "hidden" and #value <= 1500 then
+                form.fields[#form.fields+1] = {name=name, value=value}
+            elseif kind == "checkbox" then
+                -- Added only after the user has reviewed and explicitly confirmed.
+                form.fields[#form.fields+1] = {name=name, value=value ~= "" and value or "on"}
+                form.consent_box = true
+            elseif kind == "submit" and not form.has_submit and #value <= 150 then
+                form.fields[#form.fields+1] = {name=name, value=value}
+                form.has_submit = true
+            elseif is_email then
+                form.email_field = name
+            elseif kind == "text" or kind == "number" then
+                return nil, "Portal wymaga dodatkowego pola. Nie wyślę niepełnego formularza."
+            end
+        elseif is_email then
+            return nil, "Pole e-mail nie ma nazwy w formularzu."
+        end
+        pos = y + 1
+    end
+    if lower:sub(b+1,close):find("captcha",1,true)
+        or lower:sub(b+1,close):find("recaptcha",1,true) then
+        return nil, "Strona wymaga CAPTCHA, której Kindle nie obsłuży w tym trybie."
+    end
+    return form
+end
+
+local function urlencode(value)
+    return tostring(value or ""):gsub("\n", "\r\n")
+        :gsub("([^%w%-_%.~])", function(ch) return string.format("%%%02X",ch:byte()) end)
+end
+
+local function encode_form(form, email)
+    local parts = {}
+    for _, field in ipairs(form.fields or {}) do
+        parts[#parts+1] = urlencode(field.name) .. "=" .. urlencode(field.value)
+    end
+    if form.email_field then
+        if not email then return nil end
+        parts[#parts+1] = urlencode(form.email_field) .. "=" .. urlencode(email)
+    end
+    return table.concat(parts, "&")
+end
+
+local function portal_http(url, method, payload, session)
+    if not valid_url(url) then return nil, "Nieprawidłowy adres portalu." end
+    method = method or "GET"
+    if method ~= "GET" and method ~= "POST" then return nil, "Nieobsługiwana metoda." end
+    if payload and #payload > 4000 then return nil, "Za duży formularz." end
+    -- CURL is the preferred transport for TLS with certificate verification.
+    -- The cookie jar is temporary, private and never included in reports.
+    if available("curl") then
+        local root = "/tmp/ilwifi-auth-" .. tostring(os.time()) .. "-"
+            .. tostring(math.random(10000,99999))
+        local header, body, data, cookie, err, rc =
+            root .. ".h", root .. ".b", root .. ".p", root .. ".cookie", root .. ".e", root .. ".rc"
+        session.cookie_file = session.cookie_file or cookie
+        local command = "umask 077; curl -sS --connect-timeout 3 --max-time 9"
+            .. " --max-redirs 0 -D " .. quote(header) .. " -o " .. quote(body)
+            .. " -A 'Kindle-IL-WiFi-Guest/1.2'"
+            .. " -b " .. quote(session.cookie_file) .. " -c " .. quote(session.cookie_file)
+        if method == "POST" then
+            local file = io.open(data,"wb")
+            if not file then return nil, "Brak dostępu do pliku tymczasowego." end
+            file:write(payload or ""); file:close()
+            command = command .. " -X POST -H 'Content-Type: application/x-www-form-urlencoded'"
+                .. " --data-binary @" .. quote(data)
+        end
+        command = command .. " " .. quote(url) .. " 2>" .. quote(err)
+            .. "; echo $? > " .. quote(rc)
+        os.execute(command)
+        local h, response, fail = read(header, 12000), read(body, 30000), read(err, 1000)
+        local exit = tonumber(trim(read(rc, 16)))
+        os.remove(header); os.remove(body); os.remove(data); os.remove(err); os.remove(rc)
+        local status
+        for n in h:gmatch("HTTP/%d[%d%.]*%s+(%d%d%d)") do status = tonumber(n) end
+        local redirect
+        for line in h:gmatch("[^\r\n]+") do
+            local v = line:match("^%s*[Ll][Oo][Cc][Aa][Tt][Ii][Oo][Nn]:%s*(%S+)")
+            if v then redirect = valid_url(v) or combine(url,v) end
+        end
+        if not status then return nil, failure_reason(fail,exit) end
+        return {code=status, body=response, redirect_raw=redirect}, nil
+    end
+    if url:match("^https://") then
+        return nil, "Brak bezpiecznego klienta HTTPS na Kindle. Nie wyłączam weryfikacji certyfikatów."
+    end
+    local yes, http = pcall(require,"socket.http")
+    local yes_ltn, ltn12 = pcall(require,"ltn12")
+    if not yes or not yes_ltn then return nil, "Brak narzędzia do obsługi formularzy." end
+    http.TIMEOUT = 6
+    local chunks, total = {}, 0
+    local sink = function(chunk)
+        if chunk and total < 30000 then
+            local keep = chunk:sub(1, 30000 - total)
+            chunks[#chunks+1]=keep; total=total+#keep
+        end
+        return 1
+    end
+    local headers={["Connection"]="close", ["User-Agent"]="Kindle-IL-WiFi-Guest/1.2"}
+    if session.cookie then headers["Cookie"]=session.cookie end
+    local args={url=url,method=method,redirect=false,headers=headers,sink=sink}
+    if method=="POST" then
+        headers["Content-Type"]="application/x-www-form-urlencoded"
+        headers["Content-Length"]=tostring(#(payload or ""))
+        args.source=ltn12.source.string(payload or "")
+    end
+    local ok, success, code, response_headers = pcall(http.request,args)
+    if not ok or not success then return nil,failure_reason(ok and code or success) end
+    local set_cookie = raw_header(response_headers,"set-cookie")
+    if type(set_cookie)=="string" then
+        local first = set_cookie:match("^([^;\r\n]+)")
+        if first and first:match("^[%w_%-]+=") then session.cookie=first:sub(1,512) end
+    end
+    local redirect = raw_header(response_headers,"location")
+    return {code=tonumber(code),body=table.concat(chunks),
+        redirect_raw=valid_url(redirect) or combine(url,redirect)},nil
+end
+
+local function cleanup_session(session)
+    if session and session.cookie_file then
+        os.remove(session.cookie_file)
+        session.cookie_file=nil
+    end
+end
+
 function Guest:init()
     self.ui.menu:registerToMainMenu(self)
 end
