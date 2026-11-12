@@ -116,7 +116,7 @@ assert(T.probeFailure("503", 22) == "server")
 assert(T.probeFailure("429", 22) == "server")
 assert(T.probeFailure("302", 1) == "transport")
 assert(T.probeFailure("200", 28) == "buffer")
-assert(#catalog == 29, "Expected 29 stations including Chillizet and FluxFM Chillout")
+assert(#catalog == 33, "Expected 33 stations including four SomaFM channels")
 local function menu_item(items, title)
     for _, item in ipairs(items) do
         if item.text == title then return item end
