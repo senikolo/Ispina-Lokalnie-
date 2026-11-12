@@ -913,8 +913,16 @@ case "${1:-}" in
             *[!0-9]*|""|????*) echo unsupported; exit 2;;
             *) if [ "$2" -gt 100 ]; then exit 2; fi; adj="$2%";;
         esac
-        if has amixer && { amixer -q sset Master "$adj" >/dev/null 2>&1 ||
-            amixer -q sset PCM "$adj" >/dev/null 2>&1; }; then echo adjusted
+        # Master and PCM are independent mixer stages on some Kindle builds.
+        # Adjust both only when explicitly requested by the user; otherwise
+        # the hardware volume remains untouched.
+        changed=0
+        if has amixer; then
+            for channel in Master PCM; do
+                if amixer -q sset "$channel" "$adj" >/dev/null 2>&1; then changed=1; fi
+            done
+        fi
+        if [ "$changed" = 1 ]; then echo adjusted
         else echo unsupported
         fi;;
     *) exit 2;;
