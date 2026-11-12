@@ -65,3 +65,14 @@ Weryfikacja na fizycznym Kindle K3 nadal wymagana: czas działania radia, automa
 - Timer: numeryczny token procesu umożliwia skuteczne anulowanie timera.
 - Poczta: zakodowanie Base64 pustych nagłówków Reply-To lub Message-ID nie może już wywołać `backend.lua:15 attempt to index a nil value`.
 - Nadal brak odsłuchu na fizycznym Kindle K3. W szczególności zrzut ekranu z kodem wyjścia MPlayera `2` nie pozwala bez ostatnich linii logu jednoznacznie rozstrzygnąć przyczyny zakończenia procesu.
+
+## Wersja 2.30.6 TEST — ECO 128 i załączniki EPUB/PDF (12.11.2026)
+
+- Radio ma **twardy limit 128 kb/s** również w trybie Wysoka jakość, przy starszych ustawieniach telefonu, niestandardowych adresach i w jednorazowym trybie zgodności. Nie uruchamia automatycznie strumieni 160/256/320 kb/s.
+- Przy pierwszym uruchomieniu wtyczki po aktualizacji ustawiany jest profil Automatyczny + Najmniejszy transfer + 128 kb/s. W kolejnych uruchomieniach użytkownik może wybrać niższy limit.
+- Odtwarzacz najpierw sprawdza oszczędne warianty AAC, a potem dostępne MP3 do 128 kb/s. Niepowodzenie AAC nie oznacza zgody na MP3 ponad limit.
+- Dodano oficjalne Radio Wnet 32/64 kb/s AAC oraz **testowe** regionalne warianty Radia Kraków Tarnów i Nowy Sącz, opisywane w zewnętrznych katalogach jako 96 kb/s. Mogą nadawać częściowo inny program; serwer i dekoder Kindle nadal muszą przejść test.
+- Gdy stacja nie ma zweryfikowanego źródła do 128 kb/s, może pozostać niedostępna. Program nie zmniejsza sztucznie przepływności strumienia 256 kb/s.
+- Poczta: naprawiono odrzucanie poprawnych załączników komunikatem `Attachment size changed`. Rozmiar z `BODYSTRUCTURE` jest traktowany orientacyjnie; pobieranie sprawdza rzeczywistą długość literału IMAP, identyfikator wiadomości oraz limity 20 MiB transferu i 10 MiB po rozkodowaniu. Testy obejmują różne rozmiary deklarowane i przerwaną transmisję.
+- Po zainstalowaniu APK na telefonie wybierz instalację/aktualizację **obu** wtyczek w KOReaderze (Radio oraz Poczta), a następnie uruchom ponownie KOReadera. Stary EPUB testowy w skrzynce może posłużyć ponownie do sprawdzenia.
+- Uwaga: testy automatyczne nie zastępują weryfikacji na fizycznym Kindle Keyboard 3 Wi-Fi. Podczas testu radio powinno grać dłużej niż kilka minut, a EPUB zapisać się w `/mnt/us/documents` i otworzyć w KOReaderze.
