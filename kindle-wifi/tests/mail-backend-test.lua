@@ -53,4 +53,49 @@ local ok, result=pcall(backend.read,{},{},"123")
 debug.setupvalue(backend.read,with_imap_index,saved_with_imap)
 assert(ok and result=="TEST" and base64_verified,"Base64 regression test failed")
 
-print("mail K3: MIME, certificate hostname, credentials validation OK")
+-- Regression: Gmail/other IMAP servers can report BODYSTRUCTURE octets
+-- that differ from the exact BODY.PEEK literal. Accept a complete, bounded
+-- transfer and still reject truncated literals.
+package.preload["ffi/util"]=function()
+    return {fsyncOpenedFile=function() return true end}
+end
+local function testAttachment(encoded, literal_size, structure_size)
+    local lines={
+        "* 1 FETCH (UID 123 BODY[1] {"..literal_size.."}",
+        ")",
+        "S00001 OK FETCH completed",
+    }
+    local conn={
+        send=function(_,request,offset) return #request end,
+        receive=function(_,want)
+            if want=="*l" then return table.remove(lines,1) end
+            if #encoded<want then return nil end
+            local result=encoded:sub(1,want)
+            encoded=encoded:sub(want+1)
+            return result
+        end,
+    }
+    local session=setmetatable({conn=conn,tag=0,validity=7},IMAP)
+    local file=os.tmpname()
+    local size,err=session:download({
+        validity=7, uid=123, section="1", encoding="base64",
+        wire_size=structure_size,
+    },file)
+    local stored
+    if size then
+        local handle=assert(io.open(file,"rb"))
+        stored=handle:read("*a")
+        handle:close()
+        os.remove(file)
+    end
+    return size,err,stored
+end
+local encoded_pdf="JVBERi0xLjQK" -- %PDF-1.4 followed by LF
+local bytes,err,data=testAttachment(encoded_pdf,#encoded_pdf,#encoded_pdf+2)
+assert(bytes==9 and data=="%PDF-1.4\\n", "BODYSTRUCTURE size mismatch should not reject a valid attachment: "..tostring(err))
+bytes,err,data=testAttachment(encoded_pdf,#encoded_pdf,#encoded_pdf)
+assert(bytes==9 and data=="%PDF-1.4\\n", "Normal attachment must still work: "..tostring(err))
+bytes,err=testAttachment(encoded_pdf:sub(1,8),#encoded_pdf,#encoded_pdf)
+assert(bytes==nil and err, "A truncated FETCH literal must be rejected")
+
+print("mail K3: MIME, TLS hostname, attachment literal integrity and validation OK")
