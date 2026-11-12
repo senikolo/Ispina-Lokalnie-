@@ -23,6 +23,10 @@ local SPEECH = {["TOK FM"] = true, ["RMF 24"] = true, ["Polskie Radio 24"] = tru
 -- Only these requested stations may use one-time, explicitly confirmed high-bitrate playback.
 -- The global ECO ceiling remains 128 kb/s for every other station and default action.
 local HIGH_STATION_CAPS = {["Polskie Radio Program 1"] = 192, ["1.FM Brazilian Birds"] = 256}
+local LOW_MP3_GROUPS = {"Relaks i natura", "Jazz i muzyka świata",
+    "Klasyka i nostalgia", "Polska i audycje"}
+local LOW_MP3_CATEGORIES = {}
+for _, group in ipairs(LOW_MP3_GROUPS) do LOW_MP3_CATEGORIES[group] = true end
 local ERRORS = {
     network = "Brak połączenia z serwerem. Sprawdź Wi-Fi i dostęp do internetu.",
     tls = "Nie udało się bezpiecznie połączyć przez HTTPS. Sprawdź datę i certyfikaty Kindle’a.",
@@ -47,7 +51,7 @@ local volume_input_open = false
 local volume_input_node
 local volume_owner
 local volume_listener
-local RADIO_VERSION = "2.30.14"
+local RADIO_VERSION = "2.30.15"
 local VOLUME_KEYS = {VMinus = -1, VolumeDown = -1, VolumeMinus = -1,
     VPlus = 1, VolumeUp = 1, VolumePlus = 1}
 
@@ -352,7 +356,13 @@ local function offer_higher(job, stream)
     end
 end
 
+local function low_mp3(stream)
+    return stream and stream.codec == "MP3" and type(stream.kbps) == "number"
+        and stream.kbps > 0 and stream.kbps <= 64
+end
+
 local function station_stream_permitted(job, settings, stream)
+    if job.low_mp3_only and not low_mp3(stream) then return false end
     if T.hard_allowed(stream) and (job.approved or T.allowed(settings, stream)) then return true end
     return job.high_ceiling and type(stream.kbps) == "number"
         and stream.kbps > T.hard_limit and stream.kbps <= job.high_ceiling
@@ -528,7 +538,8 @@ function ILRadio:monitor_radio()
                 item.stream.url, SPEECH[item.name])
             job.variants = {item.stream}
             for _, variant in ipairs(ranked) do
-                if variant.url ~= item.stream.url and not job.approved then
+                if variant.url ~= item.stream.url and not job.approved
+                    and (not job.low_mp3_only or low_mp3(variant)) then
                     job.variants[#job.variants + 1] = variant
                 end
             end
@@ -725,7 +736,7 @@ function ILRadio:monitor_local()
     end
 end
 
-function ILRadio:play_station(station, approved_url, direct, high_ceiling)
+function ILRadio:play_station(station, approved_url, direct, high_ceiling, low_mp3_only)
     -- A higher cap is never imported, persisted or inferred from the stream.
     -- It only comes from the station-specific confirmation action.
     if high_ceiling ~= HIGH_STATION_CAPS[station[1]] then high_ceiling = nil end
@@ -735,8 +746,9 @@ function ILRadio:play_station(station, approved_url, direct, high_ceiling)
     -- Unknown variants must pass a probe with a safe measured bitrate.
     local bounded = {}
     for _, stream in ipairs(variants) do
-        if not stream.kbps or T.hard_allowed(stream)
-            or (high_ceiling and stream.kbps > T.hard_limit and stream.kbps <= high_ceiling) then
+        if (not low_mp3_only or low_mp3(stream))
+            and (not stream.kbps or T.hard_allowed(stream)
+                or (high_ceiling and stream.kbps > T.hard_limit and stream.kbps <= high_ceiling)) then
             bounded[#bounded + 1] = stream
         end
     end
@@ -760,7 +772,7 @@ function ILRadio:play_station(station, approved_url, direct, high_ceiling)
         return
     end
     if not self:stop() then return end
-    self.job = {high_ceiling = high_ceiling, station = station, variants = T.rank(self.radio, variants, self.working[station[1]] or self.decoded[station[1]], SPEECH[station[1]]),
+    self.job = {high_ceiling = high_ceiling, low_mp3_only = low_mp3_only, station = station, variants = T.rank(self.radio, variants, self.working[station[1]] or self.decoded[station[1]], SPEECH[station[1]]),
         index = 0, starts = 0, engines = {}, approved = approved_url ~= nil, http_only = http_only, direct = direct}
     self.last_station_name = station[1]
     self.settings:saveSetting("last_station_name", self.last_station_name)
@@ -1183,12 +1195,15 @@ function ILRadio:station_menu(category)
     for _, station in ipairs(stations) do
         local entry = station
         local name = entry[1]
-        local matches_category = entry[2] == category or (category == "Ulubione" and self.favorites[name])
+        local is_low = LOW_MP3_CATEGORIES[category]
+        local matches_category = entry[2] == category or entry[4] == category
+            or (category == "Ulubione" and self.favorites[name])
         if matches_category then
             menu[#menu + 1] = {
                 text_func = function() return (self.favorites[name] and "★ " or "") .. name end,
                 sub_item_table = {
-                    { text = "Słuchaj", keep_menu_open = true, callback = function() self:play_station(entry) end },
+                    { text = "Słuchaj", keep_menu_open = true,
+                        callback = function() self:play_station(entry, nil, nil, nil, is_low) end },
                     { text = "Spróbuj MP3 (tryb zgodności)", keep_menu_open = true,
                         callback = function() self:play_compatible_mp3(entry) end },
                     {
@@ -1309,6 +1324,12 @@ function ILRadio:radio_menu()
             { text = "Popularne", sub_item_table_func = function() return self:station_menu("Popularne") end },
             { text = "Regionalne", sub_item_table_func = function() return self:station_menu("Regionalne") end },
             { text = "Muzyczne", sub_item_table_func = function() return self:station_menu("Muzyczne") end },
+            { text = "30 stacji MP3 do 64 kb/s", sub_item_table = {
+                { text = "Relaks i natura", sub_item_table_func = function() return self:station_menu("Relaks i natura") end },
+                { text = "Jazz i muzyka świata", sub_item_table_func = function() return self:station_menu("Jazz i muzyka świata") end },
+                { text = "Klasyka i nostalgia", sub_item_table_func = function() return self:station_menu("Klasyka i nostalgia") end },
+                { text = "Polska i audycje", sub_item_table_func = function() return self:station_menu("Polska i audycje") end },
+            } },
         } },
         { text = "Odtwarzacz MP3 i audiobooki", sub_item_table = {
             { text = "Moja muzyka", sub_item_table_func = function() return self:files_menu("music") end },
