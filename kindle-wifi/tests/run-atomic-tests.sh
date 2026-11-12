@@ -2,6 +2,17 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 mkdir -p build/mock-tests
+# Radio and Mail installers must not depend on the removed weather feature.
+test ! -e assets/bialoleka.koplugin
+test ! -e src/pl/ispinalokalnie/kindlewifi/WeatherJob.java
+test ! -e src/pl/ispinalokalnie/kindlewifi/BialolekaForecast.java
+if grep -R "BialolekaForecast\\|WeatherJob.kick" src/pl/ispinalokalnie/kindlewifi --include='*.java'; then
+  echo "Weather dependency still present in phone code" >&2
+  exit 1
+fi
+javac -encoding UTF-8 -d build/mock-tests \\
+  src/pl/ispinalokalnie/kindlewifi/BoundedInput.java tests/BoundedInputTest.java
+java -Dfile.encoding=UTF-8 -cp build/mock-tests pl.ispinalokalnie.kindlewifi.BoundedInputTest
 javac -encoding UTF-8 -d build/mock-tests \
   src/pl/ispinalokalnie/kindlewifi/VerifiedTransfer.java \
   src/pl/ispinalokalnie/kindlewifi/AudioFiles.java tests/AudioFilesTest.java \
