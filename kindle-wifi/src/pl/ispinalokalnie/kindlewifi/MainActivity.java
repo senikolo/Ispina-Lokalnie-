@@ -1274,7 +1274,8 @@ public final class MainActivity extends Activity {
         deviceAction("Instaluję IL Wi-Fi Gość przez Wi-Fi…", () -> {
             Session session = openPairedDevice();
             try {
-                CompanionFiles.install(this, session, "ilwifi_guest.koplugin");
+                CompanionFiles.install(this, session, "ilwifi_guest.koplugin",
+                        "a4e91075c750dcf004d2b0c3402a19d4bd139775a3125ee943d6aeb97ecf82c6");
                 return "Wtyczka została przesłana i sprawdzona. "
                         + "Zamknij KOReadera i uruchom ponownie przez KUAL. "
                         + "W menu Narzędzia → Więcej narzędzi wybierz „IL Wi-Fi Gość · TEST”. "
