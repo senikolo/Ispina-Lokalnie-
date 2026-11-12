@@ -129,7 +129,7 @@ final class CompanionFiles {
 
     private static byte[] asset(Context context, String plugin, String file) throws IOException {
         try (InputStream input = context.getAssets().open(plugin + "/" + file)) {
-            return BoundedInput.read(input, 16384);
+            return BoundedInput.read(input, "ilwifi_guest.koplugin".equals(plugin) ? 49152 : 16384);
         }
     }
 
@@ -190,9 +190,9 @@ final class CompanionFiles {
 
     static boolean matchesHash(ChannelSftp sftp, String path, String hash) throws Exception {
         SftpATTRS attrs = stat(sftp, path);
-        if (attrs == null || !attrs.isReg() || attrs.getSize() > 16384) return false;
+        if (attrs == null || !attrs.isReg() || attrs.getSize() > 49152) return false;
         try (InputStream input = sftp.get(path)) {
-            byte[] bytes = BoundedInput.read(input, 16384);
+            byte[] bytes = BoundedInput.read(input, 49152);
             return hash.equals(VerifiedTransfer.sha256(new ByteArrayInputStream(bytes)));
         }
     }
