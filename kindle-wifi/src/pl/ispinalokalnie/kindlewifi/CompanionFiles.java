@@ -129,7 +129,7 @@ final class CompanionFiles {
 
     private static byte[] asset(Context context, String plugin, String file) throws IOException {
         try (InputStream input = context.getAssets().open(plugin + "/" + file)) {
-            return BialolekaForecast.readBounded(input, 16384);
+            return BoundedInput.read(input, 16384);
         }
     }
 
@@ -179,7 +179,7 @@ final class CompanionFiles {
         SftpATTRS attrs = stat(sftp, path);
         if (attrs == null || !attrs.isReg() || attrs.getSize() != contents.length) return false;
         try (InputStream input = sftp.get(path)) {
-            return Arrays.equals(contents, BialolekaForecast.readBounded(input, contents.length));
+            return Arrays.equals(contents, BoundedInput.read(input, contents.length));
         }
     }
 
@@ -192,7 +192,7 @@ final class CompanionFiles {
         SftpATTRS attrs = stat(sftp, path);
         if (attrs == null || !attrs.isReg() || attrs.getSize() > 16384) return false;
         try (InputStream input = sftp.get(path)) {
-            byte[] bytes = BialolekaForecast.readBounded(input, 16384);
+            byte[] bytes = BoundedInput.read(input, 16384);
             return hash.equals(VerifiedTransfer.sha256(new ByteArrayInputStream(bytes)));
         }
     }
