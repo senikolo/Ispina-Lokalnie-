@@ -153,8 +153,8 @@ local function http_probe(url)
     if fallback then return fallback end
     -- Retain a specific LuaSocket reason when shell utilities are unavailable.
     local reason = error_command
-    if error_command == "brak narzędzia HTTP" and error_socket ~= "brak LuaSocket"
-        then reason = error_socket end
+    if (error_command == "brak narzędzia HTTP" or error_command == "brak odpowiedzi HTTP")
+        and error_socket ~= "brak LuaSocket" then reason = error_socket end
     return {code=nil, body="", error=reason or error_socket, via="brak"}
 end
 
