@@ -43,7 +43,7 @@ local volume_input_open = false
 local volume_input_node
 local volume_owner
 local volume_listener
-local RADIO_VERSION = "2.30.5"
+local RADIO_VERSION = "2.30.13"
 local VOLUME_KEYS = {VMinus = -1, VolumeDown = -1, VolumeMinus = -1,
     VPlus = 1, VolumeUp = 1, VolumePlus = 1}
 
@@ -490,6 +490,11 @@ end
 function ILRadio:monitor_radio()
     local job, item = self.job, self.current
     if not job or not item then return end
+    if shell_call("timer-expired") == "yes" then
+        self:stop()
+        self:notice("Odtwarzanie zakończone przez wyłącznik czasowy.", 6)
+        return
+    end
     local evidence = shell_call("evidence")
     local reason = evidence:match("^failed:(%w+)")
     -- Do not use MPlayer's timeline to infer a live-stream stall.
@@ -666,6 +671,11 @@ end
 function ILRadio:monitor_local()
     local item = self.current
     if not item or (item.kind ~= "music" and item.kind ~= "books") then return end
+    if shell_call("timer-expired") == "yes" then
+        self:stop()
+        self:notice("Odtwarzanie zakończone przez wyłącznik czasowy.", 6)
+        return
+    end
     local result = shell_call("local-result")
     if result == "paused" then return end
     if result == "decoded" or result == "pending" then
