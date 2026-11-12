@@ -55,6 +55,7 @@ jobs:
         run: |
           lua5.3 tests/mail-backend-test.lua
           lua5.3 tests/mail-ui-test.lua
+          lua5.3 tests/chillout-catalog-test.lua
           bash tests/run-atomic-tests.sh
           bash tests/run-stream-probe-tests.sh
           bash tests/run-radio-tests.sh
