@@ -60,6 +60,9 @@ end
 
 local function failure_reason(raw, exit_code)
     local value = tostring(raw or ""):lower()
+    if value == "przekroczono czas" or value == "odmowa połączenia"
+        or value == "brak trasy sieciowej" or value == "brak odpowiedzi HTTP"
+        or value == "brak narzędzia HTTP" then return value end
     if value:find("resolve", 1, true) or value:find("name or service", 1, true)
         or value:find("host not found", 1, true) or value:find("dns", 1, true)
         or tonumber(exit_code) == 6 then return "brak DNS" end
