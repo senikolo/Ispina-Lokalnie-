@@ -40,7 +40,7 @@ os.execute=function(command)
     error("Unexpected shell operation: "..tostring(command))
 end
 
-local expected={}, calls={}
+local expected, calls = {}, {}
 package.preload["socket.http"] = function()
     return {TIMEOUT=4,request=function(req)
         local response=expected[req.url] and expected[req.url][req.method]
