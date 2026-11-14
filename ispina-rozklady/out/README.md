@@ -2,7 +2,7 @@
 
 **Sprawdź datę podróży. Starszy dokument nie potwierdza dzisiejszych odjazdów.**
 
-Kontrola danych: 2026-11-14T13:11:55.490820+01:00
+Kontrola danych: 2026-11-14T22:29:57.351020+01:00
 
 [Oficjalne rozkłady i komunikaty KMŁ](https://kolejemalopolskie.com.pl/pl/rozklad-jazdy/rozklady-autobusowe)
 
