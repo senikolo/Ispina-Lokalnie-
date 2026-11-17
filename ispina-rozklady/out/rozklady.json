@@ -1,13 +1,13 @@
 {
-  "generated_at": "2026-11-16T14:39:17.826173+01:00",
+  "generated_at": "2026-11-17T01:48:33.613823+01:00",
   "timezone": "Europe/Warsaw",
   "data_type": "scheduled_not_realtime",
-  "date": "2026-11-16",
+  "date": "2026-11-17",
   "valid": false,
   "status": "partial",
   "days": [
     {
-      "date": "2026-11-16",
+      "date": "2026-11-17",
       "departures": [
         {
           "stop": "most",
@@ -1275,7 +1275,7 @@
       }
     },
     {
-      "date": "2026-11-17",
+      "date": "2026-11-18",
       "departures": [
         {
           "stop": "most",
