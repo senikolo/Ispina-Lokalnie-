@@ -2,7 +2,7 @@
 
 **Sprawdź datę podróży. Starszy dokument nie potwierdza dzisiejszych odjazdów.**
 
-Kontrola danych: 2026-11-17T15:24:37.716363+01:00
+Kontrola danych: 2026-11-18T00:51:13.081743+01:00
 
 [Oficjalne rozkłady i komunikaty KMŁ](https://kolejemalopolskie.com.pl/pl/rozklad-jazdy/rozklady-autobusowe)
 
@@ -10,7 +10,7 @@ Kontrola danych: 2026-11-17T15:24:37.716363+01:00
 
 Czasy są planowe, bez opóźnień na żywo. Linia gminna pozostaje na stronie Ispina Lokalnie.
 
-## 2026-11-17
+## 2026-11-18
 
 **A4: potwierdzona zgodność GTFS z PDF.** [PDF przewoźnika](https://kolejemalopolskie.com.pl/brepo/panel_repo/2026/10/19/rccwk3/a4-od-25-x-2026.pdf)
 
@@ -181,7 +181,7 @@ Czasy są planowe, bez opóźnień na żywo. Linia gminna pozostaje na stronie I
 | Godzina | Linia | Kierunek / przystanek końcowy |
 | --- | --- | --- |
 
-## 2026-11-18
+## 2026-11-19
 
 **A4: potwierdzona zgodność GTFS z PDF.** [PDF przewoźnika](https://kolejemalopolskie.com.pl/brepo/panel_repo/2026/10/19/rccwk3/a4-od-25-x-2026.pdf)
 
