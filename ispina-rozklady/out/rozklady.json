@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-11-18T08:28:58.192313+01:00",
+  "generated_at": "2026-11-18T20:24:22.043865+01:00",
   "timezone": "Europe/Warsaw",
   "data_type": "scheduled_not_realtime",
   "date": "2026-11-18",
@@ -2544,14 +2544,14 @@
     }
   ],
   "source": "https://gtfs.kolejemalopolskie.com.pl/?download=L2hvbWUvcmdfdXNlci9yZ191c2VyL0dURlMtU1QvR1RGUy56aXA%3D",
-  "feed_sha256": "29682b4b4c0254777790d695bfa3ccb52de3dbc67a9b3695256a5142b938407c",
+  "feed_sha256": "02bfe537687ec7528ff8b3ff9314ff5dd0dd4a20d4d866e69ccf598de010d276",
   "feed_info": {
     "feed_publisher_name": "R&G PLUS Sp. z o.o.",
     "feed_publisher_url": "http://www.rg.com.pl",
     "feed_lang": "pl",
-    "feed_start_date": "20261116",
+    "feed_start_date": "20261118",
     "feed_end_date": "20261213",
-    "feed_version": "1387_1388",
+    "feed_version": "1388",
     "feed_contact_email": "municom@rg.com.pl",
     "feed_contact_url": ""
   }
