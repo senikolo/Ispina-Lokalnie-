@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-11-20T08:16:21.765707+01:00",
+  "generated_at": "2026-11-20T20:06:19.307546+01:00",
   "timezone": "Europe/Warsaw",
   "data_type": "scheduled_not_realtime",
   "date": "2026-11-20",
@@ -1284,7 +1284,7 @@
           "direction": "north",
           "time": "04:26",
           "destination": "Nowe Brzesko Rynek",
-          "trip_id": "1390_1823"
+          "trip_id": "1391_1825"
         },
         {
           "stop": "dom-ludowy",
@@ -1293,7 +1293,7 @@
           "direction": "north",
           "time": "04:27",
           "destination": "Nowe Brzesko Rynek",
-          "trip_id": "1390_1823"
+          "trip_id": "1391_1825"
         },
         {
           "stop": "most",
@@ -1302,7 +1302,7 @@
           "direction": "north",
           "time": "04:28",
           "destination": "Nowe Brzesko Rynek",
-          "trip_id": "1390_1823"
+          "trip_id": "1391_1825"
         },
         {
           "stop": "most",
@@ -1311,7 +1311,7 @@
           "direction": "south",
           "time": "05:04",
           "destination": "Bochnia Dworzec PKP",
-          "trip_id": "1390_1824"
+          "trip_id": "1391_1826"
         },
         {
           "stop": "dom-ludowy",
@@ -1320,7 +1320,7 @@
           "direction": "south",
           "time": "05:05",
           "destination": "Bochnia Dworzec PKP",
-          "trip_id": "1390_1824"
+          "trip_id": "1391_1826"
         },
         {
           "stop": "wislisko",
@@ -1329,7 +1329,7 @@
           "direction": "south",
           "time": "05:06",
           "destination": "Bochnia Dworzec PKP",
-          "trip_id": "1390_1824"
+          "trip_id": "1391_1826"
         },
         {
           "stop": "wislisko",
@@ -1338,7 +1338,7 @@
           "direction": "north",
           "time": "06:08",
           "destination": "Nowe Brzesko Rynek",
-          "trip_id": "1390_1789"
+          "trip_id": "1391_1791"
         },
         {
           "stop": "dom-ludowy",
@@ -1347,7 +1347,7 @@
           "direction": "north",
           "time": "06:09",
           "destination": "Nowe Brzesko Rynek",
-          "trip_id": "1390_1789"
+          "trip_id": "1391_1791"
         },
         {
           "stop": "most",
@@ -1356,7 +1356,7 @@
           "direction": "north",
           "time": "06:10",
           "destination": "Nowe Brzesko Rynek",
-          "trip_id": "1390_1789"
+          "trip_id": "1391_1791"
         },
         {
           "stop": "most",
@@ -1365,7 +1365,7 @@
           "direction": "south",
           "time": "06:29",
           "destination": "Bochnia Dworzec PKP",
-          "trip_id": "1390_1790"
+          "trip_id": "1391_1792"
         },
         {
           "stop": "dom-ludowy",
@@ -1374,7 +1374,7 @@
           "direction": "south",
           "time": "06:30",
           "destination": "Bochnia Dworzec PKP",
-          "trip_id": "1390_1790"
+          "trip_id": "1391_1792"
         },
         {
           "stop": "wislisko",
@@ -1383,7 +1383,7 @@
           "direction": "south",
           "time": "06:31",
           "destination": "Bochnia Dworzec PKP",
-          "trip_id": "1390_1790"
+          "trip_id": "1391_1792"
         },
         {
           "stop": "wislisko",
@@ -1392,7 +1392,7 @@
           "direction": "north",
           "time": "08:26",
           "destination": "Nowe Brzesko Rynek",
-          "trip_id": "1390_1825"
+          "trip_id": "1391_1827"
         },
         {
           "stop": "dom-ludowy",
@@ -1401,7 +1401,7 @@
           "direction": "north",
           "time": "08:27",
           "destination": "Nowe Brzesko Rynek",
-          "trip_id": "1390_1825"
+          "trip_id": "1391_1827"
         },
         {
           "stop": "most",
@@ -1410,7 +1410,7 @@
           "direction": "north",
           "time": "08:28",
           "destination": "Nowe Brzesko Rynek",
-          "trip_id": "1390_1825"
+          "trip_id": "1391_1827"
         },
         {
           "stop": "most",
@@ -1419,7 +1419,7 @@
           "direction": "south",
           "time": "09:29",
           "destination": "Bochnia Dworzec PKP",
-          "trip_id": "1390_1826"
+          "trip_id": "1391_1828"
         },
         {
           "stop": "dom-ludowy",
@@ -1428,7 +1428,7 @@
           "direction": "south",
           "time": "09:30",
           "destination": "Bochnia Dworzec PKP",
-          "trip_id": "1390_1826"
+          "trip_id": "1391_1828"
         },
         {
           "stop": "wislisko",
@@ -1437,7 +1437,7 @@
           "direction": "south",
           "time": "09:31",
           "destination": "Bochnia Dworzec PKP",
-          "trip_id": "1390_1826"
+          "trip_id": "1391_1828"
         },
         {
           "stop": "wislisko",
@@ -1446,7 +1446,7 @@
           "direction": "north",
           "time": "10:03",
           "destination": "Nowe Brzesko Rynek",
-          "trip_id": "1390_1791"
+          "trip_id": "1391_1793"
         },
         {
           "stop": "dom-ludowy",
@@ -1455,7 +1455,7 @@
           "direction": "north",
           "time": "10:04",
           "destination": "Nowe Brzesko Rynek",
-          "trip_id": "1390_1791"
+          "trip_id": "1391_1793"
         },
         {
           "stop": "most",
@@ -1464,7 +1464,7 @@
           "direction": "north",
           "time": "10:05",
           "destination": "Nowe Brzesko Rynek",
-          "trip_id": "1390_1791"
+          "trip_id": "1391_1793"
         },
         {
           "stop": "most",
@@ -1473,7 +1473,7 @@
           "direction": "south",
           "time": "11:04",
           "destination": "Bochnia Dworzec PKP",
-          "trip_id": "1390_1792"
+          "trip_id": "1391_1794"
         },
         {
           "stop": "dom-ludowy",
@@ -1482,7 +1482,7 @@
           "direction": "south",
           "time": "11:05",
           "destination": "Bochnia Dworzec PKP",
-          "trip_id": "1390_1792"
+          "trip_id": "1391_1794"
         },
         {
           "stop": "wislisko",
@@ -1491,7 +1491,7 @@
           "direction": "south",
           "time": "11:06",
           "destination": "Bochnia Dworzec PKP",
-          "trip_id": "1390_1792"
+          "trip_id": "1391_1794"
         },
         {
           "stop": "wislisko",
@@ -1500,7 +1500,7 @@
           "direction": "north",
           "time": "12:26",
           "destination": "Nowe Brzesko Rynek",
-          "trip_id": "1390_1827"
+          "trip_id": "1391_1829"
         },
         {
           "stop": "dom-ludowy",
@@ -1509,7 +1509,7 @@
           "direction": "north",
           "time": "12:27",
           "destination": "Nowe Brzesko Rynek",
-          "trip_id": "1390_1827"
+          "trip_id": "1391_1829"
         },
         {
           "stop": "most",
@@ -1518,7 +1518,7 @@
           "direction": "north",
           "time": "12:28",
           "destination": "Nowe Brzesko Rynek",
-          "trip_id": "1390_1827"
+          "trip_id": "1391_1829"
         },
         {
           "stop": "most",
@@ -1527,7 +1527,7 @@
           "direction": "south",
           "time": "12:49",
           "destination": "Bochnia Dworzec PKP",
-          "trip_id": "1390_1828"
+          "trip_id": "1391_1830"
         },
         {
           "stop": "dom-ludowy",
@@ -1536,7 +1536,7 @@
           "direction": "south",
           "time": "12:50",
           "destination": "Bochnia Dworzec PKP",
-          "trip_id": "1390_1828"
+          "trip_id": "1391_1830"
         },
         {
           "stop": "wislisko",
@@ -1545,7 +1545,7 @@
           "direction": "south",
           "time": "12:51",
           "destination": "Bochnia Dworzec PKP",
-          "trip_id": "1390_1828"
+          "trip_id": "1391_1830"
         },
         {
           "stop": "wislisko",
@@ -1554,7 +1554,7 @@
           "direction": "north",
           "time": "13:28",
           "destination": "Nowe Brzesko Rynek",
-          "trip_id": "1390_1793"
+          "trip_id": "1391_1795"
         },
         {
           "stop": "dom-ludowy",
@@ -1563,7 +1563,7 @@
           "direction": "north",
           "time": "13:29",
           "destination": "Nowe Brzesko Rynek",
-          "trip_id": "1390_1793"
+          "trip_id": "1391_1795"
         },
         {
           "stop": "most",
@@ -1572,7 +1572,7 @@
           "direction": "north",
           "time": "13:30",
           "destination": "Nowe Brzesko Rynek",
-          "trip_id": "1390_1793"
+          "trip_id": "1391_1795"
         },
         {
           "stop": "most",
@@ -1581,7 +1581,7 @@
           "direction": "south",
           "time": "14:29",
           "destination": "Bochnia Dworzec PKP",
-          "trip_id": "1390_1794"
+          "trip_id": "1391_1796"
         },
         {
           "stop": "dom-ludowy",
@@ -1590,7 +1590,7 @@
           "direction": "south",
           "time": "14:30",
           "destination": "Bochnia Dworzec PKP",
-          "trip_id": "1390_1794"
+          "trip_id": "1391_1796"
         },
         {
           "stop": "wislisko",
@@ -1599,7 +1599,7 @@
           "direction": "south",
           "time": "14:31",
           "destination": "Bochnia Dworzec PKP",
-          "trip_id": "1390_1794"
+          "trip_id": "1391_1796"
         },
         {
           "stop": "wislisko",
@@ -1608,7 +1608,7 @@
           "direction": "north",
           "time": "16:16",
           "destination": "Nowe Brzesko Rynek",
-          "trip_id": "1390_1829"
+          "trip_id": "1391_1831"
         },
         {
           "stop": "dom-ludowy",
@@ -1617,7 +1617,7 @@
           "direction": "north",
           "time": "16:17",
           "destination": "Nowe Brzesko Rynek",
-          "trip_id": "1390_1829"
+          "trip_id": "1391_1831"
         },
         {
           "stop": "most",
@@ -1626,7 +1626,7 @@
           "direction": "north",
           "time": "16:18",
           "destination": "Nowe Brzesko Rynek",
-          "trip_id": "1390_1829"
+          "trip_id": "1391_1831"
         },
         {
           "stop": "wislisko",
@@ -1635,7 +1635,7 @@
           "direction": "north",
           "time": "17:43",
           "destination": "Nowe Brzesko Rynek",
-          "trip_id": "1390_1795"
+          "trip_id": "1391_1797"
         },
         {
           "stop": "dom-ludowy",
@@ -1644,7 +1644,7 @@
           "direction": "north",
           "time": "17:44",
           "destination": "Nowe Brzesko Rynek",
-          "trip_id": "1390_1795"
+          "trip_id": "1391_1797"
         },
         {
           "stop": "most",
@@ -1653,7 +1653,7 @@
           "direction": "north",
           "time": "17:45",
           "destination": "Nowe Brzesko Rynek",
-          "trip_id": "1390_1795"
+          "trip_id": "1391_1797"
         },
         {
           "stop": "most",
@@ -1662,7 +1662,7 @@
           "direction": "south",
           "time": "17:49",
           "destination": "Bochnia Dworzec PKP",
-          "trip_id": "1390_1830"
+          "trip_id": "1391_1832"
         },
         {
           "stop": "dom-ludowy",
@@ -1671,7 +1671,7 @@
           "direction": "south",
           "time": "17:50",
           "destination": "Bochnia Dworzec PKP",
-          "trip_id": "1390_1830"
+          "trip_id": "1391_1832"
         },
         {
           "stop": "wislisko",
@@ -1680,7 +1680,7 @@
           "direction": "south",
           "time": "17:51",
           "destination": "Bochnia Dworzec PKP",
-          "trip_id": "1390_1830"
+          "trip_id": "1391_1832"
         },
         {
           "stop": "most",
@@ -1689,7 +1689,7 @@
           "direction": "south",
           "time": "18:49",
           "destination": "Bochnia Dworzec PKP",
-          "trip_id": "1390_1796"
+          "trip_id": "1391_1798"
         },
         {
           "stop": "dom-ludowy",
@@ -1698,7 +1698,7 @@
           "direction": "south",
           "time": "18:50",
           "destination": "Bochnia Dworzec PKP",
-          "trip_id": "1390_1796"
+          "trip_id": "1391_1798"
         },
         {
           "stop": "wislisko",
@@ -1707,7 +1707,7 @@
           "direction": "south",
           "time": "18:51",
           "destination": "Bochnia Dworzec PKP",
-          "trip_id": "1390_1796"
+          "trip_id": "1391_1798"
         },
         {
           "stop": "wislisko",
@@ -1716,7 +1716,7 @@
           "direction": "north",
           "time": "20:16",
           "destination": "Nowe Brzesko Rynek",
-          "trip_id": "1390_1831"
+          "trip_id": "1391_1833"
         },
         {
           "stop": "dom-ludowy",
@@ -1725,7 +1725,7 @@
           "direction": "north",
           "time": "20:17",
           "destination": "Nowe Brzesko Rynek",
-          "trip_id": "1390_1831"
+          "trip_id": "1391_1833"
         },
         {
           "stop": "most",
@@ -1734,7 +1734,7 @@
           "direction": "north",
           "time": "20:18",
           "destination": "Nowe Brzesko Rynek",
-          "trip_id": "1390_1831"
+          "trip_id": "1391_1833"
         },
         {
           "stop": "most",
@@ -1743,7 +1743,7 @@
           "direction": "south",
           "time": "20:49",
           "destination": "Bochnia Dworzec PKP",
-          "trip_id": "1390_1832"
+          "trip_id": "1391_1834"
         },
         {
           "stop": "dom-ludowy",
@@ -1752,7 +1752,7 @@
           "direction": "south",
           "time": "20:50",
           "destination": "Bochnia Dworzec PKP",
-          "trip_id": "1390_1832"
+          "trip_id": "1391_1834"
         },
         {
           "stop": "wislisko",
@@ -1761,7 +1761,7 @@
           "direction": "south",
           "time": "20:51",
           "destination": "Bochnia Dworzec PKP",
-          "trip_id": "1390_1832"
+          "trip_id": "1391_1834"
         }
       ],
       "validation": {
@@ -1788,14 +1788,14 @@
     }
   ],
   "source": "https://gtfs.kolejemalopolskie.com.pl/?download=L2hvbWUvcmdfdXNlci9yZ191c2VyL0dURlMtU1QvR1RGUy56aXA%3D",
-  "feed_sha256": "d6b05854af13055c19cf9785a596a64e8272c41fa36f132bbf8590ab5f8c6c38",
+  "feed_sha256": "038147f7bac040ebd95b775f5b85842105931c49d3b85a5c14ab2b7dd137d661",
   "feed_info": {
     "feed_publisher_name": "R&G PLUS Sp. z o.o.",
     "feed_publisher_url": "http://www.rg.com.pl",
     "feed_lang": "pl",
-    "feed_start_date": "20261118",
+    "feed_start_date": "20261120",
     "feed_end_date": "20261213",
-    "feed_version": "1388_1390",
+    "feed_version": "1390_1391",
     "feed_contact_email": "municom@rg.com.pl",
     "feed_contact_url": ""
   }
