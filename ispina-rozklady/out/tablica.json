@@ -1,15 +1,8 @@
 {
   "schema": 1,
-  "generated_at": "2026-11-22T23:28:17.888541+01:00",
+  "generated_at": "2026-11-23T04:43:30.026825+01:00",
   "timezone": "Europe/Warsaw",
   "days": [
-    {
-      "date": "2026-11-22",
-      "departures": [],
-      "warnings": [
-        "MLD: Zmieniony lub nieznany PDF A7"
-      ]
-    },
     {
       "date": "2026-11-23",
       "departures": [
@@ -1704,6 +1697,13 @@
           "pdf": "https://www.drwinia.pl/pro_drwinia/zasoby/files/krakow-mikluszowice-robocze-scalone.pdf"
         }
       ],
+      "warnings": [
+        "MLD: Zmieniony lub nieznany PDF A7"
+      ]
+    },
+    {
+      "date": "2026-11-29",
+      "departures": [],
       "warnings": [
         "MLD: Zmieniony lub nieznany PDF A7"
       ]
