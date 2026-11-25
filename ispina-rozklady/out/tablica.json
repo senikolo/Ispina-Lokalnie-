@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "generated_at": "2026-11-25T02:25:46.502517+01:00",
+  "generated_at": "2026-11-25T16:36:48.663387+01:00",
   "timezone": "Europe/Warsaw",
   "days": [
     {
@@ -1402,6 +1402,6 @@
     }
   ],
   "gminna_notice": "Linia gminna: odjazdy z Domu Ludowego (Ispina III). Osobny odjazd z Mostu nie jest potwierdzony w oficjalnym PDF.",
-  "feed_version": "1391",
+  "feed_version": "1391_1392",
   "review_valid_until": "2026-11-30"
 }
